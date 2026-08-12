@@ -1,0 +1,761 @@
+{
+  "interface": "DeterministicScenarioCatalog@1",
+  "schema_version": "deterministic-scenario-catalog/v1",
+  "catalog_id": "catalog:agent-supervisor-scenarios",
+  "application_id": "app:agent-supervisor",
+  "screen_id": "screen:agent-supervisor",
+  "seed": "vgo-003-agent-supervisor-deterministic-seed",
+  "frozen_time": "2026-08-11T00:00:00.000Z",
+  "timezone": "UTC",
+  "locale": "en-US",
+  "canonical_json_profile": "gui-optimizer-canonical-json/v1",
+  "extractor_version": "gui-scenario-catalog@1.0.0",
+  "required_scenario_kinds": [
+    "initial_load",
+    "loading",
+    "success",
+    "empty",
+    "recoverable_failure",
+    "unrecoverable_failure",
+    "invalid_submission",
+    "valid_submission",
+    "keyboard_only",
+    "viewport_mobile",
+    "viewport_desktop",
+    "viewport_wide",
+    "text_scale_200",
+    "reduced_motion",
+    "dark_mode",
+    "service_unavailable",
+    "confirmation_grant",
+    "confirmation_deny"
+  ],
+  "stable_scenario_ids": {
+    "initial_load": "scenario:initial-load",
+    "loading": "scenario:loading",
+    "success": "scenario:success",
+    "empty": "scenario:empty",
+    "recoverable_failure": "scenario:recoverable-failure",
+    "unrecoverable_failure": "scenario:unrecoverable-failure",
+    "invalid_submission": "scenario:invalid-submission",
+    "valid_submission": "scenario:valid-submission",
+    "keyboard_only": "scenario:keyboard-only",
+    "viewport_mobile": "scenario:viewport-mobile",
+    "viewport_desktop": "scenario:viewport-desktop",
+    "viewport_wide": "scenario:viewport-wide",
+    "text_scale_200": "scenario:text-scale-200",
+    "reduced_motion": "scenario:reduced-motion",
+    "dark_mode": "scenario:dark-mode",
+    "service_unavailable": "scenario:service-unavailable",
+    "confirmation_grant": "scenario:confirmation-grant",
+    "confirmation_deny": "scenario:confirmation-deny"
+  },
+  "expected_terminal_states": {
+    "initial_load": ["state:ready"],
+    "loading": ["state:loading"],
+    "success": ["state:success"],
+    "empty": ["state:empty"],
+    "recoverable_failure": ["state:recovery"],
+    "unrecoverable_failure": ["state:failure"],
+    "invalid_submission": ["state:ready"],
+    "valid_submission": ["state:success"],
+    "keyboard_only": ["state:ready"],
+    "viewport_mobile": ["state:ready"],
+    "viewport_desktop": ["state:ready"],
+    "viewport_wide": ["state:ready"],
+    "text_scale_200": ["state:ready"],
+    "reduced_motion": ["state:ready"],
+    "dark_mode": ["state:ready"],
+    "service_unavailable": ["state:unavailable"],
+    "confirmation_grant": ["state:success"],
+    "confirmation_deny": ["state:ready"]
+  },
+  "viewports": {
+    "mobile": {
+      "interface": "ViewportSpec@1",
+      "schema_version": "gui-viewport-spec/v1",
+      "width": 390,
+      "height": 844,
+      "device_scale_factor": 1
+    },
+    "desktop": {
+      "interface": "ViewportSpec@1",
+      "schema_version": "gui-viewport-spec/v1",
+      "width": 1280,
+      "height": 800,
+      "device_scale_factor": 1
+    },
+    "wide": {
+      "interface": "ViewportSpec@1",
+      "schema_version": "gui-viewport-spec/v1",
+      "width": 1600,
+      "height": 1000,
+      "device_scale_factor": 1
+    }
+  },
+  "fixtures": [
+    {
+      "fixture_id": "fixture:agent-supervisor:initial-load",
+      "description": "Initial load with populated synthetic supervisor state.",
+      "network_outcome": "success",
+      "animation": "allowed",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "initial",
+        "goals": [
+          {
+            "goal_id": "goal:synthetic-A",
+            "title": "Synthetic goal A",
+            "status": "running"
+          },
+          {
+            "goal_id": "goal:synthetic-B",
+            "title": "Synthetic goal B",
+            "status": "running"
+          }
+        ],
+        "queue": [
+          {
+            "task_id": "task:synthetic-1",
+            "status": "running",
+            "title": "Synthetic task 1"
+          },
+          {
+            "task_id": "task:synthetic-2",
+            "status": "queued",
+            "title": "Synthetic task 2"
+          }
+        ],
+        "health": { "status": "available" }
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:loading",
+      "description": "In-flight loading snapshot with pending network.",
+      "network_outcome": "loading",
+      "animation": "allowed",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "loading",
+        "goals": [],
+        "queue": [],
+        "health": { "status": "loading" }
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:success",
+      "description": "Normal success with completed synthetic goals.",
+      "network_outcome": "success",
+      "animation": "allowed",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "success",
+        "goals": [
+          {
+            "goal_id": "goal:synthetic-A",
+            "title": "Synthetic goal A",
+            "status": "completed"
+          },
+          {
+            "goal_id": "goal:synthetic-B",
+            "title": "Synthetic goal B",
+            "status": "completed"
+          }
+        ],
+        "queue": [],
+        "health": { "status": "available" }
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:empty",
+      "description": "Empty data set with no goals or queue items.",
+      "network_outcome": "empty",
+      "animation": "allowed",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "empty",
+        "goals": [],
+        "queue": [],
+        "health": { "status": "available" }
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:recoverable-failure",
+      "description": "Recoverable transport error with retry affordance.",
+      "network_outcome": "recoverable_error",
+      "animation": "allowed",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "recoverable_failure",
+        "error": {
+          "code": "transport_timeout",
+          "recoverable": true,
+          "message": "Synthetic recoverable timeout"
+        },
+        "goals": [
+          {
+            "goal_id": "goal:synthetic-A",
+            "title": "Synthetic goal A",
+            "status": "running"
+          },
+          {
+            "goal_id": "goal:synthetic-B",
+            "title": "Synthetic goal B",
+            "status": "running"
+          }
+        ],
+        "queue": [
+          {
+            "task_id": "task:synthetic-1",
+            "status": "running",
+            "title": "Synthetic task 1"
+          }
+        ]
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:unrecoverable-failure",
+      "description": "Unrecoverable failure requiring operator intervention.",
+      "network_outcome": "unrecoverable_error",
+      "animation": "allowed",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "unrecoverable_failure",
+        "error": {
+          "code": "schema_mismatch",
+          "recoverable": false,
+          "message": "Synthetic unrecoverable schema mismatch"
+        },
+        "goals": [],
+        "queue": []
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:invalid-submission",
+      "description": "Invalid steering/dispatch input rejected by validation.",
+      "network_outcome": "validation_failure",
+      "animation": "allowed",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "invalid_submission",
+        "steering": {
+          "prompt": "",
+          "valid": false,
+          "errors": ["prompt_required"]
+        },
+        "goals": [
+          {
+            "goal_id": "goal:synthetic-A",
+            "title": "Synthetic goal A",
+            "status": "running"
+          },
+          {
+            "goal_id": "goal:synthetic-B",
+            "title": "Synthetic goal B",
+            "status": "running"
+          }
+        ],
+        "queue": [
+          {
+            "task_id": "task:synthetic-1",
+            "status": "running",
+            "title": "Synthetic task 1"
+          }
+        ]
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:valid-submission",
+      "description": "Valid confirmed submission of synthetic steering request.",
+      "network_outcome": "confirmation_granted",
+      "animation": "allowed",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "valid_submission",
+        "steering": {
+          "prompt": "Synthetic governed prompt",
+          "valid": true,
+          "confirmed": true
+        },
+        "goals": [
+          {
+            "goal_id": "goal:synthetic-A",
+            "title": "Synthetic goal A",
+            "status": "running"
+          },
+          {
+            "goal_id": "goal:synthetic-B",
+            "title": "Synthetic goal B",
+            "status": "running"
+          }
+        ],
+        "queue": [
+          {
+            "task_id": "task:synthetic-1",
+            "status": "running",
+            "title": "Synthetic task 1"
+          }
+        ]
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:keyboard-only",
+      "description": "Keyboard-only navigation over synthetic console controls.",
+      "network_outcome": "success",
+      "animation": "reduced",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "keyboard_only",
+        "focus_order": [
+          "control:goals-tree",
+          "control:queue",
+          "control:prompt-input",
+          "control:submit"
+        ],
+        "goals": [
+          {
+            "goal_id": "goal:synthetic-A",
+            "title": "Synthetic goal A",
+            "status": "running"
+          },
+          {
+            "goal_id": "goal:synthetic-B",
+            "title": "Synthetic goal B",
+            "status": "running"
+          }
+        ],
+        "queue": [
+          {
+            "task_id": "task:synthetic-1",
+            "status": "running",
+            "title": "Synthetic task 1"
+          },
+          {
+            "task_id": "task:synthetic-2",
+            "status": "queued",
+            "title": "Synthetic task 2"
+          }
+        ]
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:viewport-matrix",
+      "description": "Shared synthetic state for viewport and scale scenarios.",
+      "network_outcome": "success",
+      "animation": "allowed",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "viewport_matrix",
+        "goals": [
+          {
+            "goal_id": "goal:synthetic-A",
+            "title": "Synthetic goal A",
+            "status": "running"
+          },
+          {
+            "goal_id": "goal:synthetic-B",
+            "title": "Synthetic goal B",
+            "status": "running"
+          }
+        ],
+        "queue": [
+          {
+            "task_id": "task:synthetic-1",
+            "status": "running",
+            "title": "Synthetic task 1"
+          },
+          {
+            "task_id": "task:synthetic-2",
+            "status": "queued",
+            "title": "Synthetic task 2"
+          }
+        ],
+        "health": { "status": "available" }
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:reduced-motion",
+      "description": "Reduced-motion preference with animations disabled.",
+      "network_outcome": "success",
+      "animation": "disabled",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "reduced_motion",
+        "prefers_reduced_motion": true,
+        "goals": [
+          {
+            "goal_id": "goal:synthetic-A",
+            "title": "Synthetic goal A",
+            "status": "running"
+          },
+          {
+            "goal_id": "goal:synthetic-B",
+            "title": "Synthetic goal B",
+            "status": "running"
+          }
+        ],
+        "queue": [
+          {
+            "task_id": "task:synthetic-1",
+            "status": "running",
+            "title": "Synthetic task 1"
+          }
+        ]
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:dark-mode",
+      "description": "Dark color scheme when the screen advertises support.",
+      "network_outcome": "success",
+      "animation": "allowed",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "dark_mode",
+        "color_scheme_support": ["light", "dark"],
+        "goals": [
+          {
+            "goal_id": "goal:synthetic-A",
+            "title": "Synthetic goal A",
+            "status": "running"
+          },
+          {
+            "goal_id": "goal:synthetic-B",
+            "title": "Synthetic goal B",
+            "status": "running"
+          }
+        ],
+        "queue": [
+          {
+            "task_id": "task:synthetic-1",
+            "status": "running",
+            "title": "Synthetic task 1"
+          }
+        ]
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:service-unavailable",
+      "description": "All synthetic backends report unavailable.",
+      "network_outcome": "service_unavailable",
+      "animation": "allowed",
+      "locale": "en-US",
+      "service_overrides": {
+        "supervisor_state": "synthetic://unavailable",
+        "task_queue": "synthetic://unavailable",
+        "goal_index": "synthetic://unavailable",
+        "receipt_store": "synthetic://unavailable",
+        "policy_assist": "synthetic://unavailable"
+      },
+      "application_data": {
+        "phase": "service_unavailable",
+        "health": { "status": "server_unavailable" },
+        "goals": [],
+        "queue": []
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:confirmation-grant",
+      "description": "Confirmation dialog granted for governed write.",
+      "network_outcome": "confirmation_granted",
+      "animation": "allowed",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "confirmation_grant",
+        "confirmation": {
+          "required": true,
+          "decision": "granted",
+          "action_id": "action:prompt-steering"
+        },
+        "goals": [
+          {
+            "goal_id": "goal:synthetic-A",
+            "title": "Synthetic goal A",
+            "status": "running"
+          },
+          {
+            "goal_id": "goal:synthetic-B",
+            "title": "Synthetic goal B",
+            "status": "running"
+          }
+        ],
+        "queue": [
+          {
+            "task_id": "task:synthetic-1",
+            "status": "running",
+            "title": "Synthetic task 1"
+          }
+        ]
+      }
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:confirmation-deny",
+      "description": "Confirmation dialog denied; no governed write applied.",
+      "network_outcome": "confirmation_denied",
+      "animation": "allowed",
+      "locale": "en-US",
+      "application_data": {
+        "phase": "confirmation_deny",
+        "confirmation": {
+          "required": true,
+          "decision": "denied",
+          "action_id": "action:prompt-steering"
+        },
+        "goals": [
+          {
+            "goal_id": "goal:synthetic-A",
+            "title": "Synthetic goal A",
+            "status": "running"
+          },
+          {
+            "goal_id": "goal:synthetic-B",
+            "title": "Synthetic goal B",
+            "status": "running"
+          }
+        ],
+        "queue": [
+          {
+            "task_id": "task:synthetic-1",
+            "status": "running",
+            "title": "Synthetic task 1"
+          }
+        ]
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "kind": "initial_load",
+      "scenario_id": "scenario:initial-load",
+      "name": "Initial load",
+      "fixture_id": "fixture:agent-supervisor:initial-load",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["initial", "load", "baseline"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "loading",
+      "scenario_id": "scenario:loading",
+      "name": "Loading state",
+      "fixture_id": "fixture:agent-supervisor:loading",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["loading", "async"],
+      "expected_terminal_states": ["state:loading"]
+    },
+    {
+      "kind": "success",
+      "scenario_id": "scenario:success",
+      "name": "Normal success",
+      "fixture_id": "fixture:agent-supervisor:success",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["success", "baseline"],
+      "expected_terminal_states": ["state:success"]
+    },
+    {
+      "kind": "empty",
+      "scenario_id": "scenario:empty",
+      "name": "Empty data",
+      "fixture_id": "fixture:agent-supervisor:empty",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["empty", "data"],
+      "expected_terminal_states": ["state:empty"]
+    },
+    {
+      "kind": "recoverable_failure",
+      "scenario_id": "scenario:recoverable-failure",
+      "name": "Recoverable error",
+      "fixture_id": "fixture:agent-supervisor:recoverable-failure",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["error", "recoverable", "failure"],
+      "expected_terminal_states": ["state:recovery"]
+    },
+    {
+      "kind": "unrecoverable_failure",
+      "scenario_id": "scenario:unrecoverable-failure",
+      "name": "Unrecoverable error",
+      "fixture_id": "fixture:agent-supervisor:unrecoverable-failure",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["error", "unrecoverable", "failure"],
+      "expected_terminal_states": ["state:failure"]
+    },
+    {
+      "kind": "invalid_submission",
+      "scenario_id": "scenario:invalid-submission",
+      "name": "Invalid steering or dispatch input",
+      "fixture_id": "fixture:agent-supervisor:invalid-submission",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["submission", "validation", "invalid"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "valid_submission",
+      "scenario_id": "scenario:valid-submission",
+      "name": "Valid confirmed submission",
+      "fixture_id": "fixture:agent-supervisor:valid-submission",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["submission", "validation", "valid", "confirmation"],
+      "expected_terminal_states": ["state:success"]
+    },
+    {
+      "kind": "keyboard_only",
+      "scenario_id": "scenario:keyboard-only",
+      "name": "Keyboard-only navigation",
+      "fixture_id": "fixture:agent-supervisor:keyboard-only",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": true,
+      "tags": ["keyboard", "a11y"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "viewport_mobile",
+      "scenario_id": "scenario:viewport-mobile",
+      "name": "Narrow mobile viewport 390x844",
+      "fixture_id": "fixture:agent-supervisor:viewport-matrix",
+      "viewport": "mobile",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["viewport", "mobile", "responsive"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "viewport_desktop",
+      "scenario_id": "scenario:viewport-desktop",
+      "name": "Standard desktop viewport 1280x800",
+      "fixture_id": "fixture:agent-supervisor:viewport-matrix",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["viewport", "desktop", "responsive"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "viewport_wide",
+      "scenario_id": "scenario:viewport-wide",
+      "name": "Wide desktop viewport 1600x1000",
+      "fixture_id": "fixture:agent-supervisor:viewport-matrix",
+      "viewport": "wide",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["viewport", "wide", "responsive"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "text_scale_200",
+      "scenario_id": "scenario:text-scale-200",
+      "name": "200 percent text scaling",
+      "fixture_id": "fixture:agent-supervisor:viewport-matrix",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 200,
+      "reduced_motion": false,
+      "tags": ["text-scale", "zoom", "a11y"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "reduced_motion",
+      "scenario_id": "scenario:reduced-motion",
+      "name": "Reduced-motion preference",
+      "fixture_id": "fixture:agent-supervisor:reduced-motion",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": true,
+      "tags": ["reduced-motion", "a11y", "animation"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "dark_mode",
+      "scenario_id": "scenario:dark-mode",
+      "name": "Dark mode when screen advertises support",
+      "fixture_id": "fixture:agent-supervisor:dark-mode",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "dark",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["dark-mode", "color-scheme"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "service_unavailable",
+      "scenario_id": "scenario:service-unavailable",
+      "name": "Service unavailable",
+      "fixture_id": "fixture:agent-supervisor:service-unavailable",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["service", "unavailable", "offline"],
+      "expected_terminal_states": ["state:unavailable"]
+    },
+    {
+      "kind": "confirmation_grant",
+      "scenario_id": "scenario:confirmation-grant",
+      "name": "Confirmation granted",
+      "fixture_id": "fixture:agent-supervisor:confirmation-grant",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["confirmation", "grant", "governed-write"],
+      "expected_terminal_states": ["state:success"]
+    },
+    {
+      "kind": "confirmation_deny",
+      "scenario_id": "scenario:confirmation-deny",
+      "name": "Confirmation denied",
+      "fixture_id": "fixture:agent-supervisor:confirmation-deny",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["confirmation", "deny", "governed-write"],
+      "expected_terminal_states": ["state:ready"]
+    }
+  ]
+}
