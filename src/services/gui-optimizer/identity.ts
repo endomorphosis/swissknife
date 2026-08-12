@@ -59,6 +59,9 @@ export const MULTIHASH_CODE = 0x12 as const;
 export const DIGEST_SIZE = 32 as const;
 export const MULTIBASE_NAME = 'base32' as const;
 
+/** Narrower GUI interoperability domain; the Python IR primitive is broader. */
+export const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER;
+
 const BASE32_ALPHABET = 'abcdefghijklmnopqrstuvwxyz234567';
 
 const PROVENANCE_KEYS = new Set([
@@ -196,7 +199,9 @@ function utf8Decode(bytes: Uint8Array): string {
 
 function encodeVarint(value: number): number[] {
   if (!Number.isInteger(value) || value < 0) {
-    throw new GuiIdentityError('unsigned varints cannot encode negative values');
+    throw new GuiIdentityError(
+      'unsigned varints cannot encode negative values',
+    );
   }
   const bytes: number[] = [];
   let remaining = value >>> 0;
@@ -243,8 +248,46 @@ function base32Decode(value: string): Uint8Array {
   return Uint8Array.from(out);
 }
 
-function nfc(text: string): string {
-  return text.normalize('NFC');
+function assertUnicodeScalarString(text: string, label: string): void {
+  for (let index = 0; index < text.length; index += 1) {
+    const unit = text.charCodeAt(index);
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const following = text.charCodeAt(index + 1);
+      if (!(following >= 0xdc00 && following <= 0xdfff)) {
+        throw new GuiIdentityError(
+          `${label} contains an unpaired Unicode surrogate`,
+        );
+      }
+      index += 1;
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) {
+      throw new GuiIdentityError(
+        `${label} contains an unpaired Unicode surrogate`,
+      );
+    }
+  }
+}
+
+function nfc(text: string, label = 'string'): string {
+  assertUnicodeScalarString(text, label);
+  const normalized = text.normalize('NFC');
+  assertUnicodeScalarString(normalized, label);
+  return normalized;
+}
+
+function compareUnicodeCodePoints(left: string, right: string): number {
+  const leftScalars = Array.from(left);
+  const rightScalars = Array.from(right);
+  const sharedLength = Math.min(leftScalars.length, rightScalars.length);
+  for (let index = 0; index < sharedLength; index += 1) {
+    const leftPoint = leftScalars[index].codePointAt(0);
+    const rightPoint = rightScalars[index].codePointAt(0);
+    if (leftPoint === undefined || rightPoint === undefined) {
+      throw new GuiIdentityError('map key contains an empty Unicode scalar');
+    }
+    const difference = leftPoint - rightPoint;
+    if (difference !== 0) return difference;
+  }
+  return leftScalars.length - rightScalars.length;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -334,7 +377,7 @@ export function parseCidV1(cid: string): {
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, '0'))
+    .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
 
@@ -350,34 +393,72 @@ export function canonicalJson(value: unknown): string {
   return encodeCanonical(value, '$');
 }
 
+function canonicalNumber(value: number, label: string): string {
+  if (!Number.isFinite(value)) {
+    throw new GuiIdentityError(`${label} numbers must be finite`);
+  }
+  if (Number.isInteger(value) && !Number.isSafeInteger(value)) {
+    throw new GuiIdentityError(
+      `${label} integer-valued number exceeds the GUI safe-integer domain`,
+    );
+  }
+  if (Object.is(value, -0) || value === 0) return '0';
+
+  let source = value.toString().toLowerCase();
+  let sign = '';
+  if (source.startsWith('-')) {
+    sign = '-';
+    source = source.slice(1);
+  }
+
+  const exponentOffset = source.indexOf('e');
+  const coefficient =
+    exponentOffset === -1 ? source : source.slice(0, exponentOffset);
+  const exponent =
+    exponentOffset === -1 ? 0 : Number(source.slice(exponentOffset + 1));
+  const pointOffset = coefficient.indexOf('.');
+  const point =
+    (pointOffset === -1 ? coefficient.length : pointOffset) + exponent;
+  const digits = coefficient.replace('.', '');
+
+  let body: string;
+  if (point <= 0) {
+    body = `0.${'0'.repeat(-point)}${digits}`;
+  } else if (point >= digits.length) {
+    body = `${digits}${'0'.repeat(point - digits.length)}`;
+  } else {
+    body = `${digits.slice(0, point)}.${digits.slice(point)}`;
+  }
+  if (body.includes('.')) {
+    body = body.replace(/0+$/, '').replace(/\.$/, '');
+  }
+  return `${sign}${body}`;
+}
+
 function encodeCanonical(value: unknown, path: string): string {
   if (value === null) return 'null';
   if (value === true) return 'true';
   if (value === false) return 'false';
   if (typeof value === 'string') {
-    return JSON.stringify(nfc(value));
+    return JSON.stringify(nfc(value, path));
   }
   if (typeof value === 'number') {
-    if (!Number.isFinite(value)) {
-      throw new GuiIdentityError('canonical JSON numbers must be finite');
-    }
-    // Match Python json.dumps for finite numbers (no negative zero distinction
-    // beyond JSON.stringify's own behavior for -0 → 0 in most engines when
-    // using JSON.stringify; Object.is handles -0 separately if needed).
-    if (Object.is(value, -0)) return '0';
-    return JSON.stringify(value);
+    return canonicalNumber(value, `canonical JSON at ${path}`);
   }
   if (Array.isArray(value)) {
-    return `[${value
-      .map((item, index) => encodeCanonical(item, `${path}[${index}]`))
-      .join(',')}]`;
+    const encoded: string[] = [];
+    for (let index = 0; index < value.length; index += 1) {
+      if (!Object.prototype.hasOwnProperty.call(value, index)) {
+        throw new GuiIdentityError(`${path} contains a sparse array slot`);
+      }
+      encoded.push(encodeCanonical(value[index], `${path}[${index}]`));
+    }
+    return `[${encoded.join(',')}]`;
   }
-  if (isPlainObject(value) || (typeof value === 'object' && value !== null)) {
+  if (typeof value === 'object' && value !== null) {
     const record = value as Record<string, unknown>;
     // Support models with toDict/to_dict if present.
-    if (
-      typeof (record as { to_dict?: unknown }).to_dict === 'function'
-    ) {
+    if (typeof (record as { to_dict?: unknown }).to_dict === 'function') {
       return encodeCanonical(
         (record as { to_dict: () => unknown }).to_dict(),
         path,
@@ -389,26 +470,40 @@ function encodeCanonical(value: unknown, path: string): string {
         path,
       );
     }
+    if (!isPlainObject(value)) {
+      throw new GuiIdentityError(
+        `${path} is not JSON-serializable for identity: host object`,
+      );
+    }
+    if (Object.getOwnPropertySymbols(record).length > 0) {
+      throw new GuiIdentityError(`${path} map keys must be strings`);
+    }
+    if (
+      Object.getOwnPropertyNames(record).length !== Object.keys(record).length
+    ) {
+      throw new GuiIdentityError(`${path} contains non-enumerable map fields`);
+    }
     const ready = new Map<string, unknown>();
     const originals = new Map<string, string>();
     for (const [key, item] of Object.entries(record)) {
       if (typeof key !== 'string') {
         throw new GuiIdentityError(`${path} map keys must be strings`);
       }
-      const normalizedKey = nfc(key);
+      const normalizedKey = nfc(key, `${path} map key`);
       if (ready.has(normalizedKey)) {
+        const originalKey = originals.get(normalizedKey) ?? normalizedKey;
         throw new GuiIdentityError(
           `map keys collide after NFC at ${path}: ` +
-            `${originals.get(normalizedKey)!} and ${key}`,
+            `${originalKey} and ${key}`,
         );
       }
       ready.set(normalizedKey, item);
       originals.set(normalizedKey, key);
     }
-    const keys = [...ready.keys()].sort();
+    const keys = [...ready.keys()].sort(compareUnicodeCodePoints);
     return `{${keys
       .map(
-        key =>
+        (key) =>
           `${JSON.stringify(key)}:${encodeCanonical(
             ready.get(key),
             `${path}.${key}`,
@@ -429,7 +524,7 @@ function normalizedDiscriminator(value: string, label: string): string {
   if (typeof value !== 'string') {
     throw new GuiIdentityError(`${label} must be a string`);
   }
-  const normalized = nfc(value);
+  const normalized = nfc(value, label);
   if (!normalized || normalized.trim() !== normalized) {
     throw new GuiIdentityError(
       `${label} must be non-empty and have no surrounding whitespace`,
@@ -551,37 +646,74 @@ export function normalizeMaterial(value: unknown): unknown {
 }
 
 function normalizeValue(value: unknown): unknown {
-  if (value === null || typeof value === 'boolean' || typeof value === 'number') {
-    if (typeof value === 'number' && !Number.isFinite(value)) {
-      throw new GuiIdentityError('material rejects non-finite numbers');
-    }
+  if (value === null || typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    canonicalNumber(value, 'material');
     return value;
   }
   if (typeof value === 'string') {
-    let text = nfc(value);
+    let text = nfc(value, 'material string');
     text = text.replace(WS_RE, ' ');
     text = text.replace(/\n+/g, '\n').trim();
     if (ABS_PATH_RE.test(text)) return '';
     return text;
   }
   if (Array.isArray(value)) {
-    return value.map(normalizeValue);
+    const normalized: unknown[] = [];
+    for (let index = 0; index < value.length; index += 1) {
+      if (!Object.prototype.hasOwnProperty.call(value, index)) {
+        throw new GuiIdentityError('material contains a sparse array slot');
+      }
+      normalized.push(normalizeValue(value[index]));
+    }
+    return normalized;
   }
-  if (isPlainObject(value) || (typeof value === 'object' && value !== null)) {
+  if (typeof value === 'object' && value !== null) {
     const record = value as Record<string, unknown>;
-    const ready: Record<string, unknown> = {};
+    if (typeof (record as { to_dict?: unknown }).to_dict === 'function') {
+      return normalizeValue((record as { to_dict: () => unknown }).to_dict());
+    }
+    if (typeof (record as { toDict?: unknown }).toDict === 'function') {
+      return normalizeValue((record as { toDict: () => unknown }).toDict());
+    }
+    if (!isPlainObject(value)) {
+      throw new GuiIdentityError('material host object is not identity-safe');
+    }
+    if (Object.getOwnPropertySymbols(record).length > 0) {
+      throw new GuiIdentityError('material map keys must be strings');
+    }
+    if (
+      Object.getOwnPropertyNames(record).length !== Object.keys(record).length
+    ) {
+      throw new GuiIdentityError('material contains non-enumerable map fields');
+    }
+    const ready = new Map<string, unknown>();
+    const originals = new Map<string, string>();
     for (const [key, item] of Object.entries(record)) {
-      const normalizedKey = nfc(key);
-      if (PROVENANCE_KEYS.has(normalizedKey) || PROVENANCE_KEYS.has(normalizedKey.toLowerCase())) {
+      const normalizedKey = nfc(key, 'material map key');
+      if (originals.has(normalizedKey)) {
+        const originalKey = originals.get(normalizedKey) ?? normalizedKey;
+        throw new GuiIdentityError(
+          'material map keys collide after NFC normalization: ' +
+            `${originalKey} and ${key}`,
+        );
+      }
+      originals.set(normalizedKey, key);
+      if (
+        PROVENANCE_KEYS.has(normalizedKey) ||
+        PROVENANCE_KEYS.has(normalizedKey.toLowerCase())
+      ) {
         continue;
       }
-      ready[normalizedKey] = normalizeValue(item);
+      ready.set(normalizedKey, normalizeValue(item));
     }
-    const sorted: Record<string, unknown> = {};
-    for (const key of Object.keys(ready).sort()) {
-      sorted[key] = ready[key];
-    }
-    return sorted;
+    return Object.fromEntries(
+      [...ready.entries()].sort(([left], [right]) =>
+        compareUnicodeCodePoints(left, right),
+      ),
+    );
   }
   throw new GuiIdentityError(
     `material value type ${typeof value} is not identity-safe`,
@@ -714,7 +846,8 @@ export function componentVersionIdentity(
   version: UiComponentVersion | Record<string, unknown>,
 ): GuiCanonicalIdentity {
   const decoded =
-    'interface' in version && version.interface === UI_COMPONENT_VERSION_INTERFACE
+    'interface' in version &&
+    version.interface === UI_COMPONENT_VERSION_INTERFACE
       ? (version as UiComponentVersion)
       : decodeUiComponentVersion(version);
   return canonicalIdentity(componentVersionToDict(decoded), {

@@ -23,6 +23,7 @@ import {
   GUI_CANONICAL_IDENTITY_INTERFACE,
   IDENTITY_PROFILE,
   IDENTITY_PROFILE_NAME,
+  MAX_SAFE_INTEGER,
   MULTICODEC_CODE,
   MULTIHASH_CODE,
   TYPESCRIPT_GUI_CANONICAL_IDENTITY_INTERFACE,
@@ -59,6 +60,41 @@ const GOLDEN_SCHEMA = 'gui-test-vector/v1';
 
 const GOLDEN_PAYLOAD_BYTES =
   '{"component":"ConsoleRoot","kind":"screen","tags":["primary","workspace"],"title":"Café"}';
+
+// Literal cross-runtime contract. Keep byte-for-byte identical to the vector
+// in ipfs_datasets_py/tests/unit/logic/gui_optimizer/test_identity.py.
+const CROSS_RUNTIME_DOMAIN = 'gui.cross-runtime-vector';
+const CROSS_RUNTIME_SCHEMA = 'gui-cross-runtime-vector/v1';
+const CROSS_RUNTIME_PAYLOAD = {
+  astral_and_bmp: { '\uE000': 'bmp', '\u{10000}': 'astral' },
+  boolean_false: false,
+  boolean_true: true,
+  float_one: 1.0,
+  negative_zero: -0.0,
+  safe_integer: 9_007_199_254_740_991,
+  small_exponent: 1e-7,
+  smallest_subnormal: 5e-324,
+};
+const CROSS_RUNTIME_PAYLOAD_JSON =
+  '{"astral_and_bmp":{"\uE000":"bmp","\u{10000}":"astral"},"boolean_false":false' +
+  ',"boolean_true":true,"float_one":1,"negative_zero":0,"safe_integ' +
+  'er":9007199254740991,"small_exponent":0.0000001,"smallest_subnor' +
+  'mal":0.000000000000000000000000000000000000000000000000000000000' +
+  '0000000000000000000000000000000000000000000000000000000000000000' +
+  '0000000000000000000000000000000000000000000000000000000000000000' +
+  '0000000000000000000000000000000000000000000000000000000000000000' +
+  '0000000000000000000000000000000000000000000000000000000000000000' +
+  '00000000005}';
+const CROSS_RUNTIME_PREIMAGE_JSON =
+  '{"canonicalization":"gui-optimizer-canonical-json/v1",' +
+  '"domain":"gui.cross-runtime-vector",' +
+  '"identity_profile":"gui-optimizer-canonical-identity/v1","payload":' +
+  CROSS_RUNTIME_PAYLOAD_JSON +
+  ',"schema_version":"gui-cross-runtime-vector/v1"}';
+const CROSS_RUNTIME_DIGEST =
+  'sha256:ca283ecb68a9e75a2b143628f2c98888b749fe0f7fbfc269341d9549c180b93c';
+const CROSS_RUNTIME_CID =
+  'bafkreigkfa7mw2fj45ncwfbwfdzmtceiw5e74d37x7bgsna5sve4dafzhq';
 
 const EXTRACTOR = 'gui-static-scanner-1.0.0';
 
@@ -106,9 +142,85 @@ describe('TypeScriptGuiCanonicalIdentity@1 profile', () => {
 
   it('canonical JSON rejects non-finite numbers and key collisions', () => {
     expect(() => canonicalJsonBytes(Number.NaN)).toThrow(GuiIdentityError);
-    expect(() => canonicalJsonBytes({ é: 1, 'e\u0301': 2 })).toThrow(
-      /collide/,
+    expect(() => canonicalJsonBytes({ é: 1, 'e\u0301': 2 })).toThrow(/collide/);
+  });
+
+  it('locks a literal cross-runtime JSON, digest, and CID vector', () => {
+    expect(
+      canonicalBytesToString(canonicalJsonBytes(CROSS_RUNTIME_PAYLOAD)),
+    ).toBe(CROSS_RUNTIME_PAYLOAD_JSON);
+    const identity = canonicalIdentity(CROSS_RUNTIME_PAYLOAD, {
+      domain: CROSS_RUNTIME_DOMAIN,
+      schemaVersion: CROSS_RUNTIME_SCHEMA,
+    });
+    expect(canonicalBytesToString(identity.canonical_bytes)).toBe(
+      CROSS_RUNTIME_PREIMAGE_JSON,
     );
+    expect(identity.digest).toBe(CROSS_RUNTIME_DIGEST);
+    expect(identity.cid).toBe(CROSS_RUNTIME_CID);
+    expect(
+      canonicalBytesToString(
+        canonicalJsonBytes([false, 0, true, 1, 1.0, -0.0]),
+      ),
+    ).toBe('[false,0,true,1,1,0]');
+  });
+
+  it('rejects integers outside the GUI cross-runtime numeric domain', () => {
+    expect(MAX_SAFE_INTEGER).toBe(9_007_199_254_740_991);
+    for (const value of [
+      MAX_SAFE_INTEGER + 1,
+      -(MAX_SAFE_INTEGER + 1),
+      1e20,
+      Number.MAX_VALUE,
+    ]) {
+      expect(() => canonicalJsonBytes(value)).toThrow(/safe-integer/);
+      expect(() => normalizeMaterial({ nested: [value] })).toThrow(
+        /safe-integer/,
+      );
+    }
+  });
+
+  it('rejects unpaired surrogates and recursive NFC collisions', () => {
+    for (const value of [
+      '\ud800',
+      { '\udc00': 'value' },
+      { nested: ['\udfff'] },
+    ]) {
+      expect(() => canonicalJsonBytes(value)).toThrow(
+        /unpaired Unicode surrogate/,
+      );
+      expect(() => normalizeMaterial(value)).toThrow(
+        /unpaired Unicode surrogate/,
+      );
+    }
+
+    const collision = { outer: { é: 1, 'e\u0301': 2 } };
+    expect(() => canonicalJsonBytes(collision)).toThrow(/collide/);
+    expect(() => normalizeMaterial(collision)).toThrow(/collide/);
+    expect(() =>
+      canonicalIdentity(
+        {},
+        {
+          domain: 'gui.\ud800',
+          schemaVersion: CROSS_RUNTIME_SCHEMA,
+        },
+      ),
+    ).toThrow(/unpaired Unicode surrogate/);
+  });
+
+  it('fails closed on JavaScript containers with no JSON counterpart', () => {
+    const sparse: unknown[] = [];
+    sparse.length = 1;
+    expect(() => canonicalJsonBytes(sparse)).toThrow(/sparse array/);
+    expect(() => normalizeMaterial(sparse)).toThrow(/sparse array/);
+
+    const hidden = {};
+    Object.defineProperty(hidden, 'invisible', {
+      enumerable: false,
+      value: 1,
+    });
+    expect(() => canonicalJsonBytes(hidden)).toThrow(/non-enumerable/);
+    expect(() => normalizeMaterial(hidden)).toThrow(/non-enumerable/);
   });
 
   it('cidV1 matches the raw sha2-256 base32 vector for hello', () => {
@@ -125,9 +237,7 @@ describe('TypeScriptGuiCanonicalIdentity@1 profile', () => {
   it('parseCidV1 rejects malformed CIDs', () => {
     expect(() => parseCidV1('not-a-cid')).toThrow(GuiIdentityError);
     expect(() =>
-      parseCidV1(
-        'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi',
-      ),
+      parseCidV1('bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi'),
     ).toThrow(GuiIdentityError);
   });
 });
@@ -386,9 +496,7 @@ describe('material normalization and version compiler', () => {
   });
 
   it('empty and provenance-only facets share a digest', () => {
-    expect(facetDigest({})).toBe(
-      facetDigest({ start_line: 3, comments: 'x' }),
-    );
+    expect(facetDigest({})).toBe(facetDigest({ start_line: 3, comments: 'x' }));
     expect(facetDigest({ a: 1 })).not.toBe(facetDigest({ a: 2 }));
   });
 });
