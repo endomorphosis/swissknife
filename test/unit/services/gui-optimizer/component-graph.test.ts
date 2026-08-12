@@ -3,18 +3,29 @@
  *
  * Covers edge completeness (identity/relation/method/confidence/version/span),
  * finite relation compilation from scanner facts, unresolved unsupported
- * targets, and deterministic graph assembly without inventing endpoints.
+ * targets, and validation/completion receipts that bind the exact accepted
+ * VGO-002 task CID and current scanner wire schema.
  */
+
+// @vitest-environment node
 
 import { describe, expect, it } from 'vitest';
 import {
   GUI_DEPENDENCY_RELATIONS,
   GUI_OPTIMIZER_SCHEMA_VERSION,
+  GUI_SOURCE_FINDING_INTERFACE,
+  GUI_SOURCE_FINDING_SCHEMA,
   GUI_STATIC_EXTRACTOR_VERSION,
+  GUI_STATIC_SCANNER_INTERFACE,
+  GUI_STATIC_SCAN_RESULT_SCHEMA,
+  SOURCE_SPAN_INTERFACE,
+  SOURCE_SPAN_SCHEMA,
+  UI_DEPENDENCY_EDGE_INTERFACE,
+  UI_DEPENDENCY_EDGE_SCHEMA,
   decodeUiDependencyEdge,
+  makeSourceSpan,
   type GuiSourceFinding,
   type GuiSourceSpan,
-  type GuiStaticScanResult,
   type UiDependencyEdge,
 } from '../../../../src/services/gui-optimizer/models.js';
 import {
@@ -22,12 +33,19 @@ import {
   scanGuiSources,
 } from '../../../../src/services/gui-optimizer/scanner.js';
 import {
+  ACCEPTED_VGO_002_SCANNER_WIRE_SCHEMA,
+  ACCEPTED_VGO_002_TASK_CID,
+  UI_COMPONENT_GRAPH_COMPLETION_RECEIPT_INTERFACE,
+  UI_COMPONENT_GRAPH_COMPLETION_RECEIPT_SCHEMA,
   UI_COMPONENT_GRAPH_EXTRACTOR_VERSION,
   UI_COMPONENT_GRAPH_INTERFACE,
+  UI_COMPONENT_GRAPH_SCHEMA,
   UI_DEPENDENCY_RELATIONS,
   buildUiComponentGraph,
+  buildUiComponentGraphCompletionReceipt,
   buildUiComponentGraphFromFacts,
   createUiComponentGraphBuilder,
+  validateUiComponentGraph,
   type UiComponentGraph,
   type UiDependencyRelation,
 } from '../../../../src/services/gui-optimizer/component-graph.js';
@@ -36,45 +54,72 @@ const APP = 'agent-supervisor';
 const SCREEN = 'agent-supervisor';
 const PKG = 'org.hallucinate.swissknife.gui-optimizer';
 
-function span(path: string, start = 0, end = 10): GuiSourceSpan {
-  return {
+function span(path: string, startColumn = 0, endColumn = 10): GuiSourceSpan {
+  return makeSourceSpan({
     path,
-    start_offset: start,
-    end_offset: end,
     start_line: 1,
-    start_column: start,
+    start_column: startColumn,
     end_line: 1,
-    end_column: end,
-  };
+    end_column: endColumn,
+  });
 }
 
 function finding(
   partial: Partial<GuiSourceFinding> &
     Pick<GuiSourceFinding, 'finding_id' | 'kind' | 'name' | 'stable_identity'>,
 ): GuiSourceFinding {
+  const path = partial.path ?? 'web/js/apps/panel.tsx';
   return {
-    schema_version: GUI_OPTIMIZER_SCHEMA_VERSION,
-    path: partial.path ?? 'web/js/apps/panel.tsx',
-    span: partial.span ?? span(partial.path ?? 'web/js/apps/panel.tsx'),
+    interface: GUI_SOURCE_FINDING_INTERFACE,
+    schema_version: GUI_SOURCE_FINDING_SCHEMA,
+    finding_id: partial.finding_id,
+    kind: partial.kind,
+    name: partial.name,
+    stable_identity: partial.stable_identity,
+    path,
+    span: partial.span ?? span(path),
     confidence: partial.confidence ?? 'exact',
-    extraction_method: partial.extraction_method ?? 'jsx_ast',
+    extraction_method: partial.extraction_method ?? 'jsx_parser',
     extractor_version: partial.extractor_version ?? GUI_STATIC_EXTRACTOR_VERSION,
     attributes: Object.freeze(partial.attributes ?? {}),
     evidence: partial.evidence ?? partial.name,
     requires_raw_source: partial.requires_raw_source ?? false,
     language: partial.language ?? 'tsx',
-    ...partial,
+    occurrence: partial.occurrence ?? 1,
   };
 }
 
+function makeEdge(
+  partial: Partial<UiDependencyEdge> &
+    Pick<
+      UiDependencyEdge,
+      'source_component_id' | 'target_component_id' | 'relation'
+    >,
+): UiDependencyEdge {
+  return decodeUiDependencyEdge({
+    interface: UI_DEPENDENCY_EDGE_INTERFACE,
+    schema_version: UI_DEPENDENCY_EDGE_SCHEMA,
+    source_component_id: partial.source_component_id,
+    target_component_id: partial.target_component_id,
+    relation: partial.relation,
+    extraction_method: partial.extraction_method ?? 'jsx_parser',
+    extractor_version: partial.extractor_version ?? GUI_STATIC_EXTRACTOR_VERSION,
+    confidence: partial.confidence ?? 'exact',
+    source_span:
+      partial.source_span === undefined
+        ? span('web/js/apps/panel.tsx', 4, 20)
+        : partial.source_span,
+    notes: partial.notes ?? '',
+  });
+}
+
 function assertEdgeContract(edge: UiDependencyEdge): void {
-  expect(edge.schema_version).toBe(GUI_OPTIMIZER_SCHEMA_VERSION);
-  expect(typeof edge.edge_id).toBe('string');
-  expect(edge.edge_id.length).toBeGreaterThan(0);
-  expect(typeof edge.source_identity).toBe('string');
-  expect(edge.source_identity.length).toBeGreaterThan(0);
-  expect(typeof edge.target_identity).toBe('string');
-  expect(edge.target_identity.length).toBeGreaterThan(0);
+  expect(edge.interface).toBe(UI_DEPENDENCY_EDGE_INTERFACE);
+  expect(edge.schema_version).toBe(UI_DEPENDENCY_EDGE_SCHEMA);
+  expect(typeof edge.source_component_id).toBe('string');
+  expect(edge.source_component_id.length).toBeGreaterThan(0);
+  expect(typeof edge.target_component_id).toBe('string');
+  expect(edge.target_component_id.length).toBeGreaterThan(0);
   expect(UI_DEPENDENCY_RELATIONS).toContain(edge.relation);
   expect(GUI_DEPENDENCY_RELATIONS).toContain(edge.relation);
   expect(typeof edge.extraction_method).toBe('string');
@@ -84,18 +129,27 @@ function assertEdgeContract(edge: UiDependencyEdge): void {
   expect(typeof edge.extractor_version).toBe('string');
   expect(edge.extractor_version.length).toBeGreaterThan(0);
   // Span is available when present; null is explicit rather than omitted.
-  expect(edge.span === null || typeof edge.span === 'object').toBe(true);
-  if (edge.span) {
-    expect(edge.span.path.length).toBeGreaterThan(0);
-    expect(edge.span.end_offset).toBeGreaterThanOrEqual(edge.span.start_offset);
+  expect(edge.source_span === null || typeof edge.source_span === 'object').toBe(
+    true,
+  );
+  if (edge.source_span) {
+    expect(edge.source_span.interface).toBe(SOURCE_SPAN_INTERFACE);
+    expect(edge.source_span.schema_version).toBe(SOURCE_SPAN_SCHEMA);
+    expect(edge.source_span.path.length).toBeGreaterThan(0);
+    expect(edge.source_span.start_line).toBeGreaterThanOrEqual(1);
   }
-  expect(() => decodeUiDependencyEdge(JSON.parse(JSON.stringify(edge)))).not.toThrow();
+  expect(typeof edge.notes).toBe('string');
+  expect(() =>
+    decodeUiDependencyEdge(JSON.parse(JSON.stringify(edge))),
+  ).not.toThrow();
 }
 
 function assertGraphContract(graph: UiComponentGraph): void {
-  expect(graph.schema_version).toBe(GUI_OPTIMIZER_SCHEMA_VERSION);
-  expect(graph.interface_id).toBe(UI_COMPONENT_GRAPH_INTERFACE);
+  expect(graph.interface).toBe(UI_COMPONENT_GRAPH_INTERFACE);
+  expect(graph.schema_version).toBe(UI_COMPONENT_GRAPH_SCHEMA);
   expect(graph.extractor_version).toBe(UI_COMPONENT_GRAPH_EXTRACTOR_VERSION);
+  expect(graph.accepted_vgo_002_task_cid).toBe(ACCEPTED_VGO_002_TASK_CID);
+  expect(graph.scanner_wire_schema).toEqual(ACCEPTED_VGO_002_SCANNER_WIRE_SCHEMA);
   expect(graph.executed_code).toBe(false);
   expect(Array.isArray(graph.nodes)).toBe(true);
   expect(Array.isArray(graph.edges)).toBe(true);
@@ -103,6 +157,9 @@ function assertGraphContract(graph: UiComponentGraph): void {
   for (const edge of graph.edges) {
     assertEdgeContract(edge);
   }
+  const validation = validateUiComponentGraph(graph);
+  expect(validation.ok).toBe(true);
+  expect(validation.accepted_vgo_002_task_cid).toBe(ACCEPTED_VGO_002_TASK_CID);
 }
 
 describe('UiComponentGraph@1 surface', () => {
@@ -136,9 +193,41 @@ describe('UiComponentGraph@1 surface', () => {
     );
   });
 
-  it('createUiComponentGraphBuilder exposes extractor version', () => {
+  it('pins the accepted VGO-002 task CID and current scanner wire schema', () => {
+    expect(ACCEPTED_VGO_002_TASK_CID).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(ACCEPTED_VGO_002_SCANNER_WIRE_SCHEMA.task_id).toBe('VGO-002');
+    expect(ACCEPTED_VGO_002_SCANNER_WIRE_SCHEMA.scanner_interface).toBe(
+      GUI_STATIC_SCANNER_INTERFACE,
+    );
+    expect(ACCEPTED_VGO_002_SCANNER_WIRE_SCHEMA.scan_result_schema).toBe(
+      GUI_STATIC_SCAN_RESULT_SCHEMA,
+    );
+    expect(ACCEPTED_VGO_002_SCANNER_WIRE_SCHEMA.dependency_edge_schema).toBe(
+      UI_DEPENDENCY_EDGE_SCHEMA,
+    );
+    expect(ACCEPTED_VGO_002_SCANNER_WIRE_SCHEMA.extractor_version).toBe(
+      GUI_STATIC_EXTRACTOR_VERSION,
+    );
+    expect([...ACCEPTED_VGO_002_SCANNER_WIRE_SCHEMA.edge_fields]).toEqual([
+      'interface',
+      'schema_version',
+      'source_component_id',
+      'target_component_id',
+      'relation',
+      'extraction_method',
+      'extractor_version',
+      'confidence',
+      'source_span',
+      'notes',
+    ]);
+    // Canonical package label remains available for consumers.
+    expect(GUI_OPTIMIZER_SCHEMA_VERSION).toBe('gui-optimizer-canonical-json/v1');
+  });
+
+  it('createUiComponentGraphBuilder exposes extractor version and VGO-002 CID', () => {
     const builder = createUiComponentGraphBuilder();
     expect(builder.extractorVersion).toBe(UI_COMPONENT_GRAPH_EXTRACTOR_VERSION);
+    expect(builder.acceptedVgo002TaskCid).toBe(ACCEPTED_VGO_002_TASK_CID);
   });
 });
 
@@ -244,7 +333,7 @@ export function SavePanel() {
         name: '--as-fg',
         stable_identity: tokenId,
         attributes: { host: componentId },
-        extraction_method: 'css_tokenizer',
+        extraction_method: 'css_parser',
       }),
       finding({
         finding_id: 'finding:0006',
@@ -252,21 +341,19 @@ export function SavePanel() {
         name: '_max-width:_900px_',
         stable_identity: mediaId,
         attributes: { host: componentId },
-        extraction_method: 'css_tokenizer',
+        extraction_method: 'css_parser',
       }),
     ];
 
-    const scannerEdge: UiDependencyEdge = {
-      schema_version: GUI_OPTIMIZER_SCHEMA_VERSION,
-      edge_id: 'edge:0001',
-      source_identity: componentId,
-      target_identity: `${APP}/${SCREEN}/button/Save`,
+    const scannerEdge = makeEdge({
+      source_component_id: componentId,
+      target_component_id: `${APP}/${SCREEN}/button/Save`,
       relation: 'renders',
-      span: span('web/js/apps/panel.tsx', 4, 20),
-      extraction_method: 'jsx_ast',
+      source_span: span('web/js/apps/panel.tsx', 4, 20),
+      extraction_method: 'jsx_parser',
       confidence: 'exact',
-      extractor_version: GUI_STATIC_EXTRACTOR_VERSION,
-    };
+      notes: 'scanner-renders',
+    });
 
     const graph = buildUiComponentGraphFromFacts(
       {
@@ -274,14 +361,22 @@ export function SavePanel() {
         edges: [scannerEdge],
         sources: ['web/js/apps/panel.tsx'],
         scanner_extractor_version: GUI_STATIC_EXTRACTOR_VERSION,
+        scanner_interface: GUI_STATIC_SCANNER_INTERFACE,
+        scanner_schema_version: GUI_STATIC_SCAN_RESULT_SCHEMA,
+        accepted_vgo_002_task_cid: ACCEPTED_VGO_002_TASK_CID,
       },
       { applicationId: APP, screenId: SCREEN, packageNamespace: PKG },
     );
 
     assertGraphContract(graph);
-    expect(graph.edges.some(e => e.edge_id === 'edge:0001' && e.relation === 'renders')).toBe(
-      true,
-    );
+    expect(
+      graph.edges.some(
+        e =>
+          e.source_component_id === componentId &&
+          e.target_component_id === `${APP}/${SCREEN}/button/Save` &&
+          e.relation === 'renders',
+      ),
+    ).toBe(true);
     expect(graph.edges.some(e => e.relation === 'reads_state')).toBe(true);
     expect(graph.edges.some(e => e.relation === 'updates_state')).toBe(true);
     expect(graph.edges.some(e => e.relation === 'localized_by')).toBe(true);
@@ -290,10 +385,10 @@ export function SavePanel() {
     expect(graph.edges.some(e => e.relation === 'responsive_variant_of')).toBe(true);
 
     const stateEdge = graph.edges.find(
-      e => e.relation === 'reads_state' && e.target_identity === stateId,
+      e => e.relation === 'reads_state' && e.target_component_id === stateId,
     );
-    expect(stateEdge?.source_identity).toBe(componentId);
-    expect(stateEdge?.span).not.toBeNull();
+    expect(stateEdge?.source_component_id).toBe(componentId);
+    expect(stateEdge?.source_span).not.toBeNull();
     expect(stateEdge?.extractor_version).toBe(UI_COMPONENT_GRAPH_EXTRACTOR_VERSION);
   });
 
@@ -389,7 +484,11 @@ export function SavePanel() {
     ];
 
     const graph = buildUiComponentGraphFromFacts(
-      { findings, sources: ['web/js/apps/panel.tsx'] },
+      {
+        findings,
+        sources: ['web/js/apps/panel.tsx'],
+        scanner_extractor_version: GUI_STATIC_EXTRACTOR_VERSION,
+      },
       { applicationId: APP, screenId: SCREEN },
     );
 
@@ -452,15 +551,21 @@ export function SavePanel() {
 
     const graph = buildUiComponentGraphFromFacts({ findings });
     assertGraphContract(graph);
-    expect(graph.edges.some(e => e.relation === 'tested_by' && e.target_identity === testId)).toBe(
-      true,
-    );
     expect(
-      graph.edges.some(e => e.relation === 'screenshot_by' && e.target_identity === shotId),
+      graph.edges.some(
+        e => e.relation === 'tested_by' && e.target_component_id === testId,
+      ),
     ).toBe(true);
     expect(
       graph.edges.some(
-        e => e.relation === 'device_projection_of' && e.target_identity === deviceId,
+        e => e.relation === 'screenshot_by' && e.target_component_id === shotId,
+      ),
+    ).toBe(true);
+    expect(
+      graph.edges.some(
+        e =>
+          e.relation === 'device_projection_of' &&
+          e.target_component_id === deviceId,
       ),
     ).toBe(true);
   });
@@ -486,7 +591,7 @@ describe('unresolved unsupported targets', () => {
           stable_identity: destructiveId,
           attributes: { host: componentId },
           confidence: 'heuristic',
-          extraction_method: 'pattern_match',
+          extraction_method: 'heuristic_inference',
           requires_raw_source: true,
         }),
       ],
@@ -497,7 +602,7 @@ describe('unresolved unsupported targets', () => {
       graph.edges.some(
         e =>
           e.relation === 'requires_confirmation' &&
-          e.source_identity === destructiveId,
+          e.source_component_id === destructiveId,
       ),
     ).toBe(false);
     expect(
@@ -530,7 +635,7 @@ describe('unresolved unsupported targets', () => {
           attributes: { host: componentId },
           confidence: 'opaque',
           requires_raw_source: true,
-          extraction_method: 'jsx_ast',
+          extraction_method: 'jsx_parser',
         }),
       ],
       unresolved: [`${dynamicId}:opaque`],
@@ -549,17 +654,15 @@ describe('unresolved unsupported targets', () => {
   it('preserves scanner unresolved entries and opaque edge confidence', () => {
     const sourceId = `${APP}/${SCREEN}/component/A`;
     const targetId = `${APP}/${SCREEN}/widget/DynamicTag`;
-    const edge: UiDependencyEdge = {
-      schema_version: GUI_OPTIMIZER_SCHEMA_VERSION,
-      edge_id: 'edge:opaque-1',
-      source_identity: sourceId,
-      target_identity: targetId,
+    const edge = makeEdge({
+      source_component_id: sourceId,
+      target_component_id: targetId,
       relation: 'renders',
-      span: null,
-      extraction_method: 'jsx_ast',
+      source_span: null,
+      extraction_method: 'jsx_parser',
       confidence: 'opaque',
-      extractor_version: GUI_STATIC_EXTRACTOR_VERSION,
-    };
+      notes: 'opaque-dynamic',
+    });
 
     const graph = buildUiComponentGraphFromFacts({
       findings: [
@@ -581,9 +684,14 @@ describe('unresolved unsupported targets', () => {
         `${targetId}:renders:opaque`,
       ]),
     );
-    const preserved = graph.edges.find(e => e.edge_id === 'edge:opaque-1');
+    const preserved = graph.edges.find(
+      e =>
+        e.source_component_id === sourceId &&
+        e.target_component_id === targetId &&
+        e.relation === 'renders',
+    );
     expect(preserved?.confidence).toBe('opaque');
-    expect(preserved?.span).toBeNull();
+    expect(preserved?.source_span).toBeNull();
     expect(preserved?.extractor_version).toBe(GUI_STATIC_EXTRACTOR_VERSION);
   });
 });
@@ -636,7 +744,7 @@ export function Panel() {
 });
 
 describe('edge field completeness matrix', () => {
-  it('every compiled edge exposes the full required field set', () => {
+  it('every compiled edge exposes the full required VGO-002 wire field set', () => {
     const componentId = `${APP}/${SCREEN}/component/AllRelations`;
     const findings: GuiSourceFinding[] = [
       finding({
@@ -703,16 +811,160 @@ describe('edge field completeness matrix', () => {
       expect(keys).toEqual(
         [
           'confidence',
-          'edge_id',
           'extraction_method',
           'extractor_version',
+          'interface',
+          'notes',
           'relation',
           'schema_version',
-          'source_identity',
-          'span',
-          'target_identity',
+          'source_component_id',
+          'source_span',
+          'target_component_id',
         ].sort(),
       );
     }
+  });
+});
+
+describe('VGO-002 binding, validation, and completion receipt', () => {
+  it('validation and completion receipt bind the accepted VGO-002 CID and wire schema', () => {
+    const componentId = `${APP}/${SCREEN}/component/Bound`;
+    const graph = buildUiComponentGraphFromFacts({
+      findings: [
+        finding({
+          finding_id: 'finding:1',
+          kind: 'component',
+          name: 'Bound',
+          stable_identity: componentId,
+          attributes: {
+            application_id: APP,
+            screen_id: SCREEN,
+            package_namespace: PKG,
+          },
+        }),
+        finding({
+          finding_id: 'finding:2',
+          kind: 'action_binding',
+          name: 'refresh',
+          stable_identity: `${APP}/${SCREEN}/action_binding/refresh`,
+          attributes: { host: componentId },
+        }),
+      ],
+      scanner_extractor_version: GUI_STATIC_EXTRACTOR_VERSION,
+    });
+
+    const validation = validateUiComponentGraph(graph);
+    expect(validation.ok).toBe(true);
+    expect(validation.accepted_vgo_002_task_cid).toBe(ACCEPTED_VGO_002_TASK_CID);
+    expect(validation.scanner_wire_schema).toEqual(
+      ACCEPTED_VGO_002_SCANNER_WIRE_SCHEMA,
+    );
+
+    const receipt = buildUiComponentGraphCompletionReceipt(graph);
+    expect(receipt.interface).toBe(UI_COMPONENT_GRAPH_COMPLETION_RECEIPT_INTERFACE);
+    expect(receipt.schema_version).toBe(
+      UI_COMPONENT_GRAPH_COMPLETION_RECEIPT_SCHEMA,
+    );
+    expect(receipt.accepted_vgo_002_task_cid).toBe(ACCEPTED_VGO_002_TASK_CID);
+    expect(receipt.scanner_wire_schema).toEqual(
+      ACCEPTED_VGO_002_SCANNER_WIRE_SCHEMA,
+    );
+    expect(receipt.scanner_extractor_version).toBe(GUI_STATIC_EXTRACTOR_VERSION);
+    expect(receipt.graph_extractor_version).toBe(
+      UI_COMPONENT_GRAPH_EXTRACTOR_VERSION,
+    );
+    expect(receipt.validation_ok).toBe(true);
+    expect(receipt.executed_code).toBe(false);
+    expect(receipt.edge_count).toBe(graph.edges.length);
+  });
+
+  it('refuses completion evidence bound to a superseded VGO-002 task CID', () => {
+    const componentId = `${APP}/${SCREEN}/component/Stale`;
+    const graph = buildUiComponentGraphFromFacts({
+      findings: [
+        finding({
+          finding_id: 'finding:1',
+          kind: 'component',
+          name: 'Stale',
+          stable_identity: componentId,
+        }),
+      ],
+    });
+
+    const rescued = {
+      ...graph,
+      accepted_vgo_002_task_cid:
+        'sha256:0000000000000000000000000000000000000000000000000000000000000000',
+    } as UiComponentGraph;
+
+    const validation = validateUiComponentGraph(rescued);
+    expect(validation.ok).toBe(false);
+    expect(
+      validation.issues.some(issue => issue.code === 'vgo_002_task_cid_mismatch'),
+    ).toBe(true);
+    expect(() => buildUiComponentGraphCompletionReceipt(rescued)).toThrow(
+      /completion receipt refused|superseded|VGO-002/,
+    );
+  });
+
+  it('refuses facts and scans from a superseded scanner revision', () => {
+    const componentId = `${APP}/${SCREEN}/component/OldScanner`;
+    expect(() =>
+      buildUiComponentGraphFromFacts({
+        findings: [
+          finding({
+            finding_id: 'finding:1',
+            kind: 'component',
+            name: 'OldScanner',
+            stable_identity: componentId,
+          }),
+        ],
+        scanner_extractor_version: 'gui-static-scanner@0.9.0',
+      }),
+    ).toThrow(/superseded scanner extractor/);
+
+    expect(() =>
+      buildUiComponentGraphFromFacts({
+        findings: [
+          finding({
+            finding_id: 'finding:1',
+            kind: 'component',
+            name: 'OldScanner',
+            stable_identity: componentId,
+          }),
+        ],
+        accepted_vgo_002_task_cid:
+          'sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+      }),
+    ).toThrow(/superseded VGO-002 task CID/);
+
+    const graph = buildUiComponentGraphFromFacts({
+      findings: [
+        finding({
+          finding_id: 'finding:1',
+          kind: 'component',
+          name: 'OldScanner',
+          stable_identity: componentId,
+        }),
+      ],
+    });
+    const staleSchema = {
+      ...graph,
+      scanner_extractor_version: 'gui-static-scanner@0.9.0',
+      scanner_wire_schema: {
+        ...ACCEPTED_VGO_002_SCANNER_WIRE_SCHEMA,
+        extractor_version: 'gui-static-scanner@0.9.0',
+      },
+    } as UiComponentGraph;
+    const validation = validateUiComponentGraph(staleSchema);
+    expect(validation.ok).toBe(false);
+    expect(
+      validation.issues.some(
+        issue =>
+          issue.code === 'scanner_extractor_superseded' ||
+          issue.code === 'scanner_wire_schema_mismatch',
+      ),
+    ).toBe(true);
+    expect(() => buildUiComponentGraphCompletionReceipt(staleSchema)).toThrow();
   });
 });
