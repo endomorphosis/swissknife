@@ -1,0 +1,40 @@
+/**
+ * GuiStaticFixtureSuite@1 — changed design-token stylesheet.
+ *
+ * `--as-surface` and `--as-surface-contrast` are consumed only by the
+ * Agent Supervisor goal form. Invalidation must stay inside that
+ * dependent closure (screenshots, responsive, contrast, clipping, overflow)
+ * and must not rewrite sidebar or settings screenshots.
+ */
+
+:root {
+  --as-surface: #111827;
+  --as-surface-contrast: #f8fafc;
+  --as-surface-border: #1f2937;
+}
+
+.goal-form {
+  background: var(--as-surface);
+  border: 1px solid var(--as-surface-border);
+  color: var(--as-surface-contrast);
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.goal-form [data-action="dispatch"] {
+  background: var(--as-surface);
+  color: var(--as-surface-contrast);
+}
+
+@media (min-width: 1280px) {
+  .goal-form {
+    padding: 24px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .goal-form {
+    max-width: 720px;
+  }
+}

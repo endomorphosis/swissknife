@@ -1,0 +1,41 @@
+/**
+ * GuiStaticFixtureSuite@1 — unrelated stylesheet.
+ *
+ * Owned by a settings-panel surface that does not share design tokens,
+ * selectors, or screenshots with the Agent Supervisor goal form. A change
+ * here must not invalidate application-global or goal-form screenshots.
+ */
+
+:root {
+  --settings-panel-bg: #f4f4f5;
+  --settings-panel-border: #d4d4d8;
+  --settings-panel-fg: #27272a;
+}
+
+.settings-panel {
+  background: var(--settings-panel-bg);
+  border: 1px solid var(--settings-panel-border);
+  color: var(--settings-panel-fg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+.settings-panel .title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.settings-panel .row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+@media (max-width: 390px) {
+  .settings-panel {
+    padding: 12px;
+  }
+}
