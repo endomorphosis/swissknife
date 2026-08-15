@@ -45,6 +45,7 @@ behind host entrypoints or host adapters.
 | `platform` | `split` | Browser and host runtime facades. | `src/platform/browser.ts`, `src/platform/host.ts` |
 | `service-apps` | `universal` | App manifests, app-state contracts, all-tools app bindings, and app capability policy gates. | `src/services/apps/index.ts` and curated manifest entries |
 | `service-glasses` | `split` | Meta glasses display, input, webapp, mobile ORB, and replay adapters. | `src/services/glasses/*.ts` |
+| `service-gui-optimizer` | `host-only` | Verified GUI Optimizer observation, evaluation, and Agent Supervisor target adapter. | `src/services/gui-optimizer/*.ts`, `src/services/gui-optimizer/targets/*.ts` |
 | `service-integrations` | `split` | External service integrations isolated from root compatibility files. | `src/services/integrations/*.ts` |
 | `service-ipfs` | `split` | IPFS MCP/UI descriptors, descriptor packs, proof-cache integration, and browser/host IPFS adapters. | `src/services/ipfs/*.ts` |
 | `service-logic` | `split` | Canonical API, bridge, CEC, DCEC, deontic, FOL, modal, natural-language, shared logic, and TDFOL implementations. | Subfamily `index.ts`, browser/host barrels, and curated manifest entries |

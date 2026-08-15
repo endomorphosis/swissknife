@@ -2061,6 +2061,51 @@
       ],
       "browserSafeEntrypoint": null
     },
+    "service-gui-optimizer": {
+      "owner": "verified-gui-optimizer-runtime",
+      "path": "src/services/gui-optimizer",
+      "purpose": "Standalone Verified GUI Optimizer observation, evaluation, and Agent Supervisor target adapter. Does not grant host authorization or mutate the canonical tree.",
+      "runtimeClassification": "host-only",
+      "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+      "allowedImports": [
+        "services",
+        "shared",
+        "utils"
+      ],
+      "forbiddenImports": [
+        "commands",
+        "entrypoints",
+        "hooks",
+        "screens"
+      ],
+      "publicEntrypoints": [
+        "src/services/gui-optimizer/accessibility.ts",
+        "src/services/gui-optimizer/baseline.ts",
+        "src/services/gui-optimizer/cli.ts",
+        "src/services/gui-optimizer/component-graph.ts",
+        "src/services/gui-optimizer/context-pack.ts",
+        "src/services/gui-optimizer/evaluator.ts",
+        "src/services/gui-optimizer/identity.ts",
+        "src/services/gui-optimizer/interaction-runner.ts",
+        "src/services/gui-optimizer/invalidation.ts",
+        "src/services/gui-optimizer/models.ts",
+        "src/services/gui-optimizer/policy-validator.ts",
+        "src/services/gui-optimizer/scanner.ts",
+        "src/services/gui-optimizer/scenario-catalog.ts",
+        "src/services/gui-optimizer/state-machine.ts",
+        "src/services/gui-optimizer/targets/agent-supervisor.ts",
+        "src/services/gui-optimizer/ui-capsule.ts",
+        "src/services/gui-optimizer/visual-regression.ts"
+      ],
+      "privateEntrypoints": [],
+      "notes": [
+        "VGO observation and target adapters belong here; host authorization and worktree mutation stay in ipfs_accelerate_py."
+      ],
+      "privateImplementationPaths": [
+        "src/services/gui-optimizer/**/*"
+      ],
+      "browserSafeEntrypoint": null
+    },
     "service-integrations": {
       "owner": "external-integration-service-runtime",
       "path": "src/services/integrations",
