@@ -1,0 +1,102 @@
+{
+  "accessibility_contract_id": "a11y:console-root",
+  "action_binding_ids": [
+    "action:dispatch"
+  ],
+  "action_side_effects": [
+    "dispatch-goal"
+  ],
+  "analysis_classification": "exact",
+  "application_id": "app:agent-supervisor",
+  "capsule_id": "capsule:stale-console-root",
+  "child_component_ids": [
+    "comp:goal-form"
+  ],
+  "completeness_boundary": "complete_within_boundary",
+  "component_type": "screen-root",
+  "confirmation_required": false,
+  "dependency_edge_ids": [
+    "edge:root-goal-form"
+  ],
+  "emitted_event_ids": [
+    "event:submit"
+  ],
+  "empty_behavior": "Shows bounded empty-state guidance.",
+  "error_behavior": "Shows an associated recoverable error.",
+  "focus_behavior": [
+    "restore-trigger-after-close"
+  ],
+  "interface": "UiSemanticCapsule@1",
+  "keyboard_interactions": [
+    "enter-submits"
+  ],
+  "known_violation_ids": [],
+  "layout_role": "primary-workspace",
+  "loading_behavior": "Shows a named progress indicator.",
+  "localization_keys": [
+    "label.console"
+  ],
+  "prop_names": [
+    "goals",
+    "tasks"
+  ],
+  "purpose": "Stale Agent Supervisor console-root capsule that cannot be consumed.",
+  "responsive_behavior": [
+    "stack-on-narrow"
+  ],
+  "schema_version": "ui-semantic-capsule/v1",
+  "screen_id": "screen:agent-supervisor",
+  "screenshot_ids": [
+    "screenshot:console-root"
+  ],
+  "source_revision": "rev:stale-fixture-prior",
+  "stable_identity": {
+    "application_id": "app:agent-supervisor",
+    "component_kind": "screen",
+    "interface": "UiComponentIdentity@1",
+    "package_namespace": "org.hallucinate.swissknife.gui-optimizer",
+    "qualified_name": "comp:console-root",
+    "schema_version": "ui-component-identity/v1",
+    "screen_id": "screen:agent-supervisor"
+  },
+  "state_variable_ids": [
+    "state:ready",
+    "state:loading"
+  ],
+  "success_behavior": "Announces confirmed completion.",
+  "test_ids": [
+    "test:console-root-a11y"
+  ],
+  "transition_ids": [
+    "transition:ready-to-loading"
+  ],
+  "unresolved_dynamic_behavior": [],
+  "verification_status": "stale",
+  "version_identity": {
+    "accessibility_digest": "sha256:0a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef",
+    "actions_digest": "sha256:1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef01",
+    "extractor_version": "gui-ui-capsule-compiler-1.0.0",
+    "handlers_digest": "sha256:2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0123",
+    "interface": "UiComponentVersion@1",
+    "localization_digest": "sha256:3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef012345",
+    "optimizer_schema_version": "ui-component-version/v1",
+    "props_digest": "sha256:4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef01234567",
+    "schema_version": "ui-component-version/v1",
+    "stable_identity": {
+      "application_id": "app:agent-supervisor",
+      "component_kind": "screen",
+      "interface": "UiComponentIdentity@1",
+      "package_namespace": "org.hallucinate.swissknife.gui-optimizer",
+      "qualified_name": "comp:console-root",
+      "schema_version": "ui-component-identity/v1",
+      "screen_id": "screen:agent-supervisor"
+    },
+    "state_digest": "sha256:5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0123456789",
+    "structure_digest": "sha256:60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0123456789ab",
+    "styles_digest": "sha256:718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0123456789abcd"
+  },
+  "visible_state_ids": [
+    "state:ready",
+    "state:loading"
+  ]
+}

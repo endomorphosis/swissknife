@@ -1,0 +1,633 @@
+{
+  "application_id": "app:gui-optimizer-fixtures",
+  "cases": [
+    {
+      "case_id": "case:narrow-overflow",
+      "drive": {
+        "kind": "observe"
+      },
+      "expected": {
+        "acceptance_decision": null,
+        "focus_loss": false,
+        "min_clipping_count": 0,
+        "min_horizontal_overflow_count": 1,
+        "min_viewport_overflow_count": 1,
+        "required_a11y_rule_ids": [],
+        "visual_decision": "baseline_missing"
+      },
+      "family": "narrow_overflow",
+      "locale": "en-US",
+      "recipe": {
+        "controls": [
+          {
+            "background": "#ffffff",
+            "color": "#111111",
+            "id": "control:heading",
+            "tag": "h1",
+            "text": "Narrow overflow fixture"
+          },
+          {
+            "background": "#fef3c7",
+            "color": "#111111",
+            "id": "control:overflow-strip",
+            "nowrap": true,
+            "tag": "div",
+            "text": "OVERFLOW-STRIP-MEASURE-HORIZONTAL-VIEWPORT-FAILURE-ACROSS-NARROW-390-VIEWPORT",
+            "width": "2400px"
+          }
+        ],
+        "kind": "layout"
+      },
+      "scenario_id": "scenario:narrow-overflow",
+      "text_scale_percent": 100,
+      "title": "Narrow overflow is measurable on a 390 viewport",
+      "viewport": "mobile"
+    },
+    {
+      "case_id": "case:localized-clipping",
+      "drive": {
+        "kind": "observe"
+      },
+      "expected": {
+        "acceptance_decision": null,
+        "focus_loss": false,
+        "min_clipping_count": 1,
+        "min_horizontal_overflow_count": 1,
+        "min_viewport_overflow_count": 0,
+        "required_a11y_rule_ids": [],
+        "visual_decision": "baseline_missing"
+      },
+      "family": "localized_clipping",
+      "locale": "en-US",
+      "recipe": {
+        "controls": [
+          {
+            "background": "#ffffff",
+            "color": "#111111",
+            "id": "control:heading",
+            "tag": "h1",
+            "text": "Localized clipping fixture"
+          },
+          {
+            "background": "#fee2e2",
+            "children": [
+              {
+                "color": "#111111",
+                "id": "control:clip-child",
+                "nowrap": true,
+                "tag": "span",
+                "text": "CLIPPED-CHILD-CONTENT-THAT-EXCEEDS-THE-HIDDEN-PARENT-BOX",
+                "width": "800px"
+              }
+            ],
+            "height": "32px",
+            "id": "control:clip-box",
+            "overflow": "hidden",
+            "tag": "div",
+            "width": "160px"
+          }
+        ],
+        "kind": "layout"
+      },
+      "scenario_id": "scenario:localized-clipping",
+      "text_scale_percent": 100,
+      "title": "Localized overflow:hidden clipping is measurable",
+      "viewport": "desktop"
+    },
+    {
+      "case_id": "case:focus-lifecycle",
+      "drive": {
+        "focus_start": "control:focus-first",
+        "kind": "focus_lifecycle",
+        "rerender_control": "control:focus-rerender"
+      },
+      "expected": {
+        "acceptance_decision": null,
+        "focus_loss": true,
+        "focus_sequence_prefix": [
+          "control:focus-first",
+          "control:focus-second"
+        ],
+        "min_clipping_count": 0,
+        "min_horizontal_overflow_count": 0,
+        "min_viewport_overflow_count": 0,
+        "required_a11y_rule_ids": [],
+        "visual_decision": "baseline_missing"
+      },
+      "family": "focus_lifecycle",
+      "locale": "en-US",
+      "recipe": {
+        "controls": [
+          {
+            "background": "#ffffff",
+            "color": "#111111",
+            "id": "control:heading",
+            "tag": "h1",
+            "text": "Focus lifecycle fixture"
+          },
+          {
+            "id": "control:focus-first",
+            "tag": "button",
+            "text": "First"
+          },
+          {
+            "id": "control:focus-second",
+            "tag": "button",
+            "text": "Second"
+          },
+          {
+            "id": "control:focus-rerender",
+            "tag": "button",
+            "text": "Rerender and drop focus"
+          }
+        ],
+        "kind": "focus"
+      },
+      "scenario_id": "scenario:focus-lifecycle",
+      "text_scale_percent": 100,
+      "title": "Focus move then rerender loss is measurable",
+      "viewport": "desktop"
+    },
+    {
+      "case_id": "case:keyboard-navigation",
+      "drive": {
+        "expected_tab_order": [
+          "control:nav-goals",
+          "control:nav-queue",
+          "control:nav-submit"
+        ],
+        "focus_start": "control:nav-goals",
+        "kind": "keyboard"
+      },
+      "expected": {
+        "acceptance_decision": null,
+        "focus_loss": false,
+        "focus_sequence_prefix": [
+          "control:nav-goals",
+          "control:nav-queue",
+          "control:nav-submit"
+        ],
+        "keyboard_result": "satisfied",
+        "min_clipping_count": 0,
+        "min_horizontal_overflow_count": 0,
+        "min_viewport_overflow_count": 0,
+        "required_a11y_rule_ids": [],
+        "tab_order_matches": true,
+        "visual_decision": "baseline_missing"
+      },
+      "family": "keyboard_navigation",
+      "locale": "en-US",
+      "recipe": {
+        "controls": [
+          {
+            "background": "#ffffff",
+            "color": "#111111",
+            "id": "control:heading",
+            "tag": "h1",
+            "text": "Keyboard navigation fixture"
+          },
+          {
+            "id": "control:nav-goals",
+            "tag": "button",
+            "text": "Goals"
+          },
+          {
+            "id": "control:nav-queue",
+            "tag": "button",
+            "text": "Queue"
+          },
+          {
+            "id": "control:nav-submit",
+            "tag": "button",
+            "text": "Submit"
+          }
+        ],
+        "kind": "keyboard"
+      },
+      "scenario_id": "scenario:keyboard-navigation",
+      "text_scale_percent": 100,
+      "title": "Keyboard tab order and activation are measurable",
+      "viewport": "desktop"
+    },
+    {
+      "case_id": "case:contrast-labels-ids",
+      "drive": {
+        "kind": "observe"
+      },
+      "expected": {
+        "acceptance_decision": null,
+        "focus_loss": false,
+        "min_clipping_count": 0,
+        "min_horizontal_overflow_count": 0,
+        "min_viewport_overflow_count": 0,
+        "required_a11y_rule_ids": [
+          "accessible-name",
+          "contrast",
+          "duplicate-id",
+          "form-label"
+        ],
+        "visual_decision": "baseline_missing"
+      },
+      "family": "contrast_labels_ids",
+      "locale": "en-US",
+      "recipe": {
+        "controls": [
+          {
+            "background": "#ffffff",
+            "color": "#111111",
+            "id": "control:heading",
+            "tag": "h1",
+            "text": "Contrast labels and IDs"
+          },
+          {
+            "duplicate_id": "dup",
+            "id": "control:dup-a",
+            "tag": "div",
+            "text": "First duplicate"
+          },
+          {
+            "duplicate_id": "dup",
+            "id": "control:dup-b",
+            "tag": "div",
+            "text": "Second duplicate"
+          },
+          {
+            "id": "control:unlabeled-goal",
+            "labeled": false,
+            "tag": "input",
+            "type": "text"
+          },
+          {
+            "background": "#ffffff",
+            "color": "#cccccc",
+            "id": "control:low-contrast",
+            "tag": "span",
+            "text": "Low contrast copy"
+          }
+        ],
+        "kind": "a11y"
+      },
+      "scenario_id": "scenario:contrast-labels-ids",
+      "text_scale_percent": 100,
+      "title": "Contrast, unlabeled controls, and duplicate IDs fail live rules",
+      "viewport": "desktop"
+    },
+    {
+      "case_id": "case:visual-region-policy",
+      "comparisons": [
+        {
+          "baseline_variant": "baseline",
+          "candidate_variant": "expected",
+          "comparison_id": "cmp:expected-banner",
+          "expected_decision": "pass",
+          "expected_gate_reasons": []
+        },
+        {
+          "baseline_variant": "baseline",
+          "candidate_variant": "forbidden",
+          "comparison_id": "cmp:forbidden-confirm",
+          "expected_decision": "fail",
+          "expected_gate_reasons": [
+            "forbidden_region_change"
+          ]
+        },
+        {
+          "baseline_variant": "baseline",
+          "candidate_variant": "review",
+          "comparison_id": "cmp:review-threshold",
+          "expected_decision": "review",
+          "expected_gate_reasons": [
+            "manual_review_threshold"
+          ]
+        },
+        {
+          "baseline_variant": "baseline",
+          "candidate_variant": "unexplained",
+          "comparison_id": "cmp:unexplained-mid",
+          "expected_decision": "fail",
+          "expected_gate_reasons": [
+            "unexplained_diff_exceeds_max"
+          ]
+        }
+      ],
+      "drive": {
+        "kind": "observe"
+      },
+      "expected": {
+        "acceptance_decision": null,
+        "classify_pixel_diff_via_policy": true,
+        "focus_loss": false,
+        "min_clipping_count": 0,
+        "min_horizontal_overflow_count": 0,
+        "min_viewport_overflow_count": 0,
+        "required_a11y_rule_ids": [],
+        "visual_decision": "policy"
+      },
+      "family": "expected_forbidden_visual_regions",
+      "locale": "en-US",
+      "recipe": {
+        "blocks": {
+          "banner": {
+            "height": 0.25,
+            "width": 1,
+            "x": 0,
+            "y": 0
+          },
+          "confirm": {
+            "height": 0.3,
+            "width": 0.25,
+            "x": 0.75,
+            "y": 0.7
+          },
+          "review": {
+            "height": 0.2,
+            "width": 0.1,
+            "x": 0.45,
+            "y": 0.45
+          },
+          "unexplained": {
+            "height": 0.3,
+            "width": 0.2,
+            "x": 0.4,
+            "y": 0.4
+          }
+        },
+        "kind": "visual_blocks",
+        "variants": {
+          "baseline": {
+            "banner": "#1d4ed8",
+            "canvas": "#ffffff",
+            "confirm": "#166534",
+            "review": "#ffffff",
+            "unexplained": "#ffffff"
+          },
+          "expected": {
+            "banner": "#7c3aed",
+            "canvas": "#ffffff",
+            "confirm": "#166534",
+            "review": "#ffffff",
+            "unexplained": "#ffffff"
+          },
+          "forbidden": {
+            "banner": "#1d4ed8",
+            "canvas": "#ffffff",
+            "confirm": "#dc2626",
+            "review": "#ffffff",
+            "unexplained": "#ffffff"
+          },
+          "review": {
+            "banner": "#1d4ed8",
+            "canvas": "#ffffff",
+            "confirm": "#166534",
+            "review": "#ea580c",
+            "unexplained": "#ffffff"
+          },
+          "unexplained": {
+            "banner": "#1d4ed8",
+            "canvas": "#ffffff",
+            "confirm": "#166534",
+            "review": "#ffffff",
+            "unexplained": "#f59e0b"
+          }
+        }
+      },
+      "scenario_id": "scenario:visual-region-policy",
+      "text_scale_percent": 100,
+      "title": "Pixel difference is classified by expected, forbidden, threshold, and evidence policy",
+      "viewport": "visual",
+      "visual_policy": {
+        "expected_change_regions": [
+          {
+            "evidence_reason": "declared-banner-refresh",
+            "height": 0.25,
+            "interface": "VisualChangeRegion@1",
+            "region_id": "region:banner",
+            "schema_version": "visual-change-region/v1",
+            "width": 1,
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "forbidden_change_regions": [
+          {
+            "evidence_reason": "confirmation-control-must-not-move",
+            "height": 0.3,
+            "interface": "VisualChangeRegion@1",
+            "region_id": "region:confirm",
+            "schema_version": "visual-change-region/v1",
+            "width": 0.25,
+            "x": 0.75,
+            "y": 0.7
+          }
+        ],
+        "interface": "VisualDiffPolicy@1",
+        "manual_review_threshold_percent": 2,
+        "max_unexplained_diff_percent": 5,
+        "schema_version": "visual-diff-policy/v1"
+      }
+    },
+    {
+      "case_id": "case:visual-gain-a11y-regression",
+      "drive": {
+        "kind": "observe"
+      },
+      "expected": {
+        "acceptance_decision": "reject",
+        "acceptance_reason_codes": [
+          "accessibility_regression",
+          "heuristic_cannot_override"
+        ],
+        "focus_loss": false,
+        "min_candidate_a11y_violations": 1,
+        "min_clipping_count": 0,
+        "objective_id": "horizontal_overflow_count",
+        "objective_improved": true,
+        "required_a11y_rule_ids": [
+          "accessible-name",
+          "contrast",
+          "form-label"
+        ],
+        "visual_decision": "policy"
+      },
+      "family": "visual_gain_a11y_regression",
+      "locale": "en-US",
+      "recipe": {
+        "kind": "paired_layout",
+        "variants": {
+          "baseline": {
+            "controls": [
+              {
+                "background": "#ffffff",
+                "color": "#111111",
+                "id": "control:heading",
+                "tag": "h1",
+                "text": "Baseline labeled overflow"
+              },
+              {
+                "for_id": "control:goal",
+                "id": "control:goal-label",
+                "tag": "label",
+                "text": "Goal"
+              },
+              {
+                "id": "control:goal",
+                "labeled": true,
+                "tag": "input",
+                "type": "text"
+              },
+              {
+                "background": "#fef3c7",
+                "color": "#111111",
+                "id": "control:overflow-strip",
+                "nowrap": true,
+                "tag": "div",
+                "text": "BASELINE-OVERFLOW-STRIP-THAT-IS-WIDER-THAN-THE-MOBILE-VIEWPORT-AND-MUST-COUNT",
+                "width": "2400px"
+              }
+            ]
+          },
+          "candidate": {
+            "controls": [
+              {
+                "background": "#f5f3ff",
+                "color": "#5b21b6",
+                "id": "control:heading",
+                "tag": "h1",
+                "text": "Polished unlabeled candidate"
+              },
+              {
+                "id": "control:goal",
+                "labeled": false,
+                "tag": "input",
+                "type": "text"
+              },
+              {
+                "background": "#ffffff",
+                "color": "#dddddd",
+                "id": "control:low-contrast",
+                "tag": "span",
+                "text": "Pretty but unreadably faint copy"
+              }
+            ]
+          }
+        }
+      },
+      "scenario_id": "scenario:visual-gain-a11y-regression",
+      "text_scale_percent": 100,
+      "title": "Visual and overflow gains cannot override an accessibility regression",
+      "viewport": "mobile"
+    },
+    {
+      "case_id": "case:click-reduction-confirmation-bypass",
+      "drive": {
+        "kind": "confirmation_bypass"
+      },
+      "expected": {
+        "acceptance_decision": "reject",
+        "acceptance_reason_codes": [
+          "confirmation_regression",
+          "security_regression",
+          "heuristic_cannot_override"
+        ],
+        "bypass_rejected": true,
+        "candidate_click_count": 1,
+        "focus_loss": false,
+        "min_baseline_click_count": 2,
+        "objective_id": "required_action_unreachable_count",
+        "objective_improved": true,
+        "visual_decision": "baseline_missing"
+      },
+      "family": "click_reduction_confirmation_bypass",
+      "locale": "en-US",
+      "recipe": {
+        "kind": "confirmation",
+        "variants": {
+          "baseline": {
+            "bypass_confirmation": false,
+            "controls": [
+              {
+                "background": "#ffffff",
+                "color": "#111111",
+                "id": "control:heading",
+                "tag": "h1",
+                "text": "Confirmation required"
+              },
+              {
+                "id": "control:submit",
+                "tag": "button",
+                "text": "Dispatch"
+              },
+              {
+                "id": "control:confirm-grant",
+                "tag": "button",
+                "text": "Confirm"
+              }
+            ]
+          },
+          "candidate": {
+            "bypass_confirmation": true,
+            "controls": [
+              {
+                "background": "#ffffff",
+                "color": "#111111",
+                "id": "control:heading",
+                "tag": "h1",
+                "text": "Click-reduced bypass"
+              },
+              {
+                "id": "control:submit",
+                "tag": "button",
+                "text": "Dispatch now"
+              }
+            ]
+          }
+        }
+      },
+      "scenario_id": "scenario:click-reduction-confirmation-bypass",
+      "text_scale_percent": 100,
+      "title": "Fewer clicks that bypass confirmation are rejected",
+      "viewport": "desktop"
+    }
+  ],
+  "color_scheme": "light",
+  "component_id": "comp:A11yVisualHarness",
+  "families": [
+    "narrow_overflow",
+    "localized_clipping",
+    "focus_lifecycle",
+    "keyboard_navigation",
+    "contrast_labels_ids",
+    "expected_forbidden_visual_regions",
+    "visual_gain_a11y_regression",
+    "click_reduction_confirmation_bypass"
+  ],
+  "interface": "GuiBrowserFixtureSuite@1",
+  "locale": "en-US",
+  "schema_version": "gui-browser-fixture-suite/v1",
+  "screen_id": "screen:a11y-visual-harness",
+  "suite_id": "suite:vgo-072-a11y-visual",
+  "timezone": "UTC",
+  "viewports": {
+    "desktop": {
+      "device_scale_factor": 1,
+      "height": 800,
+      "interface": "ViewportSpec@1",
+      "schema_version": "gui-viewport-spec/v1",
+      "width": 1280
+    },
+    "mobile": {
+      "device_scale_factor": 1,
+      "height": 844,
+      "interface": "ViewportSpec@1",
+      "schema_version": "gui-viewport-spec/v1",
+      "width": 390
+    },
+    "visual": {
+      "device_scale_factor": 1,
+      "height": 400,
+      "interface": "ViewportSpec@1",
+      "schema_version": "gui-viewport-spec/v1",
+      "width": 400
+    }
+  }
+}

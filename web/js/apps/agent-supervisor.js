@@ -406,8 +406,82 @@ export class AgentSupervisorApp {
     if (!this.container) return;
     const root = this.container.querySelector('[data-agent-supervisor-root]');
     if (!root) return;
+    const focusState = this.captureFocusState();
     root.outerHTML = this.renderRoot();
     this.bindEvents();
+    this.restoreFocusState(focusState);
+  }
+
+  captureFocusState() {
+    if (!this.container) return null;
+    const doc = this.container.ownerDocument;
+    const active = doc && doc.activeElement;
+    if (!active || !this.container.contains(active)) return null;
+    const key = this.focusKeyFor(active);
+    if (!key) return null;
+    const state = { key };
+    if (typeof active.selectionStart === 'number' && typeof active.selectionEnd === 'number') {
+      state.selectionStart = active.selectionStart;
+      state.selectionEnd = active.selectionEnd;
+    }
+    return state;
+  }
+
+  focusKeyFor(el) {
+    if (!el || !el.getAttribute) return '';
+    if (el.getAttribute('data-testid')) return `testid:${el.getAttribute('data-testid')}`;
+    if (el.hasAttribute('data-steering-prompt')) return 'attr:data-steering-prompt';
+    if (el.hasAttribute('data-steering-confirm')) return 'attr:data-steering-confirm';
+    if (el.hasAttribute('data-steering-dry-run')) return 'attr:data-steering-dry-run';
+    if (el.hasAttribute('data-dispatch-reason')) return 'attr:data-dispatch-reason';
+    if (el.hasAttribute('data-dispatch-confirm')) return 'attr:data-dispatch-confirm';
+    if (el.hasAttribute('data-receipt-operation-confirm')) return 'attr:data-receipt-operation-confirm';
+    if (el.getAttribute('data-action')) return `action:${el.getAttribute('data-action')}`;
+    if (el.getAttribute('data-tab')) return `tab:${el.getAttribute('data-tab')}`;
+    if (el.getAttribute('data-subgoal-id')) return `subgoal:${el.getAttribute('data-subgoal-id')}`;
+    if (el.getAttribute('data-goal-id')) return `goal:${el.getAttribute('data-goal-id')}`;
+    if (el.getAttribute('data-task-id')) return `task:${el.getAttribute('data-task-id')}`;
+    if (el.getAttribute('data-receipt-id')) return `receipt:${el.getAttribute('data-receipt-id')}`;
+    return '';
+  }
+
+  elementForFocusKey(key) {
+    if (!this.container || !key) return null;
+    const attrValue = (prefix) => escapeSelector(key.slice(prefix.length));
+    if (key.startsWith('testid:')) return this.container.querySelector(`[data-testid="${attrValue('testid:')}"]`);
+    if (key.startsWith('attr:')) return this.container.querySelector(`[${key.slice(5)}]`);
+    if (key.startsWith('action:')) return this.container.querySelector(`[data-action="${attrValue('action:')}"]`);
+    if (key.startsWith('tab:')) return this.container.querySelector(`[data-tab="${attrValue('tab:')}"]`);
+    if (key.startsWith('subgoal:')) return this.container.querySelector(`[data-subgoal-id="${attrValue('subgoal:')}"]`);
+    if (key.startsWith('goal:')) return this.container.querySelector(`[data-goal-id="${attrValue('goal:')}"]:not([data-subgoal-id])`);
+    if (key.startsWith('task:')) return this.container.querySelector(`[data-task-id="${attrValue('task:')}"]`);
+    if (key.startsWith('receipt:')) return this.container.querySelector(`[data-receipt-id="${attrValue('receipt:')}"]`);
+    return null;
+  }
+
+  restoreFocusState(state) {
+    if (!state || !state.key) return;
+    const el = this.elementForFocusKey(state.key);
+    if (!el || typeof el.focus !== 'function') return;
+    el.focus({ preventScroll: true });
+    if (typeof state.selectionStart === 'number' && typeof el.setSelectionRange === 'function') {
+      try {
+        el.setSelectionRange(state.selectionStart, state.selectionEnd);
+      } catch (_err) {
+        // Some input types reject selection ranges.
+      }
+    }
+  }
+
+  focusAssociatedInvalidControl(form, reason) {
+    let key = '';
+    if (form === 'steering') {
+      key = reason === 'confirmation_required' ? 'testid:steering-confirm' : 'testid:steering-prompt';
+    } else if (form === 'dispatch') {
+      key = reason === 'confirmation_required' ? 'testid:dispatch-confirm' : 'testid:dispatch-reason';
+    }
+    const el = this.elementForFocusKey(key);
+    if (el && typeof el.focus === 'function') el.focus({ preventScroll: true });
   }
 
   bindEvents() {
@@ -579,16 +653,19 @@ export class AgentSupervisorApp {
     if (!steering.targetId || !this.targetExists(steering.targetType, steering.targetId)) {
       steering.error = { reason: 'invalid_target', message: 'Select a goal, subgoal, or task before submitting steering.' };
       this.update();
+      this.focusAssociatedInvalidControl('steering', steering.error.reason);
       return;
     }
     if (!prompt || prompt.length > 8000) {
       steering.error = { reason: 'scope_not_allowed', message: 'Prompt text must be present and no longer than 8000 characters.' };
       this.update();
+      this.focusAssociatedInvalidControl('steering', steering.error.reason);
       return;
     }
     if (!steering.dryRun && !steering.confirm) {
       steering.error = { reason: 'confirmation_required', message: 'Explicit confirmation is required before submission.' };
       this.update();
+      this.focusAssociatedInvalidControl('steering', steering.error.reason);
       return;
     }
 
@@ -651,16 +728,19 @@ export class AgentSupervisorApp {
     if (!task) {
       dispatch.error = { reason: 'invalid_target', message: 'Select a task before dispatching work.' };
       this.update();
+      this.focusAssociatedInvalidControl('dispatch', dispatch.error.reason);
       return;
     }
     if (!reason) {
       dispatch.error = { reason: 'scope_not_allowed', message: 'A dispatch reason is required.' };
       this.update();
+      this.focusAssociatedInvalidControl('dispatch', dispatch.error.reason);
       return;
     }
     if (!dispatch.confirm) {
       dispatch.error = { reason: 'confirmation_required', message: 'Explicit confirmation is required before dispatch.' };
       this.update();
+      this.focusAssociatedInvalidControl('dispatch', dispatch.error.reason);
       return;
     }
 
@@ -1045,6 +1125,10 @@ export class AgentSupervisorApp {
       && steering.prompt.trim().length <= 8000
       && (steering.dryRun || steering.confirm)
       && !steering.submitting;
+    const steeringErrorId = 'agent-supervisor-steering-error';
+    const promptBinding = error ? fieldErrorBinding(steeringErrorId) : '';
+    const confirmBinding = error && error.reason === 'confirmation_required' ? fieldErrorBinding(steeringErrorId) : '';
+    const submitDescribed = error ? ` aria-describedby="${steeringErrorId}"` : '';
     return `
       <div class="as-detail-body as-steering" data-testid="steering-panel">
         <div class="as-active-heading">
@@ -1056,7 +1140,7 @@ export class AgentSupervisorApp {
         </div>
         <label class="as-field">
           <span>Steering prompt</span>
-          <textarea data-steering-prompt maxlength="8000" data-testid="steering-prompt" spellcheck="false">${escapeHtml(steering.prompt)}</textarea>
+          <textarea id="agent-supervisor-steering-prompt" data-steering-prompt maxlength="8000" data-testid="steering-prompt" spellcheck="false"${promptBinding}>${escapeHtml(steering.prompt)}</textarea>
         </label>
         <div class="as-inline-grid as-review-grid" data-testid="steering-review">
           ${metric('Normalized target', review.normalized_target)}
@@ -1076,14 +1160,14 @@ export class AgentSupervisorApp {
           <span>Dry run: review policy, receipt, and event-DAG output without mutating supervisor state.</span>
         </label>
         <label class="as-confirm-line">
-          <input type="checkbox" data-steering-confirm data-testid="steering-confirm" ${steering.confirm ? 'checked' : ''} ${steering.dryRun ? 'disabled' : ''}>
+          <input type="checkbox" id="agent-supervisor-steering-confirm" data-steering-confirm data-testid="steering-confirm" ${steering.confirm ? 'checked' : ''} ${steering.dryRun ? 'disabled' : ''}${confirmBinding}>
           <span>Confirm this governed prompt steering request for the reviewed target.</span>
         </label>
         <div class="as-actions as-steering-actions">
-          <button type="button" data-action="submit-steering" data-testid="steering-submit" data-supervisor-focusable aria-disabled="${canSubmit ? 'false' : 'true'}">${steering.submitting ? 'Submitting' : 'Submit'}</button>
+          <button type="button" data-action="submit-steering" data-testid="steering-submit" data-supervisor-focusable aria-disabled="${canSubmit ? 'false' : 'true'}"${submitDescribed}>${steering.submitting ? 'Submitting' : 'Submit'}</button>
         </div>
         ${error ? `
-          <div class="as-state as-error" data-testid="steering-error" role="alert">
+          <div class="as-state as-error" id="${steeringErrorId}" data-testid="steering-error" role="alert">
             <strong>${escapeHtml(error.reason)}</strong>
             <span>${escapeHtml(error.message)}${error.correlation_id ? ` ${escapeHtml(error.correlation_id)}` : ''}</span>
             <button type="button" data-action="recover-steering" data-testid="steering-recovery" data-supervisor-focusable>${escapeHtml(steering.recoveryAction || recoveryActionForSteeringFailure(error.reason))}</button>
@@ -1114,6 +1198,10 @@ export class AgentSupervisorApp {
     const result = dispatch.result;
     const error = dispatch.error;
     const canSubmit = task && dispatch.reason.trim() && dispatch.confirm && !dispatch.submitting;
+    const dispatchErrorId = 'agent-supervisor-dispatch-error';
+    const reasonBinding = error ? fieldErrorBinding(dispatchErrorId) : '';
+    const confirmBinding = error && error.reason === 'confirmation_required' ? fieldErrorBinding(dispatchErrorId) : '';
+    const submitDescribed = error ? ` aria-describedby="${dispatchErrorId}"` : '';
     return `
       <div class="as-detail-body as-dispatch" data-testid="dispatch-panel">
         <div class="as-active-heading">
@@ -1137,17 +1225,17 @@ export class AgentSupervisorApp {
         </div>
         <label class="as-field">
           <span>Dispatch reason</span>
-          <textarea data-dispatch-reason data-testid="dispatch-reason" maxlength="1000" spellcheck="false">${escapeHtml(dispatch.reason)}</textarea>
+          <textarea id="agent-supervisor-dispatch-reason" data-dispatch-reason data-testid="dispatch-reason" maxlength="1000" spellcheck="false"${reasonBinding}>${escapeHtml(dispatch.reason)}</textarea>
         </label>
         <label class="as-confirm-line">
-          <input type="checkbox" data-dispatch-confirm data-testid="dispatch-confirm" ${dispatch.confirm ? 'checked' : ''}>
+          <input type="checkbox" id="agent-supervisor-dispatch-confirm" data-dispatch-confirm data-testid="dispatch-confirm" ${dispatch.confirm ? 'checked' : ''}${confirmBinding}>
           <span>Confirm this governed task dispatch for the reviewed task and policy.</span>
         </label>
         <div class="as-actions as-steering-actions">
-          <button type="button" data-action="submit-dispatch" data-testid="dispatch-submit" data-supervisor-focusable aria-disabled="${canSubmit ? 'false' : 'true'}">${dispatch.submitting ? 'Dispatching' : 'Dispatch task'}</button>
+          <button type="button" data-action="submit-dispatch" data-testid="dispatch-submit" data-supervisor-focusable aria-disabled="${canSubmit ? 'false' : 'true'}"${submitDescribed}>${dispatch.submitting ? 'Dispatching' : 'Dispatch task'}</button>
         </div>
         ${error ? `
-          <div class="as-state as-error" data-testid="dispatch-error" role="alert">
+          <div class="as-state as-error" id="${dispatchErrorId}" data-testid="dispatch-error" role="alert">
             <strong>${escapeHtml(error.reason)}</strong>
             <span>${escapeHtml(error.message)}${error.correlation_id ? ` ${escapeHtml(error.correlation_id)}` : ''}</span>
           </div>
@@ -1977,6 +2065,17 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function escapeSelector(value) {
+  const text = String(value ?? '');
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(text);
+  return text.replace(/["\\]/g, '\\$&');
+}
+
+function fieldErrorBinding(errorId) {
+  const id = escapeHtml(errorId);
+  return ` aria-invalid="true" aria-describedby="${id}" aria-errormessage="${id}"`;
 }
 
 function escapeAttr(value) {

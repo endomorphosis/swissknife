@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html
+  lang="en"
+  data-interface="AgentSupervisorFixtureHost@1"
+  data-schema="agent-supervisor-fixture-host/v1"
+  data-services-interface="AgentSupervisorFixtureServices@1"
+  data-can-issue-authoritative-allow="false"
+  data-uses-production-services="false"
+  data-uses-production-credentials="false"
+>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1280" />
+    <title>Agent Supervisor fixture host</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --as-fg: #111111;
+        --as-bg: #ffffff;
+        --as-muted: #4a4a4a;
+        --as-line: #d0d0d0;
+        --as-accent: #1d4ed8;
+        --as-danger: #991b1b;
+        --as-ok: #166534;
+      }
+      html[data-color-scheme="dark"] {
+        color-scheme: dark;
+        --as-fg: #eeeeee;
+        --as-bg: #111111;
+        --as-muted: #c4c4c4;
+        --as-line: #3a3a3a;
+        --as-accent: #93c5fd;
+        --as-danger: #fca5a5;
+        --as-ok: #86efac;
+      }
+      html[data-reduced-motion="true"] *,
+      html[data-reduced-motion="true"] *::before,
+      html[data-reduced-motion="true"] *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--as-bg);
+        color: var(--as-fg);
+        font: 16px/1.4 ui-sans-serif, system-ui, sans-serif;
+      }
+      .agent-supervisor { min-height: 100vh; }
+      .as-header, .as-health-band, .as-pane, .as-state, .as-confirm {
+        border-bottom: 1px solid var(--as-line);
+        padding: 12px 16px;
+      }
+      .as-header, .as-pane-title, .as-actions, .as-health-band, .as-inline-grid, .as-tabs {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .as-header { justify-content: space-between; }
+      .as-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr);
+      }
+      @media (max-width: 800px) {
+        .as-layout { grid-template-columns: 1fr; }
+      }
+      h1, h2, h3 { margin: 0 0 4px; font-size: 1.1rem; }
+      .as-subtitle, .as-metric span { color: var(--as-muted); font-size: 0.85rem; }
+      button, textarea, .as-link {
+        font: inherit;
+        color: inherit;
+        background: transparent;
+        border: 1px solid var(--as-line);
+        border-radius: 6px;
+        padding: 6px 10px;
+      }
+      button.is-selected, button[aria-selected="true"], button[aria-pressed="true"] {
+        border-color: var(--as-accent);
+      }
+      .as-row {
+        display: flex;
+        width: 100%;
+        text-align: left;
+        gap: 8px;
+        margin: 4px 0;
+      }
+      .as-status {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--as-accent);
+        margin-top: 6px;
+        flex: 0 0 auto;
+      }
+      .as-status.completed, .as-status.ready { background: var(--as-ok); }
+      .as-status.failed, .as-status.blocked { background: var(--as-danger); }
+      .as-state { display: flex; flex-direction: column; gap: 4px; }
+      .as-error { color: var(--as-danger); }
+      .as-field { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+      textarea { min-height: 72px; width: 100%; }
+      .as-steering-result { color: var(--as-ok); }
+      [data-testid="confirmation-authority"] { color: var(--as-muted); }
+    </style>
+  </head>
+  <body>
+    <div
+      id="fixture-host"
+      data-testid="fixture-host"
+      data-interface="AgentSupervisorFixtureHost@1"
+      data-can-issue-authoritative-allow="false"
+    ></div>
+    <script src="fixture-services.js"></script>
+    <script>
+      (function bootFixtureHost() {
+        const api = globalThis.AgentSupervisorFixtureServices;
+        if (!api) {
+          throw new Error('AgentSupervisorFixtureServices@1 is required by fixture-host.html');
+        }
+        api.boot(globalThis);
+      })();
+    </script>
+  </body>
+</html>

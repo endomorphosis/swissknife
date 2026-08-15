@@ -1,0 +1,553 @@
+{
+  "interface": "AgentSupervisorFixtureScenarios@1",
+  "schema_version": "agent-supervisor-fixture-scenarios/v1",
+  "host_interface": "AgentSupervisorFixtureHost@1",
+  "services_interface": "AgentSupervisorFixtureServices@1",
+  "catalog_id": "catalog:agent-supervisor-scenarios",
+  "application_id": "app:agent-supervisor",
+  "screen_id": "screen:agent-supervisor",
+  "seed": "vgo-003-agent-supervisor-deterministic-seed",
+  "frozen_time": "2026-08-11T00:00:00.000Z",
+  "timezone": "UTC",
+  "locale": "en-US",
+  "canonical_json_profile": "gui-optimizer-canonical-json/v1",
+  "uses_production_services": false,
+  "uses_production_credentials": false,
+  "can_issue_authoritative_allow": false,
+  "network_policy": {
+    "mode": "fail-closed",
+    "allowed_url_prefixes": [
+      "synthetic://agent-supervisor/"
+    ],
+    "blocked_classes": [
+      "fetch",
+      "xhr",
+      "websocket",
+      "eventsource",
+      "beacon",
+      "mcp",
+      "subprocess",
+      "credentials"
+    ]
+  },
+  "viewports": {
+    "mobile": {
+      "interface": "ViewportSpec@1",
+      "schema_version": "gui-viewport-spec/v1",
+      "width": 390,
+      "height": 844,
+      "device_scale_factor": 1
+    },
+    "desktop": {
+      "interface": "ViewportSpec@1",
+      "schema_version": "gui-viewport-spec/v1",
+      "width": 1280,
+      "height": 800,
+      "device_scale_factor": 1
+    },
+    "wide": {
+      "interface": "ViewportSpec@1",
+      "schema_version": "gui-viewport-spec/v1",
+      "width": 1600,
+      "height": 1000,
+      "device_scale_factor": 1
+    }
+  },
+  "required_scenario_kinds": [
+    "initial_load",
+    "loading",
+    "success",
+    "empty",
+    "recoverable_failure",
+    "unrecoverable_failure",
+    "invalid_submission",
+    "valid_submission",
+    "keyboard_only",
+    "viewport_mobile",
+    "viewport_desktop",
+    "viewport_wide",
+    "text_scale_200",
+    "reduced_motion",
+    "dark_mode",
+    "service_unavailable",
+    "confirmation_grant",
+    "confirmation_deny"
+  ],
+  "stable_scenario_ids": {
+    "initial_load": "scenario:initial-load",
+    "loading": "scenario:loading",
+    "success": "scenario:success",
+    "empty": "scenario:empty",
+    "recoverable_failure": "scenario:recoverable-failure",
+    "unrecoverable_failure": "scenario:unrecoverable-failure",
+    "invalid_submission": "scenario:invalid-submission",
+    "valid_submission": "scenario:valid-submission",
+    "keyboard_only": "scenario:keyboard-only",
+    "viewport_mobile": "scenario:viewport-mobile",
+    "viewport_desktop": "scenario:viewport-desktop",
+    "viewport_wide": "scenario:viewport-wide",
+    "text_scale_200": "scenario:text-scale-200",
+    "reduced_motion": "scenario:reduced-motion",
+    "dark_mode": "scenario:dark-mode",
+    "service_unavailable": "scenario:service-unavailable",
+    "confirmation_grant": "scenario:confirmation-grant",
+    "confirmation_deny": "scenario:confirmation-deny"
+  },
+  "expected_terminal_states": {
+    "initial_load": ["state:ready"],
+    "loading": ["state:loading"],
+    "success": ["state:success"],
+    "empty": ["state:empty"],
+    "recoverable_failure": ["state:recovery"],
+    "unrecoverable_failure": ["state:failure"],
+    "invalid_submission": ["state:ready"],
+    "valid_submission": ["state:success"],
+    "keyboard_only": ["state:ready"],
+    "viewport_mobile": ["state:ready"],
+    "viewport_desktop": ["state:ready"],
+    "viewport_wide": ["state:ready"],
+    "text_scale_200": ["state:ready"],
+    "reduced_motion": ["state:ready"],
+    "dark_mode": ["state:ready"],
+    "service_unavailable": ["state:unavailable"],
+    "confirmation_grant": ["state:success"],
+    "confirmation_deny": ["state:ready"]
+  },
+  "recipes": {
+    "populated": {
+      "goal_count": 2,
+      "queue_count": 2,
+      "goal_status": "running",
+      "health_status": "available"
+    },
+    "completed": {
+      "goal_count": 2,
+      "queue_count": 0,
+      "goal_status": "completed",
+      "health_status": "available"
+    },
+    "empty": {
+      "goal_count": 0,
+      "queue_count": 0,
+      "goal_status": "ready",
+      "health_status": "available"
+    },
+    "loading": {
+      "goal_count": 0,
+      "queue_count": 0,
+      "goal_status": "ready",
+      "health_status": "loading"
+    },
+    "recoverable": {
+      "goal_count": 2,
+      "queue_count": 1,
+      "goal_status": "running",
+      "health_status": "degraded",
+      "error_code": "transport_timeout",
+      "recoverable": true
+    },
+    "unrecoverable": {
+      "goal_count": 0,
+      "queue_count": 0,
+      "goal_status": "failed",
+      "health_status": "unavailable",
+      "error_code": "schema_mismatch",
+      "recoverable": false
+    },
+    "invalid_submission": {
+      "goal_count": 2,
+      "queue_count": 1,
+      "goal_status": "running",
+      "health_status": "available",
+      "prompt": "",
+      "prompt_valid": false
+    },
+    "valid_submission": {
+      "goal_count": 2,
+      "queue_count": 1,
+      "goal_status": "running",
+      "health_status": "available",
+      "prompt": "Synthetic governed prompt",
+      "prompt_valid": true,
+      "confirmed": true
+    },
+    "keyboard": {
+      "goal_count": 2,
+      "queue_count": 2,
+      "goal_status": "running",
+      "health_status": "available",
+      "focus_order": [
+        "control:goals-tree",
+        "control:queue",
+        "control:prompt-input",
+        "control:submit"
+      ]
+    },
+    "reduced_motion": {
+      "goal_count": 2,
+      "queue_count": 1,
+      "goal_status": "running",
+      "health_status": "available",
+      "prefers_reduced_motion": true
+    },
+    "dark_mode": {
+      "goal_count": 2,
+      "queue_count": 1,
+      "goal_status": "running",
+      "health_status": "available",
+      "color_scheme_support": ["light", "dark"]
+    },
+    "unavailable": {
+      "goal_count": 0,
+      "queue_count": 0,
+      "goal_status": "ready",
+      "health_status": "server_unavailable"
+    },
+    "confirmation_grant": {
+      "goal_count": 2,
+      "queue_count": 1,
+      "goal_status": "running",
+      "health_status": "available",
+      "confirmation_required": true,
+      "confirmation_decision": "granted",
+      "action_id": "action:prompt-steering"
+    },
+    "confirmation_deny": {
+      "goal_count": 2,
+      "queue_count": 1,
+      "goal_status": "running",
+      "health_status": "available",
+      "confirmation_required": true,
+      "confirmation_decision": "denied",
+      "action_id": "action:prompt-steering"
+    }
+  },
+  "fixtures": [
+    {
+      "fixture_id": "fixture:agent-supervisor:initial-load",
+      "recipe": "populated",
+      "service_mode": "success",
+      "animation": "allowed"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:loading",
+      "recipe": "loading",
+      "service_mode": "loading",
+      "animation": "allowed"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:success",
+      "recipe": "completed",
+      "service_mode": "success",
+      "animation": "allowed"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:empty",
+      "recipe": "empty",
+      "service_mode": "empty",
+      "animation": "allowed"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:recoverable-failure",
+      "recipe": "recoverable",
+      "service_mode": "recoverable_error",
+      "animation": "allowed"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:unrecoverable-failure",
+      "recipe": "unrecoverable",
+      "service_mode": "unrecoverable_error",
+      "animation": "allowed"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:invalid-submission",
+      "recipe": "invalid_submission",
+      "service_mode": "validation_failure",
+      "animation": "allowed"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:valid-submission",
+      "recipe": "valid_submission",
+      "service_mode": "confirmation_granted",
+      "animation": "allowed"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:keyboard-only",
+      "recipe": "keyboard",
+      "service_mode": "success",
+      "animation": "reduced"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:viewport-matrix",
+      "recipe": "populated",
+      "service_mode": "success",
+      "animation": "allowed"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:reduced-motion",
+      "recipe": "reduced_motion",
+      "service_mode": "success",
+      "animation": "disabled"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:dark-mode",
+      "recipe": "dark_mode",
+      "service_mode": "success",
+      "animation": "allowed"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:service-unavailable",
+      "recipe": "unavailable",
+      "service_mode": "service_unavailable",
+      "animation": "allowed"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:confirmation-grant",
+      "recipe": "confirmation_grant",
+      "service_mode": "confirmation_granted",
+      "animation": "allowed"
+    },
+    {
+      "fixture_id": "fixture:agent-supervisor:confirmation-deny",
+      "recipe": "confirmation_deny",
+      "service_mode": "confirmation_denied",
+      "animation": "allowed"
+    }
+  ],
+  "scenarios": [
+    {
+      "kind": "initial_load",
+      "scenario_id": "scenario:initial-load",
+      "name": "Initial load",
+      "fixture_id": "fixture:agent-supervisor:initial-load",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["initial", "load", "baseline"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "loading",
+      "scenario_id": "scenario:loading",
+      "name": "Loading state",
+      "fixture_id": "fixture:agent-supervisor:loading",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["loading", "async"],
+      "expected_terminal_states": ["state:loading"]
+    },
+    {
+      "kind": "success",
+      "scenario_id": "scenario:success",
+      "name": "Normal success",
+      "fixture_id": "fixture:agent-supervisor:success",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["success", "baseline"],
+      "expected_terminal_states": ["state:success"]
+    },
+    {
+      "kind": "empty",
+      "scenario_id": "scenario:empty",
+      "name": "Empty data",
+      "fixture_id": "fixture:agent-supervisor:empty",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["empty", "data"],
+      "expected_terminal_states": ["state:empty"]
+    },
+    {
+      "kind": "recoverable_failure",
+      "scenario_id": "scenario:recoverable-failure",
+      "name": "Recoverable error",
+      "fixture_id": "fixture:agent-supervisor:recoverable-failure",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["error", "recoverable", "failure"],
+      "expected_terminal_states": ["state:recovery"]
+    },
+    {
+      "kind": "unrecoverable_failure",
+      "scenario_id": "scenario:unrecoverable-failure",
+      "name": "Unrecoverable error",
+      "fixture_id": "fixture:agent-supervisor:unrecoverable-failure",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["error", "unrecoverable", "failure"],
+      "expected_terminal_states": ["state:failure"]
+    },
+    {
+      "kind": "invalid_submission",
+      "scenario_id": "scenario:invalid-submission",
+      "name": "Invalid steering or dispatch input",
+      "fixture_id": "fixture:agent-supervisor:invalid-submission",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["submission", "validation", "invalid"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "valid_submission",
+      "scenario_id": "scenario:valid-submission",
+      "name": "Valid confirmed submission",
+      "fixture_id": "fixture:agent-supervisor:valid-submission",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["submission", "validation", "valid", "confirmation"],
+      "expected_terminal_states": ["state:success"]
+    },
+    {
+      "kind": "keyboard_only",
+      "scenario_id": "scenario:keyboard-only",
+      "name": "Keyboard-only navigation",
+      "fixture_id": "fixture:agent-supervisor:keyboard-only",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": true,
+      "tags": ["keyboard", "a11y"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "viewport_mobile",
+      "scenario_id": "scenario:viewport-mobile",
+      "name": "Narrow mobile viewport 390x844",
+      "fixture_id": "fixture:agent-supervisor:viewport-matrix",
+      "viewport": "mobile",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["viewport", "mobile", "responsive"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "viewport_desktop",
+      "scenario_id": "scenario:viewport-desktop",
+      "name": "Standard desktop viewport 1280x800",
+      "fixture_id": "fixture:agent-supervisor:viewport-matrix",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["viewport", "desktop", "responsive"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "viewport_wide",
+      "scenario_id": "scenario:viewport-wide",
+      "name": "Wide desktop viewport 1600x1000",
+      "fixture_id": "fixture:agent-supervisor:viewport-matrix",
+      "viewport": "wide",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["viewport", "wide", "responsive"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "text_scale_200",
+      "scenario_id": "scenario:text-scale-200",
+      "name": "200 percent text scaling",
+      "fixture_id": "fixture:agent-supervisor:viewport-matrix",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 200,
+      "reduced_motion": false,
+      "tags": ["text-scale", "zoom", "a11y"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "reduced_motion",
+      "scenario_id": "scenario:reduced-motion",
+      "name": "Reduced-motion preference",
+      "fixture_id": "fixture:agent-supervisor:reduced-motion",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": true,
+      "tags": ["reduced-motion", "a11y", "animation"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "dark_mode",
+      "scenario_id": "scenario:dark-mode",
+      "name": "Dark mode when screen advertises support",
+      "fixture_id": "fixture:agent-supervisor:dark-mode",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "dark",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["dark-mode", "color-scheme"],
+      "expected_terminal_states": ["state:ready"]
+    },
+    {
+      "kind": "service_unavailable",
+      "scenario_id": "scenario:service-unavailable",
+      "name": "Service unavailable",
+      "fixture_id": "fixture:agent-supervisor:service-unavailable",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["service", "unavailable", "offline"],
+      "expected_terminal_states": ["state:unavailable"]
+    },
+    {
+      "kind": "confirmation_grant",
+      "scenario_id": "scenario:confirmation-grant",
+      "name": "Confirmation granted",
+      "fixture_id": "fixture:agent-supervisor:confirmation-grant",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["confirmation", "grant", "governed-write"],
+      "expected_terminal_states": ["state:success"]
+    },
+    {
+      "kind": "confirmation_deny",
+      "scenario_id": "scenario:confirmation-deny",
+      "name": "Confirmation denied",
+      "fixture_id": "fixture:agent-supervisor:confirmation-deny",
+      "viewport": "desktop",
+      "locale": "en-US",
+      "color_scheme": "light",
+      "text_scale_percent": 100,
+      "reduced_motion": false,
+      "tags": ["confirmation", "deny", "governed-write"],
+      "expected_terminal_states": ["state:ready"]
+    }
+  ]
+}
