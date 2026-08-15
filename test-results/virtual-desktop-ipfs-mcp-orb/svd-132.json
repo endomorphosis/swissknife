@@ -25,7 +25,7 @@
     "apps_with_failed_requests_count": 0,
     "apps_with_manifest_drift_count": 0,
     "screenshot_count": 96,
-    "screenshot_captured_count": 96
+    "screenshot_captured_count": 0
   },
   "apps": [
     {
@@ -59,18 +59,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/terminal/desktop.png",
-          "byte_length": 14839,
-          "sha256": "bdeef25959ef56346b17300b1a559fcdfd084962f13804f2d9505ccafb8f7837",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/terminal/narrow.png",
-          "byte_length": 5073,
-          "sha256": "1b7352e04b1af44e7067a8b48067d779d33ed1fd7937cf7cc0a4b8747df66d8a",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -109,18 +111,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/vibecode/desktop.png",
-          "byte_length": 14841,
-          "sha256": "7051115f8740f01a075d0e304690b4deb0b4b015e0761bed225b0b1450972261",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/vibecode/narrow.png",
-          "byte_length": 5074,
-          "sha256": "cd4d3d13f7c85813b29caf88e6604cd7f115cde5ad9e4e9d54a0041191fab114",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -159,18 +163,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/code-editor/desktop.png",
-          "byte_length": 14847,
-          "sha256": "3e13b32af2a8b82989622895008adfa035d46c1615e71d8bdbb2d2996346043d",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/code-editor/narrow.png",
-          "byte_length": 5066,
-          "sha256": "dd742634fc5603efccdfc0207f01c7212274f5660e9bd9b62988c0a721198b97",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -209,18 +215,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/music-studio-unified/desktop.png",
-          "byte_length": 14834,
-          "sha256": "68c9316362af4e255c045eab790984686ba6e6498fb2f99fe86b929893efba9e",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/music-studio-unified/narrow.png",
-          "byte_length": 4949,
-          "sha256": "90e0b1688c004813959427e7aacf03dc7d5f4a5433732ade043fd371dc74b58a",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -259,18 +267,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/ai-chat/desktop.png",
-          "byte_length": 14846,
-          "sha256": "cb974035271d94b22b16669cd80d40a8f9643478f17fe6fa6e74d6a15ffe1dc0",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/ai-chat/narrow.png",
-          "byte_length": 5066,
-          "sha256": "b5c22a0989022ba0240c8e33a5e46ccd87371b7f9df9e975619dfe78c6d0034c",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -309,18 +319,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/file-manager/desktop.png",
-          "byte_length": 14836,
-          "sha256": "b2f293081fb6c598b2a4349ea3a41958e689c0da06e19e138f39a58b3beef50e",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/file-manager/narrow.png",
-          "byte_length": 5070,
-          "sha256": "4e7b7ce3b599e8d13aa7ca57cf511c0d97a6b962d48719a427bb8331c7e48f79",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -359,18 +371,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/task-manager/desktop.png",
-          "byte_length": 14831,
-          "sha256": "18bd380b702131e9a3868dbc3c1249c570fd439d3128a9c93ef69cfd00d0592f",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/task-manager/narrow.png",
-          "byte_length": 5052,
-          "sha256": "3f9d9e2c814d82cb84a1d63cc6be2db184bec090e60b628aa15abc6067d49b50",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -409,18 +423,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/todo/desktop.png",
-          "byte_length": 14835,
-          "sha256": "29fb202834a2d54524db472fe32e54e483d0fa74fd2151c199483280ddd3080d",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/todo/narrow.png",
-          "byte_length": 5052,
-          "sha256": "f63e652a0b373d24ca3790ca73007ce527a1451de47f8864471d6b99879ea690",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -459,18 +475,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/model-browser/desktop.png",
-          "byte_length": 14845,
-          "sha256": "d7deb6bf3210ee4dc7b0dc49b1728c5c391c98accde861aa7e453192f3902610",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/model-browser/narrow.png",
-          "byte_length": 5066,
-          "sha256": "9f2c068269fb2129dfad8a5140cf239692444d09f61e4dee3cf38df532a357c4",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -509,18 +527,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/huggingface/desktop.png",
-          "byte_length": 14835,
-          "sha256": "14df4118fd355ef3ce0b50cefd6ff58be1269cb1759f812d7d414b0e0ee6f386",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/huggingface/narrow.png",
-          "byte_length": 5029,
-          "sha256": "1972fdd61b247936495d98b08d87be3fc1dcd142b6b7d3f764ae735925908347",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -559,18 +579,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/openrouter/desktop.png",
-          "byte_length": 14830,
-          "sha256": "50b2267c8bfecbe2aef5f0f931fafaf1a02c77378beabbb2a8a59ac84747ddb3",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/openrouter/narrow.png",
-          "byte_length": 5066,
-          "sha256": "288d14d167bb01c035469d5bf60bccf47ceea839e2ba446dc03c692eb107c488",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -609,18 +631,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/ipfs-explorer/desktop.png",
-          "byte_length": 14847,
-          "sha256": "952e653733c2325e672417d0ac8dc3f61a8f7af258e140cbf97ba93025c0b7a2",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/ipfs-explorer/narrow.png",
-          "byte_length": 5071,
-          "sha256": "33f45b7339460081688dda6e393e37aa0f894eacbe13f7dfefd04813f0ab201d",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -659,18 +683,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/device-manager/desktop.png",
-          "byte_length": 14847,
-          "sha256": "f18786426b43f9b7bf4bae2a25e204d95a937f29cb87046a8481a2fc7f087cc1",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/device-manager/narrow.png",
-          "byte_length": 5062,
-          "sha256": "4d8b47ca3a9b1d48667f687b3dd8be0bfc2fd2c24909769274b7637c31288507",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -709,18 +735,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/settings/desktop.png",
-          "byte_length": 14834,
-          "sha256": "2e36d2af999650fe23221078eb041cf997f91d0183f0152a2d362365034096d6",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/settings/narrow.png",
-          "byte_length": 5061,
-          "sha256": "39ad0dd353b983421c2671ac85c3134bbb597bbe2a6ecceeda2a111e0bf8c4fc",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -759,18 +787,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/mcp-control/desktop.png",
-          "byte_length": 14838,
-          "sha256": "042c901d7866f4ea0fce9f97ee18fa590dd6a564e6b4465a83d87648830b2cb1",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/mcp-control/narrow.png",
-          "byte_length": 5000,
-          "sha256": "8ddcb24e7619ce6fd5df8642f383dce82ad8ff40be0ccedc5bae40b30f9e7102",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -809,18 +839,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/api-keys/desktop.png",
-          "byte_length": 14832,
-          "sha256": "e70a1056c7db812b3f8fd2f5eff2fdbd08a970c4b8b9662f71189c1b4d954614",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/api-keys/narrow.png",
-          "byte_length": 5074,
-          "sha256": "cc2eb7deda769d629c8bbc76a7699943a82fe334708f64adc30569defd5fd706",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -859,18 +891,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/github/desktop.png",
-          "byte_length": 14840,
-          "sha256": "865faa205157f042b5c53e8c4b20770072e3f01360a2525ed6d7debded3bbbea",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/github/narrow.png",
-          "byte_length": 4942,
-          "sha256": "cbf22445af5bd7ea5513bb97c4cc031e6125b2e26fd8b55468acc947f5317229",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -909,18 +943,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/oauth-login/desktop.png",
-          "byte_length": 14845,
-          "sha256": "ed5bcf8ed31bc34a28a0e9fd98ac19173b1bfc5b82c5c876b3c8dd0c207968d8",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/oauth-login/narrow.png",
-          "byte_length": 5062,
-          "sha256": "41ee0b23e923ec649ebe0e9f01f560ca7d729474cf625cc1269d499c1c9c046e",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -959,18 +995,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/cron/desktop.png",
-          "byte_length": 14836,
-          "sha256": "09ac8310f6f74f68899e88f77a6f3a348cd66eebd2d1678927a1372b2e9a31d1",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/cron/narrow.png",
-          "byte_length": 5067,
-          "sha256": "b518f9a64c012265e693d8df8f605e3f6ae58e4034f62005da44b7859d3d44bf",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1009,18 +1047,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/navi/desktop.png",
-          "byte_length": 14831,
-          "sha256": "82ecb4775def339a1be174d871ce5d753cdab14e38afd40393aab36ab1431753",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/navi/narrow.png",
-          "byte_length": 5067,
-          "sha256": "b967cb9dc98b5dc2ab7b5c5ec9e69278fb166866bf9b76b8fc6f581355e6d5f8",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1059,18 +1099,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/p2p-network/desktop.png",
-          "byte_length": 14847,
-          "sha256": "0366a07e56ed0e90a82d1a34fc1307eac296aa29e1cb640f0d5da4dd9c271f68",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/p2p-network/narrow.png",
-          "byte_length": 5062,
-          "sha256": "1e5b92b78ebe307c375ea16ee548af7d19d01b5ddb8933663d41e637c5ec66ef",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1109,18 +1151,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/p2p-chat-unified/desktop.png",
-          "byte_length": 14847,
-          "sha256": "57d87781ad54ec8620cd762028fd757b578ef11a69e70d79e38ae551b8b782c1",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/p2p-chat-unified/narrow.png",
-          "byte_length": 5055,
-          "sha256": "623b3d0a4ec2eda3a4d92fceaca106bf311871b13febeda5f476dcc06c21d16c",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1159,18 +1203,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/neural-network-designer/desktop.png",
-          "byte_length": 14824,
-          "sha256": "c0f1f626972c01732b0e36f990e698d710f49ff7fcfb721db2e5cb369a20b842",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/neural-network-designer/narrow.png",
-          "byte_length": 4940,
-          "sha256": "c0aeaa48312c61f846799dc23b8f357289fb2eadfcb6e5994a455f0e7bf5143c",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1209,18 +1255,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/training-manager/desktop.png",
-          "byte_length": 14847,
-          "sha256": "e7d50970fad3e5eb936d948d7a057cff274dc840784f49f09a70fb2987b28d2d",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/training-manager/narrow.png",
-          "byte_length": 5074,
-          "sha256": "446d29b4d31ca3dc04aee809b92c5b22d1c7bb028d98a65f4896e4805ace5627",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1259,18 +1307,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/calculator/desktop.png",
-          "byte_length": 14844,
-          "sha256": "13b02802e41bd174bac33a7ec91a834c09b339d37d092faf097e603bc860cc04",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/calculator/narrow.png",
-          "byte_length": 5073,
-          "sha256": "bf3216a4ac6605934222795dcedfa0e5ce1684b906bd53e34283e7ef17ff7c29",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1309,18 +1359,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/clock/desktop.png",
-          "byte_length": 14835,
-          "sha256": "7771ba3c778c139b2d6ce03b747d9c9159927d013f70662a5dfed7267f92d8c0",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/clock/narrow.png",
-          "byte_length": 5069,
-          "sha256": "e2c29011da2d0bcf019134da7d2c8f1fcdc805ea904f3496b73580de834f6294",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1359,18 +1411,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/calendar/desktop.png",
-          "byte_length": 14847,
-          "sha256": "f90d4568d819b4c9b59499df580b182a42d1ccd7d6d1397f7f11d890115618a1",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/calendar/narrow.png",
-          "byte_length": 5069,
-          "sha256": "88e46f757580f81c947318c02fda681a7a3aadfc4c23071b9e7cf602ecc9d66d",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1409,18 +1463,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/peertube/desktop.png",
-          "byte_length": 14843,
-          "sha256": "6b9351541d17a35ab41a684fb4fd1b1eda24e877dbf8493dbe482da1ed30b01d",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/peertube/narrow.png",
-          "byte_length": 5067,
-          "sha256": "2a9c5e44f0849db5736c7470dc73112629b014c059476e8955dc10d1463cd4cb",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1459,18 +1515,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/friends-list/desktop.png",
-          "byte_length": 14847,
-          "sha256": "59496c8fd3fcdc3607a6ca0434bbf8b92bed947529e54d364eaca8691994b881",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/friends-list/narrow.png",
-          "byte_length": 5066,
-          "sha256": "76a60cb721d45379932b57a9d53b24d7ca3469c52a4a8c8a03e7925aa032967e",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1509,18 +1567,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/image-viewer/desktop.png",
-          "byte_length": 14845,
-          "sha256": "fb683509a5e50af01b66374624c40a72dd21f32e87c15ce07156b0346e9ca5df",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/image-viewer/narrow.png",
-          "byte_length": 5060,
-          "sha256": "88151e8f0d2474f854c026b5188d485000e83e274cab1e3263c2eb2ea1ec0e9e",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1559,18 +1619,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/notes/desktop.png",
-          "byte_length": 14846,
-          "sha256": "02f39aab332d15a513ea8706ba554cb44107a059230f14c8b253195747de7f17",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/notes/narrow.png",
-          "byte_length": 4972,
-          "sha256": "a59a0c395e8bcd755bb1d9e08788f0a7bb677b0ae90250c33c0f54e710fae115",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1609,18 +1671,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/media-player/desktop.png",
-          "byte_length": 14831,
-          "sha256": "d7b30eac2237fb1b355b82294d2a863bfba7308ec10982ce005f44754bcf11a7",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/media-player/narrow.png",
-          "byte_length": 5061,
-          "sha256": "8bff6141f2617bbdceffa87dd21d7f34778734755bed92c20770d712e5df5ce0",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1659,18 +1723,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/system-monitor/desktop.png",
-          "byte_length": 14844,
-          "sha256": "edc772dabad259ac77301fc5c7c22e0fda6934ffd8ad22a10ee8a70376bad52c",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/system-monitor/narrow.png",
-          "byte_length": 5074,
-          "sha256": "6c7366d94525d79658f7fc192ecaf3687ecdced7a21ea6fb85072d85f81e8268",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1709,18 +1775,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/neural-photoshop/desktop.png",
-          "byte_length": 14764,
-          "sha256": "711b6ea807d55ad08e9894234206ce5662726c6d55be1b3487db2b2faebd056b",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/neural-photoshop/narrow.png",
-          "byte_length": 5056,
-          "sha256": "61e6498ea91f46689bc234e9b59f1002754d942c38e02b34bef430199c9f52eb",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1759,18 +1827,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/cinema/desktop.png",
-          "byte_length": 14847,
-          "sha256": "db40b86045781135648ff39eea4eff50401de031eadb56ed4532b08043f08991",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/cinema/narrow.png",
-          "byte_length": 5070,
-          "sha256": "35b947bdf3f15065d1e88654bb4b86dc946f2f83ada1fadccd110cd1e0ef2402",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1809,18 +1879,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/strudel/desktop.png",
-          "byte_length": 14823,
-          "sha256": "66951b5c86d0dd27d890855021e4357f00f3ec3d74c6914b3c94b7adada1e53b",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/strudel/narrow.png",
-          "byte_length": 5073,
-          "sha256": "1092fc6020f3453098f6a2cb3395c9419124dcee30bf195626d7146a36d3f86c",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1859,18 +1931,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/strudel-ai-daw/desktop.png",
-          "byte_length": 14829,
-          "sha256": "cbdacf07ef05cea71a475806ba540b54f622f5b157c0f61f18e90e10b2b7ea2e",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/strudel-ai-daw/narrow.png",
-          "byte_length": 5047,
-          "sha256": "a0aade06e4b647f21497dec1280cdb2abe813abf69d3b2682fcdd4496c8382af",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1909,18 +1983,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/music-studio/desktop.png",
-          "byte_length": 14846,
-          "sha256": "d69e3e9abe8209ea664842c2a833ce1793b6ae3f46b64e7fa639189af470c9d4",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/music-studio/narrow.png",
-          "byte_length": 5056,
-          "sha256": "7490f640e9b06e3b3a857a8d40092afd38513a5d67ad853a8a47425b3146f614",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -1959,18 +2035,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/strudel-grandma/desktop.png",
-          "byte_length": 14843,
-          "sha256": "1880d41c929c216e9059ce86323a566c26228a01ea20b526108150d3aa905b96",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/strudel-grandma/narrow.png",
-          "byte_length": 5074,
-          "sha256": "4504d9fc262ca1bea8f054a8e8e8508e6759a8284dae35e6e1902d4129be3193",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -2009,18 +2087,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/p2p-chat/desktop.png",
-          "byte_length": 14847,
-          "sha256": "cae1553ab3c35df61de40fd2574638b0190664fe5a8ff8fd1e18d176e32e9778",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/p2p-chat/narrow.png",
-          "byte_length": 5063,
-          "sha256": "66060d6415a0158ab47c33a28076292f8f35874aa014c2c75e5bfcf9e8d950cf",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -2059,18 +2139,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/p2p-chat-offline/desktop.png",
-          "byte_length": 14644,
-          "sha256": "10cf78d000023c10e57a297af3abc9f1250f7643aa4694bebb08dc18f643e519",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/p2p-chat-offline/narrow.png",
-          "byte_length": 5063,
-          "sha256": "b5dc8178308c07e3504f36bf3b7ea101bfa240ae4724f1fe724bc0f472a897b6",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -2109,18 +2191,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/datasets-browser/desktop.png",
-          "byte_length": 14839,
-          "sha256": "862b8a8c83952bf69801c2411303cfedb6d788134c9a908b488837ad793b6365",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/datasets-browser/narrow.png",
-          "byte_length": 5074,
-          "sha256": "afd9a16f266bee3114ae4a2138c0c4d5ea0c7ec6bb3d02c58e4d5255d09ff1e4",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -2159,18 +2243,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/accelerate-panel/desktop.png",
-          "byte_length": 14835,
-          "sha256": "0ac07741a40b8e25f71705a46f7ea6b3a0e9b94a3a8ded1522872108bdd0155b",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/accelerate-panel/narrow.png",
-          "byte_length": 5073,
-          "sha256": "c5b2ac658480231cef03d89491a4c2e8923c330390cb71142a5443ffb4be0c09",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -2209,18 +2295,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/idl-explorer/desktop.png",
-          "byte_length": 14846,
-          "sha256": "0a4b2e8b56bc7668d87175c2f1d87a23295efa3f4fe05c602aa191e768422a4a",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/idl-explorer/narrow.png",
-          "byte_length": 5054,
-          "sha256": "8f0d6c71900d5413b4347218f847ffc5be728a11ac3b3b103e3765a663ac3d08",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -2259,18 +2347,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/glasses-preview/desktop.png",
-          "byte_length": 14835,
-          "sha256": "3c5ad998b5210e9e418ba8d127dac985bca443ca65dd93b37450bdda66907dd5",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/glasses-preview/narrow.png",
-          "byte_length": 4986,
-          "sha256": "b4fb3e3ed752ad594442df6ceddb3b131303635eb041fb2d3aa8fc1690dd70e5",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -2309,18 +2399,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/orb-auto-ui/desktop.png",
-          "byte_length": 14844,
-          "sha256": "42be5e1ed25529f7178c88736889a4878a832946b647b2093bea438d829e4d9e",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/orb-auto-ui/narrow.png",
-          "byte_length": 5045,
-          "sha256": "badf6a912bf43b35bb36a198ecc04cb612ec26202db89f308bbedf03eb9efae5",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -2359,18 +2451,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/mcp-plus-plus/desktop.png",
-          "byte_length": 14847,
-          "sha256": "53242bde696e304a9afb7fca46ed8d2c122b5f59b2cd7e1ca306b11a37d12492",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/mcp-plus-plus/narrow.png",
-          "byte_length": 5064,
-          "sha256": "84ac6be59abaedaba2081cb704a0498f4744df12a05c9aea05317e82b08a7f0a",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
@@ -2409,18 +2503,20 @@
           "width": 1440,
           "height": 900,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/agent-supervisor/desktop.png",
-          "byte_length": 14738,
-          "sha256": "b5526bc5e8148679185aac29cb44790d38e7cf8ec4e58bf7c6abca86bf44eb7c",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         },
         {
           "viewport": "narrow",
           "width": 390,
           "height": 844,
           "path": "test-results/virtual-desktop-ipfs-mcp-orb/app-screenshots/svd-132/agent-supervisor/narrow.png",
-          "byte_length": 5045,
-          "sha256": "490e084263ebe6f4d9ea1adf2a87fb5be5d1933547e6a605192a813a8e20c122",
-          "captured": true
+          "byte_length": 0,
+          "sha256": "",
+          "captured": false,
+          "error": "crc32 is not a function"
         }
       ],
       "console_errors": [],
