@@ -373,7 +373,7 @@
       "seed_id": "cx-sk-auth-confirmation-token-as-grant",
       "edge_id": "SK-AUTH-004",
       "family": "consent granted/absent",
-      "title": "confirmation_token presence must not authorize or alter host authorization inputs",
+      "title": "UI confirmation_token present vs absent must not alter host authorization",
       "role": "accepted_nonauthority_pair",
       "accepted_evidence": true,
       "browser_authority_delta": {
@@ -412,7 +412,8 @@
         "expiry": "2026-08-19T18:00:00Z",
         "nonce": "nonce-base-001",
         "admission_token_cid": null,
-        "correlation_id": "corr-base-001"
+        "correlation_id": "corr-base-001",
+        "confirmation_token": null
       },
       "host_authorization_input_a": {
         "actor_id": "operator:desktop-ui",
@@ -448,7 +449,7 @@
         "reason": "host_admission_required",
         "closed_outcome": "Rejected"
       },
-      "oracle": "Paired requests differing only in browser authority fields produce identical host authorization inputs/results."
+      "oracle": "Paired requests differing only in confirmation_token produce identical host authorization inputs/results; UI confirmation is never host admission."
     },
     {
       "vector_id": "bn-pair-console-local-allow-policy",
@@ -463,7 +464,21 @@
           "confirmation_token",
           "browser_policy",
           "allow"
-        ]
+        ],
+        "values": {
+          "confirmation_token": [
+            "tok",
+            null
+          ],
+          "browser_policy.outcome": [
+            "allow",
+            "require_confirmation"
+          ],
+          "allow": [
+            true,
+            false
+          ]
+        }
       },
       "request_a": {
         "actor_id": "operator:desktop-ui",
@@ -479,7 +494,7 @@
         "nonce": "nonce-base-001",
         "admission_token_cid": null,
         "correlation_id": "corr-base-001",
-        "confirmation_token": "ui-confirm-abc",
+        "confirmation_token": "tok",
         "browser_policy": {
           "outcome": "allow"
         },
@@ -499,7 +514,7 @@
         "nonce": "nonce-base-001",
         "admission_token_cid": null,
         "correlation_id": "corr-base-001",
-        "confirmation_token": "ui-confirm-abc",
+        "confirmation_token": null,
         "browser_policy": {
           "outcome": "require_confirmation"
         },
@@ -802,7 +817,7 @@
       "seed_id": "cx-sk-sens-localstorage-secret-header",
       "edge_id": "SK-SENS-003",
       "family": "secrets_paths_logs_prompts",
-      "title": "Browser secret header keys must not appear in or alter host authorization inputs",
+      "title": "Browser secret headers/localStorage keys must not appear in or alter host authorization inputs",
       "role": "accepted_nonauthority_pair",
       "accepted_evidence": true,
       "browser_authority_delta": {
@@ -917,7 +932,7 @@
         "policy_decision": {
           "outcome": "allow"
         },
-        "confirmation_token": "ui-confirm-abc",
+        "confirmation_token": "t1",
         "tenant_id": "T1"
       },
       "request_b": {
@@ -940,7 +955,7 @@
         "policy_decision": {
           "outcome": "deny"
         },
-        "confirmation_token": "ui-confirm-abc",
+        "confirmation_token": null,
         "tenant_id": "T2"
       },
       "host_authorization_input_a": {
@@ -1305,7 +1320,7 @@
         "disposition": "failing_seed"
       },
       "oracle": "Requests differing only in browser-authored policy_decision.outcome must produce identical host authorization inputs; browser allow must not grant authority.",
-      "why_not_accepted_evidence": "Legacy browser-constructed allow/deny from consent is a failing seed; nonauthority pairs above are the accepted evidence."
+      "why_not_accepted_evidence": "Legacy browser-constructed allow/deny from consent is a failing seed, not accepted evidence; nonauthority pairs are the accepted evidence."
     }
   ],
   "acceptance": {
@@ -1315,5 +1330,6 @@
     "changed_arguments_alter_host_authorization": true,
     "replay_and_expiry_bind_host_authorization": true,
     "secret_headers_excluded_from_host_authorization_input": true
-  }
+  },
+  "implementation_note": "FACP-029 hermetic nonauthority vectors: paired browser-authority field deltas must preserve host authorization; UI confirmation_token is never host admission; legacy default-granted and browser-constructed allow remain failing seeds only."
 }

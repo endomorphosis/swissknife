@@ -10,7 +10,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,8 +19,21 @@ const GOAL_ID = 'FACP-G240' as const;
 const SCHEMA = 'facp/browser-nonauthority@1' as const;
 const BUNDLE = 'facp/migration/swissknife-nonauthority' as const;
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const VECTORS_PATH = resolve(HERE, 'browser-authority-vectors.json');
+function resolveVectorsPath(): string {
+  const candidates = [
+    resolve(dirname(fileURLToPath(import.meta.url)), 'browser-authority-vectors.json'),
+    resolve(process.cwd(), 'test/formal-assurance/browser-authority-vectors.json'),
+    resolve(process.cwd(), 'swissknife/test/formal-assurance/browser-authority-vectors.json'),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return candidates[0];
+}
+
+const VECTORS_PATH = resolveVectorsPath();
 
 export const BROWSER_AUTHORITY_FIELDS = [
   'consent',
@@ -155,8 +168,9 @@ export function sha256Hex(value: unknown): string {
 }
 
 /**
- * Strip browser authority / secret [REDACTED] presentation fields before host admission.
- * Browser allow/consent/dry-run/policy_decision never enter host authorization.
+ * Strip browser authority / secret / presentation fields before host admission.
+ * Browser allow/consent/dry-run/policy_decision/confirmation_token never enter
+ * host authorization. UI confirmation is never treated as authority.
  */
 export function projectHostAuthorizationInput(
   request: BrowserMediatedRequest,
@@ -314,6 +328,7 @@ describe('FACP-029 SwissKnife browser nonauthority', () => {
       const resultA = projectHostAuthorizationResult(inputA);
       const resultB = projectHostAuthorizationResult(inputB);
 
+      // Hyperproperty: identical host authorization despite browser-field deltas.
       expect(deepEqual(inputA, inputB)).toBe(true);
       expect(deepEqual(resultA, resultB)).toBe(true);
       expect(deepEqual(inputA, pair.host_authorization_input_a)).toBe(true);
@@ -327,6 +342,21 @@ describe('FACP-029 SwissKnife browser nonauthority', () => {
         expect(Object.prototype.hasOwnProperty.call(inputA, field)).toBe(false);
       }
     }
+
+    // Explicit confirmation_token present/absent pair: UI confirmation is not authority.
+    const confirmationPair = vectors.paired_vectors.find(
+      (pair) => pair.vector_id === 'bn-pair-confirmation-token-present-absent',
+    );
+    expect(confirmationPair).toBeDefined();
+    expect(confirmationPair!.edge_id).toBe('SK-AUTH-004');
+    expect(confirmationPair!.request_a.confirmation_token).toBe('ui-confirm-abc');
+    expect(confirmationPair!.request_b.confirmation_token ?? null).toBeNull();
+    expect(
+      deepEqual(
+        projectHostAuthorizationInput(confirmationPair!.request_a),
+        projectHostAuthorizationInput(confirmationPair!.request_b),
+      ),
+    ).toBe(true);
   });
 
   it('changed arguments alter host authorization digests', () => {
