@@ -1,0 +1,1335 @@
+{
+  "schema": "facp/browser-nonauthority@1",
+  "schema_version": 1,
+  "task_id": "FACP-029",
+  "goal_id": "FACP-G240",
+  "bundle": "facp/migration/swissknife-nonauthority",
+  "contract_version": 1,
+  "fail_closed": true,
+  "discovery_is_not_completion": true,
+  "title": "SwissKnife browser nonauthority paired vectors",
+  "authority": {
+    "statement": "SwissKnife browser allow/deny, consent, tenant/workspace, dry-run, confirmation_token, and policy_decision fields are presentation inputs only. Host authorization inputs/results must be identical for pairs that differ only in those fields. Legacy default-granted consent and browser-constructed allow are failing seeds, not accepted evidence.",
+    "browser_fields_are_not_host_admission": true,
+    "legacy_default_granted_is_failing_seed": true,
+    "plan_ref": "implementation_plan/docs/49-formal-assurance-control-plane-plan-2026-08-19.md",
+    "inventory_ref": "implementation_plan/formal_assurance_control_plane/baseline/swissknife_authority.json",
+    "fca_family": "browser_authority"
+  },
+  "browser_authority_fields": [
+    "consent",
+    "allow",
+    "policy_decision",
+    "confirmation_token",
+    "tenant_id",
+    "workspace_id",
+    "dry_run",
+    "browser_policy",
+    "policy"
+  ],
+  "host_authorization_dimensions": [
+    "actor_id",
+    "resource_id",
+    "method",
+    "argument_digest",
+    "host_policy_id",
+    "expiry",
+    "nonce",
+    "admission_token_cid"
+  ],
+  "evidence_subset": [
+    "allow/deny",
+    "consent granted/absent",
+    "tenant/workspace",
+    "dry-run/live",
+    "changed arguments",
+    "replay",
+    "expiry"
+  ],
+  "seed_bindings": [
+    {
+      "edge_id": "SK-AUTH-001",
+      "seed_id": "cx-sk-auth-default-granted-consent",
+      "roles": [
+        "failing_seed",
+        "paired_vector"
+      ]
+    },
+    {
+      "edge_id": "SK-AUTH-002",
+      "seed_id": "cx-sk-auth-browser-constructed-allow",
+      "roles": [
+        "failing_seed",
+        "paired_vector"
+      ]
+    },
+    {
+      "edge_id": "SK-AUTH-003",
+      "seed_id": "cx-sk-auth-console-local-allow-policy",
+      "roles": [
+        "paired_vector"
+      ]
+    },
+    {
+      "edge_id": "SK-AUTH-004",
+      "seed_id": "cx-sk-auth-confirmation-token-as-grant",
+      "roles": [
+        "paired_vector"
+      ]
+    },
+    {
+      "edge_id": "SK-AUTH-005",
+      "seed_id": "cx-sk-auth-caller-supplied-policy-decision",
+      "roles": [
+        "paired_vector"
+      ]
+    },
+    {
+      "edge_id": "SK-AUTH-006",
+      "seed_id": "cx-sk-auth-browser-dry-run-false-live-upgrade",
+      "roles": [
+        "paired_vector"
+      ]
+    },
+    {
+      "edge_id": "SK-AUTH-010",
+      "seed_id": "cx-sk-auth-browser-tenant-field-not-admission",
+      "roles": [
+        "paired_vector"
+      ]
+    },
+    {
+      "edge_id": "SK-SENS-003",
+      "seed_id": "cx-sk-sens-localstorage-secret-header",
+      "roles": [
+        "paired_vector"
+      ]
+    }
+  ],
+  "projection": {
+    "algorithm": "strip_browser_authority_fields_then_canonicalize_host_dimensions",
+    "argument_digest": "sha256(json_canonical(arguments))",
+    "result_rule": "deny unless host-issued admission_token_cid and host_policy_id are both present; browser fields never consulted"
+  },
+  "paired_vectors": [
+    {
+      "vector_id": "bn-pair-policy-decision-allow-deny",
+      "seed_id": "cx-sk-auth-browser-constructed-allow",
+      "edge_id": "SK-AUTH-002",
+      "family": "allow/deny",
+      "title": "Browser-authored policy_decision.outcome must not change host authorization",
+      "role": "accepted_nonauthority_pair",
+      "accepted_evidence": true,
+      "browser_authority_delta": {
+        "field": "policy_decision.outcome",
+        "values": [
+          "allow",
+          "deny"
+        ]
+      },
+      "request_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "policy_decision": {
+          "decision_id": "browser-local",
+          "outcome": "allow",
+          "reason": "ui"
+        }
+      },
+      "request_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "policy_decision": {
+          "decision_id": "browser-local",
+          "outcome": "deny",
+          "reason": "ui"
+        }
+      },
+      "host_authorization_input_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_input_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_result_a": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "host_authorization_result_b": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "oracle": "Paired requests differing only in browser authority fields produce identical host authorization inputs/results."
+    },
+    {
+      "vector_id": "bn-pair-consent-granted-absent",
+      "seed_id": "cx-sk-auth-default-granted-consent",
+      "edge_id": "SK-AUTH-001",
+      "family": "consent granted/absent",
+      "title": "Consent granted vs omitted must not change host authorization under nonauthority projection",
+      "role": "accepted_nonauthority_pair",
+      "accepted_evidence": true,
+      "browser_authority_delta": {
+        "field": "consent",
+        "values": [
+          "granted",
+          null
+        ]
+      },
+      "request_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "consent": "granted"
+      },
+      "request_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001"
+      },
+      "host_authorization_input_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_input_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_result_a": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "host_authorization_result_b": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "oracle": "Paired requests differing only in browser authority fields produce identical host authorization inputs/results."
+    },
+    {
+      "vector_id": "bn-pair-consent-granted-denied",
+      "seed_id": "cx-sk-auth-default-granted-consent",
+      "edge_id": "SK-AUTH-001",
+      "family": "consent granted/absent",
+      "title": "Consent granted vs denied must not change host authorization under nonauthority projection",
+      "role": "accepted_nonauthority_pair",
+      "accepted_evidence": true,
+      "browser_authority_delta": {
+        "field": "consent",
+        "values": [
+          "granted",
+          "denied"
+        ]
+      },
+      "request_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "consent": "granted"
+      },
+      "request_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "consent": "denied"
+      },
+      "host_authorization_input_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_input_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_result_a": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "host_authorization_result_b": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "oracle": "Paired requests differing only in browser authority fields produce identical host authorization inputs/results."
+    },
+    {
+      "vector_id": "bn-pair-confirmation-token-present-absent",
+      "seed_id": "cx-sk-auth-confirmation-token-as-grant",
+      "edge_id": "SK-AUTH-004",
+      "family": "consent granted/absent",
+      "title": "UI confirmation_token present vs absent must not alter host authorization",
+      "role": "accepted_nonauthority_pair",
+      "accepted_evidence": true,
+      "browser_authority_delta": {
+        "field": "confirmation_token",
+        "values": [
+          "ui-confirm-abc",
+          null
+        ]
+      },
+      "request_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "confirmation_token": "ui-confirm-abc"
+      },
+      "request_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "confirmation_token": null
+      },
+      "host_authorization_input_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_input_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_result_a": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "host_authorization_result_b": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "oracle": "Paired requests differing only in confirmation_token produce identical host authorization inputs/results; UI confirmation is never host admission."
+    },
+    {
+      "vector_id": "bn-pair-console-local-allow-policy",
+      "seed_id": "cx-sk-auth-console-local-allow-policy",
+      "edge_id": "SK-AUTH-003",
+      "family": "allow/deny",
+      "title": "Console-local allow via confirmation_token+browser_policy must not change host authorization",
+      "role": "accepted_nonauthority_pair",
+      "accepted_evidence": true,
+      "browser_authority_delta": {
+        "fields": [
+          "confirmation_token",
+          "browser_policy",
+          "allow"
+        ],
+        "values": {
+          "confirmation_token": [
+            "tok",
+            null
+          ],
+          "browser_policy.outcome": [
+            "allow",
+            "require_confirmation"
+          ],
+          "allow": [
+            true,
+            false
+          ]
+        }
+      },
+      "request_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "confirmation_token": "tok",
+        "browser_policy": {
+          "outcome": "allow"
+        },
+        "allow": true
+      },
+      "request_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "confirmation_token": null,
+        "browser_policy": {
+          "outcome": "require_confirmation"
+        },
+        "allow": false
+      },
+      "host_authorization_input_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_input_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_result_a": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "host_authorization_result_b": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "oracle": "Paired requests differing only in browser authority fields produce identical host authorization inputs/results."
+    },
+    {
+      "vector_id": "bn-pair-caller-supplied-policy-decision",
+      "seed_id": "cx-sk-auth-caller-supplied-policy-decision",
+      "edge_id": "SK-AUTH-005",
+      "family": "allow/deny",
+      "title": "Caller-supplied policy_decision permit vs not_evaluated must not change host authorization",
+      "role": "accepted_nonauthority_pair",
+      "accepted_evidence": true,
+      "browser_authority_delta": {
+        "field": "policy_decision",
+        "values": [
+          "permit/allow",
+          "not_evaluated/deny"
+        ]
+      },
+      "request_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "policy_decision": {
+          "decision": "permit",
+          "outcome": "allow"
+        }
+      },
+      "request_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "policy_decision": {
+          "decision": "not_evaluated",
+          "outcome": "deny"
+        }
+      },
+      "host_authorization_input_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_input_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_result_a": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "host_authorization_result_b": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "oracle": "Paired requests differing only in browser authority fields produce identical host authorization inputs/results."
+    },
+    {
+      "vector_id": "bn-pair-tenant-workspace",
+      "seed_id": "cx-sk-auth-browser-tenant-field-not-admission",
+      "edge_id": "SK-AUTH-010",
+      "family": "tenant/workspace",
+      "title": "Browser tenant_id/workspace_id alone must not alter host authorization",
+      "role": "accepted_nonauthority_pair",
+      "accepted_evidence": true,
+      "browser_authority_delta": {
+        "fields": [
+          "tenant_id",
+          "workspace_id"
+        ]
+      },
+      "request_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "tenant_id": "tenant-A",
+        "workspace_id": "ws-1"
+      },
+      "request_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "tenant_id": "tenant-B",
+        "workspace_id": "ws-2"
+      },
+      "host_authorization_input_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_input_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_result_a": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "host_authorization_result_b": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "oracle": "Paired requests differing only in browser authority fields produce identical host authorization inputs/results."
+    },
+    {
+      "vector_id": "bn-pair-dry-run-live",
+      "seed_id": "cx-sk-auth-browser-dry-run-false-live-upgrade",
+      "edge_id": "SK-AUTH-006",
+      "family": "dry-run/live",
+      "title": "Browser dry_run true vs false must not upgrade host authorization or evidence class",
+      "role": "accepted_nonauthority_pair",
+      "accepted_evidence": true,
+      "browser_authority_delta": {
+        "field": "dry_run",
+        "values": [
+          true,
+          false
+        ]
+      },
+      "request_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "dry_run": true
+      },
+      "request_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "dry_run": false
+      },
+      "host_authorization_input_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_input_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_result_a": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "host_authorization_result_b": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "oracle": "Paired requests differing only in browser authority fields produce identical host authorization inputs/results."
+    },
+    {
+      "vector_id": "bn-pair-secret-header-nonauthority",
+      "seed_id": "cx-sk-sens-localstorage-secret-header",
+      "edge_id": "SK-SENS-003",
+      "family": "secrets_paths_logs_prompts",
+      "title": "Browser secret headers/localStorage keys must not appear in or alter host authorization inputs",
+      "role": "accepted_nonauthority_pair",
+      "accepted_evidence": true,
+      "browser_authority_delta": {
+        "fields": [
+          "goose_secret_key",
+          "X-Secret-Key"
+        ]
+      },
+      "request_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "goose_secret_key": "sk-live-leak",
+        "X-Secret-Key": "sk-live-leak"
+      },
+      "request_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001"
+      },
+      "host_authorization_input_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_input_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_result_a": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "host_authorization_result_b": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "oracle": "Paired requests differing only in browser authority fields produce identical host authorization inputs/results."
+    },
+    {
+      "vector_id": "bn-pair-combined-browser-authority-delta",
+      "seed_id": "cx-sk-auth-browser-constructed-allow",
+      "edge_id": "SK-AUTH-002",
+      "family": "allow/deny",
+      "title": "Combined browser authority field delta must leave host authorization identical",
+      "role": "accepted_nonauthority_pair",
+      "accepted_evidence": true,
+      "browser_authority_delta": {
+        "fields": [
+          "consent",
+          "allow",
+          "dry_run",
+          "policy_decision",
+          "confirmation_token",
+          "tenant_id"
+        ]
+      },
+      "request_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "consent": "granted",
+        "allow": true,
+        "dry_run": false,
+        "policy_decision": {
+          "outcome": "allow"
+        },
+        "confirmation_token": "t1",
+        "tenant_id": "T1"
+      },
+      "request_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "consent": "denied",
+        "allow": false,
+        "dry_run": true,
+        "policy_decision": {
+          "outcome": "deny"
+        },
+        "confirmation_token": null,
+        "tenant_id": "T2"
+      },
+      "host_authorization_input_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_input_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_result_a": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "host_authorization_result_b": {
+        "outcome": "deny",
+        "authority": "absent",
+        "policy": "unchecked",
+        "reason": "host_admission_required",
+        "closed_outcome": "Rejected"
+      },
+      "oracle": "Paired requests differing only in browser authority fields produce identical host authorization inputs/results."
+    }
+  ],
+  "argument_sensitivity_vectors": [
+    {
+      "vector_id": "bn-arg-changed-arguments",
+      "seed_id": "cx-sk-auth-browser-constructed-allow",
+      "family": "changed arguments",
+      "title": "Distinct tool arguments produce distinct host authorization digests",
+      "role": "argument_sensitivity",
+      "accepted_evidence": true,
+      "request_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001"
+      },
+      "request_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "shutdown"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001"
+      },
+      "host_authorization_input_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "host_authorization_input_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "78df0fe08b4527b781de4a49ab6cc5f0f22e8af4a37146960f2222200e52865d",
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null
+      },
+      "oracle": "Changing non-authority argument fields must change host authorization argument_digest."
+    }
+  ],
+  "replay_vectors": [
+    {
+      "vector_id": "bn-replay-nonce",
+      "family": "replay",
+      "title": "Distinct nonces bind distinct host authorization observations",
+      "role": "replay_sensitivity",
+      "accepted_evidence": true,
+      "request_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": "policy:host:demo",
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": "bafyAdmissionReplay",
+        "correlation_id": "corr-base-001"
+      },
+      "request_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": "policy:host:demo",
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-replay-002",
+        "admission_token_cid": "bafyAdmissionReplay",
+        "correlation_id": "corr-base-001"
+      },
+      "host_authorization_input_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": "policy:host:demo",
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": "bafyAdmissionReplay"
+      },
+      "host_authorization_input_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": "policy:host:demo",
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-replay-002",
+        "admission_token_cid": "bafyAdmissionReplay"
+      },
+      "host_authorization_result_a": {
+        "outcome": "allow",
+        "authority": "valid",
+        "policy": "allowed",
+        "reason": "host_issued_admission",
+        "closed_outcome": "Attempted",
+        "bound_argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "bound_nonce": "nonce-base-001",
+        "bound_expiry": "2026-08-19T18:00:00Z"
+      },
+      "host_authorization_result_b": {
+        "outcome": "allow",
+        "authority": "valid",
+        "policy": "allowed",
+        "reason": "host_issued_admission",
+        "closed_outcome": "Attempted",
+        "bound_argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "bound_nonce": "nonce-replay-002",
+        "bound_expiry": "2026-08-19T18:00:00Z"
+      },
+      "oracle": "Replay with a distinct nonce yields a distinct host authorization binding; browser authority fields are irrelevant."
+    }
+  ],
+  "expiry_vectors": [
+    {
+      "vector_id": "bn-expiry-binding",
+      "family": "expiry",
+      "title": "Distinct expiry values bind distinct host authorization observations",
+      "role": "expiry_sensitivity",
+      "accepted_evidence": true,
+      "request_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": "policy:host:demo",
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": "bafyAdmissionExp",
+        "correlation_id": "corr-base-001"
+      },
+      "request_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": "policy:host:demo",
+        "expiry": "2026-08-19T19:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": "bafyAdmissionExp",
+        "correlation_id": "corr-base-001"
+      },
+      "host_authorization_input_a": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": "policy:host:demo",
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": "bafyAdmissionExp"
+      },
+      "host_authorization_input_b": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "host_policy_id": "policy:host:demo",
+        "expiry": "2026-08-19T19:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": "bafyAdmissionExp"
+      },
+      "host_authorization_result_a": {
+        "outcome": "allow",
+        "authority": "valid",
+        "policy": "allowed",
+        "reason": "host_issued_admission",
+        "closed_outcome": "Attempted",
+        "bound_argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "bound_nonce": "nonce-base-001",
+        "bound_expiry": "2026-08-19T18:00:00Z"
+      },
+      "host_authorization_result_b": {
+        "outcome": "allow",
+        "authority": "valid",
+        "policy": "allowed",
+        "reason": "host_issued_admission",
+        "closed_outcome": "Attempted",
+        "bound_argument_digest": "6a238fac57f877db109f975d3326ff13695faeab8a7238dd5e9ba5a13927b0d2",
+        "bound_nonce": "nonce-base-001",
+        "bound_expiry": "2026-08-19T19:00:00Z"
+      },
+      "oracle": "Changed expiry must change host authorization binding; browser consent cannot extend expiry."
+    }
+  ],
+  "failing_seeds": [
+    {
+      "vector_id": "bn-fail-legacy-default-granted-consent",
+      "seed_id": "cx-sk-auth-default-granted-consent",
+      "edge_id": "SK-AUTH-001",
+      "family": "browser_authority",
+      "title": "Legacy governed invoke defaults consent to granted",
+      "role": "failing_seed",
+      "accepted_evidence": false,
+      "disposition": "failing_seed",
+      "legacy_observed": "governed ? 'granted' : 'not_required'",
+      "source_path": "swissknife/src/services/mcp/virtual-desktop-live-gateway.ts",
+      "request_omit_consent": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "mutates_remote_state": true
+      },
+      "request_explicit_denied": {
+        "actor_id": "operator:desktop-ui",
+        "resource_id": "binding:virtual-desktop:demo-mutate",
+        "method": "tools.call",
+        "arguments": {
+          "scope": "capability:demo",
+          "limit": 1,
+          "action": "restart"
+        },
+        "host_policy_id": null,
+        "expiry": "2026-08-19T18:00:00Z",
+        "nonce": "nonce-base-001",
+        "admission_token_cid": null,
+        "correlation_id": "corr-base-001",
+        "mutates_remote_state": true,
+        "consent": "denied"
+      },
+      "legacy_synthesis_omit": {
+        "consent": "granted",
+        "policy_decision": {
+          "decision_id": "desktop-policy:binding:virtual-desktop:demo-mutate",
+          "outcome": "allow",
+          "reason": "legacy_browser_constructed"
+        },
+        "host_authorization_influenced_by_browser": true,
+        "accepted_evidence": false,
+        "disposition": "failing_seed"
+      },
+      "legacy_synthesis_denied": {
+        "consent": "denied",
+        "policy_decision": {
+          "decision_id": "desktop-policy:binding:virtual-desktop:demo-mutate",
+          "outcome": "deny",
+          "reason": "legacy_browser_constructed"
+        },
+        "host_authorization_influenced_by_browser": true,
+        "accepted_evidence": false,
+        "disposition": "failing_seed"
+      },
+      "oracle": "Paired governed invokes that differ only by omitting consent must not synthesize consent=granted; default must be absent/denied pending host confirmation.",
+      "why_not_accepted_evidence": "Legacy default-granted is a failing seed, not accepted evidence: it constructs browser-side confirmation and diverges host-influencing policy_decision."
+    },
+    {
+      "vector_id": "bn-fail-legacy-browser-constructed-allow",
+      "seed_id": "cx-sk-auth-browser-constructed-allow",
+      "edge_id": "SK-AUTH-002",
+      "family": "browser_authority",
+      "title": "Legacy desktop gateway constructs allow policy_decision locally",
+      "role": "failing_seed",
+      "accepted_evidence": false,
+      "disposition": "failing_seed",
+      "legacy_observed": "outcome: consent === 'denied' ? 'deny' : 'allow'",
+      "source_path": "swissknife/src/services/mcp/virtual-desktop-live-gateway.ts",
+      "legacy_synthesis_granted": {
+        "consent": "granted",
+        "policy_decision": {
+          "decision_id": "desktop-policy:binding:virtual-desktop:demo-mutate",
+          "outcome": "allow",
+          "reason": "legacy_browser_constructed"
+        },
+        "host_authorization_influenced_by_browser": true,
+        "accepted_evidence": false,
+        "disposition": "failing_seed"
+      },
+      "legacy_synthesis_denied": {
+        "consent": "denied",
+        "policy_decision": {
+          "decision_id": "desktop-policy:binding:virtual-desktop:demo-mutate",
+          "outcome": "deny",
+          "reason": "legacy_browser_constructed"
+        },
+        "host_authorization_influenced_by_browser": true,
+        "accepted_evidence": false,
+        "disposition": "failing_seed"
+      },
+      "oracle": "Requests differing only in browser-authored policy_decision.outcome must produce identical host authorization inputs; browser allow must not grant authority.",
+      "why_not_accepted_evidence": "Legacy browser-constructed allow/deny from consent is a failing seed, not accepted evidence; nonauthority pairs are the accepted evidence."
+    }
+  ],
+  "acceptance": {
+    "paired_browser_authority_deltas_preserve_host_authorization": true,
+    "legacy_default_granted_is_failing_seed_not_accepted_evidence": true,
+    "legacy_browser_constructed_allow_is_failing_seed_not_accepted_evidence": true,
+    "changed_arguments_alter_host_authorization": true,
+    "replay_and_expiry_bind_host_authorization": true,
+    "secret_headers_excluded_from_host_authorization_input": true
+  },
+  "implementation_note": "FACP-029 hermetic nonauthority vectors: paired browser-authority field deltas must preserve host authorization; UI confirmation_token is never host admission; legacy default-granted and browser-constructed allow remain failing seeds only."
+}
