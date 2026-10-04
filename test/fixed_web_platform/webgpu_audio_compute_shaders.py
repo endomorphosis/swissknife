@@ -13,10 +13,10 @@ Key optimizations:
 
 Usage:
     from fixed_web_platform.webgpu_audio_compute_shaders import optimize_for_firefox
-    
+
     # Create Firefox-optimized processor for Whisper
     processor = optimize_for_firefox({"model_name": "whisper"})
-    
+
     # Process audio with optimized implementation
     features = processor["extract_features"]("audio.mp3")
 """
@@ -27,7 +27,7 @@ import logging
 from typing import Dict, Any, Optional, Union, List
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # Firefox-optimized spectrogram shader (256x1x1 workgroup size)
@@ -122,23 +122,24 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 }
 """
 
+
 def is_firefox_available() -> bool:
     """Check if Firefox browser is available and WebGPU is enabled."""
     try:
         from selenium import webdriver
         from selenium.webdriver.firefox.service import Service as FirefoxService
         from selenium.webdriver.firefox.options import Options as FirefoxOptions
-        
+
         options = FirefoxOptions()
         service = FirefoxService()
-        
+
         # Try to create a Firefox driver
         driver = webdriver.Firefox(service=service, options=options)
-        
+
         try:
             # Check if WebGPU is available
             webgpu_available = driver.execute_script("return 'gpu' in navigator")
-            
+
             if webgpu_available:
                 logger.info("Firefox with WebGPU is available")
                 return True
@@ -152,33 +153,35 @@ def is_firefox_available() -> bool:
         logger.warning(f"Firefox browser check failed: {e}")
         return False
 
+
 def enable_firefox_optimizations() -> None:
     """Enable Firefox-specific optimizations for WebGPU audio models."""
     # Set environment variables
     os.environ["USE_FIREFOX_WEBGPU"] = "1"
     os.environ["MOZ_WEBGPU_ADVANCED_COMPUTE"] = "1"
     os.environ["WEBGPU_COMPUTE_SHADERS_ENABLED"] = "1"
-    
+
     logger.info("Enabled Firefox audio optimizations with 256x1x1 workgroup size")
+
 
 def optimize_for_firefox(config: Dict[str, Any]) -> Dict[str, Any]:
     """
     Create Firefox-optimized processor for audio models.
-    
+
     Args:
         config: Configuration including model_name, enable_shader_precompilation,
                and enable_power_optimization
-    
+
     Returns:
         Dictionary with optimized processor functions
     """
     model_name = config.get("model_name", "whisper")
     enable_shader_precompilation = config.get("enable_shader_precompilation", True)
     enable_power_optimization = config.get("enable_power_optimization", True)
-    
+
     # Enable Firefox optimizations
     enable_firefox_optimizations()
-    
+
     # Create optimized processor
     processor = {
         "model_name": model_name,
@@ -187,20 +190,21 @@ def optimize_for_firefox(config: Dict[str, Any]) -> Dict[str, Any]:
         "shader_precompilation": enable_shader_precompilation,
         "power_optimization": enable_power_optimization,
     }
-    
+
     # Add optimized processor functions (these would normally interface with the browser)
     processor["extract_features"] = lambda audio_path: {
         "features_extracted": True,
         "audio_path": audio_path,
         "using_optimized_compute_shaders": True,
         "performance_gain": "20-25% faster than Chrome",
-        "power_savings": "15% reduced power consumption"
+        "power_savings": "15% reduced power consumption",
     }
-    
+
     logger.info(f"Created Firefox-optimized processor for {model_name}")
     logger.info("Using 256x1x1 workgroup size (vs Chrome's 128x2x1)")
-    
+
     return processor
+
 
 def get_optimized_shader_for_firefox(shader_type: str) -> str:
     """Get Firefox-optimized shader code for audio processing."""
@@ -211,16 +215,17 @@ def get_optimized_shader_for_firefox(shader_type: str) -> str:
     else:
         raise ValueError(f"Unknown shader type: {shader_type}")
 
+
 def add_firefox_optimizations_to_config(model_config: Dict[str, Any]) -> Dict[str, Any]:
     """Add Firefox-specific optimizations to model configuration."""
     if "workgroup_size" not in model_config:
         model_config["workgroup_size"] = {"x": 256, "y": 1, "z": 1}
-    
+
     if "optimizations" not in model_config:
         model_config["optimizations"] = {}
-    
+
     model_config["optimizations"]["firefox_audio"] = True
     model_config["optimizations"]["use_compute_shaders"] = True
     model_config["optimizations"]["memory_access_pattern"] = "firefox_optimized"
-    
+
     return model_config

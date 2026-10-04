@@ -20,6 +20,7 @@ from typing import Any
 
 import trio
 from libp2p import new_host
+
 try:  # py-libp2p <= 0.2 compatibility
     from libp2p.tools.async_service import background_trio_service
 except ImportError:  # py-libp2p >= 0.3 moved service contexts to the anyio package
@@ -36,10 +37,16 @@ PROFILE_F_CAPABILITY = "mcp++/event-dag"
 PROFILE_H_CAPABILITY = "mcp++/x402-payments"
 PROFILE_H_VERSION = "1.0"
 PROFILE_H_METHODS = {
-    "mcp++/payments/profile", "mcp++/payments/catalog", "mcp++/payments/quote",
-    "mcp++/payments/verify", "mcp++/payments/settle", "mcp++/payments/receipt/get",
-    "mcp++/payments/entitlement/get", "mcp++/payments/usage/get",
-    "mcp++/payments/refund/request", "mcp++/payments/reconcile",
+    "mcp++/payments/profile",
+    "mcp++/payments/catalog",
+    "mcp++/payments/quote",
+    "mcp++/payments/verify",
+    "mcp++/payments/settle",
+    "mcp++/payments/receipt/get",
+    "mcp++/payments/entitlement/get",
+    "mcp++/payments/usage/get",
+    "mcp++/payments/refund/request",
+    "mcp++/payments/reconcile",
 }
 MAX_FRAME_BYTES = 16 * 1024 * 1024
 MAX_FRAMES_PER_SESSION = 200
@@ -53,8 +60,10 @@ DEFAULT_ARTIFACT_STORE_DIR = os.path.join(
 )
 DEFAULT_IPFS_KIT_ARTIFACT_ENDPOINT = "http://127.0.0.1:8014/mcp/artifacts"
 
+
 class ProfileHRemoteError(RuntimeError):
     """A seller JSON-RPC error that must survive the HTTP/libp2p boundary."""
+
     def __init__(self, code: int, message: str, data: Any = None) -> None:
         super().__init__(message)
         self.code, self.data = code, data
@@ -62,21 +71,36 @@ class ProfileHRemoteError(RuntimeError):
 
 def is_ready_profile_h(profile: Any) -> bool:
     """Accept only a complete, durable, explicitly labelled Profile H seller."""
-    if not isinstance(profile, dict) or profile.get("profile") != PROFILE_H_CAPABILITY \
-            or profile.get("version") != PROFILE_H_VERSION or profile.get("ready") is not True \
-            or not isinstance(profile.get("sellerDid"), str) or not profile.get("sellerDid") \
-            or not isinstance(profile.get("catalogCid"), str) or not profile.get("catalogCid"):
+    if (
+        not isinstance(profile, dict)
+        or profile.get("profile") != PROFILE_H_CAPABILITY
+        or profile.get("version") != PROFILE_H_VERSION
+        or profile.get("ready") is not True
+        or not isinstance(profile.get("sellerDid"), str)
+        or not profile.get("sellerDid")
+        or not isinstance(profile.get("catalogCid"), str)
+        or not profile.get("catalogCid")
+    ):
         return False
     methods, transports = profile.get("methods"), profile.get("transports")
     durability, facilitator = profile.get("durability"), profile.get("facilitator")
-    if not isinstance(methods, list) or not PROFILE_H_METHODS.issubset(set(methods)) \
-            or not isinstance(transports, list) or not {"http", "libp2p"}.issubset(set(transports)) \
-            or not isinstance(durability, dict) or durability.get("ledger") != "durable" \
-            or durability.get("artifactStore") != "content-addressed" or durability.get("reconciliation") is not True \
-            or not isinstance(facilitator, dict) or facilitator.get("ready") is not True:
+    if (
+        not isinstance(methods, list)
+        or not PROFILE_H_METHODS.issubset(set(methods))
+        or not isinstance(transports, list)
+        or not {"http", "libp2p"}.issubset(set(transports))
+        or not isinstance(durability, dict)
+        or durability.get("ledger") != "durable"
+        or durability.get("artifactStore") != "content-addressed"
+        or durability.get("reconciliation") is not True
+        or not isinstance(facilitator, dict)
+        or facilitator.get("ready") is not True
+    ):
         return False
     mode, upstream = profile.get("mode"), profile.get("upstreamX402HttpConformance")
-    return (mode == "local-test" and upstream is False) or (mode == "facilitator" and upstream is True)
+    return (mode == "local-test" and upstream is False) or (
+        mode == "facilitator" and upstream is True
+    )
 
 
 async def write_chunked_jsonrpc_frame(stream: Any, message: dict[str, Any]) -> None:
@@ -87,7 +111,7 @@ async def write_chunked_jsonrpc_frame(stream: Any, message: dict[str, Any]) -> N
         raise ValueError(f"JSON-RPC frame exceeds {MAX_FRAME_BYTES} bytes")
     frame = len(body).to_bytes(4, "big") + body
     for offset in range(0, len(frame), MAX_LIBP2P_WRITE_BYTES):
-        await stream.write(frame[offset:offset + MAX_LIBP2P_WRITE_BYTES])
+        await stream.write(frame[offset : offset + MAX_LIBP2P_WRITE_BYTES])
 
 
 async def _read_exact(stream: Any, size: int, *, chunk_size: int = 4096) -> bytes:
@@ -162,8 +186,12 @@ class HttpMcpRegistry:
             str(tool["name"]): {
                 "name": str(tool["name"]),
                 "description": str(tool.get("description") or ""),
-                "input_schema": tool.get("inputSchema") or tool.get("input_schema") or {"type": "object", "additionalProperties": True},
-                "output_schema": tool.get("outputSchema") or tool.get("output_schema") or {"type": "object", "additionalProperties": True},
+                "input_schema": tool.get("inputSchema")
+                or tool.get("input_schema")
+                or {"type": "object", "additionalProperties": True},
+                "output_schema": tool.get("outputSchema")
+                or tool.get("output_schema")
+                or {"type": "object", "additionalProperties": True},
             }
             for tool in rows
             if isinstance(tool, dict) and tool.get("name")
@@ -219,13 +247,18 @@ class HttpMcpRegistry:
         if method not in PROFILE_H_METHODS:
             raise ValueError(f"unsupported Profile H method: {method}")
         if not await self.refresh_profile_h():
-            raise ProfileHRemoteError(-32070, "MCP++ Profile H is unavailable for this seller.",
-                                      {"code": "H_PROFILE_UNAVAILABLE", "service": self.service})
+            raise ProfileHRemoteError(
+                -32070,
+                "MCP++ Profile H is unavailable for this seller.",
+                {"code": "H_PROFILE_UNAVAILABLE", "service": self.service},
+            )
         response = await self._rpc(method, params)
         error = response.get("error") if isinstance(response, dict) else None
         if isinstance(error, dict):
             code = error.get("code") if isinstance(error.get("code"), int) else -32070
-            raise ProfileHRemoteError(code, str(error.get("message") or "remote Profile H error"), error.get("data"))
+            raise ProfileHRemoteError(
+                code, str(error.get("message") or "remote Profile H error"), error.get("data")
+            )
         return response.get("result", response)
 
     async def authorize_profile_c_execution(self, params: dict[str, Any], tool: str) -> None:
@@ -237,15 +270,18 @@ class HttpMcpRegistry:
             if os.environ.get("MCPPLUSPLUS_REQUIRE_UCAN") == "1":
                 raise ValueError("This server requires a Profile C UCAN proof for execution.")
             return
-        result = await self.profile_c("mcp++/ucan/validate", {
-            "proof_cid": proof_cid,
-            "ucan": ucan,
-            "audience": params.get("ucan_audience"),
-            "required_capability": {
-                "resource": f"mcp++://{self.service}/tool/{tool}",
-                "ability": "mcp++/invoke",
+        result = await self.profile_c(
+            "mcp++/ucan/validate",
+            {
+                "proof_cid": proof_cid,
+                "ucan": ucan,
+                "audience": params.get("ucan_audience"),
+                "required_capability": {
+                    "resource": f"mcp++://{self.service}/tool/{tool}",
+                    "ability": "mcp++/invoke",
+                },
             },
-        })
+        )
         if not isinstance(result, dict) or result.get("valid") is not True:
             reason = result.get("reason") if isinstance(result, dict) else None
             raise ValueError(str(reason or "UCAN verification failed."))
@@ -258,18 +294,20 @@ class HttpMcpRegistry:
         for tool in sorted(self.tools.values(), key=lambda item: str(item["name"])):
             input_schema = tool.get("input_schema") or default_schema
             output_schema = tool.get("output_schema") or default_schema
-            methods.append({
-                "name": tool["name"],
-                "description": tool.get("description") or "",
-                "input_schema": input_schema,
-                "output_schema": output_schema,
-                "input_schema_cid": self._cid_for_value(input_schema),
-                "output_schema_cid": self._cid_for_value(output_schema),
-                "error_schema_cids": [],
-                "errors": ["MCPError"],
-                "streaming": False,
-                "interaction_pattern": "request-response",
-            })
+            methods.append(
+                {
+                    "name": tool["name"],
+                    "description": tool.get("description") or "",
+                    "input_schema": input_schema,
+                    "output_schema": output_schema,
+                    "input_schema_cid": self._cid_for_value(input_schema),
+                    "output_schema_cid": self._cid_for_value(output_schema),
+                    "error_schema_cids": [],
+                    "errors": ["MCPError"],
+                    "streaming": False,
+                    "interaction_pattern": "request-response",
+                }
+            )
         descriptor = {
             "name": f"{self.service}.mcp-tools",
             "namespace": f"org.hallucinate.swissknife.mcp.{self.service}",
@@ -294,12 +332,16 @@ class HttpMcpRegistry:
 
     @staticmethod
     def _canonical_json(value: Any) -> bytes:
-        return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+            "utf-8"
+        )
 
     @staticmethod
     def _cid_for_bytes(value: bytes) -> str:
         digest = hashlib.sha256(value).digest()
-        return "b" + base64.b32encode(b"\x01\x55\x12\x20" + digest).decode("ascii").lower().rstrip("=")
+        return "b" + base64.b32encode(b"\x01\x55\x12\x20" + digest).decode("ascii").lower().rstrip(
+            "="
+        )
 
     @classmethod
     def _cid_for_value(cls, value: Any) -> str:
@@ -310,6 +352,7 @@ class HttpMcpRegistry:
         if not isinstance(value, str):
             return False
         import re
+
         return re.fullmatch(r"(?:Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{58})", value) is not None
 
     async def execute_profile_b(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -320,7 +363,9 @@ class HttpMcpRegistry:
         if interface_cid != catalog["interface_cid"] or not self._is_content_cid(interface_cid):
             raise ValueError("mcp++/execute requires the service Profile A interface_cid.")
         tool = str(params.get("tool") or params.get("name") or "")
-        method = next((item for item in catalog["descriptor"]["methods"] if item["name"] == tool), None)
+        method = next(
+            (item for item in catalog["descriptor"]["methods"] if item["name"] == tool), None
+        )
         if method is None:
             raise ValueError(f"Unknown tool for Profile B execution: {tool}")
         await self.authorize_profile_c_execution(params, tool)
@@ -328,7 +373,9 @@ class HttpMcpRegistry:
         if not isinstance(arguments, dict):
             raise ValueError("mcp++/execute arguments must be an object.")
         parents = params.get("parents", [])
-        if not isinstance(parents, list) or not all(self._is_content_cid(parent) for parent in parents):
+        if not isinstance(parents, list) or not all(
+            self._is_content_cid(parent) for parent in parents
+        ):
             raise ValueError("Profile B parents must be valid CIDs.")
         timestamp = params.get("timestamp")
         if not isinstance(timestamp, (str, int, float)):
@@ -346,7 +393,11 @@ class HttpMcpRegistry:
             "arguments": arguments,
         }
         input_cid = self._cid_for_value(input_value)
-        correlation_id = params.get("correlation_id") if isinstance(params.get("correlation_id"), str) else f"profile-b:{tool}"
+        correlation_id = (
+            params.get("correlation_id")
+            if isinstance(params.get("correlation_id"), str)
+            else f"profile-b:{tool}"
+        )
         intent = {
             "schema": "mcp++/profile-b-execution@1",
             "interface_cid": interface_cid,
@@ -382,7 +433,9 @@ class HttpMcpRegistry:
         except Exception as exc:
             execution_error = str(exc)
             output = {"isError": True, "error": execution_error}
-        success = execution_error is None and not (isinstance(output, dict) and output.get("isError") is True)
+        success = execution_error is None and not (
+            isinstance(output, dict) and output.get("isError") is True
+        )
         output_cid = self._cid_for_value(output)
         receipt_artifact = {
             "schema": "mcp++/profile-b-execution@1",
@@ -480,44 +533,77 @@ class HttpMcpRegistry:
         event_cid: str,
     ) -> dict[str, Any]:
         rows = [
-            await self.persist_artifact(profile="B", kind="input", cid=input_cid, raw=self._canonical_json(input_value)),
-            await self.persist_artifact(profile="B", kind="intent", cid=intent_cid, raw=self._canonical_json(intent)),
-            await self.persist_artifact(profile="B", kind="envelope", cid=envelope_cid, raw=self._canonical_json(envelope)),
-            await self.persist_artifact(profile="B", kind="output", cid=output_cid, raw=self._canonical_json(output)),
-            await self.persist_artifact(profile="B", kind="receipt", cid=receipt_cid, raw=self._canonical_json(receipt_artifact)),
-            await self.persist_artifact(profile="B", kind="event", cid=event_cid, raw=self._canonical_json(event)),
+            await self.persist_artifact(
+                profile="B", kind="input", cid=input_cid, raw=self._canonical_json(input_value)
+            ),
+            await self.persist_artifact(
+                profile="B", kind="intent", cid=intent_cid, raw=self._canonical_json(intent)
+            ),
+            await self.persist_artifact(
+                profile="B", kind="envelope", cid=envelope_cid, raw=self._canonical_json(envelope)
+            ),
+            await self.persist_artifact(
+                profile="B", kind="output", cid=output_cid, raw=self._canonical_json(output)
+            ),
+            await self.persist_artifact(
+                profile="B",
+                kind="receipt",
+                cid=receipt_cid,
+                raw=self._canonical_json(receipt_artifact),
+            ),
+            await self.persist_artifact(
+                profile="B", kind="event", cid=event_cid, raw=self._canonical_json(event)
+            ),
         ]
         artifacts = {row["kind"]: row for row in rows}
         return {
             "profile": "B",
-            "complete": all(row.get("persisted") is True and row.get("verified") is True for row in rows),
+            "complete": all(
+                row.get("persisted") is True and row.get("verified") is True for row in rows
+            ),
             "artifacts": artifacts,
         }
 
-    async def persist_artifact(self, *, profile: str, kind: str, cid: str, raw: bytes) -> dict[str, Any]:
+    async def persist_artifact(
+        self, *, profile: str, kind: str, cid: str, raw: bytes
+    ) -> dict[str, Any]:
         if self._cid_for_bytes(raw) != cid:
             raise ValueError(f"Artifact {kind} CID does not match canonical bytes.")
         attempts: list[dict[str, str]] = []
         try:
-            stored = await trio.to_thread.run_sync(
-                self._put_via_ipfs_kit, cid, raw, profile, kind
-            )
-            return {**stored, "profile": profile, "kind": kind, "service": self.service, "attempts": attempts}
+            stored = await trio.to_thread.run_sync(self._put_via_ipfs_kit, cid, raw, profile, kind)
+            return {
+                **stored,
+                "profile": profile,
+                "kind": kind,
+                "service": self.service,
+                "attempts": attempts,
+            }
         except Exception as exc:
             attempts.append({"backend": "ipfs_kit_py", "error": str(exc)})
         stored = await trio.to_thread.run_sync(self._put_disk, cid, raw, profile, kind)
-        return {**stored, "profile": profile, "kind": kind, "service": self.service, "attempts": attempts}
-
-    def _put_via_ipfs_kit(self, cid: str, raw: bytes, profile: str, kind: str) -> dict[str, Any]:
-        endpoint = os.environ.get("MCPPLUSPLUS_IPFS_KIT_ARTIFACT_URL", DEFAULT_IPFS_KIT_ARTIFACT_ENDPOINT).rstrip("/")
-        payload = json.dumps({
-            "cid": cid,
-            "bytes_base64": base64.b64encode(raw).decode("ascii"),
+        return {
+            **stored,
             "profile": profile,
             "kind": kind,
             "service": self.service,
-            "pin": True,
-        }).encode("utf-8")
+            "attempts": attempts,
+        }
+
+    def _put_via_ipfs_kit(self, cid: str, raw: bytes, profile: str, kind: str) -> dict[str, Any]:
+        endpoint = os.environ.get(
+            "MCPPLUSPLUS_IPFS_KIT_ARTIFACT_URL", DEFAULT_IPFS_KIT_ARTIFACT_ENDPOINT
+        ).rstrip("/")
+        payload = json.dumps(
+            {
+                "cid": cid,
+                "bytes_base64": base64.b64encode(raw).decode("ascii"),
+                "profile": profile,
+                "kind": kind,
+                "service": self.service,
+                "pin": True,
+            }
+        ).encode("utf-8")
         request = urllib.request.Request(
             f"{endpoint}/put",
             data=payload,
@@ -526,7 +612,11 @@ class HttpMcpRegistry:
         )
         with urllib.request.urlopen(request, timeout=5) as response:
             result = json.loads(response.read().decode("utf-8"))
-        if result.get("persisted") is not True or result.get("verified") is not True or result.get("cid") != cid:
+        if (
+            result.get("persisted") is not True
+            or result.get("verified") is not True
+            or result.get("cid") != cid
+        ):
             raise RuntimeError(result.get("error") or "ipfs_kit_py did not verify the artifact")
         result["via"] = "ipfs_kit_py"
         return result
@@ -543,16 +633,23 @@ class HttpMcpRegistry:
         read_back = block_path.read_bytes()
         if read_back != raw or self._cid_for_bytes(read_back) != cid:
             raise RuntimeError("Disk cache did not verify artifact")
-        metadata_path.write_text(json.dumps({
-            "schema": "swissknife.mcpplusplus.artifact-metadata.v1",
-            "cid": cid,
-            "profile": profile,
-            "kind": kind,
-            "service": self.service,
-            "bytes": len(raw),
-            "pinned": True,
-            "stored_at": datetime.now(timezone.utc).isoformat(),
-        }, indent=2) + "\n", encoding="utf-8")
+        metadata_path.write_text(
+            json.dumps(
+                {
+                    "schema": "swissknife.mcpplusplus.artifact-metadata.v1",
+                    "cid": cid,
+                    "profile": profile,
+                    "kind": kind,
+                    "service": self.service,
+                    "bytes": len(raw),
+                    "pinned": True,
+                    "stored_at": datetime.now(timezone.utc).isoformat(),
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
         return {
             "persisted": True,
             "verified": True,
@@ -571,7 +668,9 @@ class HttpMcpRegistry:
 
     def _get_artifact_sync(self, cid: str) -> dict[str, Any]:
         try:
-            endpoint = os.environ.get("MCPPLUSPLUS_IPFS_KIT_ARTIFACT_URL", DEFAULT_IPFS_KIT_ARTIFACT_ENDPOINT).rstrip("/")
+            endpoint = os.environ.get(
+                "MCPPLUSPLUS_IPFS_KIT_ARTIFACT_URL", DEFAULT_IPFS_KIT_ARTIFACT_ENDPOINT
+            ).rstrip("/")
             request = urllib.request.Request(
                 f"{endpoint}/{urllib.parse.quote(cid)}",
                 headers={"accept": "application/json"},
@@ -579,8 +678,14 @@ class HttpMcpRegistry:
             )
             with urllib.request.urlopen(request, timeout=5) as response:
                 result = json.loads(response.read().decode("utf-8"))
-            if result.get("found") is not True or result.get("verified") is not True or result.get("cid") != cid:
-                raise RuntimeError(result.get("error") or "ipfs_kit_py did not return a verified artifact")
+            if (
+                result.get("found") is not True
+                or result.get("verified") is not True
+                or result.get("cid") != cid
+            ):
+                raise RuntimeError(
+                    result.get("error") or "ipfs_kit_py did not return a verified artifact"
+                )
             raw = base64.b64decode(str(result.get("bytes_base64") or ""), validate=True)
             if self._cid_for_bytes(raw) != cid:
                 raise RuntimeError("ipfs_kit_py returned bytes for a different CID")
@@ -654,17 +759,21 @@ async def handle_profile_e_stream(
             result = await registry.call_tool(name, arguments)
             await reply({"jsonrpc": "2.0", "id": request_id, "result": result})
         except ValueError as exc:
-            await reply({
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "error": {"code": -32602, "message": str(exc)},
-            })
+            await reply(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+            )
         except Exception as exc:  # The HTTP backend is a remote execution boundary.
-            await reply({
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "error": {"code": -32603, "message": f"tool execution failed: {exc}"},
-            })
+            await reply(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32603, "message": f"tool execution failed: {exc}"},
+                }
+            )
 
     try:
         async with trio.open_nursery() as nursery:
@@ -672,52 +781,75 @@ async def handle_profile_e_stream(
                 message, error = await read_u32_framed_json(stream, max_frame_bytes=MAX_FRAME_BYTES)
                 if message is None:
                     if error not in {"empty", "eof"}:
-                        await reply({
-                            "jsonrpc": "2.0",
-                            "id": None,
-                            "error": {"code": -32700, "message": f"invalid framed JSON-RPC message: {error}"},
-                        })
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": None,
+                                "error": {
+                                    "code": -32700,
+                                    "message": f"invalid framed JSON-RPC message: {error}",
+                                },
+                            }
+                        )
                     break
 
                 frame_count += 1
                 if frame_count > MAX_FRAMES_PER_SESSION:
-                    await reply({
-                        "jsonrpc": "2.0",
-                        "id": message.get("id"),
-                        "error": {"code": -32000, "message": "session frame limit exceeded"},
-                    })
+                    await reply(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": message.get("id"),
+                            "error": {"code": -32000, "message": "session frame limit exceeded"},
+                        }
+                    )
                     break
 
                 request_id = message.get("id")
                 is_request = request_id is not None
                 method = message.get("method")
                 params = message.get("params", {})
-                if message.get("jsonrpc") != "2.0" or not isinstance(method, str) or not isinstance(params, dict):
+                if (
+                    message.get("jsonrpc") != "2.0"
+                    or not isinstance(method, str)
+                    or not isinstance(params, dict)
+                ):
                     if is_request:
-                        await reply({
-                            "jsonrpc": "2.0",
-                            "id": request_id,
-                            "error": {"code": -32600, "message": "invalid JSON-RPC request"},
-                        })
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {"code": -32600, "message": "invalid JSON-RPC request"},
+                            }
+                        )
                     continue
 
                 if not initialized:
                     if method != "initialize":
                         if is_request:
-                            await reply({
-                                "jsonrpc": "2.0",
-                                "id": request_id,
-                                "error": {"code": -32002, "message": "initialize must complete before requests"},
-                            })
+                            await reply(
+                                {
+                                    "jsonrpc": "2.0",
+                                    "id": request_id,
+                                    "error": {
+                                        "code": -32002,
+                                        "message": "initialize must complete before requests",
+                                    },
+                                }
+                            )
                         continue
                     if not is_request:
                         continue
                     if params.get("protocolVersion") != MCP_PROTOCOL_VERSION:
-                        await reply({
-                            "jsonrpc": "2.0",
-                            "id": request_id,
-                            "error": {"code": -32602, "message": f"unsupported protocol version: {params.get('protocolVersion')}"},
-                        })
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {
+                                    "code": -32602,
+                                    "message": f"unsupported protocol version: {params.get('protocolVersion')}",
+                                },
+                            }
+                        )
                         continue
                     requested_experimental = params.get("capabilities", {}).get("experimental", {})
                     if not isinstance(requested_experimental, dict):
@@ -732,26 +864,32 @@ async def handle_profile_e_stream(
                     if requested_experimental.get(PROFILE_F_CAPABILITY) is True:
                         experimental[PROFILE_F_CAPABILITY] = True
                     profile_h_requested = requested_experimental.get(PROFILE_H_CAPABILITY) is True
-                    profile_h_ready = await registry.refresh_profile_h(force=True) if profile_h_requested else False
+                    profile_h_ready = (
+                        await registry.refresh_profile_h(force=True)
+                        if profile_h_requested
+                        else False
+                    )
                     profile_h_negotiated = bool(profile_h_ready and profile_h_requested)
                     if profile_h_negotiated:
                         experimental[PROFILE_H_CAPABILITY] = True
                     initialized = True
-                    await reply({
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "result": {
-                            "protocolVersion": MCP_PROTOCOL_VERSION,
-                            "serverInfo": {
-                                "name": f"swissknife-{registry.service}-profile-e-bridge",
-                                "version": "1.0.0",
+                    await reply(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "result": {
+                                "protocolVersion": MCP_PROTOCOL_VERSION,
+                                "serverInfo": {
+                                    "name": f"swissknife-{registry.service}-profile-e-bridge",
+                                    "version": "1.0.0",
+                                },
+                                "capabilities": {
+                                    "tools": {"listChanged": True},
+                                    "experimental": experimental,
+                                },
                             },
-                            "capabilities": {
-                                "tools": {"listChanged": True},
-                                "experimental": experimental,
-                            },
-                        },
-                    })
+                        }
+                    )
                     continue
 
                 if method == "notifications/initialized":
@@ -759,95 +897,128 @@ async def handle_profile_e_stream(
                 if not is_request:
                     continue
                 if method == "tools/list":
-                    await reply({
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "result": {"tools": list(registry.tools.values())},
-                    })
+                    await reply(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "result": {"tools": list(registry.tools.values())},
+                        }
+                    )
                     continue
                 if method == "interfaces/list":
                     catalog = registry.profile_a_catalog()
                     await registry.persist_profile_a(catalog)
-                    await reply({
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "result": {
-                            "interfaces": [catalog["interface_cid"]],
-                            "interface_cids": [catalog["interface_cid"]],
-                        },
-                    })
+                    await reply(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "result": {
+                                "interfaces": [catalog["interface_cid"]],
+                                "interface_cids": [catalog["interface_cid"]],
+                            },
+                        }
+                    )
                     continue
                 if method == "interfaces/get":
                     catalog = registry.profile_a_catalog()
                     if params.get("interface_cid") != catalog["interface_cid"]:
-                        await reply({
-                            "jsonrpc": "2.0",
-                            "id": request_id,
-                            "error": {"code": -32602, "message": "Unknown interface_cid"},
-                        })
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {"code": -32602, "message": "Unknown interface_cid"},
+                            }
+                        )
                     else:
                         persistence = await registry.persist_profile_a(catalog)
-                        await reply({
-                            "jsonrpc": "2.0",
-                            "id": request_id,
-                            "result": {**catalog, "artifact_persistence": persistence},
-                        })
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "result": {**catalog, "artifact_persistence": persistence},
+                            }
+                        )
                     continue
                 if method == "interfaces/compat":
                     catalog = registry.profile_a_catalog()
                     server_cid = params.get("server_cid") or params.get("interface_cid") or ""
                     client_cid = params.get("client_cid") or server_cid
-                    compatible = client_cid == catalog["interface_cid"] and server_cid == catalog["interface_cid"]
-                    reasons = [] if compatible else ["Interface CID is not available from this service."]
-                    await reply({
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "result": {
-                            "compatible": compatible,
-                            "reasons": reasons,
-                            "requires_missing": [],
-                            "suggested_alternatives": [],
-                            "requiresMissing": [],
-                            "suggestedAlternatives": [],
-                        },
-                    })
+                    compatible = (
+                        client_cid == catalog["interface_cid"]
+                        and server_cid == catalog["interface_cid"]
+                    )
+                    reasons = (
+                        [] if compatible else ["Interface CID is not available from this service."]
+                    )
+                    await reply(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "result": {
+                                "compatible": compatible,
+                                "reasons": reasons,
+                                "requires_missing": [],
+                                "suggested_alternatives": [],
+                                "requiresMissing": [],
+                                "suggestedAlternatives": [],
+                            },
+                        }
+                    )
                     continue
                 if method == "interfaces/select":
                     catalog = registry.profile_a_catalog()
-                    await reply({
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "result": {
-                            "interfaces": [catalog["interface_cid"]],
-                            "interface_cids": [catalog["interface_cid"]],
-                        },
-                    })
+                    await reply(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "result": {
+                                "interfaces": [catalog["interface_cid"]],
+                                "interface_cids": [catalog["interface_cid"]],
+                            },
+                        }
+                    )
                     continue
                 if method == "mcp++/p2p/peers":
-                    await reply({
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "result": {
-                            "peers": [{
-                                "id": local_peer_id,
-                                "multiaddr": multiaddr,
-                                "protocols": [PROTOCOL_MCP_P2P_V1],
-                                "service": registry.service,
-                                "tool_count": len(registry.tools),
-                            }],
-                            "protocol": PROTOCOL_MCP_P2P_V1,
-                        },
-                    })
+                    await reply(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "result": {
+                                "peers": [
+                                    {
+                                        "id": local_peer_id,
+                                        "multiaddr": multiaddr,
+                                        "protocols": [PROTOCOL_MCP_P2P_V1],
+                                        "service": registry.service,
+                                        "tool_count": len(registry.tools),
+                                    }
+                                ],
+                                "protocol": PROTOCOL_MCP_P2P_V1,
+                            },
+                        }
+                    )
                     continue
                 if method in PROFILE_H_METHODS:
                     if not profile_h_negotiated:
                         unavailable = profile_h_requested and registry.profile_h_profile is None
-                        await reply({"jsonrpc": "2.0", "id": request_id, "error": {
-                            "code": -32070 if unavailable else -32040,
-                            "message": "MCP++ Profile H is unavailable for this seller." if unavailable else "MCP++ Profile H was not negotiated for this session.",
-                            "data": {"code": "H_PROFILE_UNAVAILABLE" if unavailable else "H_CAPABILITY_NOT_NEGOTIATED",
-                                     "service": registry.service},
-                        }})
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {
+                                    "code": -32070 if unavailable else -32040,
+                                    "message": "MCP++ Profile H is unavailable for this seller."
+                                    if unavailable
+                                    else "MCP++ Profile H was not negotiated for this session.",
+                                    "data": {
+                                        "code": "H_PROFILE_UNAVAILABLE"
+                                        if unavailable
+                                        else "H_CAPABILITY_NOT_NEGOTIATED",
+                                        "service": registry.service,
+                                    },
+                                },
+                            }
+                        )
                         continue
                     try:
                         result = await registry.profile_h(method, params)
@@ -858,9 +1029,16 @@ async def handle_profile_e_stream(
                             error["data"] = exc.data
                         await reply({"jsonrpc": "2.0", "id": request_id, "error": error})
                     except Exception as exc:
-                        await reply({"jsonrpc": "2.0", "id": request_id, "error": {
-                            "code": -32603, "message": f"Profile H request failed: {exc}",
-                        }})
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {
+                                    "code": -32603,
+                                    "message": f"Profile H request failed: {exc}",
+                                },
+                            }
+                        )
                     continue
                 if method in {
                     "mcp++/ucan/identity",
@@ -871,37 +1049,71 @@ async def handle_profile_e_stream(
                     try:
                         forwarded = dict(params)
                         if method == "mcp++/ucan/identity":
-                            forwarded.update({
-                                "transport": "libp2p",
-                                "peer_id": local_peer_id,
-                                "multiaddr": multiaddr,
-                            })
+                            forwarded.update(
+                                {
+                                    "transport": "libp2p",
+                                    "peer_id": local_peer_id,
+                                    "multiaddr": multiaddr,
+                                }
+                            )
                         result = await registry.profile_c(method, forwarded)
                         await reply({"jsonrpc": "2.0", "id": request_id, "result": result})
                     except ValueError as exc:
-                        await reply({"jsonrpc": "2.0", "id": request_id, "error": {"code": -32602, "message": str(exc)}})
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {"code": -32602, "message": str(exc)},
+                            }
+                        )
                     except Exception as exc:
-                        await reply({"jsonrpc": "2.0", "id": request_id, "error": {"code": -32603, "message": f"Profile C request failed: {exc}"}})
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {
+                                    "code": -32603,
+                                    "message": f"Profile C request failed: {exc}",
+                                },
+                            }
+                        )
                     continue
                 if method.startswith("mcp++/dag/"):
                     try:
                         result = await registry.event_dag(method, params)
                         await reply({"jsonrpc": "2.0", "id": request_id, "result": result})
                     except ValueError as exc:
-                        await reply({"jsonrpc": "2.0", "id": request_id, "error": {"code": -32602, "message": str(exc)}})
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {"code": -32602, "message": str(exc)},
+                            }
+                        )
                     except Exception as exc:
-                        await reply({"jsonrpc": "2.0", "id": request_id, "error": {"code": -32603, "message": f"Event DAG request failed: {exc}"}})
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {
+                                    "code": -32603,
+                                    "message": f"Event DAG request failed: {exc}",
+                                },
+                            }
+                        )
                     continue
                 if method == "mcp++/artifacts/get":
                     try:
                         result = await registry.get_artifact(str(params.get("cid") or ""))
                         await reply({"jsonrpc": "2.0", "id": request_id, "result": result})
                     except ValueError as exc:
-                        await reply({
-                            "jsonrpc": "2.0",
-                            "id": request_id,
-                            "error": {"code": -32602, "message": str(exc)},
-                        })
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {"code": -32602, "message": str(exc)},
+                            }
+                        )
                     continue
                 if method == "mcp++/execute":
                     try:
@@ -911,32 +1123,56 @@ async def handle_profile_e_stream(
                             # The bridge derives Profile B artifacts locally. Append its
                             # event to the paired HTTP service so HTTP and libp2p expose
                             # one persisted Event DAG per MCP++ service.
-                            result["event_dag"] = await registry.event_dag("mcp++/dag/append", {"event": event})
+                            result["event_dag"] = await registry.event_dag(
+                                "mcp++/dag/append", {"event": event}
+                            )
                         await reply({"jsonrpc": "2.0", "id": request_id, "result": result})
                     except ValueError as exc:
-                        await reply({"jsonrpc": "2.0", "id": request_id, "error": {"code": -32602, "message": str(exc)}})
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {"code": -32602, "message": str(exc)},
+                            }
+                        )
                     except Exception as exc:
-                        await reply({"jsonrpc": "2.0", "id": request_id, "error": {"code": -32603, "message": f"Profile B execution failed: {exc}"}})
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {
+                                    "code": -32603,
+                                    "message": f"Profile B execution failed: {exc}",
+                                },
+                            }
+                        )
                     continue
                 if method == "tools/call":
                     tool_name = params.get("name")
                     arguments = params.get("arguments", {})
                     if not isinstance(tool_name, str) or not isinstance(arguments, dict):
-                        await reply({
-                            "jsonrpc": "2.0",
-                            "id": request_id,
-                            "error": {"code": -32602, "message": "tools/call requires string name and object arguments"},
-                        })
+                        await reply(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {
+                                    "code": -32602,
+                                    "message": "tools/call requires string name and object arguments",
+                                },
+                            }
+                        )
                         continue
                     # Each HTTP tool execution runs independently; reply() serializes
                     # writes while preserving JSON-RPC id correlation for the caller.
                     nursery.start_soon(tool_call, request_id, tool_name, arguments)
                     continue
-                await reply({
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                    "error": {"code": -32601, "message": f"method not found: {method}"},
-                })
+                await reply(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "error": {"code": -32601, "message": f"method not found: {method}"},
+                    }
+                )
     finally:
         close = getattr(stream, "close", None)
         if callable(close):
@@ -968,28 +1204,43 @@ async def run_bridge(args: argparse.Namespace) -> None:
             )
 
         host.set_stream_handler(PROTOCOL_MCP_P2P_V1, handle)
-        write_announce(Path(args.announce_file), {
-            "service": args.service,
-            "endpoint": args.endpoint,
-            "protocol": PROTOCOL_MCP_P2P_V1,
-            "profile_e_version": BRIDGE_PROFILE_E_VERSION,
-            "canonical_initialize": True,
-            "profile_a_mcp_idl": True,
-            "profile_b_cid_envelope": True,
-            "profile_c_ucan": True,
-            "profile_f_event_dag": True,
-            "profile_h_x402_payments": registry.profile_h_profile is not None,
-            "peer_id": peer_id,
-            "multiaddr": multiaddr,
-            "tool_count": len(registry.tools),
-        })
-        print(json.dumps({"service": args.service, "multiaddr": multiaddr, "tool_count": len(registry.tools)}, sort_keys=True), flush=True)
+        write_announce(
+            Path(args.announce_file),
+            {
+                "service": args.service,
+                "endpoint": args.endpoint,
+                "protocol": PROTOCOL_MCP_P2P_V1,
+                "profile_e_version": BRIDGE_PROFILE_E_VERSION,
+                "canonical_initialize": True,
+                "profile_a_mcp_idl": True,
+                "profile_b_cid_envelope": True,
+                "profile_c_ucan": True,
+                "profile_f_event_dag": True,
+                "profile_h_x402_payments": registry.profile_h_profile is not None,
+                "peer_id": peer_id,
+                "multiaddr": multiaddr,
+                "tool_count": len(registry.tools),
+            },
+        )
+        print(
+            json.dumps(
+                {
+                    "service": args.service,
+                    "multiaddr": multiaddr,
+                    "tool_count": len(registry.tools),
+                },
+                sort_keys=True,
+            ),
+            flush=True,
+        )
         await trio.sleep_forever()
 
 
 def write_announce(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as handle:
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", dir=path.parent, delete=False
+    ) as handle:
         json.dump(payload, handle, sort_keys=True)
         handle.write("\n")
         temporary = Path(handle.name)

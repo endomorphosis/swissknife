@@ -18,7 +18,7 @@ Usage:
         matmul_4bit_shader,
         kv_cache_adaptive_precision_shader
     )
-    
+
     # Generate shader for a specific operation and precision
     shader_code = generate_compute_shader(
         operation="matmul",
@@ -37,17 +37,15 @@ import platform
 from typing import Dict, List, Any, Optional, Tuple, Union, Callable
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("webgpu_compute_shaders")
+
 
 # Function to detect browser environment (same as in webgpu_adaptive_precision.py)
 def detect_browser_environment() -> Dict[str, Any]:
     """
     Detect the current browser environment.
-    
+
     Returns:
         Dictionary with browser detection information
     """
@@ -55,27 +53,43 @@ def detect_browser_environment() -> Dict[str, Any]:
         "detected": False,
         "browser": None,
         "version": None,
-        "platform": platform.system().lower()
+        "platform": platform.system().lower(),
     }
-    
+
     # Check environment variables for browser simulation
     browser_env = os.environ.get("BROWSER_SIMULATION", "").lower()
     if browser_env:
         result["detected"] = True
         if "chrome" in browser_env:
             result["browser"] = "chrome"
-            result["version"] = re.search(r"(\d+)", browser_env).group(1) if re.search(r"(\d+)", browser_env) else "113"
+            result["version"] = (
+                re.search(r"(\d+)", browser_env).group(1)
+                if re.search(r"(\d+)", browser_env)
+                else "113"
+            )
         elif "firefox" in browser_env:
             result["browser"] = "firefox"
-            result["version"] = re.search(r"(\d+)", browser_env).group(1) if re.search(r"(\d+)", browser_env) else "121"
+            result["version"] = (
+                re.search(r"(\d+)", browser_env).group(1)
+                if re.search(r"(\d+)", browser_env)
+                else "121"
+            )
         elif "edge" in browser_env:
             result["browser"] = "edge"
-            result["version"] = re.search(r"(\d+)", browser_env).group(1) if re.search(r"(\d+)", browser_env) else "113"
+            result["version"] = (
+                re.search(r"(\d+)", browser_env).group(1)
+                if re.search(r"(\d+)", browser_env)
+                else "113"
+            )
         elif "safari" in browser_env:
             result["browser"] = "safari"
-            result["version"] = re.search(r"(\d+)", browser_env).group(1) if re.search(r"(\d+)", browser_env) else "17"
+            result["version"] = (
+                re.search(r"(\d+)", browser_env).group(1)
+                if re.search(r"(\d+)", browser_env)
+                else "17"
+            )
         return result
-    
+
     # Check environment variables for target browser
     target_browser = os.environ.get("TARGET_BROWSER", "").lower()
     if target_browser:
@@ -83,42 +97,43 @@ def detect_browser_environment() -> Dict[str, Any]:
         result["browser"] = target_browser
         result["version"] = os.environ.get("BROWSER_VERSION", "latest")
         return result
-    
+
     # If in web environment, try to detect from navigator (future compatibility)
     try:
         pass
     except:
         pass
-    
+
     return result
+
 
 # Workgroup size configuration by browser
 BROWSER_WORKGROUP_CONFIG = {
     "chrome": {
         "matmul": {"x": 8, "y": 16, "z": 1},
         "attention": {"x": 8, "y": 8, "z": 1},
-        "kv_cache": {"x": 8, "y": 8, "z": 1}
+        "kv_cache": {"x": 8, "y": 8, "z": 1},
     },
     "edge": {
         "matmul": {"x": 8, "y": 16, "z": 1},
         "attention": {"x": 8, "y": 8, "z": 1},
-        "kv_cache": {"x": 8, "y": 8, "z": 1}
+        "kv_cache": {"x": 8, "y": 8, "z": 1},
     },
     "firefox": {
         "matmul": {"x": 8, "y": 8, "z": 1},
         "attention": {"x": 4, "y": 8, "z": 1},
-        "kv_cache": {"x": 4, "y": 8, "z": 1}
+        "kv_cache": {"x": 4, "y": 8, "z": 1},
     },
     "safari": {
         "matmul": {"x": 4, "y": 4, "z": 1},
         "attention": {"x": 4, "y": 4, "z": 1},
-        "kv_cache": {"x": 4, "y": 4, "z": 1}
+        "kv_cache": {"x": 4, "y": 4, "z": 1},
     },
     "default": {
         "matmul": {"x": 8, "y": 8, "z": 1},
         "attention": {"x": 4, "y": 8, "z": 1},
-        "kv_cache": {"x": 4, "y": 8, "z": 1}
-    }
+        "kv_cache": {"x": 4, "y": 8, "z": 1},
+    },
 }
 
 # Feature support by browser
@@ -129,7 +144,7 @@ BROWSER_FEATURE_SUPPORT = {
         "storage_textures": True,
         "workgroup_uniform_load": True,
         "buffer_binding_array": True,
-        "specialization_constants": True
+        "specialization_constants": True,
     },
     "edge": {
         "shared_memory": True,
@@ -137,7 +152,7 @@ BROWSER_FEATURE_SUPPORT = {
         "storage_textures": True,
         "workgroup_uniform_load": True,
         "buffer_binding_array": True,
-        "specialization_constants": True
+        "specialization_constants": True,
     },
     "firefox": {
         "shared_memory": True,
@@ -145,7 +160,7 @@ BROWSER_FEATURE_SUPPORT = {
         "storage_textures": True,
         "workgroup_uniform_load": False,
         "buffer_binding_array": True,
-        "specialization_constants": False
+        "specialization_constants": False,
     },
     "safari": {
         "shared_memory": False,
@@ -153,7 +168,7 @@ BROWSER_FEATURE_SUPPORT = {
         "storage_textures": False,
         "workgroup_uniform_load": False,
         "buffer_binding_array": False,
-        "specialization_constants": False
+        "specialization_constants": False,
     },
     "default": {
         "shared_memory": False,
@@ -161,53 +176,56 @@ BROWSER_FEATURE_SUPPORT = {
         "storage_textures": False,
         "workgroup_uniform_load": False,
         "buffer_binding_array": False,
-        "specialization_constants": False
-    }
+        "specialization_constants": False,
+    },
 }
+
 
 def get_workgroup_config(operation: str, browser: Optional[str] = None) -> Dict[str, int]:
     """
     Get workgroup configuration for a specific operation and browser.
-    
+
     Args:
         operation: Operation type (matmul, attention, kv_cache)
         browser: Target browser
-        
+
     Returns:
         Workgroup size configuration
     """
     if browser is None:
         browser_info = detect_browser_environment()
         browser = browser_info.get("browser") if browser_info.get("detected") else "default"
-    
+
     browser = browser.lower()
     if browser not in BROWSER_WORKGROUP_CONFIG:
         browser = "default"
-        
+
     if operation not in BROWSER_WORKGROUP_CONFIG[browser]:
         operation = "matmul"  # Default to matmul configuration
-    
+
     return BROWSER_WORKGROUP_CONFIG[browser][operation]
+
 
 def get_feature_support(browser: Optional[str] = None) -> Dict[str, bool]:
     """
     Get feature support for a specific browser.
-    
+
     Args:
         browser: Target browser
-        
+
     Returns:
         Feature support configuration
     """
     if browser is None:
         browser_info = detect_browser_environment()
         browser = browser_info.get("browser") if browser_info.get("detected") else "default"
-    
+
     browser = browser.lower()
     if browser not in BROWSER_FEATURE_SUPPORT:
         browser = "default"
-    
+
     return BROWSER_FEATURE_SUPPORT[browser]
+
 
 def matmul_4bit_shader(
     bits: int = 4,
@@ -216,11 +234,11 @@ def matmul_4bit_shader(
     workgroup_size: Optional[Dict[str, int]] = None,
     block_size: int = 128,
     per_channel: bool = False,
-    symmetric: bool = True
+    symmetric: bool = True,
 ) -> str:
     """
     Generate optimized matrix multiplication shader for 4-bit weights.
-    
+
     Args:
         bits: Precision bits (2, 3, 4, 8)
         browser: Target browser
@@ -229,7 +247,7 @@ def matmul_4bit_shader(
         block_size: Block size for block-wise quantization
         per_channel: Use per-channel quantization
         symmetric: Use symmetric quantization
-        
+
     Returns:
         WGSL shader code
     """
@@ -237,32 +255,32 @@ def matmul_4bit_shader(
     if browser is None:
         browser_info = detect_browser_environment()
         browser = browser_info.get("browser") if browser_info.get("detected") else None
-    
+
     if workgroup_size is None:
         workgroup_size = get_workgroup_config("matmul", browser)
-    
+
     feature_support = get_feature_support(browser)
-    
+
     # Determine if shared memory should be used
     if use_shared_memory is None:
         use_shared_memory = feature_support["shared_memory"]
-    
+
     # Adjust workgroup size based on hardware constraints
     workgroup_x = workgroup_size["x"]
     workgroup_y = workgroup_size["y"]
     workgroup_z = workgroup_size.get("z", 1)
-    
+
     # Constants for different bit widths
     values_per_byte = 8 // bits if bits > 0 else 1
-    
+
     # Firefox-specific adjustments
     unroll_factor = 4 if browser != "firefox" and browser != "safari" else 2
-    
+
     # Create shader header with configuration
     shader = f"""
     // WebGPU 4-bit Matrix Multiplication Shader
-    // Configuration: {bits}-bit, {'symmetric' if symmetric else 'asymmetric'}, {'per-channel' if per_channel else 'per-tensor'}, block_size={block_size}
-    // Optimized for {browser.upper() if browser else 'default'} browser
+    // Configuration: {bits}-bit, {"symmetric" if symmetric else "asymmetric"}, {"per-channel" if per_channel else "per-tensor"}, block_size={block_size}
+    // Optimized for {browser.upper() if browser else "default"} browser
     
     struct Uniforms {{
         M: u32,          // Input matrix height
@@ -275,17 +293,17 @@ def matmul_4bit_shader(
     @group(0) @binding(1) var<storage, read> input_matrix: array<f16>;  // [M, K] input matrix
     @group(0) @binding(2) var<storage, read> weight_matrix: array<u32>; // Packed 4-bit weights [K, N]
     @group(0) @binding(3) var<storage, read> scales: array<f16>;        // Quantization scales
-    @group(0) @binding(4) var<storage, read> zeros: array<{'f16' if not symmetric else 'u32'}>; // Zero points (not used if symmetric)
+    @group(0) @binding(4) var<storage, read> zeros: array<{"f16" if not symmetric else "u32"}>; // Zero points (not used if symmetric)
     @group(0) @binding(5) var<storage, read_write> output_matrix: array<f16>; // [M, N] output matrix
     """
-    
+
     # Add shared memory if supported
     if use_shared_memory:
         shader += f"""
         var<workgroup> tile_input: array<f16, {workgroup_y} * {workgroup_x}>;
         var<workgroup> tile_weights: array<u32, {workgroup_y} * {workgroup_x} * {values_per_byte // 4}>;
         """
-    
+
     # Add helper functions for unpacking 4-bit values
     shader += f"""
     fn unpack_{bits}bit(packed_value: u32, idx: u32) -> u32 {{
@@ -294,12 +312,12 @@ def matmul_4bit_shader(
         return (packed_value >> (idx * bits_per_value)) & mask;
     }}
     
-    fn apply_quantization(value: u32, scale: f16, {'zero: f16' if not symmetric else '_: u32'}) -> f16 {{
-        {'let zero_point = f16(0.0);' if symmetric else ''}
-        return scale * (f16(value) - {'zero_point' if symmetric else 'zero'});
+    fn apply_quantization(value: u32, scale: f16, {"zero: f16" if not symmetric else "_: u32"}) -> f16 {{
+        {"let zero_point = f16(0.0);" if symmetric else ""}
+        return scale * (f16(value) - {"zero_point" if symmetric else "zero"});
     }}
     """
-    
+
     # Main compute shader
     shader += f"""
     @compute @workgroup_size({workgroup_x}, {workgroup_y}, {workgroup_z})
@@ -328,7 +346,7 @@ def matmul_4bit_shader(
         
         // Main computation loop
         """
-    
+
     if use_shared_memory:
         # Version with shared memory for better performance
         shader += f"""
@@ -356,7 +374,7 @@ def matmul_4bit_shader(
             for (var k_offset = 0u; k_offset < k_end; k_offset += {unroll_factor}u) {{
                 // Unroll the inner loop for better performance
                 """
-        
+
         # Unrolled computation with shared memory
         for i in range(unroll_factor):
             shader += f"""
@@ -375,19 +393,19 @@ def matmul_4bit_shader(
                         let quantized = unpack_{bits}bit(packed_weight, bit_offset);
                         
                         // Apply dequantization
-                        let scale_idx = {f'block_idx * N + col' if per_channel else 'block_idx'};
-                        let zero_idx = {f'block_idx * N + col' if per_channel else 'block_idx'};
+                        let scale_idx = {f"block_idx * N + col" if per_channel else "block_idx"};
+                        let zero_idx = {f"block_idx * N + col" if per_channel else "block_idx"};
                         let scale = scales[scale_idx];
-                        let {'zero = zeros[zero_idx]' if not symmetric else '_ = 0u'};
+                        let {"zero = zeros[zero_idx]" if not symmetric else "_ = 0u"};
                         
-                        let weight_val = apply_quantization(quantized, scale, {'zero' if not symmetric else '0u'});
+                        let weight_val = apply_quantization(quantized, scale, {"zero" if not symmetric else "0u"});
                         
                         // Accumulate the product
                         acc += f32(input_val * weight_val);
                     }}
                 }}
             """
-        
+
         shader += f"""
             }}
             
@@ -410,26 +428,27 @@ def matmul_4bit_shader(
             let quantized = unpack_{bits}bit(packed_weight, bit_offset);
             
             // Apply dequantization
-            let scale_idx = {f'block_idx * N + col' if per_channel else 'block_idx'};
-            let zero_idx = {f'block_idx * N + col' if per_channel else 'block_idx'};
+            let scale_idx = {f"block_idx * N + col" if per_channel else "block_idx"};
+            let zero_idx = {f"block_idx * N + col" if per_channel else "block_idx"};
             let scale = scales[scale_idx];
-            let {'zero = zeros[zero_idx]' if not symmetric else '_ = 0u'};
+            let {"zero = zeros[zero_idx]" if not symmetric else "_ = 0u"};
             
-            let weight_val = apply_quantization(quantized, scale, {'zero' if not symmetric else '0u'});
+            let weight_val = apply_quantization(quantized, scale, {"zero" if not symmetric else "0u"});
             
             // Accumulate the product
             acc += f32(input_val * weight_val);
         }}
         """
-    
+
     # Write output
     shader += f"""
         // Write the result to output
         output_matrix[row * N + col] = f16(acc);
     }}
     """
-    
+
     return shader
+
 
 def attention_with_adaptive_precision_shader(
     bits: int = 4,
@@ -437,11 +456,11 @@ def attention_with_adaptive_precision_shader(
     block_size: int = 64,
     use_flash_attention: bool = True,
     causal_mask: bool = True,
-    adaptive_precision: bool = True
+    adaptive_precision: bool = True,
 ) -> str:
     """
     Generate optimized attention shader with adaptive precision.
-    
+
     Args:
         bits: Precision bits for QKV projections
         browser: Target browser
@@ -449,7 +468,7 @@ def attention_with_adaptive_precision_shader(
         use_flash_attention: Use FlashAttention algorithm for better performance
         causal_mask: Apply causal mask for autoregressive models
         adaptive_precision: Enable adaptive precision for attention
-        
+
     Returns:
         WGSL shader code
     """
@@ -457,25 +476,25 @@ def attention_with_adaptive_precision_shader(
     if browser is None:
         browser_info = detect_browser_environment()
         browser = browser_info.get("browser") if browser_info.get("detected") else None
-    
+
     workgroup_size = get_workgroup_config("attention", browser)
     feature_support = get_feature_support(browser)
-    
+
     # Adjust features based on browser support
     use_shared_memory = feature_support["shared_memory"]
-    
+
     # Adjust workgroup size based on hardware constraints
     workgroup_x = workgroup_size["x"]
     workgroup_y = workgroup_size["y"]
     workgroup_z = workgroup_size.get("z", 1)
-    
+
     # Shader code
     shader = f"""
     // WebGPU Attention Shader with Adaptive Precision
-    // Configuration: {bits}-bit, block_size={block_size}, {'with' if use_flash_attention else 'without'} FlashAttention
-    // {'Causal mask enabled' if causal_mask else 'No causal mask'}
-    // {'Adaptive precision enabled' if adaptive_precision else 'Fixed precision'}
-    // Optimized for {browser.upper() if browser else 'default'} browser
+    // Configuration: {bits}-bit, block_size={block_size}, {"with" if use_flash_attention else "without"} FlashAttention
+    // {"Causal mask enabled" if causal_mask else "No causal mask"}
+    // {"Adaptive precision enabled" if adaptive_precision else "Fixed precision"}
+    // Optimized for {browser.upper() if browser else "default"} browser
     
     struct Uniforms {{
         batch_size: u32,     // Batch size
@@ -489,13 +508,13 @@ def attention_with_adaptive_precision_shader(
     
     @group(0) @binding(0) var<uniform> uniforms: Uniforms;
     @group(0) @binding(1) var<storage, read> query: array<f16>;          // [batch_size, seq_length, num_heads, head_size]
-    @group(0) @binding(2) var<storage, read> key: array<{'u32' if bits <= 8 else 'f16'}>;   // Packed keys
-    @group(0) @binding(3) var<storage, read> value: array<{'u32' if bits <= 8 else 'f16'}>; // Packed values
+    @group(0) @binding(2) var<storage, read> key: array<{"u32" if bits <= 8 else "f16"}>;   // Packed keys
+    @group(0) @binding(3) var<storage, read> value: array<{"u32" if bits <= 8 else "f16"}>; // Packed values
     @group(0) @binding(4) var<storage, read> key_scales: array<f16>;     // Key scale factors
     @group(0) @binding(5) var<storage, read> value_scales: array<f16>;   // Value scale factors
     @group(0) @binding(6) var<storage, read_write> output: array<f16>;   // [batch_size, seq_length, num_heads, head_size]
     """
-    
+
     # Add shared memory if supported
     if use_shared_memory:
         shader += f"""
@@ -504,7 +523,7 @@ def attention_with_adaptive_precision_shader(
         var<workgroup> shared_v: array<f16, {workgroup_y} * {workgroup_x}>;
         var<workgroup> shared_s: array<f32, {workgroup_y} * {workgroup_x}>;
         """
-    
+
     # Helper functions for quantization/dequantization
     shader += f"""
     fn unpack_{bits}bit(packed_value: u32, idx: u32) -> u32 {{
@@ -548,7 +567,7 @@ def attention_with_adaptive_precision_shader(
         return result;
     }}
     """
-    
+
     # Main compute shader
     shader += f"""
     @compute @workgroup_size({workgroup_x}, {workgroup_y}, {workgroup_z})
@@ -577,7 +596,7 @@ def attention_with_adaptive_precision_shader(
         let elements_per_u32 = 32u / {bits}u;
         
         // Determine if this position needs high precision
-        let needs_high_precision = {'adaptive_precision &&' if adaptive_precision else ''} (
+        let needs_high_precision = {"adaptive_precision &&" if adaptive_precision else ""} (
             query_idx > seq_length - 10u  // Recent tokens often need higher precision
         );
         
@@ -682,26 +701,27 @@ def attention_with_adaptive_precision_shader(
         }}
     }}
     """
-    
+
     return shader
+
 
 def kv_cache_adaptive_precision_shader(
     kv_cache_bits: int = 4,
     browser: Optional[str] = None,
     enable_variable_precision: bool = True,
     enable_sliding_window: bool = True,
-    window_size: int = 4096
+    window_size: int = 4096,
 ) -> str:
     """
     Generate optimized KV cache shader with adaptive precision.
-    
+
     Args:
         kv_cache_bits: Default precision bits for KV cache
         browser: Target browser
         enable_variable_precision: Enable variable precision for different parts of the cache
         enable_sliding_window: Enable sliding window attention to save memory
         window_size: Size of sliding window
-        
+
     Returns:
         WGSL shader code
     """
@@ -709,28 +729,34 @@ def kv_cache_adaptive_precision_shader(
     if browser is None:
         browser_info = detect_browser_environment()
         browser = browser_info.get("browser") if browser_info.get("detected") else None
-    
+
     workgroup_size = get_workgroup_config("kv_cache", browser)
     feature_support = get_feature_support(browser)
-    
+
     # Adjust features based on browser support
     use_shared_memory = feature_support["shared_memory"]
-    
+
     # Adjust workgroup size based on hardware constraints
     workgroup_x = workgroup_size["x"]
     workgroup_y = workgroup_size["y"]
     workgroup_z = workgroup_size.get("z", 1)
-    
+
     # Safari has limited support for complex shaders
     if browser == "safari":
         enable_variable_precision = False
-    
+
     # Shader code
     shader = f"""
     // WebGPU KV Cache Shader with Adaptive Precision
-    // Configuration: {kv_cache_bits}-bit default, {'variable precision enabled' if enable_variable_precision else 'fixed precision'}
-    // {'Sliding window enabled, size=' + str(window_size) if enable_sliding_window else 'Full context window'}
-    // Optimized for {browser.upper() if browser else 'default'} browser
+    // Configuration: {kv_cache_bits}-bit default, {
+        "variable precision enabled" if enable_variable_precision else "fixed precision"
+    }
+    // {
+        "Sliding window enabled, size=" + str(window_size)
+        if enable_sliding_window
+        else "Full context window"
+    }
+    // Optimized for {browser.upper() if browser else "default"} browser
     
     struct Uniforms {{
         batch_size: u32,      // Batch size
@@ -843,9 +869,9 @@ def kv_cache_adaptive_precision_shader(
     // Function to determine precision for a position
     fn get_precision_for_position(position: u32, current_length: u32) -> u32 {{
         {
-            '// Fixed precision mode - use the same precision for all positions'
-            if not enable_variable_precision else
-            '''
+        "// Fixed precision mode - use the same precision for all positions"
+        if not enable_variable_precision
+        else '''
             // Determine token recency (how far from the current token)
             let recency = current_length - position - 1u;
             
@@ -862,7 +888,7 @@ def kv_cache_adaptive_precision_shader(
             // Middle context gets medium precision
             return precision_config.mid_context_bits;
             '''
-        }
+    }
         
         return {kv_cache_bits}u;
     }}
@@ -890,7 +916,9 @@ def kv_cache_adaptive_precision_shader(
         let new_position = current_length;
         
         // Handle sliding window if enabled
-        let effective_position = {f'new_position % uniforms.sliding_window' if enable_sliding_window else 'new_position'};
+        let effective_position = {
+        f"new_position % uniforms.sliding_window" if enable_sliding_window else "new_position"
+    };
         
         // Check if we're within bounds
         if (new_position >= max_seq_length) {{
@@ -1084,26 +1112,27 @@ def kv_cache_adaptive_precision_shader(
         }}
     }}
     """
-    
+
     return shader
+
 
 def mlp_with_adaptive_precision_shader(
     bits: int = 4,
     browser: Optional[str] = None,
     block_size: int = 128,
     activation_fn: str = "silu",
-    adaptive_precision: bool = True
+    adaptive_precision: bool = True,
 ) -> str:
     """
     Generate optimized MLP shader with adaptive precision.
-    
+
     Args:
         bits: Precision bits for weights
         browser: Target browser
         block_size: Block size for block-wise quantization
         activation_fn: Activation function (silu, gelu, relu)
         adaptive_precision: Enable adaptive precision
-        
+
     Returns:
         WGSL shader code
     """
@@ -1111,18 +1140,18 @@ def mlp_with_adaptive_precision_shader(
     if browser is None:
         browser_info = detect_browser_environment()
         browser = browser_info.get("browser") if browser_info.get("detected") else None
-    
+
     workgroup_size = get_workgroup_config("matmul", browser)
     feature_support = get_feature_support(browser)
-    
+
     # Adjust features based on browser support
     use_shared_memory = feature_support["shared_memory"]
-    
+
     # Adjust workgroup size based on hardware constraints
     workgroup_x = workgroup_size["x"]
     workgroup_y = workgroup_size["y"]
     workgroup_z = workgroup_size.get("z", 1)
-    
+
     # Create activation function code
     if activation_fn == "silu":
         activation_code = "fn silu(x: f32) -> f32 { return x * (1.0 / (1.0 + exp(-x))); }"
@@ -1133,13 +1162,13 @@ def mlp_with_adaptive_precision_shader(
     else:  # relu
         activation_code = "fn relu(x: f32) -> f32 { return max(0.0, x); }"
         apply_activation = "relu"
-    
+
     # Shader code
     shader = f"""
     // WebGPU MLP Shader with Adaptive Precision
     // Configuration: {bits}-bit, block_size={block_size}, activation={activation_fn}
-    // {'Adaptive precision enabled' if adaptive_precision else 'Fixed precision'}
-    // Optimized for {browser.upper() if browser else 'default'} browser
+    // {"Adaptive precision enabled" if adaptive_precision else "Fixed precision"}
+    // Optimized for {browser.upper() if browser else "default"} browser
     
     struct Uniforms {{
         batch_size: u32,     // Batch size
@@ -1200,7 +1229,7 @@ def mlp_with_adaptive_precision_shader(
         let elements_per_u32 = 32u / {bits}u;
         
         """
-    
+
     # Add shared memory if supported
     if use_shared_memory:
         shader += f"""
@@ -1219,7 +1248,7 @@ def mlp_with_adaptive_precision_shader(
         
         workgroupBarrier();
         """
-    
+
     # Continue with main computation
     shader += f"""
         // Compute gate and up projections
@@ -1297,8 +1326,9 @@ def mlp_with_adaptive_precision_shader(
         output[output_offset] = f16(result);
     }}
     """
-    
+
     return shader
+
 
 def generate_compute_shader(
     operation: str,
@@ -1306,11 +1336,11 @@ def generate_compute_shader(
     browser: Optional[str] = None,
     adaptive_precision: bool = True,
     layer_type: str = "matmul",
-    config: Optional[Dict[str, Any]] = None
+    config: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
     Generate optimized compute shader for a specific operation.
-    
+
     Args:
         operation: Operation type (matmul, attention, kv_cache, mlp)
         bits: Precision bits
@@ -1318,13 +1348,13 @@ def generate_compute_shader(
         adaptive_precision: Enable adaptive precision
         layer_type: Layer type (matmul, attention, mlp)
         config: Additional configuration parameters
-        
+
     Returns:
         WGSL shader code
     """
     if config is None:
         config = {}
-    
+
     if operation == "matmul":
         return matmul_4bit_shader(
             bits=bits,
@@ -1333,7 +1363,7 @@ def generate_compute_shader(
             workgroup_size=config.get("workgroup_size"),
             block_size=config.get("block_size", 128),
             per_channel=config.get("per_channel", False),
-            symmetric=config.get("symmetric", True)
+            symmetric=config.get("symmetric", True),
         )
     elif operation == "attention":
         return attention_with_adaptive_precision_shader(
@@ -1342,7 +1372,7 @@ def generate_compute_shader(
             block_size=config.get("block_size", 64),
             use_flash_attention=config.get("use_flash_attention", True),
             causal_mask=config.get("causal_mask", True),
-            adaptive_precision=adaptive_precision
+            adaptive_precision=adaptive_precision,
         )
     elif operation == "kv_cache":
         return kv_cache_adaptive_precision_shader(
@@ -1350,7 +1380,7 @@ def generate_compute_shader(
             browser=browser,
             enable_variable_precision=adaptive_precision,
             enable_sliding_window=config.get("enable_sliding_window", True),
-            window_size=config.get("window_size", 4096)
+            window_size=config.get("window_size", 4096),
         )
     elif operation == "mlp":
         return mlp_with_adaptive_precision_shader(
@@ -1358,54 +1388,53 @@ def generate_compute_shader(
             browser=browser,
             block_size=config.get("block_size", 128),
             activation_fn=config.get("activation_fn", "silu"),
-            adaptive_precision=adaptive_precision
+            adaptive_precision=adaptive_precision,
         )
     else:
         raise ValueError(f"Unsupported operation: {operation}")
 
+
 def get_browser_optimized_shader(
-    shader_type: str,
-    browser: Optional[str] = None,
-    config: Optional[Dict[str, Any]] = None
+    shader_type: str, browser: Optional[str] = None, config: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Get a browser-optimized shader configuration.
-    
+
     Args:
         shader_type: Type of shader (matmul, attention, kv_cache, mlp)
         browser: Target browser
         config: Additional configuration
-        
+
     Returns:
         Dictionary with shader code and configuration
     """
     if config is None:
         config = {}
-    
+
     # Get browser-specific configuration
     if browser is None:
         browser_info = detect_browser_environment()
         browser = browser_info.get("browser") if browser_info.get("detected") else None
-    
+
     # Get feature support
     feature_support = get_feature_support(browser)
-    
+
     # Get workgroup configuration
     operation = "matmul" if shader_type == "mlp" else shader_type
     workgroup_config = get_workgroup_config(operation, browser)
-    
+
     # Set default configuration
     default_config = {
         "bits": 4,
         "adaptive_precision": True,
         "block_size": 128 if shader_type == "matmul" else 64,
         "use_shared_memory": feature_support["shared_memory"],
-        "workgroup_size": workgroup_config
+        "workgroup_size": workgroup_config,
     }
-    
+
     # Override with provided config
     shader_config = {**default_config, **config}
-    
+
     # Generate shader
     shader_code = generate_compute_shader(
         operation=shader_type,
@@ -1413,46 +1442,47 @@ def get_browser_optimized_shader(
         browser=browser,
         adaptive_precision=shader_config["adaptive_precision"],
         layer_type=shader_type,
-        config=shader_config
+        config=shader_config,
     )
-    
+
     return {
         "shader_code": shader_code,
         "config": shader_config,
         "browser": browser,
         "feature_support": feature_support,
-        "workgroup_config": workgroup_config
+        "workgroup_config": workgroup_config,
     }
+
 
 if __name__ == "__main__":
     # Example usage
     print("WebGPU Compute Shaders for 4-bit Inference with Adaptive Precision")
     print("================================================================")
-    
+
     # Generate an example shader
     browser = "chrome"  # or "firefox", "edge", "safari"
-    
+
     print(f"\nGenerating 4-bit matrix multiplication shader for {browser.upper()}:")
     shader = matmul_4bit_shader(bits=4, browser=browser, use_shared_memory=True)
     print(f"Generated shader with {len(shader.split(chr(10)))} lines of code")
-    
+
     print(f"\nGenerating attention shader with adaptive precision for {browser.upper()}:")
     shader = attention_with_adaptive_precision_shader(bits=4, browser=browser)
     print(f"Generated shader with {len(shader.split(chr(10)))} lines of code")
-    
+
     print(f"\nGenerating KV cache shader with adaptive precision for {browser.upper()}:")
     shader = kv_cache_adaptive_precision_shader(kv_cache_bits=4, browser=browser)
     print(f"Generated shader with {len(shader.split(chr(10)))} lines of code")
-    
+
     print(f"\nGenerating MLP shader with adaptive precision for {browser.upper()}:")
     shader = mlp_with_adaptive_precision_shader(bits=4, browser=browser)
     print(f"Generated shader with {len(shader.split(chr(10)))} lines of code")
-    
+
     print("\nBrowser feature support:")
     for browser_name in ["chrome", "edge", "firefox", "safari"]:
         features = get_feature_support(browser_name)
         print(f"{browser_name.upper()}: {features}")
-    
+
     print("\nBrowser workgroup configurations:")
     for browser_name in ["chrome", "edge", "firefox", "safari"]:
         for operation in ["matmul", "attention", "kv_cache"]:

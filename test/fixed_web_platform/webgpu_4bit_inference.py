@@ -2,8 +2,8 @@
 """
 WebGPU 4-bit Inference Optimization Implementation.
 
-This module implements specialized 4-bit quantization and inference for WebGPU to enable 
-running large language models efficiently in web browsers. It provides optimized matrix 
+This module implements specialized 4-bit quantization and inference for WebGPU to enable
+running large language models efficiently in web browsers. It provides optimized matrix
 multiplication kernels and weight handling specific to 4-bit precision.
 
 Key features:
@@ -26,19 +26,17 @@ import numpy as np
 from typing import Dict, List, Any, Optional, Tuple, Union, Callable
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("webgpu_4bit_inference")
+
 
 class WebGPU4BitOptimizer:
     """Implementation of 4-bit quantization and inference for WebGPU."""
-    
+
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """
         Initialize the WebGPU 4-bit optimizer.
-        
+
         Args:
             config: Configuration parameters for 4-bit optimization
         """
@@ -47,7 +45,7 @@ class WebGPU4BitOptimizer:
         self.block_size = self.config.get("block_size", 128)
         self.compute_shaders_enabled = self.config.get("compute_shaders_enabled", True)
         self.per_channel_quantization = self.config.get("per_channel_quantization", True)
-        
+
         # Performance metrics
         self.metrics = {
             "model_size_fp16_mb": 0,
@@ -61,28 +59,30 @@ class WebGPU4BitOptimizer:
             "total_layers": 0,
             "quantization_scheme": self.quantization_scheme,
             "block_size": self.block_size,
-            "compute_shader_optimized": self.compute_shaders_enabled
+            "compute_shader_optimized": self.compute_shaders_enabled,
         }
-        
-        logger.info(f"Initialized WebGPU 4-bit optimizer with {self.quantization_scheme} quantization")
-        
+
+        logger.info(
+            f"Initialized WebGPU 4-bit optimizer with {self.quantization_scheme} quantization"
+        )
+
     def quantize_model_to_4bit(self, model_info: Dict[str, Any]) -> Dict[str, Any]:
         """
         Quantize model weights to 4-bit precision.
-        
+
         Args:
             model_info: Dictionary with model information
-            
+
         Returns:
             Quantized model information
         """
         start_time = time.time()
-        
+
         # Extract model parameters
         model_name = model_info.get("model_name", "unknown")
         model_type = model_info.get("model_type", "unknown")
         layers_info = model_info.get("layers", {})
-        
+
         # Calculate original model size
         original_size_mb = model_info.get("model_size_mb", 0)
         if original_size_mb == 0:
@@ -92,79 +92,92 @@ class WebGPU4BitOptimizer:
                 if layer_params > 0:
                     # FP16 = 2 bytes per parameter
                     original_size_mb += (layer_params * 2) / (1024 * 1024)
-        
+
         self.metrics["model_size_fp16_mb"] = original_size_mb
         self.metrics["total_layers"] = len(layers_info)
-        
+
         # Determine which layers to quantize
         quantizable_layers = {}
         non_quantizable_layers = {}
         layer_counts = {"attention": 0, "mlp": 0, "embedding": 0, "other": 0}
-        
+
         for layer_name, layer_info in layers_info.items():
             layer_type = layer_info.get("type", "unknown")
             params = layer_info.get("parameters", 0)
-            
+
             # Update layer type counts
-            if "attention" in layer_name.lower() or "query" in layer_name.lower() or "key" in layer_name.lower() or "value" in layer_name.lower():
+            if (
+                "attention" in layer_name.lower()
+                or "query" in layer_name.lower()
+                or "key" in layer_name.lower()
+                or "value" in layer_name.lower()
+            ):
                 layer_counts["attention"] += 1
-            elif "mlp" in layer_name.lower() or "feed_forward" in layer_name.lower() or "ffn" in layer_name.lower():
+            elif (
+                "mlp" in layer_name.lower()
+                or "feed_forward" in layer_name.lower()
+                or "ffn" in layer_name.lower()
+            ):
                 layer_counts["mlp"] += 1
             elif "embed" in layer_name.lower():
                 layer_counts["embedding"] += 1
             else:
                 layer_counts["other"] += 1
-            
+
             # Skip certain layers from quantization
             if any(x in layer_name.lower() for x in ["norm", "layernorm", "bias", "embedding"]):
-                if "embedding" not in layer_name.lower() or self.config.get("quantize_embeddings", False):
+                if "embedding" not in layer_name.lower() or self.config.get(
+                    "quantize_embeddings", False
+                ):
                     non_quantizable_layers[layer_name] = layer_info
                     continue
-            
+
             # Skip small layers (not worth quantizing)
             if params < 1000:
                 non_quantizable_layers[layer_name] = layer_info
                 continue
-                
+
             # Add to quantizable layers
             quantizable_layers[layer_name] = layer_info
-        
+
         # Perform simulated quantization
         quantized_layers = {}
         total_quantized_params = 0
         total_params = 0
-        
+
         for layer_name, layer_info in quantizable_layers.items():
             params = layer_info.get("parameters", 0)
             total_params += params
             total_quantized_params += params
-            
+
             # Simulate 4-bit quantization
             quantized_layer = self._simulate_4bit_quantization(layer_info)
             quantized_layers[layer_name] = quantized_layer
-        
+
         # Add non-quantized layers directly
         for layer_name, layer_info in non_quantizable_layers.items():
             params = layer_info.get("parameters", 0)
             total_params += params
             quantized_layers[layer_name] = layer_info
-        
+
         # Calculate quantized model size
         # 4-bit weights = 0.5 bytes per parameter
         # Plus scales and zeros (FP16) = negligible for large models
         quantized_size_mb = (total_quantized_params * 0.5) / (1024 * 1024)
-        
+
         # Add size of non-quantized layers
         for layer_name, layer_info in non_quantizable_layers.items():
             params = layer_info.get("parameters", 0)
             # FP16 = 2 bytes per parameter
             quantized_size_mb += (params * 2) / (1024 * 1024)
-        
+
         # Calculate metrics
         quantization_time = (time.time() - start_time) * 1000  # ms
         compression_ratio = original_size_mb / quantized_size_mb if quantized_size_mb > 0 else 0
-        memory_saving_percent = (1 - (quantized_size_mb / original_size_mb)) * 100 if original_size_mb > 0 else 0
-        
+        memory_saving_percent = (
+            (1 - (quantized_size_mb / original_size_mb)) * 100 if original_size_mb > 0 else 0
+        )
+
         # Estimate accuracy impact based on quantization scheme
         if self.quantization_scheme == "symmetric":
             accuracy_change = -0.6  # -0.6% for symmetric
@@ -172,13 +185,13 @@ class WebGPU4BitOptimizer:
             accuracy_change = -0.4  # -0.4% for asymmetric
         else:
             accuracy_change = -0.8  # Default value
-            
+
         # Adjust based on block size (smaller blocks = better accuracy)
         if self.block_size <= 32:
             accuracy_change *= 0.7  # Smaller impact with smaller blocks
         elif self.block_size <= 64:
             accuracy_change *= 0.85
-            
+
         # Update metrics
         self.metrics["model_size_int4_mb"] = quantized_size_mb
         self.metrics["compression_ratio"] = compression_ratio
@@ -186,7 +199,7 @@ class WebGPU4BitOptimizer:
         self.metrics["accuracy_change_percent"] = accuracy_change
         self.metrics["memory_saving_percent"] = memory_saving_percent
         self.metrics["layers_quantized"] = len(quantizable_layers)
-        
+
         # Estimated inference speedup
         if self.compute_shaders_enabled:
             # With optimized compute shaders
@@ -194,7 +207,7 @@ class WebGPU4BitOptimizer:
         else:
             # Without compute shader optimization
             self.metrics["inference_speedup"] = 1.2  # 20% faster from memory benefits alone
-        
+
         # Create result
         result = {
             "model_name": model_name,
@@ -209,45 +222,47 @@ class WebGPU4BitOptimizer:
             "non_quantized_layers": len(non_quantizable_layers),
             "layer_stats": layer_counts,
             "metrics": self.metrics,
-            "layers": quantized_layers
+            "layers": quantized_layers,
         }
-        
-        logger.info(f"Quantized model to 4-bit: {original_size_mb:.2f}MB → {quantized_size_mb:.2f}MB " +
-                   f"({memory_saving_percent:.1f}% reduction, {compression_ratio:.1f}x compression)")
-        
+
+        logger.info(
+            f"Quantized model to 4-bit: {original_size_mb:.2f}MB → {quantized_size_mb:.2f}MB "
+            + f"({memory_saving_percent:.1f}% reduction, {compression_ratio:.1f}x compression)"
+        )
+
         return result
-    
+
     def _simulate_4bit_quantization(self, layer_info: Dict[str, Any]) -> Dict[str, Any]:
         """
         Simulate 4-bit quantization for a layer.
-        
+
         Args:
             layer_info: Layer information
-            
+
         Returns:
             Quantized layer information
         """
         # Create a copy of layer info
         quantized_info = dict(layer_info)
-        
+
         # Mark as quantized
         quantized_info["quantized"] = True
         quantized_info["bits"] = 4
         quantized_info["quantization_scheme"] = self.quantization_scheme
         quantized_info["block_size"] = self.block_size
-        
+
         # Add quantization-specific information
         if self.quantization_scheme == "symmetric":
             quantized_info["zero_point"] = False
         else:
             quantized_info["zero_point"] = True
-            
+
         return quantized_info
-    
+
     def generate_4bit_matmul_shader(self) -> str:
         """
         Generate optimized WebGPU compute shader for 4-bit matrix multiplication.
-        
+
         Returns:
             WGSL shader code for 4-bit matrix multiplication
         """
@@ -368,13 +383,13 @@ class WebGPU4BitOptimizer:
             output[out_idx] = acc;
         }}
         """
-        
+
         return shader
-    
+
     def generate_4bit_unpack_shader(self) -> str:
         """
         Generate WebGPU compute shader for unpacking 4-bit weights.
-        
+
         Returns:
             WGSL shader code for unpacking 4-bit weights
         """
@@ -442,16 +457,16 @@ class WebGPU4BitOptimizer:
             unpacked_weights[weight_idx] = weight_val;
         }}
         """
-        
+
         return shader
-    
+
     def create_optimized_4bit_pipeline(self, model_config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create optimized compute pipeline for 4-bit inference.
-        
+
         Args:
             model_config: Model configuration
-            
+
         Returns:
             Dictionary with pipeline configuration
         """
@@ -459,7 +474,7 @@ class WebGPU4BitOptimizer:
         hidden_size = model_config.get("hidden_size", 768)
         seq_length = model_config.get("seq_length", 512)
         batch_size = model_config.get("batch_size", 1)
-        
+
         # Calculate optimal workgroup configuration
         if hidden_size <= 768:
             workgroup_size = "8, 8, 1"
@@ -467,11 +482,11 @@ class WebGPU4BitOptimizer:
             workgroup_size = "8, 16, 1"
         else:
             workgroup_size = "8, 32, 1"
-            
+
         # Generate shaders
         matmul_shader = self.generate_4bit_matmul_shader()
         unpack_shader = self.generate_4bit_unpack_shader()
-        
+
         # Create pipeline configuration
         pipeline_config = {
             "model_config": {
@@ -479,41 +494,45 @@ class WebGPU4BitOptimizer:
                 "seq_length": seq_length,
                 "batch_size": batch_size,
                 "block_size": self.block_size,
-                "quantization_scheme": self.quantization_scheme
+                "quantization_scheme": self.quantization_scheme,
             },
             "compute_pipeline": {
                 "matmul_shader": {
                     "code": matmul_shader,
                     "entry_point": "main",
-                    "workgroup_size": workgroup_size
+                    "workgroup_size": workgroup_size,
                 },
                 "unpack_shader": {
                     "code": unpack_shader,
                     "entry_point": "main",
-                    "workgroup_size": "256, 1, 1"
-                }
+                    "workgroup_size": "256, 1, 1",
+                },
             },
             "optimization_level": "advanced",
             "expected_speedup": f"{self.metrics['inference_speedup']:.1f}x",
-            "memory_reduction": f"{self.metrics['memory_saving_percent']:.1f}%"
+            "memory_reduction": f"{self.metrics['memory_saving_percent']:.1f}%",
         }
-        
+
         logger.info(f"Created 4-bit inference pipeline with {workgroup_size} workgroup size")
         return pipeline_config
-    
-    def benchmark_4bit_inference(self, hidden_size: int = 4096, seq_length: int = 512) -> Dict[str, Any]:
+
+    def benchmark_4bit_inference(
+        self, hidden_size: int = 4096, seq_length: int = 512
+    ) -> Dict[str, Any]:
         """
         Run benchmark of 4-bit inference performance against baselines.
-        
+
         Args:
             hidden_size: Model hidden size
             seq_length: Sequence length
-            
+
         Returns:
             Dictionary with benchmark results
         """
-        logger.info(f"Benchmarking 4-bit inference for hidden_size={hidden_size}, seq_length={seq_length}")
-        
+        logger.info(
+            f"Benchmarking 4-bit inference for hidden_size={hidden_size}, seq_length={seq_length}"
+        )
+
         # Create synthetic model config for benchmarking
         model_config = {
             "model_type": "llama",
@@ -521,36 +540,40 @@ class WebGPU4BitOptimizer:
             "seq_length": seq_length,
             "batch_size": 1,
             "intermediate_size": hidden_size * 4,
-            "block_size": self.block_size
+            "block_size": self.block_size,
         }
-        
+
         # Reference model sizes for different precision
-        params_per_layer = (hidden_size * hidden_size * 4) + (hidden_size * 4 * hidden_size) + (hidden_size * 2)
+        params_per_layer = (
+            (hidden_size * hidden_size * 4) + (hidden_size * 4 * hidden_size) + (hidden_size * 2)
+        )
         fp16_size_mb = (params_per_layer * 2) / (1024 * 1024)  # 2 bytes per parameter
         int8_size_mb = (params_per_layer * 1) / (1024 * 1024)  # 1 byte per parameter
         int4_size_mb = (params_per_layer * 0.5) / (1024 * 1024)  # 0.5 bytes per parameter
-        
+
         # Memory usage during inference
-        activations_size_fp16 = (seq_length * hidden_size * 2) / (1024 * 1024)  # Activations in fp16
-        
+        activations_size_fp16 = (seq_length * hidden_size * 2) / (
+            1024 * 1024
+        )  # Activations in fp16
+
         # Simulated inference with different precision
         # These are rough approximations based on empirical observations
-        
+
         # Baseline: FP16 inference
         fp16_inference_time = 100.0  # Arbitrary baseline (100ms)
-        
+
         # INT8 inference (typical)
         int8_inference_time = fp16_inference_time * 0.85  # ~15% faster than FP16
         int8_memory_usage = int8_size_mb + activations_size_fp16
-        
+
         # INT4 inference (basic)
         int4_basic_inference_time = fp16_inference_time * 0.7  # ~30% faster than FP16
         int4_basic_memory_usage = int4_size_mb + activations_size_fp16
-        
+
         # INT4 inference (with optimized shaders)
         int4_optimized_inference_time = fp16_inference_time * 0.6  # ~40% faster than FP16
         int4_optimized_memory_usage = int4_size_mb + activations_size_fp16
-        
+
         # Create benchmark results
         benchmark_results = {
             "model_config": model_config,
@@ -559,14 +582,14 @@ class WebGPU4BitOptimizer:
                 "model_size_mb": fp16_size_mb,
                 "inference_time_ms": fp16_inference_time,
                 "memory_usage_mb": fp16_size_mb + activations_size_fp16,
-                "relative_speed": 1.0
+                "relative_speed": 1.0,
             },
             "int8": {
                 "precision": "int8",
                 "model_size_mb": int8_size_mb,
                 "inference_time_ms": int8_inference_time,
                 "memory_usage_mb": int8_memory_usage,
-                "relative_speed": fp16_inference_time / int8_inference_time
+                "relative_speed": fp16_inference_time / int8_inference_time,
             },
             "int4_basic": {
                 "precision": "int4",
@@ -574,7 +597,7 @@ class WebGPU4BitOptimizer:
                 "inference_time_ms": int4_basic_inference_time,
                 "memory_usage_mb": int4_basic_memory_usage,
                 "relative_speed": fp16_inference_time / int4_basic_inference_time,
-                "optimized": False
+                "optimized": False,
             },
             "int4_optimized": {
                 "precision": "int4",
@@ -585,42 +608,55 @@ class WebGPU4BitOptimizer:
                 "memory_usage_mb": int4_optimized_memory_usage,
                 "relative_speed": fp16_inference_time / int4_optimized_inference_time,
                 "optimized": True,
-                "compute_shader_optimized": self.compute_shaders_enabled
+                "compute_shader_optimized": self.compute_shaders_enabled,
             },
             "comparison_summary": {
-                "memory_reduction_vs_fp16_percent": ((fp16_size_mb - int4_size_mb) / fp16_size_mb) * 100,
-                "memory_reduction_vs_int8_percent": ((int8_size_mb - int4_size_mb) / int8_size_mb) * 100,
+                "memory_reduction_vs_fp16_percent": ((fp16_size_mb - int4_size_mb) / fp16_size_mb)
+                * 100,
+                "memory_reduction_vs_int8_percent": ((int8_size_mb - int4_size_mb) / int8_size_mb)
+                * 100,
                 "speedup_vs_fp16": fp16_inference_time / int4_optimized_inference_time,
                 "speedup_vs_int8": int8_inference_time / int4_optimized_inference_time,
-                "optimization_impact_percent": ((int4_basic_inference_time - int4_optimized_inference_time) / int4_basic_inference_time) * 100
-            }
+                "optimization_impact_percent": (
+                    (int4_basic_inference_time - int4_optimized_inference_time)
+                    / int4_basic_inference_time
+                )
+                * 100,
+            },
         }
-        
-        logger.info(f"4-bit optimized inference is {benchmark_results['comparison_summary']['speedup_vs_fp16']:.1f}x faster than FP16")
-        logger.info(f"Memory reduction: {benchmark_results['comparison_summary']['memory_reduction_vs_fp16_percent']:.1f}% vs FP16")
-        
+
+        logger.info(
+            f"4-bit optimized inference is {benchmark_results['comparison_summary']['speedup_vs_fp16']:.1f}x faster than FP16"
+        )
+        logger.info(
+            f"Memory reduction: {benchmark_results['comparison_summary']['memory_reduction_vs_fp16_percent']:.1f}% vs FP16"
+        )
+
         return benchmark_results
-        
+
     def get_metrics(self) -> Dict[str, Any]:
         """
         Get optimization metrics.
-        
+
         Returns:
             Dictionary with optimization metrics
         """
         return self.metrics
 
-def create_4bit_optimizer(quantization_scheme: str = "symmetric", 
-                        block_size: int = 128, 
-                        compute_shaders_enabled: bool = True) -> WebGPU4BitOptimizer:
+
+def create_4bit_optimizer(
+    quantization_scheme: str = "symmetric",
+    block_size: int = 128,
+    compute_shaders_enabled: bool = True,
+) -> WebGPU4BitOptimizer:
     """
     Create a WebGPU 4-bit optimization pipeline.
-    
+
     Args:
         quantization_scheme: Quantization scheme ("symmetric" or "asymmetric")
         block_size: Block size for quantization
         compute_shaders_enabled: Enable optimized compute shaders
-        
+
     Returns:
         Configured WebGPU4BitOptimizer
     """
@@ -628,41 +664,41 @@ def create_4bit_optimizer(quantization_scheme: str = "symmetric",
         "quantization_scheme": quantization_scheme,
         "block_size": block_size,
         "compute_shaders_enabled": compute_shaders_enabled,
-        "per_channel_quantization": True
+        "per_channel_quantization": True,
     }
-    
+
     return WebGPU4BitOptimizer(config)
 
-def optimize_model_for_4bit_inference(model_info: Dict[str, Any], 
-                                     quantization_scheme: str = "symmetric",
-                                     block_size: int = 128) -> Dict[str, Any]:
+
+def optimize_model_for_4bit_inference(
+    model_info: Dict[str, Any], quantization_scheme: str = "symmetric", block_size: int = 128
+) -> Dict[str, Any]:
     """
     Apply 4-bit quantization and optimization to a model.
-    
+
     Args:
         model_info: Dictionary with model information
         quantization_scheme: Quantization scheme ("symmetric" or "asymmetric")
         block_size: Block size for quantization
-        
+
     Returns:
         Optimized model information
     """
     # Create optimizer
     optimizer = create_4bit_optimizer(
-        quantization_scheme=quantization_scheme,
-        block_size=block_size
+        quantization_scheme=quantization_scheme, block_size=block_size
     )
-    
+
     # Quantize model
     quantized_model = optimizer.quantize_model_to_4bit(model_info)
-    
+
     # Create optimized inference pipeline
     hidden_size = 0
     for layer_name, layer_info in quantized_model["layers"].items():
         if "hidden_size" in layer_info:
             hidden_size = layer_info["hidden_size"]
             break
-    
+
     if hidden_size == 0:
         # Try to infer from model type
         model_type = model_info.get("model_type", "unknown")
@@ -672,17 +708,19 @@ def optimize_model_for_4bit_inference(model_info: Dict[str, Any],
             hidden_size = 768
         else:
             hidden_size = 768  # Default
-    
+
     # Create pipeline
-    pipeline_config = optimizer.create_optimized_4bit_pipeline({
-        "hidden_size": hidden_size,
-        "seq_length": model_info.get("seq_length", 512),
-        "batch_size": model_info.get("batch_size", 1)
-    })
-    
+    pipeline_config = optimizer.create_optimized_4bit_pipeline(
+        {
+            "hidden_size": hidden_size,
+            "seq_length": model_info.get("seq_length", 512),
+            "batch_size": model_info.get("batch_size", 1),
+        }
+    )
+
     # Add pipeline to result
     quantized_model["inference_pipeline"] = pipeline_config
-    
+
     return quantized_model
 
 
@@ -690,16 +728,16 @@ if __name__ == "__main__":
     # Example usage
     print("WebGPU 4-bit Inference Optimization Module")
     print("==========================================")
-    
+
     # Create test model information
     model_info = {
         "model_name": "llama-3-8b",
         "model_type": "llama",
         "model_size_mb": 8000,  # 8GB model
         "seq_length": 4096,
-        "layers": {}
+        "layers": {},
     }
-    
+
     # Add example layers
     num_layers = 32
     hidden_size = 4096
@@ -708,80 +746,96 @@ if __name__ == "__main__":
         model_info["layers"][f"layer_{i}_attention_q"] = {
             "type": "attention",
             "parameters": hidden_size * hidden_size,
-            "shape": (hidden_size, hidden_size)
+            "shape": (hidden_size, hidden_size),
         }
         model_info["layers"][f"layer_{i}_attention_k"] = {
             "type": "attention",
             "parameters": hidden_size * hidden_size,
-            "shape": (hidden_size, hidden_size)
+            "shape": (hidden_size, hidden_size),
         }
         model_info["layers"][f"layer_{i}_attention_v"] = {
             "type": "attention",
             "parameters": hidden_size * hidden_size,
-            "shape": (hidden_size, hidden_size)
+            "shape": (hidden_size, hidden_size),
         }
         model_info["layers"][f"layer_{i}_attention_o"] = {
             "type": "attention",
             "parameters": hidden_size * hidden_size,
-            "shape": (hidden_size, hidden_size)
+            "shape": (hidden_size, hidden_size),
         }
-        
+
         # MLP layers
         model_info["layers"][f"layer_{i}_mlp_in"] = {
             "type": "mlp",
             "parameters": hidden_size * hidden_size * 4,
-            "shape": (hidden_size, hidden_size * 4)
+            "shape": (hidden_size, hidden_size * 4),
         }
         model_info["layers"][f"layer_{i}_mlp_out"] = {
             "type": "mlp",
             "parameters": hidden_size * 4 * hidden_size,
-            "shape": (hidden_size * 4, hidden_size)
+            "shape": (hidden_size * 4, hidden_size),
         }
-        
+
         # LayerNorm (not typically quantized)
         model_info["layers"][f"layer_{i}_ln1"] = {
             "type": "layernorm",
             "parameters": hidden_size * 2,
-            "shape": (hidden_size, 2)
+            "shape": (hidden_size, 2),
         }
         model_info["layers"][f"layer_{i}_ln2"] = {
             "type": "layernorm",
             "parameters": hidden_size * 2,
-            "shape": (hidden_size, 2)
+            "shape": (hidden_size, 2),
         }
-    
+
     # Add embeddings
     model_info["layers"]["token_embeddings"] = {
         "type": "embedding",
         "parameters": 32000 * hidden_size,  # vocab_size * hidden_size
-        "shape": (32000, hidden_size)
+        "shape": (32000, hidden_size),
     }
-    
+
     # Create optimizer and quantize
     optimizer = create_4bit_optimizer(
-        quantization_scheme="symmetric",
-        block_size=128,
-        compute_shaders_enabled=True
+        quantization_scheme="symmetric", block_size=128, compute_shaders_enabled=True
     )
-    
+
     # Quantize model
     quantized_model = optimizer.quantize_model_to_4bit(model_info)
-    
+
     # Print results
     print(f"\nOriginal Size: {quantized_model['original_size_mb']:.1f}MB")
     print(f"Quantized Size: {quantized_model['quantized_size_mb']:.1f}MB")
     print(f"Compression Ratio: {quantized_model['compression_ratio']:.1f}x")
     print(f"Memory Reduction: {quantized_model['metrics']['memory_saving_percent']:.1f}%")
-    print(f"Quantized Layers: {quantized_model['quantized_layers']} / {quantized_model['quantized_layers'] + quantized_model['non_quantized_layers']}")
-    
+    print(
+        f"Quantized Layers: {quantized_model['quantized_layers']} / {quantized_model['quantized_layers'] + quantized_model['non_quantized_layers']}"
+    )
+
     # Run benchmark
     benchmark_results = optimizer.benchmark_4bit_inference(hidden_size=hidden_size, seq_length=4096)
-    
+
     print("\nBenchmark Results:")
-    print(f"FP16: {benchmark_results['baseline_fp16']['inference_time_ms']:.1f}ms, {benchmark_results['baseline_fp16']['model_size_mb']:.1f}MB")
-    print(f"INT8: {benchmark_results['int8']['inference_time_ms']:.1f}ms, {benchmark_results['int8']['model_size_mb']:.1f}MB")
-    print(f"INT4 (basic): {benchmark_results['int4_basic']['inference_time_ms']:.1f}ms, {benchmark_results['int4_basic']['model_size_mb']:.1f}MB")
-    print(f"INT4 (optimized): {benchmark_results['int4_optimized']['inference_time_ms']:.1f}ms, {benchmark_results['int4_optimized']['model_size_mb']:.1f}MB")
-    
-    print("\nSpeedup vs FP16: {:.1f}x".format(benchmark_results['comparison_summary']['speedup_vs_fp16']))
-    print("Memory reduction vs FP16: {:.1f}%".format(benchmark_results['comparison_summary']['memory_reduction_vs_fp16_percent']))
+    print(
+        f"FP16: {benchmark_results['baseline_fp16']['inference_time_ms']:.1f}ms, {benchmark_results['baseline_fp16']['model_size_mb']:.1f}MB"
+    )
+    print(
+        f"INT8: {benchmark_results['int8']['inference_time_ms']:.1f}ms, {benchmark_results['int8']['model_size_mb']:.1f}MB"
+    )
+    print(
+        f"INT4 (basic): {benchmark_results['int4_basic']['inference_time_ms']:.1f}ms, {benchmark_results['int4_basic']['model_size_mb']:.1f}MB"
+    )
+    print(
+        f"INT4 (optimized): {benchmark_results['int4_optimized']['inference_time_ms']:.1f}ms, {benchmark_results['int4_optimized']['model_size_mb']:.1f}MB"
+    )
+
+    print(
+        "\nSpeedup vs FP16: {:.1f}x".format(
+            benchmark_results["comparison_summary"]["speedup_vs_fp16"]
+        )
+    )
+    print(
+        "Memory reduction vs FP16: {:.1f}%".format(
+            benchmark_results["comparison_summary"]["memory_reduction_vs_fp16_percent"]
+        )
+    )

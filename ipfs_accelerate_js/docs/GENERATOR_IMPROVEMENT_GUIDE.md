@@ -16,13 +16,11 @@ The core of the conversion process is the `PATTERN_MAP` in the `PyToTsConverter`
 # Current location in setup_ipfs_accelerate_js_py_converter.py
 PATTERN_MAP = [
     # Import statements
-    (r'import\s+(\w+)', r'import * as $1'),
-    (r'from\s+(\w+)\s+import\s+(.+)', r'import { $2 } from "$1"'),
-    
+    (r"import\s+(\w+)", r"import * as $1"),
+    (r"from\s+(\w+)\s+import\s+(.+)", r'import { $2 } from "$1"'),
     # Class definitions
-    (r'class\s+(\w+)(?:\((\w+)\))?:', r'class $1 extends $2 {'),
-    (r'class\s+(\w+):', r'class $1 {'),
-    
+    (r"class\s+(\w+)(?:\((\w+)\))?:", r"class $1 extends $2 {"),
+    (r"class\s+(\w+):", r"class $1 {"),
     # More patterns...
 ]
 ```
@@ -33,24 +31,24 @@ Common issues to fix:
 
 ```python
 # Add specific patterns for relative imports
-(r'from\s+\.(\w+)\s+import\s+(.+)', r'import { $2 } from "./$1"'),
-(r'from\s+\.\.([\w\.]+)\s+import\s+(.+)', r'import { $2 } from "../$1"'),
+((r"from\s+\.(\w+)\s+import\s+(.+)", r'import { $2 } from "./$1"'),)
+((r"from\s+\.\.([\w\.]+)\s+import\s+(.+)", r'import { $2 } from "../$1"'),)
 ```
 
 2. **Type Handling**: Improve Python type hint to TypeScript type annotation conversion:
 
 ```python
 # More comprehensive type mapping
-(r'(\w+):\s*List\[Union\[(\w+),\s*(\w+)\]\]', r'$1: ($2 | $3)[]'),
-(r'(\w+):\s*Dict\[(\w+),\s*List\[(\w+)\]\]', r'$1: Record<$2, $3[]>'),
+((r"(\w+):\s*List\[Union\[(\w+),\s*(\w+)\]\]", r"$1: ($2 | $3)[]"),)
+((r"(\w+):\s*Dict\[(\w+),\s*List\[(\w+)\]\]", r"$1: Record<$2, $3[]>"),)
 ```
 
 3. **Function Returns**: Ensure function return types are correctly handled:
 
 ```python
 # Handle return annotations with nested generics
-(r'def\s+(\w+)\s*\((.*?)\)\s*->\s*List\[(\w+)\]:', r'$1($2): $3[] {'),
-(r'def\s+(\w+)\s*\((.*?)\)\s*->\s*Optional\[(\w+)\]:', r'$1($2): $3 | null {'),
+((r"def\s+(\w+)\s*\((.*?)\)\s*->\s*List\[(\w+)\]:", r"$1($2): $3[] {"),)
+((r"def\s+(\w+)\s*\((.*?)\)\s*->\s*Optional\[(\w+)\]:", r"$1($2): $3 | null {"),)
 ```
 
 ### 2. Class Templates for WebGPU and WebNN
@@ -139,7 +137,9 @@ python setup_ipfs_accelerate_js_py_converter.py --force
 Consider adding these helpful command-line options to the generator:
 
 ```python
-parser.add_argument("--update-patterns", action="store_true", help="Update conversion patterns from pattern file")
+parser.add_argument(
+    "--update-patterns", action="store_true", help="Update conversion patterns from pattern file"
+)
 parser.add_argument("--pattern-file", help="File containing conversion patterns")
 parser.add_argument("--single-file", help="Convert a single file for testing")
 parser.add_argument("--validate", action="store_true", help="Validate TypeScript after conversion")

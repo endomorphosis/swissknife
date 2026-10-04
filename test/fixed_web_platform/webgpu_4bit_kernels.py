@@ -2,8 +2,8 @@
 """
 WebGPU 4-bit Matrix Multiplication Kernels
 
-This module provides optimized WebGPU compute shader implementations for 4-bit matrix 
-operations, enabling high-performance LLM inference in browser environments with 
+This module provides optimized WebGPU compute shader implementations for 4-bit matrix
+operations, enabling high-performance LLM inference in browser environments with
 significantly reduced memory usage.
 
 These kernels are designed to work with the WebGPU quantization system for:
@@ -27,7 +27,9 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional, Union, Tuple, Callable
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger("webgpu_4bit_kernels")
 
 # WGSL shader for 4-bit matrix multiplication
@@ -229,138 +231,144 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 }
 """
 
+
 class WebGPU4BitKernels:
     """
     Implements optimized WebGPU compute shader kernels for 4-bit operations.
-    
-    This class provides a Python simulation of how 4-bit operations would be 
+
+    This class provides a Python simulation of how 4-bit operations would be
     implemented in WebGPU, as well as the actual WGSL shader code that would run
     in a browser environment.
     """
-    
-    def __init__(self, 
-                 use_mixed_precision: bool = True,
-                 optimize_attention: bool = True):
+
+    def __init__(self, use_mixed_precision: bool = True, optimize_attention: bool = True):
         """
         Initialize WebGPU 4-bit kernels.
-        
+
         Args:
             use_mixed_precision: Whether to use mixed precision (16-bit activations)
             optimize_attention: Whether to use attention-specific optimizations
         """
         self.use_mixed_precision = use_mixed_precision
         self.optimize_attention = optimize_attention
-        
+
         # Performance tracking
         self.performance_stats = {
             "matmul_time_ms": 0.0,
             "attention_time_ms": 0.0,
             "inference_time_ms": 0.0,
-            "memory_usage_mb": 0.0
+            "memory_usage_mb": 0.0,
         }
-        
+
         logger.info(f"Initialized WebGPU 4-bit kernels")
         logger.info(f"Mixed precision: {use_mixed_precision}")
         logger.info(f"Optimized attention: {optimize_attention}")
-    
+
     def get_matmul_shader_code(self) -> str:
         """Get the WGSL shader code for 4-bit matrix multiplication."""
         return MATRIX_MUL_4BIT_SHADER
-    
+
     def get_attention_shader_code(self) -> str:
         """Get the WGSL shader code for 4-bit attention."""
         return ATTENTION_4BIT_SHADER
-    
-    def matmul_4bit(self, 
-                   weights_4bit: Dict[str, Any], 
-                   input_activations: np.ndarray) -> np.ndarray:
+
+    def matmul_4bit(
+        self, weights_4bit: Dict[str, Any], input_activations: np.ndarray
+    ) -> np.ndarray:
         """
         Simulate 4-bit WebGPU matrix multiplication.
-        
+
         Args:
             weights_4bit: 4-bit quantized weights with quantization parameters
             input_activations: Input activations in fp32 or fp16
-            
+
         Returns:
             Matrix multiplication result
         """
         start_time = time.time()
-        
+
         # Extract quantized weights and parameters
         quantized_data = weights_4bit.get("data")
         if quantized_data is None:
             raise ValueError("Weights must be quantized with quantize_model")
-        
+
         # Get shape information
         weight_shape = weights_4bit.get("shape", (0, 0))
         weight_rows, weight_cols = weight_shape
-        
+
         # Get quantization parameters
         quant_params = weights_4bit.get("params", {})
         scale = quant_params.get("scale", 1.0)
         zero_point = quant_params.get("zero_point", 0)
         bits = weights_4bit.get("bits", 4)
-        
+
         # Check input dimensions
         input_shape = input_activations.shape
         if len(input_shape) != 2:
             input_activations = input_activations.reshape(-1, input_shape[-1])
             input_shape = input_activations.shape
-        
+
         input_rows, input_cols = input_shape
-        
+
         # Verify dimensions
         if weight_cols != input_cols:
-            raise ValueError(f"Incompatible dimensions: weight_cols={weight_cols}, input_cols={input_cols}")
-        
+            raise ValueError(
+                f"Incompatible dimensions: weight_cols={weight_cols}, input_cols={input_cols}"
+            )
+
         # Allocate output tensor
         output_shape = (input_rows, weight_rows)
         output = np.zeros(output_shape, dtype=np.float32)
-        
+
         # Unpack 4-bit weights
         if bits == 4:
             # Unpack 4-bit weights if needed
             from ..webgpu_quantization import WebGPUQuantizer
+
             quantizer = WebGPUQuantizer()
             unpacked_weights = quantizer._unpack_4bit_values(quantized_data)
-            
+
             # Calculate number of elements
             num_elements = weight_rows * weight_cols
-            
+
             # Reshape to original shape, handling potential trimming
             if len(unpacked_weights) >= num_elements:
                 unpacked_weights = unpacked_weights[:num_elements].reshape(weight_shape)
             else:
                 # Pad if we don't have enough elements
-                padding = np.zeros(num_elements - len(unpacked_weights), dtype=unpacked_weights.dtype)
+                padding = np.zeros(
+                    num_elements - len(unpacked_weights), dtype=unpacked_weights.dtype
+                )
                 unpacked_weights = np.concatenate([unpacked_weights, padding]).reshape(weight_shape)
-            
+
             # Dequantize weights
             dequantized_weights = (unpacked_weights.astype(np.float32) - zero_point) * scale
-            
+
             # Optimized matrix multiplication
             output = np.matmul(input_activations, dequantized_weights.T)
         else:
             # For non-4-bit weights, fallback to standard matmul
             dequantized_weights = weights_4bit.get("data")
             output = np.matmul(input_activations, dequantized_weights.T)
-        
+
         # Record matmul time
         matmul_time = (time.time() - start_time) * 1000
         self.performance_stats["matmul_time_ms"] = matmul_time
-        
+
         return output
-    
-    def attention_4bit(self,
-                      query_weights_4bit: Dict[str, Any],
-                      key_weights_4bit: Dict[str, Any],
-                      value_weights_4bit: Dict[str, Any],
-                      input_activations: np.ndarray,
-                      num_heads: int,
-                      head_size: int) -> np.ndarray:
+
+    def attention_4bit(
+        self,
+        query_weights_4bit: Dict[str, Any],
+        key_weights_4bit: Dict[str, Any],
+        value_weights_4bit: Dict[str, Any],
+        input_activations: np.ndarray,
+        num_heads: int,
+        head_size: int,
+    ) -> np.ndarray:
         """
         Simulate 4-bit WebGPU attention operation.
-        
+
         Args:
             query_weights_4bit: 4-bit quantized query weights with parameters
             key_weights_4bit: 4-bit quantized key weights with parameters
@@ -368,55 +376,57 @@ class WebGPU4BitKernels:
             input_activations: Input activations in fp32 or fp16
             num_heads: Number of attention heads
             head_size: Size of each attention head
-            
+
         Returns:
             Attention output
         """
         start_time = time.time()
-        
+
         # Common parameters
         batch_size, seq_length, hidden_size = input_activations.shape
-        
+
         # Calculate Q, K, V projections using 4-bit matmul
         query = self.matmul_4bit(query_weights_4bit, input_activations.reshape(-1, hidden_size))
         key = self.matmul_4bit(key_weights_4bit, input_activations.reshape(-1, hidden_size))
         value = self.matmul_4bit(value_weights_4bit, input_activations.reshape(-1, hidden_size))
-        
+
         # Reshape projections
         query = query.reshape(batch_size, seq_length, num_heads, head_size)
         key = key.reshape(batch_size, seq_length, num_heads, head_size)
         value = value.reshape(batch_size, seq_length, num_heads, head_size)
-        
+
         # Transpose for attention
         query = query.transpose(0, 2, 1, 3)  # [batch, num_heads, seq_len, head_size]
-        key = key.transpose(0, 2, 3, 1)      # [batch, num_heads, head_size, seq_len]
+        key = key.transpose(0, 2, 3, 1)  # [batch, num_heads, head_size, seq_len]
         value = value.transpose(0, 2, 1, 3)  # [batch, num_heads, seq_len, head_size]
-        
+
         # Calculate attention scores
         attention_scores = np.matmul(query, key)
-        
+
         # Scale attention scores
         attention_scores = attention_scores / np.sqrt(head_size)
-        
+
         # Apply softmax
-        attention_probs = np.exp(attention_scores - np.max(attention_scores, axis=-1, keepdims=True))
+        attention_probs = np.exp(
+            attention_scores - np.max(attention_scores, axis=-1, keepdims=True)
+        )
         attention_probs = attention_probs / np.sum(attention_probs, axis=-1, keepdims=True)
-        
+
         # Calculate context
         context = np.matmul(attention_probs, value)
-        
+
         # Transpose back
         context = context.transpose(0, 2, 1, 3)
-        
+
         # Reshape to original dimensions
         context = context.reshape(batch_size, seq_length, -1)
-        
+
         # Record attention time
         attention_time = (time.time() - start_time) * 1000
         self.performance_stats["attention_time_ms"] = attention_time
-        
+
         return context
-    
+
     def get_performance_stats(self) -> Dict[str, float]:
         """Get performance statistics."""
         return self.performance_stats.copy()
@@ -427,54 +437,52 @@ def example_4bit_matmul():
     # Create random matrices
     input_size = 768
     hidden_size = 3072
-    
+
     # Create random input activations
     input_activations = np.random.randn(1, 128, input_size).astype(np.float32)
-    
+
     # Create random weights
     weights = np.random.randn(hidden_size, input_size).astype(np.float32)
-    
+
     # Initialize 4-bit kernel
     kernel = WebGPU4BitKernels()
-    
+
     # Quantize weights (simulate)
     from ..webgpu_quantization import WebGPUQuantizer
+
     quantizer = WebGPUQuantizer(default_bits=4)
-    
+
     # Convert to 4-bit (simulate)
     weights_4bit = {
         "data": np.random.randint(-8, 8, size=(hidden_size * input_size // 2)).astype(np.int8),
         "shape": (hidden_size, input_size),
         "bits": 4,
-        "params": {
-            "scale": 0.01,
-            "zero_point": 0
-        }
+        "params": {"scale": 0.01, "zero_point": 0},
     }
-    
+
     # Measure FP32 matmul time
     start_time = time.time()
     fp32_result = np.matmul(input_activations.reshape(-1, input_size), weights.T)
     fp32_time = (time.time() - start_time) * 1000
-    
+
     # Measure 4-bit matmul time
     start_time = time.time()
     b4_result = kernel.matmul_4bit(weights_4bit, input_activations.reshape(-1, input_size))
     b4_time = (time.time() - start_time) * 1000
-    
+
     # Print results
     print(f"Matrix shape: {input_activations.shape} x {weights.shape}")
     print(f"FP32 matmul time: {fp32_time:.2f} ms")
     print(f"4-bit matmul time: {b4_time:.2f} ms")
     print(f"Speedup: {fp32_time / b4_time:.2f}x")
-    
+
     # Print memory usage comparison
     fp32_memory = input_size * hidden_size * 4  # 4 bytes per float32
     int4_memory = input_size * hidden_size // 2  # 4 bits per value = 1/2 byte
-    
+
     fp32_memory_mb = fp32_memory / (1024 * 1024)
     int4_memory_mb = int4_memory / (1024 * 1024)
-    
+
     print(f"FP32 memory: {fp32_memory_mb:.2f} MB")
     print(f"4-bit memory: {int4_memory_mb:.2f} MB")
     print(f"Memory reduction: {(fp32_memory_mb - int4_memory_mb) / fp32_memory_mb * 100:.2f}%")

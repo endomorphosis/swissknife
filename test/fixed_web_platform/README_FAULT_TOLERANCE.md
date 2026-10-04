@@ -56,7 +56,7 @@ manager = ModelShardingManager(
     num_shards=3,
     fault_tolerance_level="medium",
     recovery_strategy="coordinated",
-    connection_pool=pool.connection_pool
+    connection_pool=pool.connection_pool,
 )
 
 # Initialize shards
@@ -108,11 +108,7 @@ browser = state_manager.add_browser("browser-1", "chrome")
 state_manager.update_browser_status("browser-1", "running")
 
 # Add model to browser
-state_manager.add_model_to_browser(
-    "browser-1", 
-    "model-1", 
-    {"model_type": "bert", "config": {...}}
-)
+state_manager.add_model_to_browser("browser-1", "model-1", {"model_type": "bert", "config": {...}})
 
 # Create checkpoint
 checkpoint = state_manager.create_browser_checkpoint("browser-1")
@@ -166,7 +162,7 @@ from fixed_web_platform.resource_pool_bridge_recovery import ResourcePoolRecover
 recovery_manager = ResourcePoolRecoveryManager(
     connection_pool=pool.connection_pool,
     fault_tolerance_level="high",
-    recovery_strategy="progressive"
+    recovery_strategy="progressive",
 )
 
 # Initialize
@@ -174,23 +170,17 @@ await recovery_manager.initialize()
 
 # Track operation
 entry_id = await recovery_manager.track_operation(
-    "inference", 
-    "bert-base-uncased", 
-    "browser-1", 
-    "chrome"
+    "inference", "bert-base-uncased", "browser-1", "chrome"
 )
 
 # Complete operation
 await recovery_manager.complete_operation(
-    entry_id, 
-    {"duration_ms": 120, "throughput": 10}, 
-    "completed"
+    entry_id, {"duration_ms": 120, "throughput": 10}, "completed"
 )
 
 # Handle browser failure
 recovery_result = await recovery_manager.handle_browser_failure(
-    "browser-1", 
-    Exception("Browser crashed")
+    "browser-1", Exception("Browser crashed")
 )
 
 # Get performance recommendations
@@ -215,7 +205,7 @@ result = await run_with_recovery(
     model_name="bert-base-uncased",
     operation="inference",
     inputs={"text": "Example input"},
-    recovery_manager=recovery_manager
+    recovery_manager=recovery_manager,
 )
 ```
 
@@ -231,19 +221,15 @@ from fixed_web_platform.resource_pool_bridge_recovery import ResourcePoolRecover
 # Create pool with fault tolerance
 pool = ResourcePoolBridgeIntegration(
     max_connections=4,
-    browser_preferences={
-        'audio': 'firefox',
-        'vision': 'chrome',
-        'text_embedding': 'edge'
-    },
+    browser_preferences={"audio": "firefox", "vision": "chrome", "text_embedding": "edge"},
     adaptive_scaling=True,
     fault_tolerance_options={
-        'level': 'high',
-        'recovery_strategy': 'progressive',
-        'checkpoint_interval': 60,  # seconds
-        'max_recovery_attempts': 3,
-        'browser_health_check_interval': 30  # seconds
-    }
+        "level": "high",
+        "recovery_strategy": "progressive",
+        "checkpoint_interval": 60,  # seconds
+        "max_recovery_attempts": 3,
+        "browser_health_check_interval": 30,  # seconds
+    },
 )
 
 # Initialize pool
@@ -252,8 +238,8 @@ await pool.initialize()
 # Create recovery manager
 recovery_manager = ResourcePoolRecoveryManager(
     connection_pool=pool.connection_pool,
-    fault_tolerance_level='high',
-    recovery_strategy='progressive'
+    fault_tolerance_level="high",
+    recovery_strategy="progressive",
 )
 
 # Initialize recovery manager
@@ -278,16 +264,14 @@ The fault tolerance system includes comprehensive performance tracking and analy
 ```python
 # Analyze performance trends
 trends = recovery_manager.performance_tracker.analyze_performance_trends(
-    model_name="bert-base-uncased",
-    operation_type="inference",
-    time_window_seconds=3600
+    model_name="bert-base-uncased", operation_type="inference", time_window_seconds=3600
 )
 
 # Get browser recommendations
 recommendation = recovery_manager.performance_tracker.recommend_browser_type(
     model_name="bert-base-uncased",
     operation_type="inference",
-    available_types=["chrome", "firefox", "edge"]
+    available_types=["chrome", "firefox", "edge"],
 )
 
 # Get performance statistics
@@ -407,19 +391,22 @@ class BrowserState:
 ```python
 class ResourcePoolRecoveryManager:
     """Manager for resource pool fault tolerance and recovery."""
-    
-    def __init__(self, connection_pool=None, 
-                fault_tolerance_level: str = "medium",
-                recovery_strategy: str = "progressive",
-                logger: Optional[logging.Logger] = None):
+
+    def __init__(
+        self,
+        connection_pool=None,
+        fault_tolerance_level: str = "medium",
+        recovery_strategy: str = "progressive",
+        logger: Optional[logging.Logger] = None,
+    ):
         self.connection_pool = connection_pool
         self.fault_tolerance_level = FaultToleranceLevel(fault_tolerance_level)
         self.recovery_strategy = RecoveryStrategy(recovery_strategy)
         self.logger = logger or logging.getLogger(__name__)
-        
+
         # State management
         self.state_manager = BrowserStateManager(logger=self.logger)
-        
+
         # Performance history
         self.performance_tracker = PerformanceHistoryTracker(logger=self.logger)
 ```
