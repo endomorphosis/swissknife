@@ -11,7 +11,7 @@ import os
 import sys
 
 # Add parent directory to path if needed
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from src.utils.error_reporting import initialize_error_reporting
 
@@ -19,7 +19,7 @@ from src.utils.error_reporting import initialize_error_reporting
 def initialize_docker_error_reporting():
     """
     Initialize error reporting for Docker container Python processes
-
+    
     Environment variables:
         ERROR_REPORTING_ENABLED: Enable error reporting (true/false)
         GITHUB_TOKEN: GitHub personal access token
@@ -29,36 +29,30 @@ def initialize_docker_error_reporting():
         ERROR_REPORTING_MAX_ISSUES: Maximum issues per hour
         ERROR_REPORTING_DEDUPE_WINDOW: Deduplication window in milliseconds
     """
-    reporting_enabled = os.environ.get("ERROR_REPORTING_ENABLED", "false").lower() == "true"
+    reporting_enabled = os.environ.get('ERROR_REPORTING_ENABLED', 'false').lower() == 'true'
 
     # Load configuration from environment. Invalid values should fail startup
     # visibly; treating them as "not initialized" hides Docker configuration bugs.
     config = {
-        "enableReporting": reporting_enabled,
-        "reporterConfig": {
-            "enabled": reporting_enabled,
-            "githubToken": os.environ.get("GITHUB_TOKEN"),
-            "owner": os.environ.get("GITHUB_REPO_OWNER", "endomorphosis"),
-            "repo": os.environ.get("GITHUB_REPO_NAME", "swissknife"),
-            "labels": os.environ.get("ERROR_REPORTING_LABELS", "auto-generated,bug,docker").split(
-                ","
-            ),
-            "maxIssuesPerHour": _env_int("ERROR_REPORTING_MAX_ISSUES", 10),
-            "deduplicateWindow": _env_int("ERROR_REPORTING_DEDUPE_WINDOW", 3600000),
-        },
+        'enableReporting': reporting_enabled,
+        'reporterConfig': {
+            'enabled': reporting_enabled,
+            'githubToken': os.environ.get('GITHUB_TOKEN'),
+            'owner': os.environ.get('GITHUB_REPO_OWNER', 'endomorphosis'),
+            'repo': os.environ.get('GITHUB_REPO_NAME', 'swissknife'),
+            'labels': os.environ.get('ERROR_REPORTING_LABELS', 'auto-generated,bug,docker').split(','),
+            'maxIssuesPerHour': _env_int('ERROR_REPORTING_MAX_ISSUES', 10),
+            'deduplicateWindow': _env_int('ERROR_REPORTING_DEDUPE_WINDOW', 3600000),
+        }
     }
 
     # Initialize error handler
     error_handler = initialize_error_reporting(config)
 
-    if config["enableReporting"]:
-        print(
-            "[Docker Container] Error reporting enabled - errors will be automatically reported to GitHub"
-        )
+    if config['enableReporting']:
+        print('[Docker Container] Error reporting enabled - errors will be automatically reported to GitHub')
     else:
-        print(
-            "[Docker Container] Error reporting disabled - set ERROR_REPORTING_ENABLED=true to enable"
-        )
+        print('[Docker Container] Error reporting disabled - set ERROR_REPORTING_ENABLED=true to enable')
 
     return error_handler
 
@@ -72,13 +66,13 @@ def _env_int(name, default):
     try:
         return int(value)
     except ValueError as exc:
-        raise ValueError(f"{name} must be an integer, got {value!r}") from exc
+        raise ValueError(f'{name} must be an integer, got {value!r}') from exc
 
 
 def report_docker_error(error, context=None):
     """
     Manually report an error from Docker container
-
+    
     Args:
         error: Exception object
         context: Dictionary with additional context
@@ -87,7 +81,7 @@ def report_docker_error(error, context=None):
             - operation: Operation being performed
             - containerInfo: Docker container information
             - Any other custom fields
-
+    
     Example:
         try:
             # Your code
@@ -104,30 +98,27 @@ def report_docker_error(error, context=None):
             })
     """
     error_handler = initialize_docker_error_reporting()
-
+    
     if not error_handler:
-        print("[Docker Container] Error reporting not initialized")
+        print('[Docker Container] Error reporting not initialized')
         return
 
     if context is None:
         context = {}
-
+    
     # Add Docker-specific context
-    context.setdefault("component", "docker-container")
-    context.setdefault("runtime", "python")
-    context.setdefault(
-        "containerInfo",
-        {
-            "hostname": os.environ.get("HOSTNAME", "unknown"),
-            "pythonVersion": sys.version,
-        },
-    )
+    context.setdefault('component', 'docker-container')
+    context.setdefault('runtime', 'python')
+    context.setdefault('containerInfo', {
+        'hostname': os.environ.get('HOSTNAME', 'unknown'),
+        'pythonVersion': sys.version,
+    })
 
     error_handler.report_error(error, context=context)
 
 
 # Example usage:
-if __name__ == "__main__":
+if __name__ == '__main__':
     """
     Example usage in Docker container Python code:
     
@@ -151,10 +142,10 @@ if __name__ == "__main__":
         })
         raise  # Re-raise if needed
     """
-
+    
     # Example: Initialize and test error reporting
     error_handler = initialize_docker_error_reporting()
-
+    
     # Example: Create a test error (don't do this in production!)
     # try:
     #     raise ValueError("Test error from Docker container")

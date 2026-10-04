@@ -154,9 +154,7 @@ def task_map(tasks: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {task["id"]: task for task in tasks}
 
 
-def select_next_task(
-    tasks: list[dict[str, Any]], include_failed: bool = False
-) -> dict[str, Any] | None:
+def select_next_task(tasks: list[dict[str, Any]], include_failed: bool = False) -> dict[str, Any] | None:
     by_id = task_map(tasks)
     ready: list[tuple[int, int, dict[str, Any]]] = []
 
@@ -270,7 +268,10 @@ def probe_task_queue_provider() -> dict[str, Any]:
 def backend_unavailable_reason(details: dict[str, Any]) -> str:
     provider_error = details.get("provider_import_error")
     if provider_error:
-        return f"backend wrapper detected but task queue provider import failed: {provider_error}"
+        return (
+            "backend wrapper detected but task queue provider import failed: "
+            f"{provider_error}"
+        )
     missing_symbols = details.get("provider_missing_symbols")
     if missing_symbols:
         return (
@@ -307,9 +308,7 @@ def detect_ipfs_datasets_backend(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         return {
             "available": available,
             "mode": "ipfs_datasets_py.mcp_server.mcplusplus.task_queue",
-            "reason": "backend wrapper detected"
-            if available
-            else backend_unavailable_reason(details),
+            "reason": "backend wrapper detected" if available else backend_unavailable_reason(details),
             "details": details,
         }
     except Exception as exc:
@@ -352,7 +351,10 @@ def sync_backend_mirror(
         "version": 1,
         "updated": utc_now(),
         "backend": detect_ipfs_datasets_backend(repo_root),
-        "tasks": {task["id"]: task_backend_record(task) for task in tasks},
+        "tasks": {
+            task["id"]: task_backend_record(task)
+            for task in tasks
+        },
     }
     backend_state_file.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
     return state
@@ -692,9 +694,7 @@ def cmd_run_once(args: argparse.Namespace) -> int:
         return 0
 
     backend_state_file = None if args.disable_backend_sync else args.backend_state_file
-    claimed = claim_task(
-        task["id"], args.worker, args.todo_file, args.state_file, backend_state_file, args.repo_root
-    )
+    claimed = claim_task(task["id"], args.worker, args.todo_file, args.state_file, backend_state_file, args.repo_root)
     print(f"Running {describe_task(claimed)} with codex exec")
     result = subprocess.run(cmd, input=prompt, text=True, cwd=args.repo_root)
 
@@ -745,12 +745,8 @@ def cmd_daemon(args: argparse.Namespace) -> int:
 
 
 def add_codex_options(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--execute", action="store_true", help="invoke codex exec; default is dry-run"
-    )
-    parser.add_argument(
-        "--include-failed", action="store_true", help="allow failed tasks to be retried"
-    )
+    parser.add_argument("--execute", action="store_true", help="invoke codex exec; default is dry-run")
+    parser.add_argument("--include-failed", action="store_true", help="allow failed tasks to be retried")
     parser.add_argument("--worker", default="codex", help="worker name recorded in local state")
     parser.add_argument("--codex-bin", default="codex", help="codex executable")
     parser.add_argument("--model", help="optional codex model override")
@@ -819,30 +815,22 @@ def build_parser() -> argparse.ArgumentParser:
     set_status.add_argument("--note")
     set_status.set_defaults(func=cmd_set_status)
 
-    backend_status = subcommands.add_parser(
-        "backend-status", help="show optional ipfs_datasets_py task queue backend status"
-    )
+    backend_status = subcommands.add_parser("backend-status", help="show optional ipfs_datasets_py task queue backend status")
     backend_status.add_argument("--json", action="store_true")
     backend_status.set_defaults(func=cmd_backend_status)
 
-    backend_sync = subcommands.add_parser(
-        "backend-sync", help="mirror markdown queue into the optional backend state file"
-    )
+    backend_sync = subcommands.add_parser("backend-sync", help="mirror markdown queue into the optional backend state file")
     backend_sync.add_argument("--json", action="store_true")
     backend_sync.set_defaults(func=cmd_backend_sync)
 
-    run_once = subcommands.add_parser(
-        "run-once", help="run one queue item or print the planned run"
-    )
+    run_once = subcommands.add_parser("run-once", help="run one queue item or print the planned run")
     add_codex_options(run_once)
     run_once.set_defaults(func=cmd_run_once)
 
     daemon = subcommands.add_parser("daemon", help="loop over dependency-ready queue items")
     add_codex_options(daemon)
     daemon.add_argument("--interval", type=float, default=60.0, help="seconds between iterations")
-    daemon.add_argument(
-        "--max-iterations", type=int, default=0, help="0 means unlimited when --execute is set"
-    )
+    daemon.add_argument("--max-iterations", type=int, default=0, help="0 means unlimited when --execute is set")
     daemon.add_argument("--continue-on-error", action="store_true")
     daemon.set_defaults(func=cmd_daemon)
 

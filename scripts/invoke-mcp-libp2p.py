@@ -29,7 +29,6 @@ from libp2p import new_host
 from libp2p.peer.peerinfo import info_from_p2p_addr
 from libp2p.tools.async_service import background_trio_service
 from multiaddr import Multiaddr
-
 sys.stdout = _protocol_stdout
 
 MCP_PROTOCOL_VERSION = "2024-11-05"
@@ -85,16 +84,10 @@ class ProfileEJsonRpcClient:
     async def request(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         request_id = self.next_id
         self.next_id += 1
-        payload = json.dumps(
-            {
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "method": method,
-                "params": params,
-            },
-            separators=(",", ":"),
-            ensure_ascii=False,
-        ).encode("utf-8")
+        payload = json.dumps({
+            "jsonrpc": "2.0", "id": request_id, "method": method,
+            "params": params,
+        }, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         if len(payload) > MAX_FRAME_BYTES:
             raise ValueError("MCP++ request exceeds the Profile E frame limit")
         await self.stream.write(len(payload).to_bytes(4, "big") + payload)
@@ -105,9 +98,7 @@ class ProfileEJsonRpcClient:
         if not isinstance(response, dict) or response.get("id") != request_id:
             raise ValueError("Profile E response did not match the request ID")
         if isinstance(response.get("error"), dict):
-            raise ValueError(
-                str(response["error"].get("message") or "Profile E peer rejected the request")
-            )
+            raise ValueError(str(response["error"].get("message") or "Profile E peer rejected the request"))
         return response
 
     async def close(self) -> None:
@@ -137,36 +128,26 @@ async def invoke(args: argparse.Namespace) -> dict[str, Any]:
     async with libp2p_client_host() as host:
         client = ProfileEJsonRpcClient(await open_profile_e_stream(host, args.multiaddr))
         try:
-            initialized = await client.request(
-                "initialize",
-                {
-                    "protocolVersion": MCP_PROTOCOL_VERSION,
-                    "capabilities": {
-                        "experimental": {
-                            "mcp++/mcp-idl": True,
-                            "mcp++/cid-envelope": True,
-                            "mcp++/ucan": True,
-                            "mcp++/event-dag": True,
-                            "mcp++/p2p-transport": True,
-                        }
-                    },
-                    "clientInfo": {"name": "swissknife-desktop-mediator", "version": "1.0.0"},
-                },
-            )
+            initialized = await client.request("initialize", {
+                "protocolVersion": MCP_PROTOCOL_VERSION,
+                "capabilities": {"experimental": {
+                    "mcp++/mcp-idl": True,
+                    "mcp++/cid-envelope": True,
+                    "mcp++/ucan": True,
+                    "mcp++/event-dag": True,
+                    "mcp++/p2p-transport": True,
+                }},
+                "clientInfo": {"name": "swissknife-desktop-mediator", "version": "1.0.0"},
+            })
             interfaces = await client.request("interfaces/list", {})
             interface_cids = (interfaces.get("result") or {}).get("interface_cids")
-            if not isinstance(interface_cids, list) or not isinstance(
-                interface_cids[0] if interface_cids else None, str
-            ):
+            if not isinstance(interface_cids, list) or not isinstance(interface_cids[0] if interface_cids else None, str):
                 raise ValueError("Profile E peer did not return a Profile A descriptor CID")
-            identity_response = await client.request(
-                "mcp++/ucan/identity",
-                {
-                    "audience": args.audience_did,
-                    "nonce": args.nonce,
-                    "transport": "libp2p",
-                },
-            )
+            identity_response = await client.request("mcp++/ucan/identity", {
+                "audience": args.audience_did,
+                "nonce": args.nonce,
+                "transport": "libp2p",
+            })
             identity = identity_response.get("result")
             # Return the complete Profile C response only to the server-side
             # mediator.  It verifies the signed UCAN against this request's
@@ -175,13 +156,10 @@ async def invoke(args: argparse.Namespace) -> dict[str, Any]:
             # treat the peer merely echoing a DID and CID as verification.
             if not isinstance(identity, dict) or not isinstance(identity.get("ucan"), str):
                 raise ValueError("Profile E peer did not return a Profile C identity UCAN")
-            call = await client.request(
-                "tools/call",
-                {
-                    "name": args.tool_id,
-                    "arguments": arguments,
-                },
-            )
+            call = await client.request("tools/call", {
+                "name": args.tool_id,
+                "arguments": arguments,
+            })
             return {
                 "result": call.get("result"),
                 "profile_a_descriptor_cid": interface_cids[0],

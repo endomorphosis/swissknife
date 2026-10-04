@@ -31,7 +31,7 @@ Usage:
         optimize_kv_cache,
         extend_context_window
     )
-
+    
     # Set up 2-bit quantization with KV-cache optimization
     result = setup_ultra_low_precision(
         model_name="llama-7b",
@@ -42,13 +42,13 @@ Usage:
         extended_context=True,
         browser="chrome"
     )
-
-    # Use the intelligent precision configuration
+    
+    # Use the intelligent precision configuration 
     precision_config = MixedPrecisionConfig(model_type="transformer")
-
+    
     # Optimize based on available memory
     precision_config.optimize_memory_usage(available_memory_mb=2048)
-
+    
     # Analyze accuracy-performance tradeoffs
     tradeoff_results = analyze_accuracy_performance_tradeoff(
         model=model,
@@ -74,58 +74,59 @@ from typing import Dict, List, Any, Optional, Tuple, Union, Callable
 # Try to import WebGPU related components if available
 try:
     from fixed_web_platform.webgpu_adapter import WebGPUAdapter
-
     WEBGPU_AVAILABLE = True
 except ImportError:
     WEBGPU_AVAILABLE = False
-
+    
 # Try to import cross-browser sharding if available
 try:
     from fixed_web_platform.cross_browser_model_sharding import ModelShardingManager
-
     SHARDING_AVAILABLE = True
 except ImportError:
     SHARDING_AVAILABLE = False
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger("webgpu_ultra_low_precision")
 
 # Define constants for memory reduction by bit precision
 MEMORY_REDUCTION = {
     2: 0.875,  # 87.5% reduction (16-bit → 2-bit)
-    3: 0.8125,  # 81.25% reduction (16-bit → 3-bit)
-    4: 0.75,  # 75% reduction (16-bit → 4-bit)
-    8: 0.5,  # 50% reduction (16-bit → 8-bit)
-    16: 0.0,  # 0% reduction (16-bit → 16-bit)
+    3: 0.8125, # 81.25% reduction (16-bit → 3-bit)
+    4: 0.75,   # 75% reduction (16-bit → 4-bit)
+    8: 0.5,    # 50% reduction (16-bit → 8-bit)
+    16: 0.0    # 0% reduction (16-bit → 16-bit)
 }
 
 # Define constants for context extension factors by bit precision
 CONTEXT_EXTENSION = {
-    2: 8.0,  # 8x longer context (4K → 32K tokens)
-    3: 5.33,  # 5.33x longer context (4K → 21.3K tokens)
-    4: 4.0,  # 4x longer context (4K → 16K tokens)
-    8: 2.0,  # 2x longer context (4K → 8K tokens)
-    16: 1.0,  # Standard context length
+    2: 8.0,    # 8x longer context (4K → 32K tokens)
+    3: 5.33,   # 5.33x longer context (4K → 21.3K tokens)
+    4: 4.0,    # 4x longer context (4K → 16K tokens)
+    8: 2.0,    # 2x longer context (4K → 8K tokens)
+    16: 1.0    # Standard context length
 }
 
 # Define constants for accuracy impact by bit precision
 ACCURACY_IMPACT = {
     2: {
-        "default": 0.07,  # 7% average accuracy drop
-        "optimized": 0.05,  # 5% with optimized quantization
-        "mixed": 0.03,  # 3% with mixed precision
+        "default": 0.07,     # 7% average accuracy drop
+        "optimized": 0.05,   # 5% with optimized quantization
+        "mixed": 0.03        # 3% with mixed precision
     },
     3: {
-        "default": 0.04,  # 4% average accuracy drop
-        "optimized": 0.03,  # 3% with optimized quantization
-        "mixed": 0.02,  # 2% with mixed precision
+        "default": 0.04,     # 4% average accuracy drop
+        "optimized": 0.03,   # 3% with optimized quantization
+        "mixed": 0.02        # 2% with mixed precision
     },
     4: {
-        "default": 0.02,  # 2% average accuracy drop
-        "optimized": 0.01,  # 1% with optimized quantization
-        "mixed": 0.005,  # 0.5% with mixed precision
-    },
+        "default": 0.02,     # 2% average accuracy drop
+        "optimized": 0.01,   # 1% with optimized quantization
+        "mixed": 0.005       # 0.5% with mixed precision
+    }
 }
 
 # Define browser compatibility matrix
@@ -136,7 +137,7 @@ BROWSER_COMPATIBILITY = {
         4: True,  # 4-bit support
         "kv_cache": True,
         "mixed_precision": True,
-        "shader_precompile": True,
+        "shader_precompile": True
     },
     "edge": {
         2: True,  # 2-bit support
@@ -144,7 +145,7 @@ BROWSER_COMPATIBILITY = {
         4: True,  # 4-bit support
         "kv_cache": True,
         "mixed_precision": True,
-        "shader_precompile": True,
+        "shader_precompile": True
     },
     "firefox": {
         2: True,  # 2-bit support
@@ -152,71 +153,63 @@ BROWSER_COMPATIBILITY = {
         4: True,  # 4-bit support
         "kv_cache": True,
         "mixed_precision": True,
-        "shader_precompile": True,  # Limited in some versions
+        "shader_precompile": True  # Limited in some versions
     },
     "safari": {
-        2: False,  # No 2-bit support
+        2: False, # No 2-bit support
         3: True,  # Limited 3-bit support
         4: True,  # 4-bit support
         "kv_cache": True,  # Limited performance
         "mixed_precision": True,
-        "shader_precompile": True,  # Limited support
-    },
+        "shader_precompile": True  # Limited support
+    }
 }
 
 # Define layer-specific default configurations
 DEFAULT_LAYER_CONFIG = {
     "text": {
-        "embedding": 8,  # Embedding layers: 8-bit
-        "attention_query": 4,  # Attention query: 4-bit
-        "attention_key": 3,  # Attention key: 3-bit
-        "attention_value": 4,  # Attention value: 4-bit
-        "attention_output": 8,  # Attention output: 8-bit
-        "feedforward_up": 3,  # Feed-forward up-projection: 3-bit
-        "feedforward_down": 4,  # Feed-forward down-projection: 4-bit
-        "layernorm": 16,  # Layer normalization: 16-bit (full precision)
-        "kv_cache": 3,  # KV cache: 3-bit for memory efficiency
+        "embedding": 8,          # Embedding layers: 8-bit
+        "attention_query": 4,    # Attention query: 4-bit
+        "attention_key": 3,      # Attention key: 3-bit
+        "attention_value": 4,    # Attention value: 4-bit
+        "attention_output": 8,   # Attention output: 8-bit
+        "feedforward_up": 3,     # Feed-forward up-projection: 3-bit
+        "feedforward_down": 4,   # Feed-forward down-projection: 4-bit
+        "layernorm": 16,         # Layer normalization: 16-bit (full precision)
+        "kv_cache": 3            # KV cache: 3-bit for memory efficiency
     },
     "vision": {
-        "embedding": 8,  # Patch embedding: 8-bit
-        "attention_query": 4,  # Attention query: 4-bit
-        "attention_key": 4,  # Attention key: 4-bit
-        "attention_value": 4,  # Attention value: 4-bit
-        "attention_output": 8,  # Attention output: 8-bit
-        "feedforward_up": 4,  # Feed-forward up-projection: 4-bit
-        "feedforward_down": 4,  # Feed-forward down-projection: 4-bit
-        "layernorm": 16,  # Layer normalization: 16-bit (full precision)
+        "embedding": 8,          # Patch embedding: 8-bit
+        "attention_query": 4,    # Attention query: 4-bit
+        "attention_key": 4,      # Attention key: 4-bit
+        "attention_value": 4,    # Attention value: 4-bit
+        "attention_output": 8,   # Attention output: 8-bit
+        "feedforward_up": 4,     # Feed-forward up-projection: 4-bit
+        "feedforward_down": 4,   # Feed-forward down-projection: 4-bit
+        "layernorm": 16,         # Layer normalization: 16-bit (full precision)
     },
     "audio": {
-        "embedding": 8,  # Audio embedding: 8-bit
-        "attention_query": 4,  # Attention query: 4-bit
-        "attention_key": 4,  # Attention key: 4-bit
-        "attention_value": 4,  # Attention value: 4-bit
-        "attention_output": 8,  # Attention output: 8-bit
-        "feedforward_up": 4,  # Feed-forward up-projection: 4-bit
-        "feedforward_down": 4,  # Feed-forward down-projection: 4-bit
-        "layernorm": 16,  # Layer normalization: 16-bit (full precision)
-        "conv": 8,  # Convolutional layers: 8-bit
-    },
+        "embedding": 8,          # Audio embedding: 8-bit
+        "attention_query": 4,    # Attention query: 4-bit
+        "attention_key": 4,      # Attention key: 4-bit
+        "attention_value": 4,    # Attention value: 4-bit
+        "attention_output": 8,   # Attention output: 8-bit
+        "feedforward_up": 4,     # Feed-forward up-projection: 4-bit
+        "feedforward_down": 4,   # Feed-forward down-projection: 4-bit
+        "layernorm": 16,         # Layer normalization: 16-bit (full precision)
+        "conv": 8                # Convolutional layers: 8-bit
+    }
 }
-
 
 class UltraLowPrecisionConfig:
     """Configuration manager for ultra-low precision quantization."""
-
-    def __init__(
-        self,
-        model_name: str,
-        model_type: str,
-        precision_bits: int = 4,
-        mixed_precision: bool = False,
-        enable_kv_cache: bool = True,
-        extended_context: bool = False,
-        browser: str = "chrome",
-    ):
+    
+    def __init__(self, model_name: str, model_type: str, precision_bits: int = 4,
+                 mixed_precision: bool = False, enable_kv_cache: bool = True,
+                 extended_context: bool = False, browser: str = "chrome"):
         """
         Initialize the ultra-low precision configuration.
-
+        
         Args:
             model_name: Name of the model
             model_type: Type of model ('text', 'vision', 'audio', etc.)
@@ -233,80 +226,72 @@ class UltraLowPrecisionConfig:
         self.enable_kv_cache = enable_kv_cache
         self.extended_context = extended_context
         self.browser = browser.lower()
-
+        
         # Validate inputs
         self._validate_and_adjust_config()
-
+        
         # Set up layer-specific configuration
         self.layer_config = self._setup_layer_config()
-
+        
         # Calculate memory and performance metrics
         self.memory_reduction_percent = self._calculate_memory_reduction()
         self.context_extension_factor = self._calculate_context_extension()
         self.accuracy_impact = self._calculate_accuracy_impact()
-
+        
         # Generate shader configuration
         self.shader_config = self._generate_shader_config()
-
+        
     def _validate_and_adjust_config(self):
         """Validate and adjust the configuration based on compatibility."""
         # Check precision bits
         if self.precision_bits not in [2, 3, 4, 8, 16]:
             logger.warning(f"Unsupported precision_bits: {self.precision_bits}. Adjusting to 4.")
             self.precision_bits = 4
-
+        
         # Check browser compatibility
         if self.browser not in BROWSER_COMPATIBILITY:
             logger.warning(f"Unsupported browser: {self.browser}. Falling back to chrome.")
             self.browser = "chrome"
-
+        
         # Check bit precision compatibility with browser
         browser_compat = BROWSER_COMPATIBILITY[self.browser]
         if not browser_compat.get(self.precision_bits, False):
             # Adjust to highest supported precision
             if browser_compat.get(4, False):
-                logger.warning(
-                    f"{self.browser} doesn't support {self.precision_bits}-bit precision. Adjusting to 4-bit."
-                )
+                logger.warning(f"{self.browser} doesn't support {self.precision_bits}-bit precision. Adjusting to 4-bit.")
                 self.precision_bits = 4
             elif browser_compat.get(3, False):
-                logger.warning(
-                    f"{self.browser} doesn't support {self.precision_bits}-bit precision. Adjusting to 3-bit."
-                )
+                logger.warning(f"{self.browser} doesn't support {self.precision_bits}-bit precision. Adjusting to 3-bit.")
                 self.precision_bits = 3
             elif browser_compat.get(8, True):  # Assume 8-bit is always supported
-                logger.warning(
-                    f"{self.browser} doesn't support {self.precision_bits}-bit precision. Adjusting to 8-bit."
-                )
+                logger.warning(f"{self.browser} doesn't support {self.precision_bits}-bit precision. Adjusting to 8-bit.")
                 self.precision_bits = 8
-
+        
         # Check KV cache compatibility
         if self.enable_kv_cache and not browser_compat.get("kv_cache", False):
             logger.warning(f"KV cache optimization not supported in {self.browser}. Disabling.")
             self.enable_kv_cache = False
-
+        
         # Check mixed precision compatibility
         if self.mixed_precision and not browser_compat.get("mixed_precision", False):
             logger.warning(f"Mixed precision not supported in {self.browser}. Disabling.")
             self.mixed_precision = False
-
+        
         # Adjust model_type for standardization
         model_type_map = {
             "text_generation": "text",
             "text_embedding": "text",
             "vision_encoder": "vision",
             "audio_encoder": "audio",
-            "audio_recognition": "audio",
+            "audio_recognition": "audio"
         }
         self.model_type = model_type_map.get(self.model_type, self.model_type)
-
+        
         # Ensure model_type has a valid configuration
         if self.model_type not in DEFAULT_LAYER_CONFIG:
-            logger.warning(
-                f"No layer configuration for model_type: {self.model_type}. Using 'text' configuration."
-            )
+            logger.warning(f"No layer configuration for model_type: {self.model_type}. Using 'text' configuration.")
             self.model_type = "text"
-
+    
     def _setup_layer_config(self):
         """Set up layer-specific precision configuration."""
         if not self.mixed_precision:
@@ -314,19 +299,19 @@ class UltraLowPrecisionConfig:
             base_config = DEFAULT_LAYER_CONFIG[self.model_type].copy()
             for key in base_config:
                 base_config[key] = self.precision_bits
-
+            
             # Exception: Always keep layernorm at higher precision
             base_config["layernorm"] = 16
-
+            
             # Set KV cache precision if enabled
             if self.enable_kv_cache and "kv_cache" in base_config:
                 base_config["kv_cache"] = min(self.precision_bits, base_config["kv_cache"])
-
+                
             return base_config
         else:
             # Use default mixed precision configuration
             base_config = DEFAULT_LAYER_CONFIG[self.model_type].copy()
-
+            
             # Adjust based on target precision
             if self.precision_bits < 4:
                 # For ultra-low precision, adjust the configuration
@@ -337,13 +322,13 @@ class UltraLowPrecisionConfig:
                     base_config["attention_value"] = self.precision_bits
                 if "feedforward_up" in base_config:
                     base_config["feedforward_up"] = self.precision_bits
-
+            
             # Set KV cache precision if enabled
             if self.enable_kv_cache and "kv_cache" in base_config:
                 base_config["kv_cache"] = self.precision_bits
-
+                
             return base_config
-
+    
     def _calculate_memory_reduction(self):
         """Calculate memory reduction percentage."""
         if not self.mixed_precision:
@@ -353,61 +338,61 @@ class UltraLowPrecisionConfig:
             # Weighted calculation based on layer sizes
             # This is an approximation based on typical model architectures
             layer_weights = {
-                "embedding": 0.05,  # 5% of parameters
-                "attention_query": 0.1,  # 10% of parameters
-                "attention_key": 0.1,  # 10% of parameters
-                "attention_value": 0.1,  # 10% of parameters
+                "embedding": 0.05,        # 5% of parameters
+                "attention_query": 0.1,   # 10% of parameters
+                "attention_key": 0.1,     # 10% of parameters
+                "attention_value": 0.1,   # 10% of parameters
                 "attention_output": 0.1,  # 10% of parameters
-                "feedforward_up": 0.25,  # 25% of parameters
-                "feedforward_down": 0.25,  # 25% of parameters
-                "layernorm": 0.01,  # 1% of parameters
-                "conv": 0.04,  # 4% of parameters (when present)
+                "feedforward_up": 0.25,   # 25% of parameters
+                "feedforward_down": 0.25, # 25% of parameters
+                "layernorm": 0.01,        # 1% of parameters
+                "conv": 0.04              # 4% of parameters (when present)
             }
-
+            
             # Calculate weighted average reduction
             total_weight = 0
             weighted_reduction = 0
-
+            
             for layer, bits in self.layer_config.items():
                 if layer in layer_weights:
                     weight = layer_weights[layer]
                     total_weight += weight
                     weighted_reduction += weight * MEMORY_REDUCTION[bits]
-
+            
             # Normalize by total weight
             if total_weight > 0:
                 return (weighted_reduction / total_weight) * 100
             else:
                 return MEMORY_REDUCTION[self.precision_bits] * 100
-
+    
     def _calculate_context_extension(self):
         """Calculate context extension factor."""
         if not self.extended_context:
             return 1.0
-
+        
         if not self.enable_kv_cache:
             logger.warning("Extended context requires KV cache. Using no extension.")
             return 1.0
-
+        
         # Get KV cache precision (if enabled)
         if self.mixed_precision and "kv_cache" in self.layer_config:
             kv_bits = self.layer_config["kv_cache"]
         else:
             kv_bits = self.precision_bits
-
+        
         return CONTEXT_EXTENSION[kv_bits]
-
+    
     def _calculate_accuracy_impact(self):
         """Calculate expected accuracy impact."""
         quant_method = "mixed" if self.mixed_precision else "default"
-
+        
         # Use predefined accuracy impact values
         if self.precision_bits in ACCURACY_IMPACT:
             return ACCURACY_IMPACT[self.precision_bits][quant_method]
         else:
             # For 8-bit and 16-bit, accuracy impact is minimal
             return 0.0
-
+    
     def _generate_shader_config(self):
         """Generate WebGPU shader configuration."""
         # Define browser-specific workgroup size
@@ -415,9 +400,9 @@ class UltraLowPrecisionConfig:
             "chrome": [128, 1, 1],
             "firefox": [256, 1, 1],  # Firefox works better with larger workgroups
             "edge": [128, 1, 1],
-            "safari": [64, 1, 1],  # Safari works better with smaller workgroups
+            "safari": [64, 1, 1]     # Safari works better with smaller workgroups
         }
-
+        
         # Define browser-specific optimization flags
         optimizations = {
             "chrome": {
@@ -425,7 +410,7 @@ class UltraLowPrecisionConfig:
                 "use_storage_buffers": True,
                 "use_bind_groups": True,
                 "use_async_compute": True,
-                "precompile_shaders": True,
+                "precompile_shaders": True
             },
             "firefox": {
                 "use_compute_pipeline": True,
@@ -433,14 +418,14 @@ class UltraLowPrecisionConfig:
                 "use_bind_groups": True,
                 "use_async_compute": True,
                 "use_explicit_barriers": True,  # Firefox needs explicit barriers
-                "precompile_shaders": True,
+                "precompile_shaders": True
             },
             "edge": {
                 "use_compute_pipeline": True,
                 "use_storage_buffers": True,
                 "use_bind_groups": True,
                 "use_async_compute": True,
-                "precompile_shaders": True,
+                "precompile_shaders": True
             },
             "safari": {
                 "use_compute_pipeline": True,
@@ -448,10 +433,10 @@ class UltraLowPrecisionConfig:
                 "use_bind_groups": True,
                 "use_async_compute": False,  # Safari async compute can be unstable
                 "precompile_shaders": True,
-                "use_conservative_barriers": True,  # Safari needs conservative barriers
-            },
+                "use_conservative_barriers": True  # Safari needs conservative barriers
+            }
         }
-
+        
         # Generate base shader configuration
         shader_config = {
             "workgroup_size": workgroup_size.get(self.browser, [128, 1, 1]),
@@ -460,11 +445,11 @@ class UltraLowPrecisionConfig:
             "pack_method": self._get_pack_method(),
             "use_kv_cache": self.enable_kv_cache,
             "mixed_precision": self.mixed_precision,
-            "layer_config": self.layer_config,
+            "layer_config": self.layer_config
         }
-
+        
         return shader_config
-
+    
     def _get_unpack_method(self):
         """Get the appropriate unpacking method for the bit precision."""
         if self.precision_bits == 2:
@@ -477,7 +462,7 @@ class UltraLowPrecisionConfig:
             return "unpack_8bit"
         else:
             return "no_unpack"  # 16-bit doesn't need unpacking
-
+    
     def _get_pack_method(self):
         """Get the appropriate packing method for the bit precision."""
         if self.precision_bits == 2:
@@ -490,7 +475,7 @@ class UltraLowPrecisionConfig:
             return "pack_8bit"
         else:
             return "no_pack"  # 16-bit doesn't need packing
-
+    
     def to_dict(self):
         """Convert configuration to dictionary."""
         return {
@@ -505,22 +490,21 @@ class UltraLowPrecisionConfig:
             "memory_reduction_percent": self.memory_reduction_percent,
             "context_extension_factor": self.context_extension_factor,
             "accuracy_impact": self.accuracy_impact,
-            "shader_config": self.shader_config,
+            "shader_config": self.shader_config
         }
 
-
 def setup_ultra_low_precision(
-    model_name: str,
-    model_type: str,
+    model_name: str, 
+    model_type: str, 
     precision_bits: int = 4,
-    mixed_precision: bool = False,
+    mixed_precision: bool = False, 
     enable_kv_cache: bool = True,
-    extended_context: bool = False,
-    browser: str = "chrome",
+    extended_context: bool = False, 
+    browser: str = "chrome"
 ) -> Dict[str, Any]:
     """
     Set up ultra-low precision quantization for WebGPU with comprehensive configuration.
-
+    
     Args:
         model_name: Name of the model
         model_type: Type of the model ('text', 'vision', etc.)
@@ -529,12 +513,12 @@ def setup_ultra_low_precision(
         enable_kv_cache: Whether to enable KV cache optimization
         extended_context: Whether to enable extended context window
         browser: Target browser for optimizations
-
+        
     Returns:
         Dictionary with configuration and optimizations
     """
     logger.info(f"Setting up ultra-low precision ({precision_bits}-bit) for {model_name}")
-
+    
     try:
         # Create configuration
         config = UltraLowPrecisionConfig(
@@ -544,25 +528,25 @@ def setup_ultra_low_precision(
             mixed_precision=mixed_precision,
             enable_kv_cache=enable_kv_cache,
             extended_context=extended_context,
-            browser=browser,
+            browser=browser
         )
-
+        
         # Get appropriate shader code
         shader_code = get_shader_code(config.precision_bits, config.browser)
-
+        
         # Get KV cache shader if enabled
         kv_cache_shader = None
         if config.enable_kv_cache:
             kv_cache_bits = config.layer_config.get("kv_cache", config.precision_bits)
             kv_cache_shader = generate_kv_cache_shader(kv_cache_bits, config.browser)
-
+        
         # Compute memory savings
         memory_savings = compute_memory_savings(
             model_name=model_name,
             precision_bits=config.precision_bits,
-            mixed_precision=config.mixed_precision,
+            mixed_precision=config.mixed_precision
         )
-
+        
         # Build result
         result = {
             "success": True,
@@ -578,44 +562,42 @@ def setup_ultra_low_precision(
                 "layer_config": config.layer_config,
                 "kv_cache_enabled": config.enable_kv_cache,
                 "extended_context": config.extended_context,
-                "memory_savings": memory_savings,
+                "memory_savings": memory_savings
             },
             "config": config.to_dict(),
             "shader_code_available": shader_code is not None,
-            "kv_cache_shader_available": kv_cache_shader is not None,
+            "kv_cache_shader_available": kv_cache_shader is not None
         }
-
+        
         # Log summary
         logger.info(f"Ultra-low precision setup complete for {model_name}")
         logger.info(f"Memory reduction: {config.memory_reduction_percent:.1f}%")
         if config.extended_context:
             logger.info(f"Context extension: {config.context_extension_factor:.1f}x longer context")
         logger.info(f"Expected accuracy impact: {config.accuracy_impact * 100:.1f}%")
-
+        
         return result
-
+        
     except Exception as e:
         logger.error(f"Error setting up ultra-low precision: {e}")
         import traceback
-
         traceback.print_exc()
-
+        
         return {
             "success": False,
             "model_name": model_name,
             "model_type": model_type,
-            "error": str(e),
+            "error": str(e)
         }
-
 
 def get_shader_code(precision_bits, browser):
     """
     Get WebGPU shader code for the specified precision and browser.
-
+    
     Args:
         precision_bits: Number of bits for quantization (2, 3, or 4)
         browser: Target browser
-
+        
     Returns:
         WGSL shader code for the specified configuration
     """
@@ -629,7 +611,6 @@ def get_shader_code(precision_bits, browser):
     else:
         return None
 
-
 def _get_2bit_shader_code(browser):
     """Get 2-bit precision shader code with browser-specific optimizations."""
     # This is a simplified example of how the shader code would be structured
@@ -640,7 +621,7 @@ def _get_2bit_shader_code(browser):
         workgroup_size = "64, 1, 1"
     else:
         workgroup_size = "128, 1, 1"
-
+        
     return f"""
 // 2-bit precision quantization shader
 @group(0) @binding(0) var<storage, read> input_tensor: array<u32>;
@@ -673,7 +654,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 }}
 """
 
-
 def _get_3bit_shader_code(browser):
     """Get 3-bit precision shader code with browser-specific optimizations."""
     # This is a simplified example of how the shader code would be structured
@@ -683,7 +663,7 @@ def _get_3bit_shader_code(browser):
         workgroup_size = "64, 1, 1"
     else:
         workgroup_size = "128, 1, 1"
-
+        
     return f"""
 // 3-bit precision quantization shader
 @group(0) @binding(0) var<storage, read> input_tensor: array<u32>;
@@ -732,7 +712,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 }}
 """
 
-
 def _get_4bit_shader_code(browser):
     """Get 4-bit precision shader code with browser-specific optimizations."""
     # This is a simplified example of how the shader code would be structured
@@ -742,7 +721,7 @@ def _get_4bit_shader_code(browser):
         workgroup_size = "64, 1, 1"
     else:
         workgroup_size = "128, 1, 1"
-
+        
     return f"""
 // 4-bit precision quantization shader
 @group(0) @binding(0) var<storage, read> input_tensor: array<u32>;
@@ -775,15 +754,14 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 }}
 """
 
-
 def generate_kv_cache_shader(precision_bits, browser):
     """
     Generate KV cache shader code for memory-efficient inference.
-
+    
     Args:
         precision_bits: Number of bits for KV cache
         browser: Target browser
-
+        
     Returns:
         WGSL shader code for KV cache
     """
@@ -794,7 +772,7 @@ def generate_kv_cache_shader(precision_bits, browser):
         workgroup_size = "64, 1, 1"
     else:
         workgroup_size = "128, 1, 1"
-
+    
     if precision_bits == 2:
         bits_per_value = 2
         values_per_word = 16
@@ -809,7 +787,7 @@ def generate_kv_cache_shader(precision_bits, browser):
         mask = "0xFu"
     else:
         return None
-
+    
     return f"""
 // KV cache shader for {precision_bits}-bit precision
 @group(0) @binding(0) var<storage, read> keys: array<u32>;
@@ -860,293 +838,294 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
 }}
 """
 
-
 def compute_memory_savings(model_name, precision_bits, mixed_precision=False):
     """
     Compute expected memory savings for a model.
-
+    
     Args:
         model_name: Name of the model
         precision_bits: Number of bits for quantization
         mixed_precision: Whether mixed precision is used
-
+        
     Returns:
         Dictionary with memory savings information
     """
     # Model size estimates in MB (these would be replaced with actual values)
     model_sizes = {
-        "llama-7b": 14000,  # ~14 GB for 7B parameter model
-        "llama-13b": 26000,  # ~26 GB for 13B parameter model
-        "llama-70b": 140000,  # ~140 GB for 70B parameter model
-        "bert-base-uncased": 440,  # ~440 MB for BERT base
-        "t5-base": 850,  # ~850 MB for T5 base
-        "t5-large": 2800,  # ~2.8 GB for T5 large
-        "whisper-small": 500,  # ~500 MB for Whisper small
+        "llama-7b": 14000,       # ~14 GB for 7B parameter model
+        "llama-13b": 26000,      # ~26 GB for 13B parameter model
+        "llama-70b": 140000,     # ~140 GB for 70B parameter model
+        "bert-base-uncased": 440,# ~440 MB for BERT base
+        "t5-base": 850,          # ~850 MB for T5 base
+        "t5-large": 2800,        # ~2.8 GB for T5 large
+        "whisper-small": 500,    # ~500 MB for Whisper small
         "whisper-medium": 1500,  # ~1.5 GB for Whisper medium
-        "gpt-j-6b": 12000,  # ~12 GB for GPT-J 6B
-        "gpt-neox-20b": 40000,  # ~40 GB for GPT-NeoX 20B
+        "gpt-j-6b": 12000,       # ~12 GB for GPT-J 6B
+        "gpt-neox-20b": 40000    # ~40 GB for GPT-NeoX 20B
     }
-
+    
     # Default to a reasonable size if model not found
     model_size_mb = model_sizes.get(model_name, 1000)
-
+    
     # Calculate memory reduction
     if mixed_precision:
         # Approximate weighted reduction for mixed precision
         if precision_bits == 2:
             reduction_factor = 0.8  # About 80% reduction with mixed precision
         elif precision_bits == 3:
-            reduction_factor = 0.75  # About 75% reduction with mixed precision
+            reduction_factor = 0.75 # About 75% reduction with mixed precision
         elif precision_bits == 4:
-            reduction_factor = 0.65  # About 65% reduction with mixed precision
+            reduction_factor = 0.65 # About 65% reduction with mixed precision
         else:
             reduction_factor = 0.5  # About 50% reduction for 8-bit
     else:
         # Direct reduction for uniform precision
         reduction_factor = MEMORY_REDUCTION[precision_bits]
-
+    
     # Calculate sizes
     saved_mb = model_size_mb * reduction_factor
     new_size_mb = model_size_mb - saved_mb
-
+    
     return {
         "original_size_mb": model_size_mb,
         "new_size_mb": new_size_mb,
         "saved_mb": saved_mb,
-        "reduction_percent": reduction_factor * 100,
+        "reduction_percent": reduction_factor * 100
     }
-
 
 def create_2bit_compute_shaders() -> Dict[str, str]:
     """
     Create specialized WebGPU compute shaders for 2-bit quantized operations.
-
+    
     Returns:
         Dictionary of shader code by operation type
     """
     # Note: In a real implementation, these would be complete WGSL shader code
     # Here we just provide template entries
-
+    
     shaders = {
         "matmul": _get_2bit_matmul_shader(),
         "dequantize": _get_2bit_dequantize_shader(),
-        "attention": _get_2bit_attention_shader(),
+        "attention": _get_2bit_attention_shader()
     }
-
+    
     return shaders
-
 
 def create_3bit_compute_shaders() -> Dict[str, str]:
     """
     Create specialized WebGPU compute shaders for 3-bit quantized operations.
-
+    
     Returns:
         Dictionary of shader code by operation type
     """
     # Note: In a real implementation, these would be complete WGSL shader code
     # Here we just provide template entries
-
+    
     shaders = {
         "matmul": _get_3bit_matmul_shader(),
         "dequantize": _get_3bit_dequantize_shader(),
-        "attention": _get_3bit_attention_shader(),
+        "attention": _get_3bit_attention_shader()
     }
-
+    
     return shaders
 
-
 def quantize_weights_2bit(
-    weights: np.ndarray, group_size: int = 64, scheme: str = "symmetric"
+    weights: np.ndarray, 
+    group_size: int = 64, 
+    scheme: str = "symmetric"
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Quantize weights to 2-bit precision.
-
+    
     Args:
         weights: Weight tensor to quantize
         group_size: Group size for quantization
         scheme: Quantization scheme (symmetric or asymmetric)
-
+        
     Returns:
         Tuple of (quantized_weights, scales)
     """
     # This is a simplified implementation for demonstration
     # A real implementation would handle different tensor shapes and optimizations
-
+    
     # Flatten weights for processing
     original_shape = weights.shape
     weights_flat = weights.reshape(-1)
-
+    
     # Calculate number of groups
     num_elements = weights_flat.shape[0]
     num_groups = math.ceil(num_elements / group_size)
-
+    
     # Create output arrays
     quantized = np.zeros(num_elements, dtype=np.uint8)
     scales = np.zeros(num_groups, dtype=np.float32)
-
+    
     # Process each group
     for group_idx in range(num_groups):
         group_start = group_idx * group_size
         group_end = min(group_start + group_size, num_elements)
         group = weights_flat[group_start:group_end]
-
+        
         # Compute scale based on scheme
         if scheme == "symmetric":
             # Use abs max for symmetric quantization
             scale = np.max(np.abs(group))
             scales[group_idx] = scale
-
+            
             # Skip empty or zero groups
             if scale == 0:
                 continue
-
+                
             # Quantize to 2-bit symmetric [-1.5, -0.5, 0.5, 1.5] * scale
             normalized = group / scale
-
+            
             # Quantize to values 0, 1, 2, 3
             quant_values = np.clip(np.round(normalized / 0.5 + 2), 0, 3).astype(np.uint8)
             quantized[group_start:group_end] = quant_values
-
+            
         else:  # asymmetric
             # Use min/max for asymmetric quantization
             min_val = np.min(group)
             max_val = np.max(group)
             scale = (max_val - min_val) / 3.0
-
+            
             # Skip empty or constant groups
             if scale == 0:
                 scales[group_idx] = 0
                 continue
-
+                
             scales[group_idx] = scale
-
+            
             # Quantize to 2-bit range [0, 1, 2, 3] mapping to [min_val, min_val+scale, ..., max_val]
             normalized = (group - min_val) / scale
             quant_values = np.clip(np.round(normalized), 0, 3).astype(np.uint8)
             quantized[group_start:group_end] = quant_values
-
+    
     # Reshape quantized weights back to original shape
     quantized = quantized.reshape(original_shape)
-
+    
     return quantized, scales
 
-
 def quantize_weights_3bit(
-    weights: np.ndarray, group_size: int = 128, scheme: str = "symmetric"
+    weights: np.ndarray, 
+    group_size: int = 128, 
+    scheme: str = "symmetric"
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Quantize weights to 3-bit precision.
-
+    
     Args:
         weights: Weight tensor to quantize
         group_size: Group size for quantization
         scheme: Quantization scheme (symmetric or asymmetric)
-
+        
     Returns:
         Tuple of (quantized_weights, scales)
     """
     # This is a simplified implementation for demonstration
     # A real implementation would handle different tensor shapes and optimizations
-
+    
     # Flatten weights for processing
     original_shape = weights.shape
     weights_flat = weights.reshape(-1)
-
+    
     # Calculate number of groups
     num_elements = weights_flat.shape[0]
     num_groups = math.ceil(num_elements / group_size)
-
+    
     # Create output arrays
     quantized = np.zeros(num_elements, dtype=np.uint8)
     scales = np.zeros(num_groups, dtype=np.float32)
-
+    
     # Process each group
     for group_idx in range(num_groups):
         group_start = group_idx * group_size
         group_end = min(group_start + group_size, num_elements)
         group = weights_flat[group_start:group_end]
-
+        
         # Compute scale based on scheme
         if scheme == "symmetric":
             # Use abs max for symmetric quantization
             scale = np.max(np.abs(group))
             scales[group_idx] = scale
-
+            
             # Skip empty or zero groups
             if scale == 0:
                 continue
-
+                
             # Quantize to 3-bit symmetric range (-3.5, -2.5, ... 3.5) * scale/4
             normalized = group / (scale / 4)
-
+            
             # Quantize to values 0-7
             quant_values = np.clip(np.round(normalized + 4), 0, 7).astype(np.uint8)
             quantized[group_start:group_end] = quant_values
-
+            
         else:  # asymmetric
             # Use min/max for asymmetric quantization
             min_val = np.min(group)
             max_val = np.max(group)
             scale = (max_val - min_val) / 7.0
-
+            
             # Skip empty or constant groups
             if scale == 0:
                 scales[group_idx] = 0
                 continue
-
+                
             scales[group_idx] = scale
-
+            
             # Quantize to 3-bit range [0-7] mapping to [min_val, min_val+scale, ..., max_val]
             normalized = (group - min_val) / scale
             quant_values = np.clip(np.round(normalized), 0, 7).astype(np.uint8)
             quantized[group_start:group_end] = quant_values
-
+    
     # Reshape quantized weights back to original shape
     quantized = quantized.reshape(original_shape)
-
+    
     return quantized, scales
 
-
-def quantize_model_mixed_precision(model: Any, precision_config: Dict[str, int]) -> Dict[str, Any]:
+def quantize_model_mixed_precision(
+    model: Any,
+    precision_config: Dict[str, int]
+) -> Dict[str, Any]:
     """
     Quantize a model with mixed precision across different components.
-
+    
     Args:
         model: The model to quantize
         precision_config: Dict mapping layer patterns to bit widths
-
+        
     Returns:
         Quantized model with mixed precision
     """
     # This is a simplified implementation for demonstration
     # A real implementation would work with actual model architectures
-
+    
     # Track quantization stats
     stats = {
         "total_params": 0,
         "memory_reduction": 0,
         "layer_stats": {},
-        "bit_distribution": {2: 0, 3: 0, 4: 0, 8: 0, 16: 0},
+        "bit_distribution": {2: 0, 3: 0, 4: 0, 8: 0, 16: 0}
     }
-
+    
     # Track memory for each precision
     memory_by_precision = {2: 0, 3: 0, 4: 0, 8: 0, 16: 0}
-
+    
     # Simulate quantization for parameter groups
     # In a real implementation, this would iterate through actual model layers
     for layer_name, params in model.items():
         # Skip non-parameter entries
         if not isinstance(params, dict) or "weight" not in params:
             continue
-
+            
         # Get weight tensor
         weight = params["weight"]
         num_params = np.prod(weight.shape)
         stats["total_params"] += num_params
-
+        
         # Determine precision for this layer
         precision = _get_precision_for_layer(layer_name, precision_config)
-
+        
         # Quantize with appropriate precision
         if precision == 2:
             # 2-bit quantization
@@ -1169,242 +1148,233 @@ def quantize_model_mixed_precision(model: Any, precision_config: Dict[str, int])
             quant_weight, scales = weight, None
             memory_bytes = num_params * 2  # 16 bits per parameter
             precision = 16
-
+        
         # Update stats
         memory_by_precision[precision] += memory_bytes
         stats["bit_distribution"][precision] += num_params
-
+        
         # Store layer stats
         stats["layer_stats"][layer_name] = {
             "precision": precision,
             "params": num_params,
-            "memory_bytes": memory_bytes,
+            "memory_bytes": memory_bytes
         }
-
+    
     # Calculate overall memory reduction vs FP16
     fp16_memory = stats["total_params"] * 2  # 16 bits per parameter
     quantized_memory = sum(memory_by_precision.values())
     memory_reduction = (fp16_memory - quantized_memory) / fp16_memory * 100
-
+    
     # Update final stats
     stats["memory_reduction"] = memory_reduction
     stats["quantized_memory_mb"] = quantized_memory / (1024 * 1024)
     stats["original_memory_mb"] = fp16_memory / (1024 * 1024)
-
+    
     # Convert bit distribution to percentages
     for precision in stats["bit_distribution"]:
         stats["bit_distribution"][precision] = (
             stats["bit_distribution"][precision] / stats["total_params"] * 100
         )
-
+    
     logger.info(f"Model quantized with mixed precision. Memory reduction: {memory_reduction:.2f}%")
     return {
         "model": model,  # In reality, this would be the quantized model
-        "stats": stats,
+        "stats": stats
     }
 
-
 def analyze_accuracy_performance_tradeoff(
-    model: Any, precision_configs: List[Dict[str, int]], dataset: Any, metric_fn: Callable
+    model: Any,
+    precision_configs: List[Dict[str, int]],
+    dataset: Any,
+    metric_fn: Callable
 ) -> Dict[str, Any]:
     """
     Analyze the accuracy-performance tradeoff for different precision configurations.
-
+    
     Args:
         model: The model to analyze
         precision_configs: List of precision configurations to test
         dataset: Evaluation dataset
         metric_fn: Function to compute accuracy metric
-
+        
     Returns:
         Analysis results
     """
     # This is a simplified implementation for demonstration
     # A real implementation would actually run the model on a dataset
-
+    
     results = []
-
+    
     for i, config in enumerate(precision_configs):
         # Simulate quantizing the model with this config
         quantized = quantize_model_mixed_precision(model, config)
-
+        
         # Simulate evaluation
         start_time = time.time()
         time.sleep(0.1)  # Simulate evaluation time
         elapsed = time.time() - start_time
-
+        
         # Simulate accuracy drop based on precision config
         # Lower precision -> more accuracy drop
         accuracy_drop = _estimate_accuracy_drop(config)
-
+        
         # Collect results
-        results.append(
-            {
-                "config_id": i,
-                "precision_config": config,
-                "memory_reduction": quantized["stats"]["memory_reduction"],
-                "accuracy_drop": accuracy_drop,
-                "eval_time": elapsed,
-                "bit_distribution": quantized["stats"]["bit_distribution"],
-            }
-        )
-
+        results.append({
+            "config_id": i,
+            "precision_config": config,
+            "memory_reduction": quantized["stats"]["memory_reduction"],
+            "accuracy_drop": accuracy_drop,
+            "eval_time": elapsed,
+            "bit_distribution": quantized["stats"]["bit_distribution"]
+        })
+    
     # Find Pareto optimal configurations
     pareto_optimal = _find_pareto_optimal_configs(results)
-
+    
     # Return comprehensive analysis
     return {
         "all_configs": results,
         "pareto_optimal": pareto_optimal,
-        "recommended_config": _find_recommended_config(results),
+        "recommended_config": _find_recommended_config(results)
     }
-
 
 def _get_precision_for_layer(layer_name: str, precision_config: Dict[str, int]) -> int:
     """
     Determine the precision to use for a layer based on precision config.
-
+    
     Args:
         layer_name: Name of the layer
         precision_config: Dict mapping layer patterns to bit widths
-
+        
     Returns:
         Bit width to use for the layer
     """
     # Default to 16-bit if no match
     default_precision = 16
-
+    
     # Check for exact match
     if layer_name in precision_config:
         return precision_config[layer_name]
-
+    
     # Check for pattern match
     for pattern, precision in precision_config.items():
         if pattern in layer_name:
             return precision
-
+    
     return default_precision
-
 
 def _estimate_accuracy_drop(precision_config: Dict[str, int]) -> float:
     """
     Estimate accuracy drop based on precision configuration.
-
+    
     Args:
         precision_config: Dict mapping layer patterns to bit widths
-
+        
     Returns:
         Estimated accuracy drop percentage
     """
     # Base accuracy drops for different bit widths
     base_drops = {
-        2: 8.0,  # 2-bit has significant drop
-        3: 4.0,  # 3-bit has moderate drop
-        4: 2.5,  # 4-bit has small drop
-        8: 1.0,  # 8-bit has very small drop
-        16: 0.0,  # 16-bit has no drop (reference)
+        2: 8.0,   # 2-bit has significant drop
+        3: 4.0,   # 3-bit has moderate drop
+        4: 2.5,   # 4-bit has small drop
+        8: 1.0,   # 8-bit has very small drop
+        16: 0.0   # 16-bit has no drop (reference)
     }
-
+    
     # Count parameters at each precision level (simplified estimate)
     precision_counts = {2: 0, 3: 0, 4: 0, 8: 0, 16: 0}
-
+    
     # In a real implementation, this would consider the actual parameter counts
     # Here we just use the number of layer patterns as a proxy
     for _, precision in precision_config.items():
         precision_counts[precision] += 1
-
+    
     # Normalize counts to get distribution
     total_count = sum(precision_counts.values())
     if total_count == 0:
         return 0.0
-
+        
     precision_dist = {p: count / total_count for p, count in precision_counts.items()}
-
+    
     # Calculate weighted accuracy drop
     weighted_drop = 0.0
     for precision, dist in precision_dist.items():
         weighted_drop += base_drops[precision] * dist
-
+    
     return weighted_drop
-
 
 def _find_pareto_optimal_configs(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Find Pareto optimal configurations from results.
-
+    
     Args:
         results: List of configuration results
-
+        
     Returns:
         List of Pareto optimal configurations
     """
     pareto_optimal = []
-
+    
     for i, config_i in enumerate(results):
         is_dominated = False
-
+        
         for j, config_j in enumerate(results):
             if i == j:
                 continue
-
+                
             # Check if config_j dominates config_i
-            if (
-                config_j["memory_reduction"] >= config_i["memory_reduction"]
-                and config_j["accuracy_drop"] <= config_i["accuracy_drop"]
-                and (
-                    config_j["memory_reduction"] > config_i["memory_reduction"]
-                    or config_j["accuracy_drop"] < config_i["accuracy_drop"]
-                )
-            ):
+            if (config_j["memory_reduction"] >= config_i["memory_reduction"] and
+                config_j["accuracy_drop"] <= config_i["accuracy_drop"] and
+                (config_j["memory_reduction"] > config_i["memory_reduction"] or 
+                 config_j["accuracy_drop"] < config_i["accuracy_drop"])):
                 is_dominated = True
                 break
-
+        
         if not is_dominated:
             pareto_optimal.append(config_i)
-
+    
     return pareto_optimal
-
 
 def _find_recommended_config(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Find recommended configuration based on balanced accuracy and memory.
-
+    
     Args:
         results: List of configuration results
-
+        
     Returns:
         Recommended configuration
     """
     # Normalize metrics
     max_memory_reduction = max(r["memory_reduction"] for r in results)
     max_accuracy_drop = max(r["accuracy_drop"] for r in results)
-
+    
     # Avoid division by zero
     if max_memory_reduction == 0 or max_accuracy_drop == 0:
         return results[0]
-
-    best_score = -float("inf")
+    
+    best_score = -float('inf')
     best_config = None
-
+    
     for config in results:
         # Normalize metrics to [0, 1]
         norm_memory = config["memory_reduction"] / max_memory_reduction
         norm_accuracy = 1.0 - (config["accuracy_drop"] / max_accuracy_drop)
-
+        
         # Compute balanced score (weight accuracy more)
         score = 0.4 * norm_memory + 0.6 * norm_accuracy
-
+        
         if score > best_score:
             best_score = score
             best_config = config
-
+    
     return best_config
-
 
 def _get_2bit_matmul_shader() -> str:
     """
     Get 2-bit matrix multiplication shader code for WebGPU.
-
+    
     Returns:
         WGSL shader code for 2-bit matrix multiplication
     """
@@ -1520,11 +1490,10 @@ def _get_2bit_matmul_shader() -> str:
     }
     """
 
-
 def _get_3bit_matmul_shader() -> str:
     """
     Get 3-bit matrix multiplication shader code for WebGPU.
-
+    
     Returns:
         WGSL shader code for 3-bit matrix multiplication
     """
@@ -1666,7 +1635,6 @@ def _get_3bit_matmul_shader() -> str:
     }
     """
 
-
 def _get_2bit_dequantize_shader() -> str:
     """Get 2-bit dequantization shader code for WebGPU."""
     # Template for dequantization shader
@@ -1710,7 +1678,6 @@ def _get_2bit_dequantize_shader() -> str:
         dequantized[idx] = value;
     }
     """
-
 
 def _get_3bit_dequantize_shader() -> str:
     """Get 3-bit dequantization shader code for WebGPU."""
@@ -1759,7 +1726,6 @@ def _get_3bit_dequantize_shader() -> str:
     }
     """
 
-
 def _get_2bit_attention_shader() -> str:
     """Get 2-bit attention computation shader code for WebGPU."""
     # Template for attention shader with 2-bit weights
@@ -1794,7 +1760,6 @@ def _get_2bit_attention_shader() -> str:
         // ... code for computing attention with 2-bit weights ...
     }
     """
-
 
 def _get_3bit_attention_shader() -> str:
     """Get 3-bit attention computation shader code for WebGPU."""
@@ -1831,7 +1796,6 @@ def _get_3bit_attention_shader() -> str:
     }
     """
 
-
 def _get_2bit_shader_config() -> Dict[str, Any]:
     """Get shader configuration for 2-bit quantized operations."""
     return {
@@ -1841,9 +1805,8 @@ def _get_2bit_shader_config() -> Dict[str, Any]:
         "values_per_word": 16,
         "use_unroll": True,
         "use_shared_memory": True,
-        "use_dequant_cache": True,
+        "use_dequant_cache": True
     }
-
 
 def _get_3bit_shader_config() -> Dict[str, Any]:
     """Get shader configuration for 3-bit quantized operations."""
@@ -1854,28 +1817,27 @@ def _get_3bit_shader_config() -> Dict[str, Any]:
         "values_per_word": 10.67,  # Approximate
         "use_unroll": True,
         "use_shared_memory": True,
-        "use_dequant_cache": True,
+        "use_dequant_cache": True
     }
-
 
 class MixedPrecisionConfig:
     """
     Configuration for mixed precision quantization across model components.
-
+    
     This class handles the intelligent distribution of precision across
     different model components based on their importance and sensitivity.
-
+    
     July 2025 Update:
     - Added memory-aware optimization
-    - Added browser-specific optimizations
+    - Added browser-specific optimizations 
     - Added accuracy-performance tradeoff analyzer
     - Added support for browser capabilities detection
     """
-
+    
     def __init__(self, model_type="transformer", default_bits=2):
         """
         Initialize mixed precision configuration.
-
+        
         Args:
             model_type: Type of model (transformer, vision, audio, etc.)
             default_bits: Default bit width for quantization
@@ -1884,62 +1846,56 @@ class MixedPrecisionConfig:
         self.default_bits = default_bits
         self.critical_layers = self._get_critical_layers()
         self.precision_map = self._create_precision_map()
-
+        
     def _get_critical_layers(self):
         """
         Identify critical layers based on model type.
-
+        
         Returns:
             Dictionary mapping layer patterns to importance scores (0-10)
         """
         # Base critical layers for all transformer models
         critical_layers = {
             "embedding": 9,  # Embeddings are critical
-            "lm_head": 9,  # Output projections are critical
+            "lm_head": 9,    # Output projections are critical
             "attention.query": 8,
             "attention.key": 8,
             "attention.value": 7,
             "layer_norm": 7,  # Layer norms need higher precision
             "feed_forward": 3,  # Feed forward are less sensitive
         }
-
+        
         # Add model-specific critical layers
         if self.model_type == "vision":
-            critical_layers.update(
-                {
-                    "vision_projection": 9,
-                    "patch_embedding": 8,
-                    "pooler": 7,
-                }
-            )
+            critical_layers.update({
+                "vision_projection": 9,
+                "patch_embedding": 8,
+                "pooler": 7,
+            })
         elif self.model_type == "audio":
-            critical_layers.update(
-                {
-                    "feature_extractor": 9,
-                    "spectrogram": 8,
-                    "conv_layers": 7,
-                }
-            )
+            critical_layers.update({
+                "feature_extractor": 9,
+                "spectrogram": 8,
+                "conv_layers": 7,
+            })
         elif self.model_type == "multimodal":
-            critical_layers.update(
-                {
-                    "vision_encoder": 9,
-                    "cross_attention": 8,
-                    "projection": 8,
-                }
-            )
-
+            critical_layers.update({
+                "vision_encoder": 9,
+                "cross_attention": 8,
+                "projection": 8,
+            })
+            
         return critical_layers
-
+    
     def _create_precision_map(self):
         """
         Create precision map for model components.
-
+        
         Returns:
             Dictionary mapping layer patterns to bit widths
         """
         precision_map = {}
-
+        
         # Convert importance scores to precision bits
         for layer, importance in self.critical_layers.items():
             if importance >= 9:
@@ -1954,97 +1910,96 @@ class MixedPrecisionConfig:
             else:
                 # Less critical layers use default precision
                 precision_map[layer] = self.default_bits
-
+                
         return precision_map
-
+    
     def get_precision_for_layer(self, layer_name):
         """
         Get precision for a specific layer.
-
+        
         Args:
             layer_name: Name of the layer
-
+            
         Returns:
             Precision in bits
         """
         # First check for exact match
         if layer_name in self.precision_map:
             return self.precision_map[layer_name]
-
+            
         # Then check for partial matches
         for pattern, bits in self.precision_map.items():
             if pattern in layer_name:
                 return bits
-
+                
         # Default to the global default precision
         return self.default_bits
-
+    
     def optimize_memory_usage(self, available_memory_mb):
         """
         Optimize precision configuration based on available memory.
-
+        
         Args:
             available_memory_mb: Available memory in MB
-
+            
         Returns:
             Optimized precision map
         """
         optimized_map = self.precision_map.copy()
-
+        
         # For very constrained memory, reduce precision of less critical layers
         if available_memory_mb < 500:
             for layer, importance in self.critical_layers.items():
                 if importance < 7:
                     # Lower precision for non-critical layers
                     optimized_map[layer] = min(optimized_map[layer], 2)
-
+        
         # For even more constrained memory, also reduce some important layers
         if available_memory_mb < 250:
             for layer, importance in self.critical_layers.items():
                 if importance < 9:
                     # Further reduce precision for moderately important layers
                     optimized_map[layer] = min(optimized_map[layer], 3)
-
+        
         return optimized_map
-
+    
     def get_memory_reduction(self):
         """
         Estimate memory reduction compared to FP16.
-
+        
         Returns:
             Dictionary with memory reduction statistics
         """
         # Count layers per precision
         precision_counts = {2: 0, 3: 0, 4: 0, 8: 0}
         total_layers = len(self.critical_layers)
-
+        
         for layer, importance in self.critical_layers.items():
             precision = self.get_precision_for_layer(layer)
             precision_counts[precision] = precision_counts.get(precision, 0) + 1
-
+            
         # Calculate weighted average precision
         weighted_bits = 0
         for bits, count in precision_counts.items():
             weighted_bits += bits * (count / total_layers)
-
+            
         # Calculate memory reduction vs FP16
         reduction_percentage = (16 - weighted_bits) / 16 * 100
-
+        
         return {
             "precision_distribution": {
-                f"{bits}-bit": f"{count / total_layers * 100:.1f}%"
-                for bits, count in precision_counts.items()
-                if count > 0
+                f"{bits}-bit": f"{count/total_layers*100:.1f}%" 
+                for bits, count in precision_counts.items() if count > 0
             },
             "average_bits": weighted_bits,
             "memory_reduction_percent": reduction_percentage,
-            "effective_compression_ratio": 16 / weighted_bits,
+            "effective_compression_ratio": 16 / weighted_bits
         }
-
+    
     def to_dict(self):
         """
         Convert configuration to dictionary.
-
+        
         Returns:
             Dictionary representation
         """
@@ -2052,102 +2007,99 @@ class MixedPrecisionConfig:
             "model_type": self.model_type,
             "default_bits": self.default_bits,
             "precision_map": self.precision_map,
-            "memory_reduction": self.get_memory_reduction(),
+            "memory_reduction": self.get_memory_reduction()
         }
-
+    
     @classmethod
     def from_dict(cls, config_dict):
         """
         Create configuration from dictionary.
-
+        
         Args:
             config_dict: Configuration dictionary
-
+            
         Returns:
             MixedPrecisionConfig instance
         """
         config = cls(
             model_type=config_dict.get("model_type", "transformer"),
-            default_bits=config_dict.get("default_bits", 2),
+            default_bits=config_dict.get("default_bits", 2)
         )
-
+        
         # Override precision map if provided
         if "precision_map" in config_dict:
             config.precision_map = config_dict["precision_map"]
-
+            
         return config
 
 
 def optimize_mixed_precision_for_model(
-    model,
-    model_type="transformer",
+    model, 
+    model_type="transformer", 
     target_memory_mb=None,
     browser_capabilities=None,
-    accuracy_target=None,
+    accuracy_target=None
 ):
     """
     Create optimized mixed precision configuration for a model.
-
+    
     Args:
         model: Model to optimize
         model_type: Type of model
         target_memory_mb: Target memory usage in MB, or None for automatic
         browser_capabilities: Dictionary of browser capabilities
         accuracy_target: Target accuracy (percentage as float), None for auto
-
+        
     Returns:
         Optimized MixedPrecisionConfig
     """
     # Create base configuration
     config = MixedPrecisionConfig(model_type=model_type)
-
+    
     # If target memory specified, optimize for it
     if target_memory_mb is not None:
         config.precision_map = config.optimize_memory_usage(target_memory_mb)
-
+    
     # Apply browser-specific optimizations
     if browser_capabilities is not None:
         config = _apply_browser_optimizations(config, browser_capabilities)
-
+    
     # Balance precision for accuracy if target specified
     if accuracy_target is not None:
         config = _balance_precision_for_accuracy(config, model, accuracy_target)
-
+    
     return config
-
 
 def _apply_browser_optimizations(config, browser_capabilities):
     """
     Apply browser-specific optimizations to precision config.
-
+    
     Args:
         config: MixedPrecisionConfig to optimize
         browser_capabilities: Dictionary of browser capabilities
-
+        
     Returns:
         Optimized MixedPrecisionConfig
     """
     # Get browser name and version
     browser_name = browser_capabilities.get("browser_name", "").lower()
     browser_version = browser_capabilities.get("browser_version", 0)
-
+    
     # Apply browser-specific adjustments
     if browser_name == "safari":
         # Safari has better performance with 3-bit minimum precision
         for layer, bits in config.precision_map.items():
             if bits < 3:
                 config.precision_map[layer] = 3
-
+    
     elif browser_name == "firefox" and browser_capabilities.get("compute_shaders_supported", False):
         # Firefox has optimized compute shaders for audio processing
         if config.model_type == "audio":
             # Can use lower precision for some layers due to optimized shaders
-            audio_layers = [
-                l for l in config.precision_map if "feature_extractor" in l or "conv" in l
-            ]
+            audio_layers = [l for l in config.precision_map if "feature_extractor" in l or "conv" in l]
             for layer in audio_layers:
                 config.precision_map[layer] = max(2, config.precision_map[layer] - 1)
-
+    
     # Check for specific hardware capabilities
     if browser_capabilities.get("gpu_memory_gb", 0) < 2:
         # Low GPU memory - further optimize
@@ -2155,19 +2107,18 @@ def _apply_browser_optimizations(config, browser_capabilities):
         for layer, bits in config.precision_map.items():
             if "feed_forward" in layer or "intermediate" in layer:
                 config.precision_map[layer] = 2
-
+    
     return config
-
 
 def _balance_precision_for_accuracy(config, model, accuracy_target):
     """
     Balance precision configuration to meet accuracy target.
-
+    
     Args:
         config: MixedPrecisionConfig to optimize
         model: Model to optimize for
         accuracy_target: Target accuracy percentage
-
+        
     Returns:
         Optimized MixedPrecisionConfig
     """
@@ -2182,72 +2133,66 @@ def _balance_precision_for_accuracy(config, model, accuracy_target):
         for layer in config.critical_layers:
             if config.critical_layers[layer] <= 5:
                 config.precision_map[layer] = min(config.precision_map[layer], 2)
-
+    
     return config
 
 
 def optimize_kv_cache(model_name, precision_bits=2, browser="chrome", context_length=16384):
     """
     Optimize KV cache with ultra-low precision to extend context length.
-
+    
     Args:
         model_name: Name of the model
         precision_bits: Number of bits for KV cache
         browser: Target browser
         context_length: Target context length
-
+        
     Returns:
         Dictionary with configuration and optimization details
     """
     if precision_bits not in [2, 3, 4]:
         logger.warning(f"Unsupported precision_bits: {precision_bits}. Adjusting to 3.")
         precision_bits = 3
-
+    
     # Check browser compatibility
     if browser not in BROWSER_COMPATIBILITY:
         logger.warning(f"Unsupported browser: {browser}. Falling back to chrome.")
         browser = "chrome"
-
+    
     # Check bit precision compatibility with browser
     browser_compat = BROWSER_COMPATIBILITY[browser]
     if not browser_compat.get(precision_bits, False):
         # Adjust to highest supported precision
         if browser_compat.get(4, False):
-            logger.warning(
-                f"{browser} doesn't support {precision_bits}-bit precision. Adjusting to 4-bit."
-            )
+            logger.warning(f"{browser} doesn't support {precision_bits}-bit precision. Adjusting to 4-bit.")
             precision_bits = 4
         elif browser_compat.get(3, False):
-            logger.warning(
-                f"{browser} doesn't support {precision_bits}-bit precision. Adjusting to 3-bit."
-            )
+            logger.warning(f"{browser} doesn't support {precision_bits}-bit precision. Adjusting to 3-bit.")
             precision_bits = 3
         elif browser_compat.get(8, True):  # Assume 8-bit is always supported
-            logger.warning(
-                f"{browser} doesn't support {precision_bits}-bit precision. Adjusting to 8-bit."
-            )
+            logger.warning(f"{browser} doesn't support {precision_bits}-bit precision. Adjusting to 8-bit.")
             precision_bits = 8
-
+    
     # Check if KV cache is supported
     if not browser_compat.get("kv_cache", False):
         logger.warning(f"KV cache optimization not supported in {browser}.")
         return {
             "success": False,
             "model_name": model_name,
-            "error": f"KV cache not supported in {browser}",
+            "error": f"KV cache not supported in {browser}"
         }
-
+    
     # Get KV cache shader
     kv_cache_shader = generate_kv_cache_shader(precision_bits, browser)
-
+    
     # Calculate memory savings and context extension
     original_context = 4096  # Standard context for most models
     context_extension_factor = CONTEXT_EXTENSION[precision_bits]
     extended_context = int(original_context * context_extension_factor)
-
+    
     # Determine if we can reach the target context length
     can_reach_target = extended_context >= context_length
-
+    
     # Build result
     result = {
         "success": True,
@@ -2260,46 +2205,39 @@ def optimize_kv_cache(model_name, precision_bits=2, browser="chrome", context_le
         "target_context_length": context_length,
         "can_reach_target": can_reach_target,
         "memory_reduction_percent": MEMORY_REDUCTION[precision_bits] * 100,
-        "kv_cache_shader_available": kv_cache_shader is not None,
+        "kv_cache_shader_available": kv_cache_shader is not None
     }
-
+    
     # If we can't reach the target, provide a recommended configuration
     if not can_reach_target and precision_bits > 2:
         # Try to find a configuration that can reach the target
         for bits in [2, 3, 4]:
-            if CONTEXT_EXTENSION[bits] * original_context >= context_length and browser_compat.get(
-                bits, False
-            ):
+            if CONTEXT_EXTENSION[bits] * original_context >= context_length and browser_compat.get(bits, False):
                 result["recommended_precision"] = bits
                 result["recommended_extension_factor"] = CONTEXT_EXTENSION[bits]
-                result["recommended_context_length"] = int(
-                    original_context * CONTEXT_EXTENSION[bits]
-                )
+                result["recommended_context_length"] = int(original_context * CONTEXT_EXTENSION[bits])
                 break
-
+    
     return result
-
 
 def extend_context_window(model_name, original_length=4096, target_length=32768, browser="chrome"):
     """
     Extend model context window size using ultra-low precision KV cache.
-
+    
     Args:
         model_name: Name of the model
         original_length: Original context length
         target_length: Target context length
         browser: Target browser
-
+        
     Returns:
         Configuration for extended context window
     """
-    logger.info(
-        f"Extending context window for {model_name} from {original_length} to {target_length} tokens"
-    )
-
+    logger.info(f"Extending context window for {model_name} from {original_length} to {target_length} tokens")
+    
     # Calculate extension factor needed
     required_factor = target_length / original_length
-
+    
     # Find optimal precision that provides the required extension
     optimal_precision = None
     for bits, factor in CONTEXT_EXTENSION.items():
@@ -2307,7 +2245,7 @@ def extend_context_window(model_name, original_length=4096, target_length=32768,
         if factor >= required_factor and BROWSER_COMPATIBILITY.get(browser, {}).get(bits, False):
             if optimal_precision is None or bits > optimal_precision:
                 optimal_precision = bits
-
+    
     # If no precision can reach the target, use the highest available
     if optimal_precision is None:
         # Find the highest extension factor available for this browser
@@ -2316,16 +2254,16 @@ def extend_context_window(model_name, original_length=4096, target_length=32768,
             if BROWSER_COMPATIBILITY.get(browser, {}).get(bits, False) and factor > max_factor:
                 max_factor = factor
                 optimal_precision = bits
-
+    
     # If still no precision is found, default to 3-bit
     if optimal_precision is None:
         optimal_precision = 3
         logger.warning(f"No compatible precision found for {browser}. Defaulting to 3-bit.")
-
+    
     # Calculate actual extension with chosen precision
     actual_extension = CONTEXT_EXTENSION[optimal_precision]
     extended_length = int(original_length * actual_extension)
-
+    
     # Create configuration
     config = {
         "model_name": model_name,
@@ -2336,58 +2274,57 @@ def extend_context_window(model_name, original_length=4096, target_length=32768,
         "extension_factor": actual_extension,
         "precision_bits": optimal_precision,
         "memory_reduction_percent": MEMORY_REDUCTION[optimal_precision] * 100,
-        "target_achieved": extended_length >= target_length,
+        "target_achieved": extended_length >= target_length
     }
-
+    
     # Log details
     logger.info(f"Context extension config: {optimal_precision}-bit precision")
     logger.info(f"Extended context length: {extended_length} tokens")
     logger.info(f"Target achieved: {config['target_achieved']}")
-
+    
     return config
-
 
 def quantize_model_mixed_precision(model: Any, precision_config: Dict[str, int]) -> Dict[str, Any]:
     """
     Quantize a model with mixed precision across different components.
     This is a reference implementation that illustrates how the functionality would work.
-
+    
     Args:
         model: The model to quantize
         precision_config: Dict mapping layer patterns to bit widths
-
+        
     Returns:
         Quantized model with mixed precision
     """
     # This is a simplified implementation for demonstration
     # A real implementation would work with actual model architectures
-
+    
     # Track quantization stats
     stats = {
         "total_params": 0,
         "memory_reduction": 0,
         "layer_stats": {},
-        "bit_distribution": {2: 0, 3: 0, 4: 0, 8: 0, 16: 0},
+        "bit_distribution": {2: 0, 3: 0, 4: 0, 8: 0, 16: 0}
     }
-
+    
     # Track memory for each precision
     memory_by_precision = {2: 0, 3: 0, 4: 0, 8: 0, 16: 0}
-
+    
     # Simulate quantization for parameter groups
     # In a real implementation, this would iterate through actual model layers
     for layer_name, params in getattr(model, "items", lambda: {})():
         # Skip non-parameter entries
         if not isinstance(params, dict) or "weight" not in params:
             continue
-
+            
         # Get weight tensor
         weight = params["weight"]
         num_params = np.prod(weight.shape)
         stats["total_params"] += num_params
-
+        
         # Determine precision for this layer
         precision = _get_precision_for_layer(layer_name, precision_config)
-
+        
         # Simulate quantization with appropriate precision
         if precision == 2:
             # 2-bit quantization would happen here
@@ -2405,67 +2342,65 @@ def quantize_model_mixed_precision(model: Any, precision_config: Dict[str, int])
             # FP16 (no quantization)
             memory_bytes = num_params * 2  # 16 bits per parameter
             precision = 16
-
+        
         # Update stats
         memory_by_precision[precision] += memory_bytes
         stats["bit_distribution"][precision] += num_params
-
+        
         # Store layer stats
         stats["layer_stats"][layer_name] = {
             "precision": precision,
             "params": num_params,
-            "memory_bytes": memory_bytes,
+            "memory_bytes": memory_bytes
         }
-
+    
     # Calculate overall memory reduction vs FP16
     fp16_memory = stats["total_params"] * 2  # 16 bits per parameter
     quantized_memory = sum(memory_by_precision.values())
     memory_reduction = (fp16_memory - quantized_memory) / fp16_memory * 100
-
+    
     # Update final stats
     stats["memory_reduction"] = memory_reduction
     stats["quantized_memory_mb"] = quantized_memory / (1024 * 1024)
     stats["original_memory_mb"] = fp16_memory / (1024 * 1024)
-
+    
     # Convert bit distribution to percentages
     for precision in stats["bit_distribution"]:
         if stats["total_params"] > 0:
             stats["bit_distribution"][precision] = (
                 stats["bit_distribution"][precision] / stats["total_params"] * 100
             )
-
+    
     logger.info(f"Model quantized with mixed precision. Memory reduction: {memory_reduction:.2f}%")
     return {
         "model": model,  # In reality, this would be the quantized model
-        "stats": stats,
+        "stats": stats
     }
-
 
 def _get_precision_for_layer(layer_name: str, precision_config: Dict[str, int]) -> int:
     """
     Determine the precision to use for a layer based on precision config.
-
+    
     Args:
         layer_name: Name of the layer
         precision_config: Dict mapping layer patterns to bit widths
-
+        
     Returns:
         Bit width to use for the layer
     """
     # Default to 16-bit if no match
     default_precision = 16
-
+    
     # Check for exact match
     if layer_name in precision_config:
         return precision_config[layer_name]
-
+    
     # Check for pattern match
     for pattern, precision in precision_config.items():
         if pattern in layer_name:
             return precision
-
+    
     return default_precision
-
 
 # Add the missing shader helper functions
 def _get_2bit_matmul_shader():
@@ -2475,14 +2410,12 @@ def _get_2bit_matmul_shader():
     // This is a template - a real implementation would have complete shader code
     """
 
-
 def _get_2bit_dequantize_shader():
     """Get 2-bit dequantization shader code."""
     return """
     // 2-bit dequantization WebGPU shader
     // This is a template - a real implementation would have complete shader code
     """
-
 
 def _get_2bit_attention_shader():
     """Get 2-bit attention computation shader code."""
@@ -2491,10 +2424,9 @@ def _get_2bit_attention_shader():
     // This is a template - a real implementation would have complete shader code
     """
 
-
 if __name__ == "__main__":
     print("Ultra-Low Precision WebGPU Quantization Module (August 2025)")
-
+    
     # Example 1: Set up 2-bit quantization with KV-cache optimization
     result_2bit = setup_ultra_low_precision(
         model_name="llama-7b",
@@ -2503,20 +2435,26 @@ if __name__ == "__main__":
         mixed_precision=True,
         enable_kv_cache=True,
         extended_context=True,
-        browser="chrome",
+        browser="chrome"
     )
     print(json.dumps(result_2bit["ultra_low_precision"], indent=2))
-
+    
     # Example 2: Extend context window
     context_config = extend_context_window(
-        model_name="llama-7b", original_length=4096, target_length=32768, browser="firefox"
+        model_name="llama-7b",
+        original_length=4096,
+        target_length=32768,
+        browser="firefox"
     )
     print("\nContext extension configuration:")
     print(json.dumps(context_config, indent=2))
-
+    
     # Example 3: Optimize KV cache
     kv_cache_config = optimize_kv_cache(
-        model_name="llama-7b", precision_bits=2, browser="chrome", context_length=16384
+        model_name="llama-7b",
+        precision_bits=2,
+        browser="chrome",
+        context_length=16384
     )
     print("\nKV cache optimization:")
     print(json.dumps(kv_cache_config, indent=2))

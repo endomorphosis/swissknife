@@ -49,9 +49,7 @@ def initialize_error_reporting(config=None):
                 "repo": os.environ.get("GITHUB_REPO_NAME", "swissknife"),
                 "labels": os.environ.get("ERROR_REPORTING_LABELS", "auto-generated,bug").split(","),
                 "maxIssuesPerHour": int(os.environ.get("ERROR_REPORTING_MAX_ISSUES", "10")),
-                "deduplicateWindow": int(
-                    os.environ.get("ERROR_REPORTING_DEDUPE_WINDOW", "3600000")
-                ),
+                "deduplicateWindow": int(os.environ.get("ERROR_REPORTING_DEDUPE_WINDOW", "3600000")),
             },
         }
 

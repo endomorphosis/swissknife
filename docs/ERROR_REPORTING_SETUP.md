@@ -137,20 +137,18 @@ const errorReporting = initializeErrorReporting({
 Python:
 
 ```python
-error_handler = initialize_error_reporting(
-    {
-        "enableReporting": True,
-        "reporterConfig": {
-            "enabled": True,
-            "githubToken": "ghp_...",
-            "owner": "endomorphosis",
-            "repo": "swissknife",
-            "labels": ["auto-generated", "bug", "python"],
-            "maxIssuesPerHour": 10,
-            "deduplicateWindow": 3600000,
-        },
+error_handler = initialize_error_reporting({
+    'enableReporting': True,
+    'reporterConfig': {
+        'enabled': True,
+        'githubToken': 'ghp_...',
+        'owner': 'endomorphosis',
+        'repo': 'swissknife',
+        'labels': ['auto-generated', 'bug', 'python'],
+        'maxIssuesPerHour': 10,
+        'deduplicateWindow': 3600000,
     }
-)
+})
 ```
 
 ## Usage Examples
@@ -196,15 +194,12 @@ try:
     # Your code
     process_data(input_data)
 except Exception as e:
-    report_docker_error(
-        e,
-        {
-            "component": "data-processor",
-            "severity": "high",
-            "operation": "data-processing",
-            "inputSize": len(input_data),
-        },
-    )
+    report_docker_error(e, {
+        'component': 'data-processor',
+        'severity': 'high',
+        'operation': 'data-processing',
+        'inputSize': len(input_data),
+    })
     raise  # Re-raise if needed
 ```
 

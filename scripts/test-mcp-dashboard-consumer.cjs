@@ -3322,7 +3322,7 @@ assert(
 assert(
   JSON.stringify(vai659Gate?.todo_source || {}) === JSON.stringify({
     file: 'implementation_plan/docs/19-virtual-ai-os-submodule-integration.todo.md',
-    source_line: 8766,
+    source_line: 8768,
   }),
   'VAI-659 launch gate must preserve the supervisor todo source line for Swissknife consumers',
 );
