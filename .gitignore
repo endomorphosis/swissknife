@@ -112,6 +112,7 @@ build/Release
 
 # Dependency directories
 
+node_modules
 node_modules/
 # `node_modules/` does not match a symlinked dependency install in Git's
 # ignore matcher. Supervisor worktrees use those links to share dependencies.
