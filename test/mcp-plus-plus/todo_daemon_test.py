@@ -73,17 +73,23 @@ class TodoDaemonTest(unittest.TestCase):
         self.assertEqual(claimed["status"], "in_progress")
 
         tasks_after_claim = todo_daemon.load_tasks(self.todo_file)
-        self.assertEqual(todo_daemon.find_task(tasks_after_claim, "MCPUI-B")["status"], "in_progress")
+        self.assertEqual(
+            todo_daemon.find_task(tasks_after_claim, "MCPUI-B")["status"], "in_progress"
+        )
 
         state_after_claim = todo_daemon.read_state(self.state_file)
         self.assertEqual(state_after_claim["claims"]["MCPUI-B"]["worker"], "worker-1")
 
-        completed = todo_daemon.complete_task("MCPUI-B", "worker-1", "done", self.todo_file, self.state_file)
+        completed = todo_daemon.complete_task(
+            "MCPUI-B", "worker-1", "done", self.todo_file, self.state_file
+        )
         self.assertEqual(completed["status"], "done")
 
         state_after_complete = todo_daemon.read_state(self.state_file)
         self.assertNotIn("MCPUI-B", state_after_complete["claims"])
-        self.assertEqual([event["action"] for event in state_after_complete["history"]], ["claim", "complete"])
+        self.assertEqual(
+            [event["action"] for event in state_after_complete["history"]], ["claim", "complete"]
+        )
 
     def test_render_prompt_includes_operational_fields(self):
         tasks = todo_daemon.load_tasks(self.todo_file)

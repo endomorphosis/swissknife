@@ -78,11 +78,11 @@ To use web platform features in your test implementation:
    ```python
    # For WebNN
    webnn_config = init_webnn(self, model_name="my-model", web_api_mode="simulation")
-   
+
    # For WebGPU with compute shaders (March 2025 feature)
-   webgpu_config = init_webgpu(self, model_name="my-model", 
-                              web_api_mode="simulation", 
-                              compute_shaders=True)
+   webgpu_config = init_webgpu(
+       self, model_name="my-model", web_api_mode="simulation", compute_shaders=True
+   )
    ```
 
 3. **Process input data for web platforms**
@@ -117,13 +117,13 @@ The compute shader implementation provides significant performance improvements 
 2. **Implementation Example**
    ```python
    # Enable compute shaders for audio models
-   webgpu_config = init_webgpu(self, model_name="whisper-tiny", 
-                              web_api_mode="simulation", 
-                              compute_shaders=True)
-   
+   webgpu_config = init_webgpu(
+       self, model_name="whisper-tiny", web_api_mode="simulation", compute_shaders=True
+   )
+
    # Use compute-optimized processing
    processed_audio = process_for_web("audio", "sample.mp3", webgpu_compute=True)
-   
+
    # Run optimized inference
    result = webgpu_config["endpoint"](processed_audio)
    ```
@@ -141,12 +141,13 @@ Shader precompilation reduces initial startup latency by:
    ```python
    # Enable shader precompilation
    import os
+
    os.environ["WEBGPU_SHADER_PRECOMPILE"] = "1"
-   
+
    # Initialize with precompilation
-   webgpu_config = init_webgpu(self, model_name="vit-base", 
-                              web_api_mode="simulation", 
-                              precompile_shaders=True)
+   webgpu_config = init_webgpu(
+       self, model_name="vit-base", web_api_mode="simulation", precompile_shaders=True
+   )
    ```
 
 ### Parallel Model Loading
@@ -161,10 +162,13 @@ This feature significantly improves loading times for complex models by:
 2. **Implementation Example**
    ```python
    # Enable parallel loading for multimodal models
-   webgpu_config = init_webgpu(self, model_name="clip-vit-base", 
-                              web_api_mode="simulation", 
-                              parallel_loading=True,
-                              components=["vision_encoder", "text_encoder"])
+   webgpu_config = init_webgpu(
+       self,
+       model_name="clip-vit-base",
+       web_api_mode="simulation",
+       parallel_loading=True,
+       components=["vision_encoder", "text_encoder"],
+   )
    ```
 
 ## Environmental Controls

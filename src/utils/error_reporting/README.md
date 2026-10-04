@@ -111,17 +111,19 @@ from src.utils.error_reporting import initialize_error_reporting
 error_handler = initialize_error_reporting()
 
 # Or with custom configuration
-error_handler = initialize_error_reporting({
-    'enableReporting': True,
-    'reporterConfig': {
-        'enabled': True,
-        'githubToken': 'your_github_token',
-        'owner': 'endomorphosis',
-        'repo': 'swissknife',
-        'labels': ['auto-generated', 'bug'],
-        'maxIssuesPerHour': 10,
+error_handler = initialize_error_reporting(
+    {
+        "enableReporting": True,
+        "reporterConfig": {
+            "enabled": True,
+            "githubToken": "your_github_token",
+            "owner": "endomorphosis",
+            "repo": "swissknife",
+            "labels": ["auto-generated", "bug"],
+            "maxIssuesPerHour": 10,
+        },
     }
-})
+)
 
 # Manually report an error
 try:
@@ -131,10 +133,10 @@ except Exception as e:
     error_handler.report_error(
         e,
         context={
-            'component': 'my-component',
-            'severity': 'high',
-            'customData': 'any additional context',
-        }
+            "component": "my-component",
+            "severity": "high",
+            "customData": "any additional context",
+        },
     )
 ```
 

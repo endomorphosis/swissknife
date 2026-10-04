@@ -85,12 +85,14 @@ Progressive recovery attempts increasingly complex strategies until recovery suc
 Example implementation:
 
 ```python
-async def _progressive_recovery(self, browser_id: str, failure_category: BrowserFailureCategory) -> Dict[str, Any]:
+async def _progressive_recovery(
+    self, browser_id: str, failure_category: BrowserFailureCategory
+) -> Dict[str, Any]:
     """Progressive recovery strategy."""
     self.logger.info(f"Attempting progressive recovery for browser {browser_id}")
-    
+
     browser = self.state_manager.get_browser(browser_id)
-    
+
     # First try reconnection (fastest, least invasive)
     if failure_category in [BrowserFailureCategory.CONNECTION, BrowserFailureCategory.TIMEOUT]:
         try:
@@ -99,7 +101,7 @@ async def _progressive_recovery(self, browser_id: str, failure_category: Browser
                 return reconnect_result
         except Exception as e:
             self.logger.warning(f"Reconnection failed: {e}, trying restart")
-            
+
     # If reconnection fails or not applicable, try restart
     try:
         restart_result = await self._restart_recovery(browser_id, failure_category)
@@ -107,7 +109,7 @@ async def _progressive_recovery(self, browser_id: str, failure_category: Browser
             return restart_result
     except Exception as e:
         self.logger.warning(f"Restart failed: {e}, trying failover")
-        
+
     # If restart fails, try failover
     try:
         failover_result = await self._failover_recovery(browser_id, failure_category)
@@ -115,14 +117,14 @@ async def _progressive_recovery(self, browser_id: str, failure_category: Browser
             return failover_result
     except Exception as e:
         self.logger.error(f"Failover failed: {e}, all recovery strategies exhausted")
-        
+
     # All strategies failed
     return {
         "success": False,
         "error": "All recovery strategies failed",
         "recovery_attempt": self.recovery_attempts,
         "browser_id": browser_id,
-        "browser_type": browser.browser_type if browser else "unknown"
+        "browser_type": browser.browser_type if browser else "unknown",
     }
 ```
 
@@ -182,32 +184,39 @@ The system analyzes performance trends to identify:
 Example performance trend analysis:
 
 ```python
-def analyze_performance_trends(self, model_name: Optional[str] = None, 
-                              browser_type: Optional[str] = None,
-                              operation_type: Optional[str] = None,
-                              time_window_seconds: int = 3600) -> Dict[str, Any]:
+def analyze_performance_trends(
+    self,
+    model_name: Optional[str] = None,
+    browser_type: Optional[str] = None,
+    operation_type: Optional[str] = None,
+    time_window_seconds: int = 3600,
+) -> Dict[str, Any]:
     """Analyze performance trends."""
     # Filter entries
     now = time.time()
     cutoff = now - time_window_seconds
-    
-    filtered_entries = [entry for entry in self.entries if entry.timestamp >= cutoff and 
-                       entry.duration_ms is not None and
-                       (model_name is None or entry.model_name == model_name) and
-                       (browser_type is None or entry.browser_type == browser_type) and
-                       (operation_type is None or entry.operation_type == operation_type)]
-                       
+
+    filtered_entries = [
+        entry
+        for entry in self.entries
+        if entry.timestamp >= cutoff
+        and entry.duration_ms is not None
+        and (model_name is None or entry.model_name == model_name)
+        and (browser_type is None or entry.browser_type == browser_type)
+        and (operation_type is None or entry.operation_type == operation_type)
+    ]
+
     if not filtered_entries:
         return {"error": "No data available for the specified filters"}
-        
+
     # Sort by timestamp
     sorted_entries = sorted(filtered_entries, key=lambda x: x.timestamp)
-    
+
     # Calculate metrics over time
     timestamps = [entry.timestamp for entry in sorted_entries]
     durations = [entry.duration_ms for entry in sorted_entries]
     statuses = [entry.status for entry in sorted_entries]
-    
+
     # Calculate trend
     if len(durations) >= 2:
         # Simple linear regression for trend
@@ -216,38 +225,42 @@ def analyze_performance_trends(self, model_name: Optional[str] = None,
         sum_y = sum(durations)
         sum_xy = sum(i * y for i, y in enumerate(durations))
         sum_xx = sum(i * i for i in range(n))
-        
-        slope = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x) if (n * sum_xx - sum_x * sum_x) != 0 else 0
-        
+
+        slope = (
+            (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x)
+            if (n * sum_xx - sum_x * sum_x) != 0
+            else 0
+        )
+
         trend_direction = "improving" if slope < 0 else "degrading" if slope > 0 else "stable"
         trend_magnitude = abs(slope)
     else:
         trend_direction = "stable"
         trend_magnitude = 0
-        
+
     # Calculate success rate over time
     success_count = sum(1 for status in statuses if status == "completed")
     success_rate = success_count / len(statuses) if statuses else 0
-    
+
     # Calculate avg, min, max durations
     avg_duration = sum(durations) / len(durations) if durations else 0
     min_duration = min(durations) if durations else 0
     max_duration = max(durations) if durations else 0
-    
+
     # Segment by recency
     if len(durations) >= 10:
         recent_durations = durations[-10:]
         avg_recent = sum(recent_durations) / len(recent_durations)
-        
+
         oldest_durations = durations[:10]
         avg_oldest = sum(oldest_durations) / len(oldest_durations)
-        
+
         improvement = (avg_oldest - avg_recent) / avg_oldest if avg_oldest > 0 else 0
     else:
         avg_recent = avg_duration
         avg_oldest = avg_duration
         improvement = 0
-        
+
     return {
         "entries_analyzed": len(filtered_entries),
         "time_window_seconds": time_window_seconds,
@@ -259,7 +272,7 @@ def analyze_performance_trends(self, model_name: Optional[str] = None,
         "trend_magnitude": trend_magnitude,
         "improvement_rate": improvement,
         "avg_recent_duration_ms": avg_recent,
-        "avg_oldest_duration_ms": avg_oldest
+        "avg_oldest_duration_ms": avg_oldest,
     }
 ```
 
@@ -270,66 +283,65 @@ def analyze_performance_trends(self, model_name: Optional[str] = None,
 The system provides a `run_with_recovery` function that integrates with the resource pool bridge for automatic recovery:
 
 ```python
-async def run_with_recovery(pool, model_name: str, operation: str, inputs: Dict, 
-                          recovery_manager: ResourcePoolRecoveryManager) -> Dict:
+async def run_with_recovery(
+    pool,
+    model_name: str,
+    operation: str,
+    inputs: Dict,
+    recovery_manager: ResourcePoolRecoveryManager,
+) -> Dict:
     """Run an operation with automatic recovery."""
     try:
         # Get a browser for the operation
         browser_data = await pool.get_browser_for_model(model_name)
-        
+
         if not browser_data:
             raise Exception(f"No browser available for model {model_name}")
-            
+
         browser_id = browser_data["id"]
         browser_type = browser_data["type"]
         browser = browser_data["browser"]
-        
+
         # Track operation
         entry_id = await recovery_manager.track_operation(
-            operation, 
-            model_name, 
-            browser_id, 
-            browser_type
+            operation, model_name, browser_id, browser_type
         )
-        
+
         try:
             # Execute operation
             start_time = time.time()
-            result = await browser.call(operation, {
-                "model_name": model_name,
-                "inputs": inputs
-            })
+            result = await browser.call(operation, {"model_name": model_name, "inputs": inputs})
             end_time = time.time()
-            
+
             # Record metrics
-            metrics = {
-                "duration_ms": (end_time - start_time) * 1000
-            }
-            
+            metrics = {"duration_ms": (end_time - start_time) * 1000}
+
             if isinstance(result, dict) and "metrics" in result:
                 metrics.update(result["metrics"])
-                
+
             # Complete operation tracking
             await recovery_manager.complete_operation(entry_id, metrics, "completed")
-            
+
             return {
                 "success": True,
                 "result": result,
                 "browser_id": browser_id,
                 "browser_type": browser_type,
-                "metrics": metrics
+                "metrics": metrics,
             }
-            
+
         except Exception as e:
             # Operation failed
             await recovery_manager.complete_operation(entry_id, {"error": str(e)}, "failed")
-            
+
             # Handle browser failure
             await recovery_manager.handle_browser_failure(browser_id, e)
-            
+
             # Attempt recovery
-            recovery_result = await recovery_manager.recover_operation(model_name, operation, inputs)
-            
+            recovery_result = await recovery_manager.recover_operation(
+                model_name, operation, inputs
+            )
+
             if recovery_result["success"]:
                 return {
                     "success": True,
@@ -337,17 +349,14 @@ async def run_with_recovery(pool, model_name: str, operation: str, inputs: Dict,
                     "recovered": True,
                     "recovery_browser": recovery_result["recovery_browser"],
                     "original_error": str(e),
-                    "metrics": recovery_result["metrics"]
+                    "metrics": recovery_result["metrics"],
                 }
             else:
                 raise Exception(f"Operation failed and recovery failed: {recovery_result['error']}")
-                
+
     except Exception as e:
         # Complete failure
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 ```
 
 ### ResourcePoolBridgeIntegration
@@ -361,18 +370,14 @@ from fixed_web_platform.resource_pool_bridge_recovery import ResourcePoolRecover
 # Create resource pool with fault tolerance
 pool = ResourcePoolBridgeIntegration(
     max_connections=4,
-    browser_preferences={
-        'audio': 'firefox',
-        'vision': 'chrome',
-        'text_embedding': 'edge'
-    },
+    browser_preferences={"audio": "firefox", "vision": "chrome", "text_embedding": "edge"},
     adaptive_scaling=True,
     fault_tolerance_options={
-        'level': 'high',
-        'recovery_strategy': 'progressive',
-        'checkpoint_interval': 60,  # seconds
-        'max_recovery_attempts': 3
-    }
+        "level": "high",
+        "recovery_strategy": "progressive",
+        "checkpoint_interval": 60,  # seconds
+        "max_recovery_attempts": 3,
+    },
 )
 
 # Initialize pool
@@ -387,7 +392,7 @@ result = await run_with_recovery(
     model_name="bert-base-uncased",
     operation="inference",
     inputs={"text": "Example input"},
-    recovery_manager=recovery_manager
+    recovery_manager=recovery_manager,
 )
 ```
 
@@ -402,7 +407,7 @@ Configure the fault tolerance level based on your reliability requirements:
 recovery_manager = ResourcePoolRecoveryManager(
     connection_pool=pool.connection_pool,
     fault_tolerance_level="high",  # none, low, medium, high, critical
-    recovery_strategy="progressive"
+    recovery_strategy="progressive",
 )
 ```
 
@@ -415,7 +420,7 @@ Choose the most appropriate recovery strategy for your use case:
 recovery_manager = ResourcePoolRecoveryManager(
     connection_pool=pool.connection_pool,
     fault_tolerance_level="medium",
-    recovery_strategy="failover"  # restart, reconnect, failover, progressive, parallel
+    recovery_strategy="failover",  # restart, reconnect, failover, progressive, parallel
 )
 ```
 
@@ -427,7 +432,7 @@ Configure performance history tracking:
 # Create performance tracker with custom settings
 performance_tracker = PerformanceHistoryTracker(
     max_entries=2000,  # Store more performance entries
-    logger=custom_logger
+    logger=custom_logger,
 )
 ```
 
@@ -524,16 +529,15 @@ Best practices for state management:
 
 ```python
 from fixed_web_platform.resource_pool_bridge import ResourcePoolBridgeIntegration
-from fixed_web_platform.resource_pool_bridge_recovery import ResourcePoolRecoveryManager, run_with_recovery
+from fixed_web_platform.resource_pool_bridge_recovery import (
+    ResourcePoolRecoveryManager,
+    run_with_recovery,
+)
 
 # Create resource pool
 pool = ResourcePoolBridgeIntegration(
     max_connections=4,
-    browser_preferences={
-        'audio': 'firefox',
-        'vision': 'chrome',
-        'text_embedding': 'edge'
-    }
+    browser_preferences={"audio": "firefox", "vision": "chrome", "text_embedding": "edge"},
 )
 
 # Initialize pool
@@ -543,7 +547,7 @@ await pool.initialize()
 recovery_manager = ResourcePoolRecoveryManager(
     connection_pool=pool.connection_pool,
     fault_tolerance_level="medium",
-    recovery_strategy="progressive"
+    recovery_strategy="progressive",
 )
 
 # Initialize recovery manager
@@ -555,13 +559,13 @@ result = await run_with_recovery(
     model_name="bert-base-uncased",
     operation="inference",
     inputs={"text": "Example input"},
-    recovery_manager=recovery_manager
+    recovery_manager=recovery_manager,
 )
 
 if result["success"]:
     output = result["result"]
     print(f"Inference result: {output}")
-    
+
     if result.get("recovered"):
         print(f"Recovery was successful using {result['recovery_browser']['type']}")
 else:
@@ -580,7 +584,7 @@ from fixed_web_platform.resource_pool_bridge_recovery import ResourcePoolRecover
 recovery_manager = ResourcePoolRecoveryManager(
     connection_pool=pool.connection_pool,
     fault_tolerance_level="high",
-    recovery_strategy="progressive"
+    recovery_strategy="progressive",
 )
 
 # Initialize recovery manager
@@ -593,16 +597,16 @@ sharding_manager = ModelShardingManager(
     num_shards=3,
     fault_tolerance_level="high",
     recovery_strategy="coordinated",
-    connection_pool=pool.connection_pool
+    connection_pool=pool.connection_pool,
 )
 
 # Initialize shards
 await sharding_manager.initialize()
 
 # Run inference with automatic recovery
-result = await sharding_manager.run_inference({
-    "input_text": "Explain the concept of fault tolerance in distributed systems."
-})
+result = await sharding_manager.run_inference(
+    {"input_text": "Explain the concept of fault tolerance in distributed systems."}
+)
 
 print(f"Inference result: {result}")
 
@@ -626,17 +630,21 @@ await sharding_manager.shutdown()
 ### Custom Recovery Strategy
 
 ```python
-from fixed_web_platform.resource_pool_bridge_recovery import ResourcePoolRecoveryManager, BrowserFailureCategory
+from fixed_web_platform.resource_pool_bridge_recovery import (
+    ResourcePoolRecoveryManager,
+    BrowserFailureCategory,
+)
+
 
 class CustomRecoveryManager(ResourcePoolRecoveryManager):
     async def handle_browser_failure(self, browser_id: str, error: Exception) -> Dict[str, Any]:
         """Custom browser failure handling."""
         # Classify error
         failure_category = self._classify_browser_failure(error)
-        
+
         # Log failure
         self.logger.info(f"Custom recovery for browser {browser_id}: {failure_category.value}")
-        
+
         # Choose strategy based on error category
         if failure_category == BrowserFailureCategory.CONNECTION:
             return await self._reconnect_recovery(browser_id, failure_category)
@@ -721,7 +729,7 @@ recovery_manager = ResourcePoolRecoveryManager(
     connection_pool=pool.connection_pool,
     fault_tolerance_level="medium",
     recovery_strategy="progressive",
-    logger=logger
+    logger=logger,
 )
 ```
 
@@ -756,22 +764,19 @@ Analyze performance for specific models or browsers:
 ```python
 # Analyze specific model
 model_trend = recovery_manager.performance_tracker.analyze_performance_trends(
-    model_name="bert-base-uncased",
-    time_window_seconds=3600
+    model_name="bert-base-uncased", time_window_seconds=3600
 )
 print(f"Model trend: {model_trend}")
 
 # Analyze specific browser type
 browser_trend = recovery_manager.performance_tracker.analyze_performance_trends(
-    browser_type="chrome",
-    time_window_seconds=3600
+    browser_type="chrome", time_window_seconds=3600
 )
 print(f"Browser trend: {browser_trend}")
 
 # Analyze specific operation
 operation_trend = recovery_manager.performance_tracker.analyze_performance_trends(
-    operation_type="inference",
-    time_window_seconds=3600
+    operation_type="inference", time_window_seconds=3600
 )
 print(f"Operation trend: {operation_trend}")
 ```

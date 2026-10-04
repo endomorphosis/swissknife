@@ -58,12 +58,12 @@ if not circuit_allowed:
     logger.warning(f"Circuit breaker prevented inference: {circuit_reason}")
     # Return simulated result with error info
     return {
-        'success': True,  # Still return success for compatibility
-        'status': 'simulated',
-        'model_id': model_id,
-        'is_simulation': True,
-        'circuit_breaker_active': True,
-        'circuit_breaker_reason': circuit_reason,
+        "success": True,  # Still return success for compatibility
+        "status": "simulated",
+        "model_id": model_id,
+        "is_simulation": True,
+        "circuit_breaker_active": True,
+        "circuit_breaker_reason": circuit_reason,
     }
 ```
 
@@ -84,10 +84,10 @@ if not connection.is_healthy():
 ```python
 # After inference succeeds or fails
 ResourcePoolErrorRecovery.update_circuit_breaker(
-    connection, 
-    success=operation_succeeded, 
-    model_id=model_id, 
-    error=error_message if not operation_succeeded else None
+    connection,
+    success=operation_succeeded,
+    model_id=model_id,
+    error=error_message if not operation_succeeded else None,
 )
 ```
 
@@ -98,11 +98,11 @@ ResourcePoolErrorRecovery.update_circuit_breaker(
 telemetry = ResourcePoolErrorRecovery.export_telemetry(
     resource_pool=self,
     include_connections=True,  # Include detailed connection data
-    include_models=True        # Include detailed model data
+    include_models=True,  # Include detailed model data
 )
 
 # Log or save telemetry data
-with open('telemetry.json', 'w') as f:
+with open("telemetry.json", "w") as f:
     json.dump(telemetry, f, indent=2)
 ```
 
@@ -221,35 +221,38 @@ Below is a simple example of integrating these tools into your resource pool bri
 ```python
 from fixed_web_platform.resource_pool_error_recovery import ResourcePoolErrorRecovery
 
+
 class EnhancedResourcePoolBridge(ResourcePoolBridge):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.enable_enhanced_error_recovery = True
-    
+
     async def run_inference(self, model_id, inputs, retry_attempts=1):
         # Check circuit breaker first
         if self.enable_enhanced_error_recovery and model_id in self.model_connections:
             connection = self.model_connections[model_id]
-            circuit_allowed, circuit_reason = ResourcePoolErrorRecovery.check_circuit_breaker(connection, model_id)
-            
+            circuit_allowed, circuit_reason = ResourcePoolErrorRecovery.check_circuit_breaker(
+                connection, model_id
+            )
+
             if not circuit_allowed:
                 logger.warning(f"Circuit breaker prevented inference: {circuit_reason}")
                 # Return simulated result
-                return {'success': True, 'status': 'simulated', 'circuit_breaker_active': True}
-        
+                return {"success": True, "status": "simulated", "circuit_breaker_active": True}
+
         # Normal inference logic
         result = await super().run_inference(model_id, inputs, retry_attempts)
-        
+
         # Update circuit breaker after operation
         if self.enable_enhanced_error_recovery and model_id in self.model_connections:
             connection = self.model_connections[model_id]
             ResourcePoolErrorRecovery.update_circuit_breaker(
                 connection,
-                success=result.get('success', False),
+                success=result.get("success", False),
                 model_id=model_id,
-                error=result.get('error', None) if not result.get('success', False) else None
+                error=result.get("error", None) if not result.get("success", False) else None,
             )
-        
+
         return result
 ```
 
@@ -317,16 +320,20 @@ The telemetry system provides multiple ways to monitor and troubleshoot connecti
 telemetry = ResourcePoolErrorRecovery.export_telemetry(bridge)
 
 # Monitor connection health distribution
-health_distribution = telemetry['connections']
-print(f"Connection Health: {health_distribution['healthy']} healthy, " +
-      f"{health_distribution['degraded']} degraded, " +
-      f"{health_distribution['unhealthy']} unhealthy")
+health_distribution = telemetry["connections"]
+print(
+    f"Connection Health: {health_distribution['healthy']} healthy, "
+    + f"{health_distribution['degraded']} degraded, "
+    + f"{health_distribution['unhealthy']} unhealthy"
+)
 
 # Check circuit breaker status
-circuit_breakers = telemetry['circuit_breaker']
-print(f"Circuit Breakers: {circuit_breakers['open']} open, " +
-      f"{circuit_breakers['half_open']} half-open, " +
-      f"{circuit_breakers['closed']} closed")
+circuit_breakers = telemetry["circuit_breaker"]
+print(
+    f"Circuit Breakers: {circuit_breakers['open']} open, "
+    + f"{circuit_breakers['half_open']} half-open, "
+    + f"{circuit_breakers['closed']} closed"
+)
 ```
 
 ### Historical Analysis
@@ -338,9 +345,9 @@ The `error_history` field in connection details captures the last 10 errors with
 telemetry = ResourcePoolErrorRecovery.export_telemetry(bridge, include_connections=True)
 
 # Analyze error history for specific connection
-for conn in telemetry['connection_details']:
-    if conn['connection_id'] == target_conn_id and 'latest_errors' in conn:
-        for error in conn['latest_errors']:
+for conn in telemetry["connection_details"]:
+    if conn["connection_id"] == target_conn_id and "latest_errors" in conn:
+        for error in conn["latest_errors"]:
             print(f"[{datetime.fromtimestamp(error['time'])}] {error['error']}")
 ```
 
@@ -351,21 +358,17 @@ Track recovery effectiveness with metrics on which strategies work best:
 ```python
 # Track recovery statistics
 recovery_stats = {
-    'attempts': 0,
-    'success': 0,
-    'by_method': {
-        'ping_test': 0,
-        'websocket_reconnection': 0,
-        'browser_restart': 0
-    }
+    "attempts": 0,
+    "success": 0,
+    "by_method": {"ping_test": 0, "websocket_reconnection": 0, "browser_restart": 0},
 }
 
 # After recovery attempt
 success, method = await ResourcePoolErrorRecovery.recover_connection(connection)
-recovery_stats['attempts'] += 1
+recovery_stats["attempts"] += 1
 if success:
-    recovery_stats['success'] += 1
-    recovery_stats['by_method'][method] += 1
+    recovery_stats["success"] += 1
+    recovery_stats["by_method"][method] += 1
 ```
 
 ## Future Enhancements

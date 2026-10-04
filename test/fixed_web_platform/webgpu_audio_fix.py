@@ -1,4 +1,4 @@
-#\!/usr/bin/env python3
+# \!/usr/bin/env python3
 """
 Apply optimization to the WebGPU audio simulation.
 """
@@ -8,37 +8,45 @@ import sys
 import fileinput
 import re
 
+
 def fix_webgpu_audio():
     """Fix the WebGPU audio simulation to show better performance with compute shaders."""
-    
+
     filepath = "fixed_web_platform/web_platform_handler.py"
-    
+
     # Look for the function definition
     sim_func_pattern = r"def simulate_compute_shader_execution\(self, audio_length_seconds=None\):"
-    
+
     found_function = False
     start_replace_line = 0
     end_replace_line = 0
-    
+
     # Find the line numbers for the block to replace
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         for i, line in enumerate(f, 1):
             if not found_function and re.search(sim_func_pattern, line):
                 found_function = True
                 continue
-                
-            if found_function and "# Calculate simulated execution time based on audio length" in line:
+
+            if (
+                found_function
+                and "# Calculate simulated execution time based on audio length" in line
+            ):
                 start_replace_line = i
                 continue
-                
-            if found_function and start_replace_line > 0 and "# Update performance tracking" in line:
+
+            if (
+                found_function
+                and start_replace_line > 0
+                and "# Update performance tracking" in line
+            ):
                 end_replace_line = i - 1
                 break
-    
+
     if not found_function or start_replace_line == 0 or end_replace_line == 0:
         print("Could not find the function to replace")
         return False
-    
+
     # Define the replacement code
     replacement_code = """                        # Calculate simulated execution time based on audio length
                         execution_time = base_execution_time * min(audio_length_seconds, 30) / 10
@@ -72,13 +80,13 @@ def fix_webgpu_audio():
                             # Without compute shaders, longer audio is even more expensive
                             penalty_factor = 1.0 + (length_factor * 0.1)  # Up to 10% penalty
                             time.sleep(standard_time / 1000 * penalty_factor)"""
-    
+
     # Replace the identified lines
     line_num = 0
     with fileinput.input(filepath, inplace=True) as file:
         for line in file:
             line_num += 1
-            
+
             if start_replace_line <= line_num <= end_replace_line:
                 # Only output the replacement content once, at the start of the block
                 if line_num == start_replace_line:
@@ -87,10 +95,11 @@ def fix_webgpu_audio():
                 continue
             else:
                 # Print other lines as normal
-                print(line, end='')
-    
+                print(line, end="")
+
     print(f"Updated {filepath} lines {start_replace_line}-{end_replace_line}")
     return True
+
 
 if __name__ == "__main__":
     fix_webgpu_audio()

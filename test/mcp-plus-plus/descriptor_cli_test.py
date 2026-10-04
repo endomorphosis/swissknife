@@ -44,7 +44,13 @@ class DescriptorCLITest(unittest.TestCase):
             self.assertEqual(descriptor["meta"]["app_id"], "test-workflow")
             self.assertEqual(
                 [step["id"] for step in descriptor["workflow_graph"]["steps"]],
-                ["select_dataset", "pin_dataset", "run_inference_job", "collect_artifact", "publish_artifact"],
+                [
+                    "select_dataset",
+                    "pin_dataset",
+                    "run_inference_job",
+                    "collect_artifact",
+                    "publish_artifact",
+                ],
             )
 
     def test_lint_rejects_missing_profile_sections(self):

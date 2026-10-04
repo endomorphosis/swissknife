@@ -79,9 +79,7 @@ from fixed_web_platform.resource_pool_integration_enhanced import EnhancedResour
 
 # Create integration with adaptive scaling
 integration = EnhancedResourcePoolIntegration(
-    max_connections=4,
-    min_connections=1,
-    adaptive_scaling=True
+    max_connections=4, min_connections=1, adaptive_scaling=True
 )
 
 # Initialize integration
@@ -89,9 +87,7 @@ await integration.initialize()
 
 # Get model with optimal browser and platform
 model = await integration.get_model(
-    model_name="bert-base-uncased",
-    model_type="text_embedding",
-    platform="webgpu"
+    model_name="bert-base-uncased", model_type="text_embedding", platform="webgpu"
 )
 
 # Run inference
@@ -108,13 +104,13 @@ await integration.close()
 integration = EnhancedResourcePoolIntegration(
     max_connections=4,
     browser_preferences={
-        'audio': 'firefox',  # Firefox is best for audio models with compute shaders
-        'vision': 'chrome',  # Chrome for vision models
-        'text_embedding': 'edge',  # Edge has excellent WebNN support
-        'text_generation': 'chrome',
-        'multimodal': 'chrome'
+        "audio": "firefox",  # Firefox is best for audio models with compute shaders
+        "vision": "chrome",  # Chrome for vision models
+        "text_embedding": "edge",  # Edge has excellent WebNN support
+        "text_generation": "chrome",
+        "multimodal": "chrome",
     },
-    adaptive_scaling=True
+    adaptive_scaling=True,
 )
 
 # Initialize
@@ -125,21 +121,20 @@ audio_model = await integration.get_model(
     model_name="whisper-tiny",
     model_type="audio",
     platform="webgpu",
-    optimizations={'compute_shaders': True}  # Enable compute shader optimization
+    optimizations={"compute_shaders": True},  # Enable compute shader optimization
 )
 
 vision_model = await integration.get_model(
     model_name="vit-base-patch16-224",
     model_type="vision",
     platform="webgpu",
-    optimizations={'precompile_shaders': True}  # Enable shader precompilation
+    optimizations={"precompile_shaders": True},  # Enable shader precompilation
 )
 
 # Run concurrent inference
-results = await integration.execute_concurrent([
-    (audio_model, audio_inputs),
-    (vision_model, vision_inputs)
-])
+results = await integration.execute_concurrent(
+    [(audio_model, audio_inputs), (vision_model, vision_inputs)]
+)
 ```
 
 ### Testing the Enhanced Implementation

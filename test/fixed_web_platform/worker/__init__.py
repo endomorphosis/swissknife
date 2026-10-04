@@ -9,7 +9,7 @@ from fixed_web_platform.worker.web_utils import (
     run_web_inference,
     get_optimal_browser_for_model,
     optimize_for_audio_models,
-    configure_ipfs_acceleration
+    configure_ipfs_acceleration,
 )
 
 __all__ = [
@@ -17,5 +17,5 @@ __all__ = [
     "run_web_inference",
     "get_optimal_browser_for_model",
     "optimize_for_audio_models",
-    "configure_ipfs_acceleration"
+    "configure_ipfs_acceleration",
 ]
