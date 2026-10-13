@@ -389,3 +389,77 @@ export function buildSwissKnifeMetaWearablesDATIOSInteractionEnvelope() {
     ],
   };
 }
+
+export function buildSwissKnifeMetaWearablesDATIOSMCPPlusPlusCompatibilityReceipt() {
+  return {
+    receipt_schema: 'mcp_plus_plus_compatibility_receipt_v1',
+    task_id: 'HAO-736',
+    session_id: 'session:swissknife-meta-wearables-dat-ios-display',
+    correlation_id: 'corr:swissknife-meta-wearables-dat-ios-display',
+    daemon_id: 'meta-wearables-dat-ios',
+    server_package: 'meta_wearables_dat_ios',
+    swissknife_consumer: 'swissknife.meta_wearables_dat_ios.display-service',
+    protocol_negotiation: {
+      method: 'initialize',
+      protocol_version: '2026-07-08',
+      client_profiles: ['mcp++/mcp-idl', 'mcp++/cid-envelope', 'mcp++/deontic-policy'],
+      server_profiles: ['mcp++/mcp-idl', 'mcp++/cid-envelope', 'mcp++/deontic-policy'],
+      negotiated_profiles: ['mcp++/mcp-idl', 'mcp++/cid-envelope', 'mcp++/deontic-policy'],
+      initialized: true,
+    },
+    capability_descriptor: {
+      descriptor_id: 'swissknife-meta-wearables-dat-ios-display-interop@0.1.0',
+      interface_cid: SWISSKNIFE_META_WEARABLES_DAT_IOS_INTEROP_INTERFACE.interface_cid,
+      name: SWISSKNIFE_META_WEARABLES_DAT_IOS_INTEROP_INTERFACE.name,
+      namespace: SWISSKNIFE_META_WEARABLES_DAT_IOS_INTEROP_INTERFACE.namespace,
+      version: SWISSKNIFE_META_WEARABLES_DAT_IOS_INTEROP_INTERFACE.version,
+      methods: [...META_WEARABLES_DAT_IOS_DISPLAY_INTEROP_OPERATIONS],
+      requires: ['mcp++/mcp-idl', 'mcp++/cid-envelope', 'mcp++/deontic-policy'],
+      compatibility_checked: true,
+      compatibility_verdict: 'compatible' as const,
+      event_streams: true,
+    },
+    transport: {
+      kind: 'local' as const,
+      endpoint: 'swissknife://meta-wearables-dat-ios/display',
+      protocol_path: 'swissknife/mcp++/meta-wearables-dat-ios/display',
+      auth_present: true,
+      redaction_profile: 'display-session-minimal',
+    },
+    tool_call: {
+      tool_name: 'meta_wearables_dat_ios.display.send',
+      tool_category: 'display',
+      upstream_function: 'Display.send',
+      jsonrpc_method: 'tools/call',
+      arguments_hash: 'sha256:swissknife-meta-wearables-dat-ios-send-display-view',
+      dispatch_allowed: true,
+      upstream_status: 'ok' as const,
+    },
+    policy_contract: {
+      interaction_envelope_id:
+        'interaction:swissknife-meta-wearables-dat-ios:send-display-view:1',
+      policy_decision_id: 'decision:swissknife-meta-wearables-dat-ios:allow:1',
+      policy_outcome: 'allow' as const,
+      mediation_receipt_id: 'receipt:swissknife-meta-wearables-dat-ios:allow:1',
+      control_surface_contract_ref: 'swissknife/contracts/control_surface_contract.schema.json',
+    },
+    receipt_lineage: {
+      envelope_cid: 'local:swissknife-meta-wearables-dat-ios-envelope',
+      decision_cid: 'local:swissknife-meta-wearables-dat-ios-decision',
+      receipt_cid: 'local:swissknife-meta-wearables-dat-ios-receipt',
+      tool_receipt_id: 'tool-receipt:meta-wearables-dat-ios-display-send',
+    },
+    lifecycle_events: [
+      { event: 'initialize' as const, at: '2026-07-08T00:00:00Z' },
+      { event: 'initialized' as const, at: '2026-07-08T00:00:01Z' },
+      { event: 'descriptor_refresh' as const, at: '2026-07-08T00:00:02Z' },
+      { event: 'policy_decision' as const, at: '2026-07-08T00:00:03Z' },
+      {
+        event: 'receipt_emitted' as const,
+        at: '2026-07-08T00:00:04Z',
+        receipt_cid: 'local:swissknife-meta-wearables-dat-ios-receipt',
+      },
+    ],
+    validated_at: '2026-07-08T00:00:05Z',
+  };
+}
