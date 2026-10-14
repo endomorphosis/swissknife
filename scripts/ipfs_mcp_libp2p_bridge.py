@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import signal
+import sys
 import tempfile
 import time
 import urllib.error
@@ -25,6 +26,43 @@ try:  # py-libp2p <= 0.2 compatibility
 except ImportError:  # py-libp2p >= 0.3 moved service contexts to the anyio package
     from libp2p.tools.anyio_service.context import background_trio_service
 from multiaddr import Multiaddr
+
+
+def _apply_libp2p_compatibility_patch() -> None:
+    """Apply ipfs_accelerate_py's canonical py-libp2p compatibility patch.
+
+    The canonical boundary for creating py-libp2p hosts is
+    ``ipfs_accelerate_py.mcplusplus_module.p2p.libp2p_runtime`` ("All
+    production code that creates py-libp2p hosts should go through this
+    module"). Its ``patch_libp2p_compatibility()`` shims the pymultihash
+    APIs py-libp2p 0.7.x calls (notably ``multihash.encode``, absent from
+    pymultihash 3.x) without which host creation crashes in
+    ``libp2p.peer.id.ID.from_pubkey`` before any network work starts.
+    This bridge is a standalone connector and does not import the server
+    stack, so resolve the sibling ``external/ipfs_accelerate`` checkout
+    (or ``IPFS_ACCELERATE_PY_ROOT``) and apply the patch if reachable;
+    if it is not, the underlying libp2p error surfaces unchanged.
+    """
+
+    candidates = []
+    env_root = os.environ.get("IPFS_ACCELERATE_PY_ROOT")
+    if env_root:
+        candidates.append(env_root)
+    candidates.append(str(Path(__file__).resolve().parents[2] / "external" / "ipfs_accelerate"))
+    for candidate in candidates:
+        if candidate and candidate not in sys.path:
+            sys.path.append(candidate)
+    try:
+        from ipfs_accelerate_py.mcplusplus_module.p2p.libp2p_runtime import (
+            patch_libp2p_compatibility,
+        )
+
+        patch_libp2p_compatibility()
+    except Exception:
+        pass
+
+
+_apply_libp2p_compatibility_patch()
 
 MCP_PROTOCOL_VERSION = "2024-11-05"
 PROTOCOL_MCP_P2P_V1 = "/mcp+p2p/1.0.0"

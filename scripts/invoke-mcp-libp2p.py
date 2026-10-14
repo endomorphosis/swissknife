@@ -27,8 +27,46 @@ sys.stdout = sys.stderr
 import trio
 from libp2p import new_host
 from libp2p.peer.peerinfo import info_from_p2p_addr
-from libp2p.tools.async_service import background_trio_service
+try:  # py-libp2p <= 0.2 compatibility (mirrors ipfs_mcp_libp2p_bridge.py)
+    from libp2p.tools.async_service import background_trio_service
+except ImportError:  # py-libp2p >= 0.3 moved service contexts to the anyio package
+    from libp2p.tools.anyio_service.context import background_trio_service
 from multiaddr import Multiaddr
+
+
+def _apply_libp2p_compatibility_patch() -> None:
+    """Apply ipfs_accelerate_py's canonical py-libp2p compatibility patch.
+
+    Same alignment as scripts/ipfs_mcp_libp2p_bridge.py: host creation in
+    py-libp2p 0.7.x calls ``multihash.encode``, which pymultihash 3.x no
+    longer provides; the canonical patch in
+    ``ipfs_accelerate_py.mcplusplus_module.p2p.libp2p_runtime`` shims it.
+    Runs while stdout is still bound to stderr (see the import discipline
+    above) so no import-time logging can pollute the protocol channel.
+    """
+
+    import os
+    from pathlib import Path
+
+    candidates = []
+    env_root = os.environ.get("IPFS_ACCELERATE_PY_ROOT")
+    if env_root:
+        candidates.append(env_root)
+    candidates.append(str(Path(__file__).resolve().parents[2] / "external" / "ipfs_accelerate"))
+    for candidate in candidates:
+        if candidate and candidate not in sys.path:
+            sys.path.append(candidate)
+    try:
+        from ipfs_accelerate_py.mcplusplus_module.p2p.libp2p_runtime import (
+            patch_libp2p_compatibility,
+        )
+
+        patch_libp2p_compatibility()
+    except Exception:
+        pass
+
+
+_apply_libp2p_compatibility_patch()
 sys.stdout = _protocol_stdout
 
 MCP_PROTOCOL_VERSION = "2024-11-05"

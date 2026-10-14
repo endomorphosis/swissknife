@@ -20,6 +20,7 @@ const {
 } = require('./mcpplusplus-profile-c.cjs');
 const { getEventDagService } = require('./mcpplusplus-event-dag.cjs');
 const { PROFILE_H_METHODS, ProfileHAdapterError, createProfileHAdapter } = require('./mcpplusplus-profile-h-adapter.cjs');
+const { PROFILE_G_METHODS, PROFILE_G_REST_PATH, ProfileGAdapterError, createHttpProfileGAdapter } = require('./mcpplusplus-profile-g-adapter.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const WORKSPACE_ROOT = path.resolve(REPO_ROOT, '..');
@@ -1959,6 +1960,7 @@ function startAccelerateCompatServer(options = {}) {
   const profileCService = getProfileCService('ipfs_accelerate_py');
   const eventDag = getEventDagService('ipfs_accelerate_py');
   const profileH = createProfileHAdapter({ service: 'ipfs_accelerate_py' });
+  const profileG = createHttpProfileGAdapter({ service: 'ipfs_accelerate_py', upstream });
   const profileAPersistence = new Map();
 
   async function healthPayload() {
@@ -2029,6 +2031,10 @@ function startAccelerateCompatServer(options = {}) {
       }
       if (req.method === 'GET' && url.pathname === '/mcp/p2p/peers') {
         return sendJson(res, 200, profileEPeersResult('ipfs_accelerate_py'));
+      }
+      if (req.method === 'GET' && url.pathname === PROFILE_G_REST_PATH) {
+        try { return sendJson(res, 200, await profileG.profile()); }
+        catch (error) { return sendJson(res, 503, { code: error instanceof ProfileGAdapterError ? error.code : -32603, message: error instanceof Error ? error.message : String(error), data: error instanceof ProfileGAdapterError ? error.data : {} }); }
       }
       if (url.pathname.startsWith('/mcp/payments/')) {
         const result = await profileH.handleHttp({ method: req.method, path: url.pathname, search: url.search,
@@ -2143,6 +2149,10 @@ function startAccelerateCompatServer(options = {}) {
         if (PROFILE_H_METHODS.has(payload.method)) {
           try { return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, result: await profileH.call(payload.method, payload.params ?? {}) }); }
           catch (error) { return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, error: { code: error instanceof ProfileHAdapterError ? error.code : -32603, message: error instanceof Error ? error.message : String(error), data: error instanceof ProfileHAdapterError ? error.data : {} } }); }
+        }
+        if (PROFILE_G_METHODS.has(payload.method)) {
+          try { return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, result: await profileG.call(payload.method, payload.params ?? {}) }); }
+          catch (error) { return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, error: { code: error instanceof ProfileGAdapterError ? error.code : -32603, message: error instanceof Error ? error.message : String(error), data: error instanceof ProfileGAdapterError ? error.data : {} } }); }
         }
         if (payload.method.startsWith('mcp++/dag/')) {
           return sendJson(res, 200, {

@@ -4,6 +4,22 @@ import { mountLiveToolGateway } from './live-tool-gateway.js';
 
 console.log('SwissKnife Web Desktop starting...');
 
+// Manifest alias resolution, mirroring resolveVirtualDesktopAppId /
+// VIRTUAL_DESKTOP_ALIAS_TO_ID in src/services/apps/virtual-desktop-app-manifest.ts
+// (the canonical manifest; this served shell is plain JS and cannot import
+// the TypeScript module at runtime). Canonical ids resolve to themselves,
+// manifest aliases resolve to their canonical app id, unknown ids to null.
+const VIRTUAL_DESKTOP_ALIAS_TO_ID = new Map([
+    ['code-editor', 'vibecode'],
+    ['strudel-grandma', 'strudel'],
+    ['p2p-chat-offline', 'p2p-chat'],
+]);
+
+function resolveVirtualDesktopAppId(appIdOrAlias, registeredApps) {
+    if (registeredApps.has(appIdOrAlias)) return appIdOrAlias;
+    return VIRTUAL_DESKTOP_ALIAS_TO_ID.get(appIdOrAlias) ?? null;
+}
+
 class SwissKnifeDesktop {
     constructor() {
         this.windows = new Map();
@@ -552,7 +568,13 @@ class SwissKnifeDesktop {
     
     async launchApp(appId, options = {}) {
         console.log(`Launching app: ${appId}`);
-        
+
+        // Resolve manifest aliases (e.g. code-editor -> vibecode) to the
+        // canonical app id before lookup, matching the manifest resolver
+        // semantics; unknown ids fall through to the not-found path below.
+        const resolvedAppId = resolveVirtualDesktopAppId(appId, this.apps);
+        if (resolvedAppId) appId = resolvedAppId;
+
         const appConfig = this.apps.get(appId);
         if (!appConfig) {
             console.error(`App ${appId} not found`);
@@ -2626,6 +2648,24 @@ class SwissKnifeDesktop {
     }
 
     async createAgentSupervisorApp(contentElement) {
+        // Stand up the console's gateway transport: the MCP++ desktop
+        // client's supervisor gateway (the production gateway for this
+        // console, backed by the live MCP++ services) is published under
+        // the global the console resolves first. Without this the console
+        // can only render its designed no-gateway fallback snapshot. An
+        // explicitly configured gateway or endpoint always wins.
+        if (!window.agentSupervisorGateway
+            && !window.swissknifeAgentSupervisorGateway
+            && !window.__agentSupervisorGateway
+            && !window.__AGENT_SUPERVISOR_GATEWAY_ENDPOINT__) {
+            try {
+                const clientModule = await import('./core/mcp-plus-plus-desktop-client.js');
+                const client = clientModule.getMCPPlusPlusDesktopClient();
+                window.agentSupervisorGateway = client.createSupervisorGateway();
+            } catch (error) {
+                console.warn('Agent Supervisor gateway unavailable; console stays in fallback mode.', error);
+            }
+        }
         const SupervisorModule = await import('./apps/agent-supervisor.js');
         if (typeof SupervisorModule.mountSwissKnifeApp === 'function') {
             return SupervisorModule.mountSwissKnifeApp(contentElement, { desktop: this });
