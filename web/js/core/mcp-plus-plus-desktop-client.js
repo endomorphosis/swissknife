@@ -92,6 +92,18 @@ export class MCPPlusPlusDesktopClient {
     return payload;
   }
 
+  async post(serviceId, path, body = {}) {
+    const service = this.getService(serviceId);
+    const response = await this.request(`${service.baseUrl}${path}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const payload = await parseResponse(response);
+    if (!response.ok) throw new Error(payload?.error || `MCP++ request failed: ${response.status}`);
+    return payload;
+  }
+
   async inspectService(serviceId) {
     const service = this.getService(serviceId);
     const probes = {
@@ -294,6 +306,10 @@ export class MCPPlusPlusDesktopClient {
         if (profileGRead) return this.invokeProfileGSupervisorRead(invocation, profileGRead);
         const profileGWrite = PROFILE_G_GATEWAY_WRITES[invocation?.capability_id];
         if (profileGWrite) return this.invokeProfileGSupervisorWrite(invocation, profileGWrite);
+        if (invocation?.capability_id === 'supervisor.logs.read') return this.invokeSupervisorLogsRead(invocation);
+        if (invocation?.capability_id === 'supervisor.content.retrieve') return this.invokeSupervisorContentRetrieve(invocation);
+        if (invocation?.capability_id === 'supervisor.receipts.persist') return this.invokeSupervisorReceiptPersist(invocation);
+        if (invocation?.capability_id === 'supervisor.event-dag.checkpoint') return this.invokeSupervisorEventDagCheckpoint(invocation);
         if (invocation?.capability_id !== 'supervisor.health.read') return unavailableGatewayResult(invocation, 'capability_unavailable', 'The requested Supervisor gateway capability is not mapped.');
         const services = await this.inspectAll();
         const available = services.filter(service => service.available);
@@ -375,6 +391,135 @@ export class MCPPlusPlusDesktopClient {
     }
   }
 
+  // Supervisor logs are the mediated ipfs_accelerate_py state service's own
+  // Event DAG (Profile F): its history is a genuine supervisor log, exposed
+  // here with event -> log-entry normalization. No other log source exists.
+  async invokeSupervisorLogsRead(invocation) {
+    try {
+      const limit = Math.min(Math.max(Number(invocation.payload?.limit) || 50, 1), 200);
+      const history = await this.getDagHistory('ipfs_accelerate_py', limit);
+      return {
+        state: 'available', capability_id: invocation.capability_id, owner: invocation.owner,
+        correlation_id: invocation.correlation_id, observed_at: new Date().toISOString(),
+        data: asArray(history?.events).map(normalizeDagEventLogEntry),
+      };
+    } catch (error) {
+      return unavailableGatewayResult(invocation, 'server_unavailable', messageFor(error));
+    }
+  }
+
+  // Receipt content retrieval is served by the ipfs_kit_py artifact store
+  // (GET /mcp/artifacts/<cid>), the evidence authority for supervisor reads.
+  async invokeSupervisorContentRetrieve(invocation) {
+    const cid = String(invocation.payload?.cid || '').trim();
+    if (!isContentCid(cid)) {
+      return unavailableGatewayResult(invocation, 'receipt_unavailable', 'Supervisor content retrieval requires a valid content CID.');
+    }
+    try {
+      const artifact = await this.get('ipfs_kit_py', `/mcp/artifacts/${encodeURIComponent(cid)}`);
+      if (!artifact || artifact.found !== true) {
+        return unavailableGatewayResult(invocation, 'receipt_unavailable', artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
+      }
+      return {
+        state: 'available', capability_id: invocation.capability_id, owner: invocation.owner,
+        correlation_id: invocation.correlation_id, observed_at: new Date().toISOString(),
+        data: {
+          cid: artifact.cid || cid,
+          found: true,
+          verified: artifact.verified === true,
+          backend: artifact.backend || 'ipfs_kit_py',
+          metadata: artifact.metadata ?? null,
+          content_bytes: typeof artifact.bytes_base64 === 'string'
+            ? Math.floor(artifact.bytes_base64.replace(/=+$/, '').length * 3 / 4)
+            : 0,
+        },
+      };
+    } catch (error) {
+      return unavailableGatewayResult(invocation, 'server_unavailable', messageFor(error));
+    }
+  }
+
+  // Receipt persistence is served by the ipfs_kit_py artifact store
+  // (POST /mcp/artifacts/put). The store only accepts bytes whose canonical
+  // CIDv1-raw+sha2-256 matches the supplied CID, so the gateway computes the
+  // CID over the exact receipt-record bytes it sends. Governed-write: the
+  // console's reviewed confirmation token is required.
+  async invokeSupervisorReceiptPersist(invocation) {
+    const denial = supervisorGovernedWriteDenial(invocation);
+    if (denial) return denial;
+    const receiptRecord = invocation.payload?.receipt;
+    if (!receiptRecord || typeof receiptRecord !== 'object' || !receiptRecord.receipt_id) {
+      return unavailableGatewayResult(invocation, 'receipt_unavailable', 'A receipt record is required for supervisor receipt persistence.');
+    }
+    try {
+      const bytes = new TextEncoder().encode(stableStringifyValue(receiptRecord));
+      const cid = await contentCidForBytes(bytes);
+      const result = await this.post('ipfs_kit_py', '/mcp/artifacts/put', {
+        cid,
+        bytes_base64: base64ForBytes(bytes),
+        profile: 'supervisor-receipt',
+        kind: 'receipt',
+        service: 'ipfs_kit_py',
+        pin: true,
+      });
+      if (!result || result.persisted !== true || result.cid !== cid) {
+        return unavailableGatewayResult(invocation, 'persistence_failed', result?.error || 'ipfs_kit_py did not verify the persisted receipt artifact.');
+      }
+      const persistedReceipt = { ...receiptRecord, cid, owner: 'ipfs_kit_py' };
+      return {
+        state: 'available', capability_id: invocation.capability_id, owner: invocation.owner,
+        correlation_id: invocation.correlation_id, observed_at: new Date().toISOString(),
+        data: { ...persistedReceipt, persisted: true, verified: result.verified === true, backend: result.backend || 'ipfs_kit_py' },
+        receipt: persistedReceipt,
+      };
+    } catch (error) {
+      return unavailableGatewayResult(invocation, 'persistence_failed', messageFor(error));
+    }
+  }
+
+  // An event-DAG checkpoint is a genuine append to the ipfs_kit_py Event DAG
+  // (POST /mcp/dag/append) naming the selected receipt. Governed-write: the
+  // console's reviewed confirmation token is required.
+  async invokeSupervisorEventDagCheckpoint(invocation) {
+    const denial = supervisorGovernedWriteDenial(invocation);
+    if (denial) return denial;
+    const receiptRecord = invocation.payload?.receipt;
+    if (!receiptRecord || typeof receiptRecord !== 'object' || !receiptRecord.receipt_id) {
+      return unavailableGatewayResult(invocation, 'receipt_unavailable', 'A receipt record is required for an event-DAG checkpoint.');
+    }
+    try {
+      const appended = await this.post('ipfs_kit_py', '/mcp/dag/append', {
+        event: {
+          event_type: 'supervisor.receipt.checkpoint',
+          receipt_id: receiptRecord.receipt_id,
+          receipt_cid: receiptRecord.cid || null,
+          correlation_id: invocation.correlation_id || null,
+          parents: [],
+        },
+      });
+      if (!appended?.event_cid) {
+        return unavailableGatewayResult(invocation, 'persistence_failed', 'ipfs_kit_py event DAG did not return a checkpoint event CID.');
+      }
+      const checkpointReceipt = {
+        receipt_id: `rcpt-checkpoint-${receiptRecord.receipt_id}`,
+        cid: appended.event_cid,
+        owner: 'ipfs_kit_py',
+        created_at: new Date().toISOString(),
+      };
+      return {
+        state: 'available', capability_id: invocation.capability_id, owner: invocation.owner,
+        correlation_id: invocation.correlation_id, observed_at: new Date().toISOString(),
+        data: {
+          receipt: checkpointReceipt,
+          event_dag: { cid: appended.event_cid, event_type: 'supervisor.receipt.checkpoint', status: appended.status || 'recorded' },
+        },
+        receipt: checkpointReceipt,
+      };
+    } catch (error) {
+      return unavailableGatewayResult(invocation, 'persistence_failed', messageFor(error));
+    }
+  }
+
   async request(url, options = {}) {
     if (!this.fetch) throw new Error('Browser fetch is unavailable.');
     const controller = new AbortController();
@@ -448,6 +593,93 @@ function unavailableGatewayResult(invocation, reason, message) {
     message,
     correlation_id: invocation?.correlation_id,
   };
+}
+
+// Governed supervisor writes (receipt persist, event-DAG checkpoint) follow
+// the Profile G write contract shape: an explicit reviewed confirmation is
+// required. The console collects it as a confirmation_token in the payload
+// after its own confirm control; without it the gateway denies, exactly as
+// invokeProfileGSupervisorWrite denies unconfirmed mutations.
+function supervisorGovernedWriteDenial(invocation) {
+  if (invocation?.access === 'governed-write' && String(invocation?.payload?.confirmation_token || '').trim()) return null;
+  return {
+    ...unavailableGatewayResult(invocation, 'confirmation_required', 'Governed supervisor writes require an explicit reviewed confirmation.'),
+    state: 'denied',
+    policy_class: invocation?.policy_class || 'confirm',
+    required_confirmation: true,
+  };
+}
+
+function normalizeDagEventLogEntry(event) {
+  const eventType = String(event?.event_type || 'execution');
+  const declaredLevel = String(event?.level || '');
+  const level = ['error', 'warn', 'info'].includes(declaredLevel)
+    ? declaredLevel
+    : /error|fail/i.test(eventType) ? 'error' : /warn/i.test(eventType) ? 'warn' : 'info';
+  return {
+    log_id: event?.event_cid || event?.cid || '',
+    level,
+    message: typeof event?.message === 'string' && event.message
+      ? event.message
+      : typeof event?.summary === 'string' && event.summary
+        ? event.summary
+        : `${eventType} event recorded in the mediated ipfs_accelerate_py event DAG.`,
+    created_at: event?.timestamp || event?.created_at || null,
+    scope: typeof event?.scope === 'string' && event.scope ? event.scope : 'supervisor',
+    target_id: event?.target_id || event?.task_cid || event?.goal_cid || '',
+    redacted: event?.redacted === true,
+  };
+}
+
+// Mirrors scripts/mcpplusplus-profile-a.cjs isContentCid (the artifact
+// store's own acceptance rule for artifact CIDs).
+function isContentCid(value) {
+  return typeof value === 'string' && /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{58})$/.test(value);
+}
+
+// Mirrors scripts/mcpplusplus-profile-a.cjs stableStringify so the receipt
+// bytes persisted here are canonical.
+function stableStringifyValue(value) {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableStringifyValue).join(',')}]`;
+  return `{${Object.keys(value).sort().filter(key => value[key] !== undefined).map(key => `${JSON.stringify(key)}:${stableStringifyValue(value[key])}`).join(',')}}`;
+}
+
+// CIDv1 raw + sha2-256, base32-lower — mirrors cidForBytes in
+// scripts/mcpplusplus-profile-a.cjs, which the kit artifact store verifies
+// byte-for-byte on POST /mcp/artifacts/put.
+async function contentCidForBytes(bytes) {
+  const digest = new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', bytes));
+  const cidBytes = new Uint8Array(4 + digest.length);
+  cidBytes.set([0x01, 0x55, 0x12, 0x20], 0);
+  cidBytes.set(digest, 4);
+  return `b${base32Lower(cidBytes)}`;
+}
+
+function base32Lower(bytes) {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz234567';
+  let result = '';
+  let accumulator = 0;
+  let bits = 0;
+  for (const byte of bytes) {
+    accumulator = (accumulator << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      result += alphabet[(accumulator >> (bits - 5)) & 31];
+      bits -= 5;
+    }
+  }
+  if (bits > 0) result += alphabet[(accumulator << (5 - bits)) & 31];
+  return result;
+}
+
+function base64ForBytes(bytes) {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
 }
 
 const PROFILE_G_GATEWAY_READS = Object.freeze({

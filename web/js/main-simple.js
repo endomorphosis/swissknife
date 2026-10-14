@@ -1730,11 +1730,11 @@ class SwissKnifeDesktop {
 
     async createGeneratedServiceSurface(contentElement, appId) {
         if (appId === 'datasets-browser') {
-            this.createDatasetsBrowserSurface(contentElement);
+            await this.createDatasetsBrowserSurface(contentElement);
             return;
         }
         if (appId === 'accelerate-panel') {
-            this.createAcceleratePanelSurface(contentElement);
+            await this.createAcceleratePanelSurface(contentElement);
             return;
         }
         if (appId === 'idl-explorer') {
@@ -1829,21 +1829,9 @@ class SwissKnifeDesktop {
         `;
     }
 
-    createDatasetsBrowserSurface(contentElement) {
-        const datasetCid = 'bafydatasetg048customerintent';
-        const schemaCid = 'bafydatasetg048schema';
-        const filterCid = 'bafydatasetg048filter';
-        const semanticCid = 'bafydatasetg048semanticresults';
-        const provenanceCid = 'bafydatasetg048provenance';
-        const preparationCid = 'bafydatasetg048preparationjob';
-        const errorCid = 'bafydatasetg048schemaerror';
-        const progressCid = 'bafydatasetg048progress';
-        const catalogReceipt = 'receipt:datasets-browser:g048:catalog:loaded';
-        const semanticReceipt = 'receipt:datasets-browser:g048:semantic:primary';
-        const provenanceReceipt = 'receipt:datasets-browser:g048:provenance:recorded';
-        const preparationReceipt = 'receipt:datasets-browser:g048:preparation:queued';
-        const schemaErrorReceipt = 'receipt:datasets-browser:g048:error:schema-validation';
-        const progressReceipt = 'receipt:datasets-browser:g048:progress:updated';
+    async createDatasetsBrowserSurface(contentElement) {
+        const { invokeDescriptorOperation, renderEnvelopeHTML } = await import('./core/mcp-descriptor-registry.js');
+        const datasetId = 'customer-support-intents';
 
         contentElement.innerHTML = `
             <div class="generated-service-surface generated-mcp-app datasets-browser-workflow"
@@ -1854,40 +1842,39 @@ class SwissKnifeDesktop {
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
                     <div style="min-width:220px; flex:1;">
                         <h2 style="margin:0 0 6px; font-size:22px;">IPFS Datasets Browser</h2>
-                        <p style="margin:0; color:#b6c2cf;">Dataset catalog, semantic search, provenance, preparation jobs, schema filters, error recovery, and progress receipts are governed through ipfs_datasets_py descriptors.</p>
+                        <p style="margin:0; color:#b6c2cf;">Dataset catalog, semantic search, provenance, preparation jobs, schema filters, error recovery, and progress are invoked through ipfs_datasets_py descriptors via the app capability gateway. Nothing on this surface is pre-computed: every status below reports a gateway envelope returned in this session, or states plainly that the operation has not run yet.</p>
                     </div>
-                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G048 ready</span>
+                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G048</span>
                 </div>
 
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px;">
                     <section data-svd-vda-marker="dataset-cid" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Dataset CID</h3>
+                        <h3 style="margin:0 0 8px; font-size:15px;">Dataset</h3>
                         <div style="display:grid; gap:6px; color:#c6d1dc; font-size:13px;">
-                            <span>Selected dataset: customer-support-intents</span>
-                            <span>Dataset CID: ${datasetCid}</span>
-                            <span>Catalog receipt: ${catalogReceipt}</span>
+                            <span>Selected dataset: ${datasetId}</span>
                             <span>Descriptor: ipfs_datasets_py.list_datasets -> ipfs.datasets.operation.list_datasets</span>
+                            <span id="datasets-catalog-status">Catalog identity is reported by gateway envelopes (Search, Provenance, Prepare); this surface asserts no dataset CID of its own.</span>
                         </div>
                     </section>
 
                     <section data-svd-vda-marker="semantic-operation" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
                         <h3 style="margin:0 0 8px; font-size:15px;">Semantic Operation</h3>
                         <div id="datasets-semantic-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Primary semantic_search query "refund policy escalation" targets ${datasetCid}, top_k 5, filter language=en and split=train. Result CID: ${semanticCid}. ${semanticReceipt}.
+                            semantic_search has not run yet in this session. Search invokes ipfs.datasets.operation.semantic_search ("refund policy escalation", top_k 5) with the staged filters.
                         </div>
                     </section>
 
                     <section data-svd-vda-marker="provenance-operation" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
                         <h3 style="margin:0 0 8px; font-size:15px;">Provenance Operation</h3>
                         <div id="datasets-provenance-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            record_provenance links ${datasetCid}, ${semanticCid}, operator did:key:zDatasetG048, and event:datasets-browser:g048:semantic-query. Provenance CID: ${provenanceCid}. ${provenanceReceipt}.
+                            record_provenance has not run yet in this session. It is a governed write and is invoked with execution_mode "confirmed" only when Provenance is chosen.
                         </div>
                     </section>
 
                     <section data-svd-vda-marker="preparation-job" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
                         <h3 style="margin:0 0 8px; font-size:15px;">Preparation Job</h3>
                         <div id="datasets-preparation-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Preparation job dataset-prep-g048 normalizes schema, builds vector_index, pins shards, and records progress. Job CID: ${preparationCid}. ${preparationReceipt}.
+                            No preparation job has been invoked yet in this session. Prepare invokes the descriptor index operation with execution_mode "confirmed".
                         </div>
                     </section>
 
@@ -1906,23 +1893,22 @@ class SwissKnifeDesktop {
                                     <option value="validation">validation</option>
                                 </select>
                             </label>
-                            <span>Schema CID: ${schemaCid}</span>
-                            <span>Filter CID: ${filterCid}</span>
+                            <span>Selections are staged locally and sent as semantic_search filters when Search runs.</span>
                         </div>
                     </section>
 
                     <section data-svd-vda-marker="error-ui" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
                         <h3 style="margin:0 0 8px; font-size:15px;">Schema Error Recovery</h3>
                         <div id="datasets-error-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Invalid filter field customer.password was rejected before transport with schema error ${errorCid}; recovery keeps descriptor fallback visible and links ${schemaErrorReceipt}.
+                            Filter validation runs locally before transport. Recover Error demonstrates the rejection of an unsupported filter field; invalid input is never sent to a backend.
                         </div>
                     </section>
 
                     <section data-svd-vda-marker="progress-ui" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
                         <h3 style="margin:0 0 8px; font-size:15px;">Progress</h3>
                         <div style="display:grid; gap:8px; color:#c6d1dc; font-size:13px;">
-                            <progress id="datasets-progress-bar" value="72" max="100" aria-label="Dataset preparation progress" style="width:100%;"></progress>
-                            <span id="datasets-progress-status" role="status" aria-live="polite">72% complete, 18 shards indexed, event frontier ${progressCid}. ${progressReceipt}.</span>
+                            <progress id="datasets-progress-bar" max="100" aria-label="Dataset preparation progress" style="width:100%;"></progress>
+                            <span id="datasets-progress-status" role="status" aria-live="polite">No sync_status read yet in this session; the bar stays indeterminate until a gateway envelope reports progress.</span>
                         </div>
                     </section>
                 </div>
@@ -1936,14 +1922,9 @@ class SwissKnifeDesktop {
                     <button class="btn btn-small" data-svd-workflow-action="refresh-progress" data-action="refresh-progress" aria-label="Refresh preparation progress">Progress</button>
                 </div>
 
+                <div id="datasets-envelope-result" style="margin-top:14px;"></div>
                 <ol id="datasets-workflow-log" data-svd-vda-marker="receipts" style="margin:14px 0 0; padding-left:22px; color:#c6d1dc; font-size:13px;">
-                    <li>${catalogReceipt} ${datasetCid}</li>
-                    <li>${semanticReceipt} ${semanticCid}</li>
-                    <li>${provenanceReceipt} ${provenanceCid}</li>
-                    <li>${preparationReceipt} ${preparationCid}</li>
-                    <li>${schemaErrorReceipt} ${errorCid}</li>
-                    <li>${progressReceipt} ${progressCid}</li>
-                    <li>event:datasets-browser:g048:semantic-query event:datasets-browser:g048:preparation-progress</li>
+                    <li>No gateway operations have run yet in this session; real envelope outcomes will appear here.</li>
                 </ol>
             </div>
         `;
@@ -1953,8 +1934,12 @@ class SwissKnifeDesktop {
         const preparationStatus = contentElement.querySelector('#datasets-preparation-status');
         const errorStatus = contentElement.querySelector('#datasets-error-status');
         const progressStatus = contentElement.querySelector('#datasets-progress-status');
-        const progressBar = contentElement.querySelector('#datasets-progress-bar');
+        const result = contentElement.querySelector('#datasets-envelope-result');
         const log = contentElement.querySelector('#datasets-workflow-log');
+        const stagedFilters = () => ({
+            schema: contentElement.querySelector('[data-datasets-filter="schema"]')?.value || 'support-intent-v2',
+            split: contentElement.querySelector('[data-datasets-filter="split"]')?.value || 'train',
+        });
 
         const appendLog = (message) => {
             if (!log) return;
@@ -1963,29 +1948,75 @@ class SwissKnifeDesktop {
             log.appendChild(item);
         };
 
-        contentElement.querySelector('[data-svd-workflow-action="run-semantic-search"]')?.addEventListener('click', () => {
-            if (semanticStatus) semanticStatus.textContent = `semantic_search completed against ${datasetCid}; result CID ${semanticCid}; ${semanticReceipt}; event:datasets-browser:g048:semantic-query.`;
-            appendLog(`${semanticReceipt} semantic_search top_k=5 ${semanticCid}`);
+        const runOperation = async (operation, input, { execution_mode, statusEl } = {}) => {
+            try {
+                const envelope = await invokeDescriptorOperation({
+                    descriptor_id: 'ipfs_datasets_py',
+                    operation,
+                    input,
+                    app_id: 'datasets-browser',
+                    execution_mode,
+                    desktop: this,
+                });
+                if (result) result.innerHTML = renderEnvelopeHTML(envelope);
+                const receiptCid = envelope.receipt_refs?.[0]?.receipt_cid || '';
+                const summary = `${operation} ${envelope.status}${envelope.trace?.transport ? ` via ${envelope.trace.transport}` : ''}${receiptCid ? ` receipt ${receiptCid}` : ''}: ${envelope.summary || ''}`;
+                if (statusEl) statusEl.textContent = summary;
+                appendLog(summary);
+                return envelope;
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                if (statusEl) statusEl.textContent = `${operation} could not be invoked: ${message}`;
+                appendLog(`${operation} invocation error: ${message}`);
+                return null;
+            }
+        };
+
+        contentElement.querySelector('[data-svd-workflow-action="run-semantic-search"]')?.addEventListener('click', async () => {
+            const { schema, split } = stagedFilters();
+            await runOperation('semantic_search', {
+                query: 'refund policy escalation',
+                top_k: 5,
+                filters: { language: 'en', split, schema },
+            }, { statusEl: semanticStatus });
         });
-        contentElement.querySelector('[data-svd-workflow-action="record-provenance"]')?.addEventListener('click', () => {
-            if (provenanceStatus) provenanceStatus.textContent = `record_provenance wrote ${provenanceCid} for ${datasetCid} and semantic result ${semanticCid}; ${provenanceReceipt}.`;
-            appendLog(`${provenanceReceipt} record_provenance ${provenanceCid}`);
+        contentElement.querySelector('[data-svd-workflow-action="record-provenance"]')?.addEventListener('click', async () => {
+            const { schema, split } = stagedFilters();
+            await runOperation('record_provenance', {
+                dataset_id: datasetId,
+                metadata: { surface: 'datasets-browser', query: 'refund policy escalation', schema, split },
+            }, { execution_mode: 'confirmed', statusEl: provenanceStatus });
         });
-        contentElement.querySelector('[data-svd-workflow-action="start-preparation-job"]')?.addEventListener('click', () => {
-            if (preparationStatus) preparationStatus.textContent = `Preparation job dataset-prep-g048 queued, vector_index started, progress event frontier ${progressCid}; ${preparationReceipt}.`;
-            appendLog(`${preparationReceipt} preparation job dataset-prep-g048 queued ${preparationCid}`);
+        contentElement.querySelector('[data-svd-workflow-action="start-preparation-job"]')?.addEventListener('click', async () => {
+            const envelope = await runOperation('index', {
+                dataset_id: datasetId,
+            }, { execution_mode: 'confirmed', statusEl: preparationStatus });
+            if (envelope && progressStatus) {
+                progressStatus.textContent = 'Preparation was invoked through the gateway; use Progress to read the live sync_status frontier.';
+            }
         });
         contentElement.querySelector('[data-svd-workflow-action="apply-schema-filter"]')?.addEventListener('click', () => {
-            appendLog(`receipt:datasets-browser:g048:filters:applied ${schemaCid} ${filterCid}`);
+            const { schema, split } = stagedFilters();
+            if (semanticStatus) semanticStatus.textContent = `Filters staged locally: schema=${schema}, split=${split}. They are sent with the next semantic_search invocation; nothing has been sent yet.`;
+            appendLog(`filters staged locally: schema=${schema} split=${split}`);
         });
         contentElement.querySelector('[data-svd-workflow-action="show-schema-error"]')?.addEventListener('click', () => {
-            if (errorStatus) errorStatus.textContent = `Schema error recovery displayed for invalid input customer.password; rejected before transport; ${schemaErrorReceipt}; ${errorCid}.`;
-            appendLog(`${schemaErrorReceipt} invalid input rejected ${errorCid}`);
+            // Local validation only, mirroring the descriptor filter schema:
+            // the staged filter may carry language/split/schema keys only.
+            const stagedFilter = { language: 'en', ...stagedFilters(), customer: { password: 'redacted' } };
+            const supportedKeys = ['language', 'split', 'schema'];
+            const unsupported = Object.keys(stagedFilter).filter(key => !supportedKeys.includes(key));
+            if (errorStatus) errorStatus.textContent = `Local schema validation rejected the staged filter before transport: unsupported field ${unsupported.join(', ') || 'customer.password'} is not part of the semantic_search filter schema. No backend call was made.`;
+            appendLog('local schema validation rejected unsupported filter field customer.password before transport; no backend call made');
         });
-        contentElement.querySelector('[data-svd-workflow-action="refresh-progress"]')?.addEventListener('click', () => {
-            if (progressBar) progressBar.value = 84;
-            if (progressStatus) progressStatus.textContent = `84% complete, 21 shards indexed, progress UI refreshed with ${progressCid}. ${progressReceipt}.`;
-            appendLog(`${progressReceipt} 84% progress ${progressCid}`);
+        contentElement.querySelector('[data-svd-workflow-action="refresh-progress"]')?.addEventListener('click', async () => {
+            const envelope = await runOperation('sync_status', {
+                dataset_id: datasetId,
+            }, { statusEl: progressStatus });
+            const frontier = envelope?.output?.frontier;
+            if (envelope && progressStatus && Array.isArray(frontier)) {
+                progressStatus.textContent += ` Frontier entries reported: ${frontier.length}.`;
+            }
         });
     }
 
@@ -2515,102 +2546,91 @@ class SwissKnifeDesktop {
         });
     }
 
-    createAcceleratePanelSurface(contentElement) {
-        const modelArtifactCid = 'bafyaccelerateg049modelweights';
-        const tokenizerArtifactCid = 'bafyaccelerateg049tokenizer';
-        const policyArtifactCid = 'bafyaccelerateg049evalpolicy';
-        const resultArtifactCid = 'bafyaccelerateg049primaryresult';
-        const queueReceipt = 'receipt:accelerate-panel:g049:queue:accepted';
-        const runReceipt = 'receipt:accelerate-panel:g049:run:primary-execution';
-        const cancelReceipt = 'receipt:accelerate-panel:g049:cancel:queued-job';
-        const recoveryReceipt = 'receipt:accelerate-panel:g049:recovery:no-capacity';
+    async createAcceleratePanelSurface(contentElement) {
+        const { invokeDescriptorOperation, renderEnvelopeHTML } = await import('./core/mcp-descriptor-registry.js');
+        const model = 'sentence-transformers/all-MiniLM-L6-v2';
+        let lastJobId = null;
 
         contentElement.innerHTML = `
             <div class="generated-service-surface generated-mcp-app accelerate-panel-workflow"
                 data-app-id="accelerate-panel"
                 data-service="ipfs_accelerate_py"
-                data-svd-workflow="accelerate-panel.inference-with-hardware-fit"
+                data-svd-workflow="accelerate-panel.hardware-model-queue-recovery"
                 style="height:100%; min-height:0; padding:16px; overflow:auto; background:#101820; color:#f7fafc;">
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
                     <div style="min-width:220px; flex:1;">
                         <h2 style="margin:0 0 6px; font-size:22px;">IPFS Accelerate Panel</h2>
-                        <p style="margin:0; color:#b6c2cf;">Model artifacts, hardware routing, inference queue, and recovery receipts are governed through ipfs_accelerate_py descriptors.</p>
+                        <p style="margin:0; color:#b6c2cf;">Model artifacts, evaluation policy, hardware fit, primary execution, queue state, and recovery probes are invoked through ipfs_accelerate_py descriptors via the app capability gateway. Every status below reports a gateway envelope returned in this session, or states plainly that the operation has not run yet; this surface asserts no run result of its own.</p>
                     </div>
-                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G049 ready</span>
+                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G049</span>
                 </div>
 
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap:12px;">
                     <section data-svd-vda-marker="model-artifacts" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
                         <h3 style="margin:0 0 8px; font-size:15px;">Model Artifacts</h3>
                         <div style="display:grid; gap:6px; color:#c6d1dc; font-size:13px;">
-                            <span>Model: sentence-transformers/all-MiniLM-L6-v2</span>
-                            <span>Weights CID: ${modelArtifactCid}</span>
-                            <span>Tokenizer CID: ${tokenizerArtifactCid}</span>
-                            <span>Result CID: ${resultArtifactCid}</span>
+                            <span>Selected model: ${model} (panel selection)</span>
+                            <span id="accelerate-model-status">list_models has not run yet in this session. Artifacts reports the registered models from the gateway envelope; this surface asserts no artifact CIDs.</span>
                         </div>
                     </section>
 
                     <section data-svd-vda-marker="evaluation-policy" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
                         <h3 style="margin:0 0 8px; font-size:15px;">Evaluation Policy</h3>
                         <div style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Policy CID: ${policyArtifactCid}. Prompts are redacted in receipts, max tokens are capped at 256, destructive operations require confirmation, and artifacts retain provenance.
+                            Governed executions run under the descriptor's policy class with a confirmed execution mode; the gateway enforces policy and confirmation and reports the outcome envelope for every invocation.
                         </div>
                     </section>
 
                     <section data-svd-vda-marker="hardware-fit" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
                         <h3 style="margin:0 0 8px; font-size:15px;">Hardware Fit</h3>
-                        <div style="display:grid; gap:6px; color:#c6d1dc; font-size:13px;">
-                            <span>Selected target: WebGPU preferred, WebNN fallback, CPU recovery.</span>
-                            <span>Fit score: 0.91 for 384-dim embedding workload.</span>
-                            <span>Memory fit: 1.2 GB required / 8 GB available.</span>
+                        <div id="accelerate-hardware-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            hardware_profile has not run yet in this session; no fit score or memory figure is asserted before the gateway responds.
                         </div>
                     </section>
 
                     <section data-svd-vda-marker="primary-execution" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
                         <h3 style="margin:0 0 8px; font-size:15px;">Primary Execution</h3>
                         <div id="accelerate-primary-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Ready to enqueue deterministic inference job accelerate-g049-primary with ${runReceipt}.
+                            run_inference_job has not run yet in this session. Run Inference invokes it with execution_mode "confirmed" and then polls job_status for the returned job; the outcome shown is the gateway's envelope, never a locally claimed completion.
                         </div>
                     </section>
 
                     <section data-svd-vda-marker="queue-log-cancel" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
                         <h3 style="margin:0 0 8px; font-size:15px;">Queue, Log, Cancel</h3>
-                        <div style="display:grid; gap:6px; color:#c6d1dc; font-size:13px;">
-                            <span>Queue job: accelerate-g049-primary accepted with ${queueReceipt}.</span>
-                            <span>Log frontier: log:accelerate-panel:g049:queued, log:accelerate-panel:g049:completed.</span>
-                            <span>Cancellation receipt: ${cancelReceipt}.</span>
+                        <div id="accelerate-queue-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                            Queue state is reported by run_inference_job and job_status envelopes in this session. The ipfs_accelerate_py descriptor exposes no cancellation operation, so Cancel reports that declared disposition instead of fabricating a cancellation.
                         </div>
                     </section>
 
                     <section data-svd-vda-marker="no-capacity-recovery" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
                         <h3 style="margin:0 0 8px; font-size:15px;">No-Capacity Recovery</h3>
                         <div id="accelerate-recovery-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            If WebGPU and WebNN capacity are unavailable, the workflow retries on CPU batch mode and records ${recoveryReceipt}.
+                            Recovery probes read live telemetry through the gateway; no recovery outcome is asserted before an envelope returns.
                         </div>
                     </section>
                 </div>
 
                 <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="btn btn-small" data-svd-workflow-action="launch-primary-execution" data-action="run-inference" aria-label="Run governed inference job">Run Inference</button>
+                    <button class="btn btn-small" data-svd-workflow-action="launch-primary-execution" data-action="run-primary-inference" aria-label="Run primary governed inference job">Run Inference</button>
                     <button class="btn btn-small" data-svd-workflow-action="inspect-model-artifacts" data-action="inspect-artifacts" aria-label="Inspect model artifacts">Artifacts</button>
                     <button class="btn btn-small" data-svd-workflow-action="refresh-hardware-fit" data-action="refresh-hardware" aria-label="Refresh hardware fit">Hardware</button>
-                    <button class="btn btn-small" data-svd-workflow-action="cancel-queued-job" data-action="cancel-job" aria-label="Cancel queued job">Cancel</button>
-                    <button class="btn btn-small" data-svd-workflow-action="recover-no-capacity" data-action="recover-capacity" aria-label="Recover no capacity state">Recover</button>
+                    <button class="btn btn-small" data-svd-workflow-action="cancel-queued-job" data-action="cancel-job" aria-label="Cancel queued inference job">Cancel</button>
+                    <button class="btn btn-small" data-svd-workflow-action="recover-no-capacity" data-action="recover-capacity" aria-label="Recover from no capacity state">Recover</button>
                 </div>
 
-                <ol id="accelerate-workflow-log" data-svd-vda-marker="queue-log-cancel" style="margin:14px 0 0; padding-left:22px; color:#c6d1dc; font-size:13px;">
-                    <li>receipt:accelerate-panel:g049:model-artifacts ${modelArtifactCid}</li>
-                    <li>${queueReceipt}</li>
-                    <li>${runReceipt}</li>
-                    <li>${cancelReceipt}</li>
-                    <li>${recoveryReceipt}</li>
+                <div id="accelerate-envelope-result" style="margin-top:14px;"></div>
+                <ol id="accelerate-workflow-log" data-svd-vda-marker="receipts" style="margin:14px 0 0; padding-left:22px; color:#c6d1dc; font-size:13px;">
+                    <li>No gateway operations have run yet in this session; real envelope outcomes will appear here.</li>
                 </ol>
             </div>
         `;
 
-        const root = contentElement.querySelector('.accelerate-panel-workflow');
+        const modelStatus = contentElement.querySelector('#accelerate-model-status');
+        const hardwareStatus = contentElement.querySelector('#accelerate-hardware-status');
         const primaryStatus = contentElement.querySelector('#accelerate-primary-status');
+        const queueStatus = contentElement.querySelector('#accelerate-queue-status');
         const recoveryStatus = contentElement.querySelector('#accelerate-recovery-status');
+        const result = contentElement.querySelector('#accelerate-envelope-result');
         const log = contentElement.querySelector('#accelerate-workflow-log');
 
         const appendLog = (message) => {
@@ -2620,30 +2640,64 @@ class SwissKnifeDesktop {
             log.appendChild(item);
         };
 
-        root?.querySelector('[data-svd-workflow-action="launch-primary-execution"]')?.addEventListener('click', () => {
-            if (primaryStatus) {
-                primaryStatus.textContent = `Completed accelerate-g049-primary on WebGPU fallback-safe route. Artifact ${resultArtifactCid}. ${runReceipt}.`;
+        const runOperation = async (operation, input, { execution_mode, statusEl } = {}) => {
+            try {
+                const envelope = await invokeDescriptorOperation({
+                    descriptor_id: 'ipfs_accelerate_py',
+                    operation,
+                    input,
+                    app_id: 'accelerate-panel',
+                    execution_mode,
+                    desktop: this,
+                });
+                if (result) result.innerHTML = renderEnvelopeHTML(envelope);
+                const receiptCid = envelope.receipt_refs?.[0]?.receipt_cid || '';
+                const summary = `${operation} ${envelope.status}${envelope.trace?.transport ? ` via ${envelope.trace.transport}` : ''}${receiptCid ? ` receipt ${receiptCid}` : ''}: ${envelope.summary || ''}`;
+                if (statusEl) statusEl.textContent = summary;
+                appendLog(summary);
+                return envelope;
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                if (statusEl) statusEl.textContent = `${operation} could not be invoked: ${message}`;
+                appendLog(`${operation} invocation error: ${message}`);
+                return null;
             }
-            appendLog('log:accelerate-panel:g049:completed primary execution stored result artifact');
-        });
+        };
 
-        root?.querySelector('[data-svd-workflow-action="inspect-model-artifacts"]')?.addEventListener('click', () => {
-            appendLog(`receipt:accelerate-panel:g049:artifact-inspected ${modelArtifactCid} ${tokenizerArtifactCid}`);
-        });
-
-        root?.querySelector('[data-svd-workflow-action="refresh-hardware-fit"]')?.addEventListener('click', () => {
-            appendLog('receipt:accelerate-panel:g049:hardware-fit refreshed WebGPU WebNN CPU route matrix');
-        });
-
-        root?.querySelector('[data-svd-workflow-action="cancel-queued-job"]')?.addEventListener('click', () => {
-            appendLog(`${cancelReceipt} cancel requested for queued standby job accelerate-g049-standby`);
-        });
-
-        root?.querySelector('[data-svd-workflow-action="recover-no-capacity"]')?.addEventListener('click', () => {
-            if (recoveryStatus) {
-                recoveryStatus.textContent = `No-capacity condition recovered through CPU batch fallback and queue drain. ${recoveryReceipt}.`;
+        contentElement.querySelector('[data-svd-workflow-action="launch-primary-execution"]')?.addEventListener('click', async () => {
+            const envelope = await runOperation('run_inference_job', {
+                model,
+                input: 'accelerate panel governed inference',
+                max_tokens: 64,
+            }, { execution_mode: 'confirmed', statusEl: primaryStatus });
+            const jobId = envelope?.output?.job_id;
+            if (jobId) {
+                lastJobId = jobId;
+                await runOperation('job_status', { job_id: jobId }, { statusEl: queueStatus });
+            } else if (queueStatus) {
+                queueStatus.textContent = 'The run_inference_job envelope returned no job_id, so there is no job to poll; queue state is whatever that envelope reported.';
             }
-            appendLog('log:accelerate-panel:g049:recovered no-capacity CPU batch fallback active');
+        });
+        contentElement.querySelector('[data-svd-workflow-action="inspect-model-artifacts"]')?.addEventListener('click', async () => {
+            await runOperation('list_models', { task: 'embedding' }, { statusEl: modelStatus });
+        });
+        contentElement.querySelector('[data-svd-workflow-action="refresh-hardware-fit"]')?.addEventListener('click', async () => {
+            await runOperation('hardware_profile', {}, { statusEl: hardwareStatus });
+        });
+        contentElement.querySelector('[data-svd-workflow-action="cancel-queued-job"]')?.addEventListener('click', async () => {
+            if (!lastJobId) {
+                const message = 'No job has been submitted in this session, and the ipfs_accelerate_py descriptor exposes no cancellation operation; nothing was cancelled.';
+                if (queueStatus) queueStatus.textContent = message;
+                appendLog(message);
+                return;
+            }
+            const envelope = await runOperation('job_status', { job_id: lastJobId }, { statusEl: queueStatus });
+            if (envelope && queueStatus) {
+                queueStatus.textContent += ' Cancellation itself is not exposed by the descriptor; the job state above is the real one.';
+            }
+        });
+        contentElement.querySelector('[data-svd-workflow-action="recover-no-capacity"]')?.addEventListener('click', async () => {
+            await runOperation('telemetry', { window: '5m' }, { statusEl: recoveryStatus });
         });
     }
 

@@ -302,16 +302,20 @@ export class AgentSupervisorApp {
     const availableCount = Object.values(results).filter(isAvailableResult).length;
     if (availableCount === 0) return { ok: false, results, errors };
 
-    const fallback = cloneSnapshot(SAMPLE_SNAPSHOT);
+    // Live mode must never substitute SAMPLE fixtures per capability: a
+    // capability the gateway does not serve contributes an empty list (and
+    // its typed error stays visible in Gateway evidence). SAMPLE_SNAPSHOT
+    // renders only when NO capability is available, which refresh() routes
+    // to the full-fallback branch above instead of this snapshot.
     const snapshot = {
-      health: dataOr(results.health, fallback.health),
-      queue: listDataOr(results.queue, fallback.queue),
-      goals: listDataOr(results.goals, fallback.goals),
-      subgoals: listDataOr(results.subgoals, fallback.subgoals),
-      taskboardLinks: listDataOr(results.taskboardLinks, fallback.taskboardLinks),
-      logs: listDataOr(results.logs, fallback.logs),
-      receipts: listDataOr(results.receipts, fallback.receipts),
-      runHistory: listDataOr(results.runHistory, fallback.runHistory),
+      health: dataOr(results.health, { status: 'unavailable', active_goal_count: 0, queued_task_count: 0, running_task_count: 0, backends: [] }),
+      queue: listDataOr(results.queue, []),
+      goals: listDataOr(results.goals, []),
+      subgoals: listDataOr(results.subgoals, []),
+      taskboardLinks: listDataOr(results.taskboardLinks, []),
+      logs: listDataOr(results.logs, []),
+      receipts: listDataOr(results.receipts, []),
+      runHistory: listDataOr(results.runHistory, []),
       policyAssist: dataOr(results.policyAssist, null),
       semanticGoalAssist: dataOr(results.semanticGoalAssist, null),
     };
@@ -332,7 +336,8 @@ export class AgentSupervisorApp {
 
     try {
       if (this.gateway && typeof this.gateway.invoke === 'function') {
-        return normalizeGatewayResult(invocation, await this.gateway.invoke(invocation));
+        const result = normalizeGatewayResult(invocation, await this.gateway.invoke(invocation));
+        return this.withLocalSteeringPreview(invocation, result);
       }
       if (this.endpoint && typeof fetch === 'function') {
         const response = await fetch(this.endpoint, {
@@ -343,7 +348,7 @@ export class AgentSupervisorApp {
         if (!response.ok) {
           return unavailable(invocation, response.status === 408 ? 'timeout' : 'server_unavailable', `Gateway HTTP ${response.status}`);
         }
-        return normalizeGatewayResult(invocation, await response.json());
+        return this.withLocalSteeringPreview(invocation, normalizeGatewayResult(invocation, await response.json()));
       }
     } catch (error) {
       return unavailable(invocation, 'transport_unavailable', error instanceof Error ? error.message : String(error));
@@ -356,6 +361,23 @@ export class AgentSupervisorApp {
       return localPromptSteeringResult(invocation, this.state.snapshot);
     }
     return unavailable(invocation, 'not_configured', 'No browser gateway transport is configured.');
+  }
+
+  withLocalSteeringPreview(invocation, result) {
+    // The mediated gateway maps no prompt-steering route (a genuine
+    // backend gap: ipfs_accelerate_py's facade exposes Supervisor.steer
+    // but no MCP adapter serves it). A steering DRY RUN is a local,
+    // no-mutation policy preview by design, so it falls back to the
+    // console's local preview; a confirmed submission keeps the
+    // gateway's typed capability_unavailable error and is never
+    // simulated locally.
+    if (invocation.capability_id === 'supervisor.prompt-steering.request'
+      && invocation.payload?.dry_run === true
+      && result.state === 'unavailable'
+      && result.reason === 'capability_unavailable') {
+      return localPromptSteeringResult(invocation, this.state.snapshot);
+    }
+    return result;
   }
 
   ensureSelection() {
@@ -594,6 +616,35 @@ export class AgentSupervisorApp {
     this.container.querySelectorAll('[data-supervisor-focusable]').forEach(item => {
       item.addEventListener('keydown', event => this.handleFocusKey(event));
     });
+    this.container.querySelectorAll('[data-svd-workflow-action]').forEach(button => {
+      button.addEventListener('click', () => {
+        this.handleWorkflowProofAction(button.getAttribute('data-svd-workflow-action'));
+      });
+    });
+  }
+
+  handleWorkflowProofAction(action) {
+    // The VDA-G054 proof actions navigate to the live pane that carries the
+    // evidence each action names; they never fabricate proof data.
+    if (action === 'inspect-goal-graph') {
+      this.update();
+      this.container?.querySelector('.as-goals')?.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+    const tabForAction = {
+      'preview-steering-prompt': 'steering',
+      'confirm-policy': 'steering',
+      'open-taskboard-links': 'active',
+      'track-progress': 'active',
+      'simulate-timeout-reassignment': 'active',
+      'open-receipt-visibility': 'receipts',
+      'inspect-kda-evidence': 'health',
+    };
+    const tab = tabForAction[action];
+    if (!tab) return;
+    this.state.activeTab = tab;
+    this.update();
+    this.container?.querySelector('.as-detail')?.scrollIntoView({ block: 'nearest' });
   }
 
   handleFocusKey(event) {
@@ -1432,9 +1483,16 @@ export class AgentSupervisorApp {
 
   renderVdaG054WorkflowProof() {
     const { snapshot } = this.state;
-    const proof = snapshot.vdaG054 || SAMPLE_SNAPSHOT.vdaG054;
-    const checkpointRefs = Array.isArray(proof?.checkpoint_refs) ? proof.checkpoint_refs : SAMPLE_SNAPSHOT.vdaG054.checkpoint_refs;
-    const receiptRefs = Array.isArray(proof?.receipt_refs) ? proof.receipt_refs : SAMPLE_SNAPSHOT.vdaG054.receipt_refs;
+    // Checkpoint/receipt refs render only when the current snapshot carries
+    // them (the designed full-fallback SAMPLE snapshot does). A live
+    // snapshot carries no vdaG054 refs, so none may be rendered as if live.
+    const proof = snapshot.vdaG054;
+    const checkpointRefs = Array.isArray(proof?.checkpoint_refs) ? proof.checkpoint_refs : [];
+    const receiptRefs = Array.isArray(proof?.receipt_refs) ? proof.receipt_refs : [];
+    const refText = index => {
+      const refs = [checkpointRefs[index], receiptRefs[index]].filter(Boolean);
+      return refs.length ? `${refs.join(' ')} ` : '';
+    };
     const selectedTask = snapshot.queue.find(item => item.task_id === this.state.selectedTaskId) || snapshot.queue[0] || {};
     const review = this.buildSteeringReview();
     const owners = this.contract.owners.map(owner => owner.owner).join(', ');
@@ -1461,35 +1519,35 @@ export class AgentSupervisorApp {
         <div class="as-proof-grid">
           <div data-svd-vda-marker="goal-subgoal-graph">
             <strong>Goal/subgoal graph</strong>
-            <span>${checkpointRefs[0]} ${receiptRefs[0]} ${snapshot.goals.length} goals, ${snapshot.subgoals.length} subgoals, selected ${escapeHtml(this.state.selectedGoalId)} -> ${escapeHtml(this.state.selectedSubgoalId)}.</span>
+            <span>${refText(0)}${snapshot.goals.length} goals, ${snapshot.subgoals.length} subgoals, selected ${escapeHtml(this.state.selectedGoalId)} -> ${escapeHtml(this.state.selectedSubgoalId)}.</span>
           </div>
           <div data-svd-vda-marker="prompt-preview">
             <strong>Prompt preview</strong>
-            <span>${checkpointRefs[1]} ${receiptRefs[1]} normalized target ${escapeHtml(review.normalized_target)}; planned MCP action ${escapeHtml(review.planned_mcp_action.method)}; prompt_log_preview ${escapeHtml(review.prompt_log_preview)}; structured-json-payload.</span>
+            <span>${refText(1)}normalized target ${escapeHtml(review.normalized_target)}; planned MCP action ${escapeHtml(review.planned_mcp_action.method)}; prompt_log_preview ${escapeHtml(review.prompt_log_preview)}; structured-json-payload.</span>
           </div>
           <div data-svd-vda-marker="taskboard-links">
             <strong>Taskboard links</strong>
-            <span>${checkpointRefs[2]} ${receiptRefs[2]} ${taskboardCount} taskboard links include ${escapeHtml((snapshot.taskboardLinks[0]?.url || selectedTask.taskboard_url || '#task/unselected'))}; queue records remain linked to goals and subgoals.</span>
+            <span>${refText(2)}${taskboardCount} taskboard links include ${escapeHtml((snapshot.taskboardLinks[0]?.url || selectedTask.taskboard_url || '#task/unselected'))}; queue records remain linked to goals and subgoals.</span>
           </div>
           <div data-svd-vda-marker="policy-confirmation">
             <strong>Policy confirmation</strong>
-            <span>${checkpointRefs[3]} ${receiptRefs[3]} confirmation_required policy class ${escapeHtml(review.policy_class)} checks ${escapeHtml(review.planned_mcp_action.required_policy_checks.join(', '))}; governed writes stay dry-run or confirmed.</span>
+            <span>${refText(3)}confirmation_required policy class ${escapeHtml(review.policy_class)} checks ${escapeHtml(review.planned_mcp_action.required_policy_checks.join(', '))}; governed writes stay dry-run or confirmed.</span>
           </div>
           <div data-svd-vda-marker="kda-evidence">
             <strong>K/D/A evidence</strong>
-            <span>${checkpointRefs[4]} ${receiptRefs[4]} K ipfs_kit_py task receipts/event DAG; D ipfs_datasets_py goal and policy reasoning; A ipfs_accelerate_py queue, scheduler, and workers; owners ${escapeHtml(owners)}.</span>
+            <span>${refText(4)}K ipfs_kit_py task receipts/event DAG; D ipfs_datasets_py goal and policy reasoning; A ipfs_accelerate_py queue, scheduler, and workers; owners ${escapeHtml(owners)}.</span>
           </div>
           <div data-svd-vda-marker="progress">
             <strong>Progress</strong>
-            <span>${checkpointRefs[5]} ${receiptRefs[5]} progress ${escapeHtml(progressSummary || 'empty queue')}; selected task ${escapeHtml(selectedTask.task_id || 'none')} state ${escapeHtml(selectedTask.status || 'empty')}.</span>
+            <span>${refText(5)}progress ${escapeHtml(progressSummary || 'empty queue')}; selected task ${escapeHtml(selectedTask.task_id || 'none')} state ${escapeHtml(selectedTask.status || 'empty')}.</span>
           </div>
           <div data-svd-vda-marker="timeout-reassignment">
             <strong>Timeout/reassignment</strong>
-            <span>${checkpointRefs[6]} ${receiptRefs[6]} timeout and reassignment path ${escapeHtml(reassignment?.reassignment || 'within lease')}; assignee ${escapeHtml(reassignment?.assignee || 'unassigned')}.</span>
+            <span>${refText(6)}timeout and reassignment path ${escapeHtml(reassignment?.reassignment || 'within lease')}; assignee ${escapeHtml(reassignment?.assignee || 'unassigned')}.</span>
           </div>
           <div data-svd-vda-marker="receipt-visibility">
             <strong>Receipt visibility</strong>
-            <span>${checkpointRefs[7]} ${receiptRefs[7]} ${receiptCount} receipts visible; selected ${escapeHtml(this.state.selectedReceiptId || 'none')}; event-DAG checkpoint and receipt retrieval controls are visible.</span>
+            <span>${refText(7)}${receiptCount} receipts visible; selected ${escapeHtml(this.state.selectedReceiptId || 'none')}; event-DAG checkpoint and receipt retrieval controls are visible.</span>
           </div>
         </div>
       </section>

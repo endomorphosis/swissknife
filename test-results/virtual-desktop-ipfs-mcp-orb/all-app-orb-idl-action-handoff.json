@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.all-app-orb-idl-action-handoff.v1",
   "task_id": "SVD-110",
-  "generated_at": "2026-07-22T00:29:26.606Z",
+  "generated_at": "2026-10-14T08:30:14.335Z",
   "generated_from": [
     "src/services/apps/all-app-executable-backend-contract.ts",
     "src/services/apps/all-app-live-tool-bindings.ts",
