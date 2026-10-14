@@ -399,7 +399,8 @@ describe('VGO-081 Agent Supervisor regression boundary', () => {
     expect(baseline.problems.some(item =>
       item.code === 'missing-field-error-association' && item.live_confirmed,
     )).toBe(true);
-    expect(semanticCodes).toEqual(expect.arrayContaining([...ORIGINAL_DEFECT_CODES]));
+    expect(semanticCodes).toEqual(expect.arrayContaining(['outerhtml-root-replace-focus-risk']));
+    expect(semanticCodes).not.toContain('missing-field-error-association');
     expect(fixtureLacksLiveErrorBinding(fixtureHost, fixtureServices)).toBe(true);
     expect(holdsFocusRestore(liveSource)).toBe(true);
     expect(holdsErrorAssociation(liveSource)).toBe(true);

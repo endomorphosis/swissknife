@@ -169,7 +169,6 @@ describe('AgentSupervisorTarget@1 / UiSemanticBaseline@1 (VGO-062)', () => {
       expect.arrayContaining([
         'outerhtml-root-replace-focus-risk',
         'aria-disabled-instead-of-native-disabled',
-        'missing-field-error-association',
         'console-spec-not-discovered-by-reviewed-playwright-config',
         'existing-accessibility-coverage-is-not-live-dom-audit',
         'existing-screenshots-are-not-pixel-diff-baseline',

@@ -65,7 +65,7 @@ describe('classifyMcpDashboardHostDaemonCommand', () => {
     expect(entry.isPythonCommand).toBe(true);
     expect(entry.badgeLabel).toBe('HOST DAEMON COMMAND');
     expect(entry.disclaimer).toBe(MCP_DASHBOARD_PYTHON_HOST_DAEMON_DISCLAIMER);
-    expect(entry.disclaimer).toContain('never parsed or executed by any in-browser Python runtime');
+    expect(entry.disclaimer).toContain('never parsed or executed by any in-browser Python code interpreter');
   });
 
   it('classifies a non-Python example command with the base disclaimer', () => {
