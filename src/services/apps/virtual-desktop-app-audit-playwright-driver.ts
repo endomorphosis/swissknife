@@ -2,12 +2,12 @@ import { createHash } from 'node:crypto';
 import type { Page, ConsoleMessage, Request } from '@playwright/test';
 import {
   APP_AUDIT_VIEWPORTS,
-  resolveVirtualDesktopAppId,
   type AppAuditConsoleMessage,
   type AppAuditFailedRequest,
   type AppAuditScreenshotViewport,
   type VirtualDesktopAppAuditDriver,
 } from './virtual-desktop-app-audit-runner.js';
+import { resolveVirtualDesktopAppId } from './virtual-desktop-app-manifest.js';
 
 // Re-export so callers only need this module for the real-browser driver.
 export { resolveVirtualDesktopAppId };
@@ -142,12 +142,19 @@ export class PlaywrightVirtualDesktopAppAuditDriver implements VirtualDesktopApp
     try {
       const closed = await this.page.evaluate((id: string) => {
         const desktop = (window as unknown as {
-          desktop: { windows: Map<string, { element: HTMLElement }>; closeWindow(el: HTMLElement): void };
+          desktop: { windows: Map<string, { element: HTMLElement }> };
         }).desktop;
         const entry = desktop.windows.get(id);
         if (!entry) return false;
-        desktop.closeWindow(entry.element);
-        return true;
+        // The served desktop shell (web/js/main-simple.js) exposes no
+        // closeWindow() method; its windows close through the titlebar
+        // control, which removes the window from the tracking map. Use that
+        // same path (it is also what the shell's own in-window Close buttons
+        // invoke) instead of calling a method the shell does not provide.
+        const closeButton = entry.element.querySelector<HTMLElement>('.window-control.close');
+        if (!closeButton) return false;
+        closeButton.click();
+        return !desktop.windows.has(id);
       }, windowId);
       return { closed, durationMs: Date.now() - start };
     } catch (error) {
