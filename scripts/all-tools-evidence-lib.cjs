@@ -21,6 +21,7 @@ const {
 const { getEventDagService } = require('./mcpplusplus-event-dag.cjs');
 const { PROFILE_H_METHODS, ProfileHAdapterError, createProfileHAdapter } = require('./mcpplusplus-profile-h-adapter.cjs');
 const { PROFILE_G_METHODS, PROFILE_G_REST_PATH, ProfileGAdapterError, createHttpProfileGAdapter } = require('./mcpplusplus-profile-g-adapter.cjs');
+const { STEERING_METHOD, SupervisorSteeringError, createSupervisorSteeringBridge } = require('./mcpplusplus-supervisor-steering.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const WORKSPACE_ROOT = path.resolve(REPO_ROOT, '..');
@@ -1961,6 +1962,7 @@ function startAccelerateCompatServer(options = {}) {
   const eventDag = getEventDagService('ipfs_accelerate_py');
   const profileH = createProfileHAdapter({ service: 'ipfs_accelerate_py' });
   const profileG = createHttpProfileGAdapter({ service: 'ipfs_accelerate_py', upstream });
+  const steering = createSupervisorSteeringBridge({ workspaceRoot: WORKSPACE_ROOT });
   const profileAPersistence = new Map();
 
   async function healthPayload() {
@@ -2154,6 +2156,10 @@ function startAccelerateCompatServer(options = {}) {
           try { return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, result: await profileG.call(payload.method, payload.params ?? {}) }); }
           catch (error) { return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, error: { code: error instanceof ProfileGAdapterError ? error.code : -32603, message: error instanceof Error ? error.message : String(error), data: error instanceof ProfileGAdapterError ? error.data : {} } }); }
         }
+        if (payload.method === STEERING_METHOD) {
+          try { return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, result: await steering.call(payload.params ?? {}) }); }
+          catch (error) { return sendJson(res, 200, { jsonrpc: '2.0', id: payload.id ?? null, error: { code: error instanceof SupervisorSteeringError ? error.code : -32603, message: error instanceof Error ? error.message : String(error), data: error instanceof SupervisorSteeringError ? error.data : {} } }); }
+        }
         if (payload.method.startsWith('mcp++/dag/')) {
           return sendJson(res, 200, {
             jsonrpc: '2.0',
@@ -2209,6 +2215,7 @@ function startAccelerateCompatServer(options = {}) {
   server.listen(port, host, () => {
     console.log(`ipfs_accelerate_py compatibility MCP adapter listening on http://${host}:${port}`);
     console.log(`proxy upstream: ${upstream}`);
+    steering.warm();
   });
   return server;
 }

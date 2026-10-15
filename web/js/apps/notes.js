@@ -1053,7 +1053,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
         <div class="workflow-head">
           <div>
             <h3>VDA-G039 provenance-rich notes workflow</h3>
-            <p>Note CIDs, semantic_search retrieval, provenance ledger, summary job, conflict recovery, and keyboard-safe editing.</p>
+            <p>Note CIDs, semantic_search retrieval, provenance ledger, summary job, conflict recovery, and keyboard-safe editing. Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
           </div>
           <span class="workflow-status" role="status" aria-live="polite" id="vda-g039-status">Status: ${this.escapeHtml(state.status)}</span>
         </div>

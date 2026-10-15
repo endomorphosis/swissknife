@@ -997,7 +997,7 @@ export class CalendarApp {
         <div class="workflow-head">
           <div>
             <h3>VDA-G035 governed calendar workflow</h3>
-            <p>Artifact-backed events, semantic_search retrieval, reminder receipts, conflict handling, and compact mobile summary.</p>
+            <p>Artifact-backed events, semantic_search retrieval, reminder receipts, conflict handling, and compact mobile summary. Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
           </div>
           <span class="workflow-status" role="status" aria-live="polite" id="vda-g035-status">Status: ${this.escapeHtml(state.status)}</span>
         </div>

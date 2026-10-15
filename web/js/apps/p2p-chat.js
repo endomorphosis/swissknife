@@ -1105,6 +1105,7 @@ export class P2PChatApp {
   renderLegacyWorkflowPanel() {
     return `
       <section class="legacy-workflow-panel" data-svd-workflow="p2p-chat.legacy-alias-pubsub-migration" aria-label="Legacy P2P Chat workflow evidence">
+        <p class="legacy-evidence-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
         <div class="legacy-workflow-actions">
           <button type="button" data-svd-primary-control="p2p-chat-legacy-primary" data-svd-workflow-action="document-legacy-alias" onclick="window.p2pChatInstances?.['${this.instanceId}']?.documentLegacyAlias()">
             Legacy alias

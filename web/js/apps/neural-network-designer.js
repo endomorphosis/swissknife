@@ -755,7 +755,7 @@ export class NeuralNetworkDesignerApp {
           <div class="vda-g031-header">
             <div>
               <h3>VDA-G031 Neural Network Workflow</h3>
-              <p>Graph artifact, data contract validation, compile/train planning, invalid edge feedback, and result receipts.</p>
+              <p>Graph artifact, data contract validation, compile/train planning, invalid edge feedback, and result receipts. Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
             </div>
             <button class="btn btn-primary workflow-primary" data-svd-workflow="${VDA_G031_WORKFLOW}" data-svd-workflow-action="generate-graph-artifacts" onclick="window.neuralDesignerApp?.runVdaG031Workflow()">Build VDA-G031 graph artifacts</button>
           </div>

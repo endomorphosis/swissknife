@@ -364,9 +364,9 @@ export class AgentSupervisorApp {
   }
 
   withLocalSteeringPreview(invocation, result) {
-    // The mediated gateway maps no prompt-steering route (a genuine
-    // backend gap: ipfs_accelerate_py's facade exposes Supervisor.steer
-    // but no MCP adapter serves it). A steering DRY RUN is a local,
+    // The mediated gateway now serves a real prompt-steering route
+    // (console -> gateway -> accelerate adapter -> Python bridge ->
+    // production Supervisor.steer). A steering DRY RUN is still a local,
     // no-mutation policy preview by design, so it falls back to the
     // console's local preview; a confirmed submission keeps the
     // gateway's typed capability_unavailable error and is never
@@ -1230,7 +1230,7 @@ export class AgentSupervisorApp {
             ${metric('Receipt', result.receipt?.receipt_id || 'pending')}
             ${metric('CID', result.receipt?.cid || 'pending')}
             ${metric('Accepted', String(result.accepted))}
-            ${metric('Mode', result.dry_run ? 'dry-run' : 'confirmed')}
+            ${metric('Mode', (() => { const local = typeof result.receipt?.receipt_id === 'string' && result.receipt.receipt_id.startsWith('rcpt-prompt-steering-'); return result.dry_run ? (local ? 'dry-run (local preview)' : 'dry-run') : (local ? 'confirmed — local preview, no backend call' : 'confirmed'); })())}
             ${metric('Policy', result.policy_class || 'unknown')}
             ${metric('Policy effect', result.policy_effects?.outcome || 'reviewed')}
             ${metric('Budget', result.policy_effects?.budget || 'not reported')}

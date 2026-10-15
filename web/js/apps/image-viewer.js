@@ -213,6 +213,7 @@ export class ImageViewerApp {
       <section class="sidebar-section image-workflow" data-svd-workflow="${escapeHTML(state.workflowId)}" aria-label="VDA-G038 Image Viewer workflow">
         <div class="section-header">
           <h4>VDA-G038 Workflow</h4>
+          <p class="workflow-evidence-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
         </div>
         <div class="workflow-grid">
           <article class="workflow-card" data-svd-vda-marker="cid-retrieval" data-retrieval-state="${escapeHTML(state.retrievalState)}">

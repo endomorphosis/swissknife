@@ -1050,7 +1050,7 @@ export class ClockApp {
         <div class="clock-workflow-head">
           <div>
             <h3>VDA-G034 governed clock workflow</h3>
-            <p>Timer receipt, reminder policy, scheduling state, permission recovery, and accurate compact UI.</p>
+            <p>Timer receipt, reminder policy, scheduling state, permission recovery, and accurate compact UI. Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
           </div>
           <span class="clock-workflow-status" id="vda-g034-status" role="status" aria-live="polite">Status: ${this.escapeHtml(state.status)}</span>
         </div>

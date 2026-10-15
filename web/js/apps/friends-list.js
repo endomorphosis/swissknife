@@ -640,6 +640,7 @@ export class FriendsListApp {
           <div>
             <h3>VDA-G037 workflow</h3>
             <p>${this.escapeHtml(this.vdaG037.workflowId)}</p>
+            <p class="workflow-evidence-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
           </div>
           <span id="friends-workflow-action-state" class="workflow-state" role="status" aria-live="polite">${this.escapeHtml(this.vdaG037.selectedAction)}</span>
         </div>

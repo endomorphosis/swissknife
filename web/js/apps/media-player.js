@@ -226,6 +226,7 @@ class MediaPlayer {
                         <div>
                             <span class="vda-kicker">VDA-G040</span>
                             <h3>CID Audio Workflow</h3>
+                            <p class="vda-evidence-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
                         </div>
                         <span class="vda-status" data-playback-state="playing" data-cid-media-state="retrieved">CID media ready</span>
                     </div>

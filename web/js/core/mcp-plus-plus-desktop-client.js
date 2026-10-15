@@ -310,6 +310,7 @@ export class MCPPlusPlusDesktopClient {
         if (invocation?.capability_id === 'supervisor.content.retrieve') return this.invokeSupervisorContentRetrieve(invocation);
         if (invocation?.capability_id === 'supervisor.receipts.persist') return this.invokeSupervisorReceiptPersist(invocation);
         if (invocation?.capability_id === 'supervisor.event-dag.checkpoint') return this.invokeSupervisorEventDagCheckpoint(invocation);
+        if (invocation?.capability_id === 'supervisor.prompt-steering.request') return this.invokeSupervisorPromptSteering(invocation);
         if (invocation?.capability_id !== 'supervisor.health.read') return unavailableGatewayResult(invocation, 'capability_unavailable', 'The requested Supervisor gateway capability is not mapped.');
         const services = await this.inspectAll();
         const available = services.filter(service => service.available);
@@ -518,6 +519,87 @@ export class MCPPlusPlusDesktopClient {
     } catch (error) {
       return unavailableGatewayResult(invocation, 'persistence_failed', messageFor(error));
     }
+  }
+
+  // Prompt steering is owned by the ipfs_accelerate_py agent supervisor:
+  // the facade's Supervisor.steer, published as the prompt-lifecycle tool
+  // agent_supervisor_steer (ASE3-011) and served by the accelerate compat
+  // adapter's steering bridge, which hosts the one long-lived Supervisor
+  // session that tool requires. Governance mirrors the other governed
+  // writes: dry runs are NOT executed (the console previews them locally;
+  // the typed capability_unavailable result below is what engages that
+  // preview), and a confirmed submission without the console's reviewed
+  // confirmation token is denied here, before any backend call. Backend
+  // failures surface with the backend's own message; nothing is simulated.
+  async invokeSupervisorPromptSteering(invocation) {
+    const payload = invocation.payload || {};
+    if (payload.dry_run === true) {
+      return unavailableGatewayResult(invocation, 'capability_unavailable', 'Prompt steering dry runs are previewed locally by the console; the backend route executes confirmed submissions only.');
+    }
+    const denial = supervisorGovernedWriteDenial(invocation);
+    if (denial) return denial;
+    const prompt = String(payload.prompt || '').trim();
+    if (!prompt) {
+      return unavailableGatewayResult(invocation, 'invalid_target', 'Prompt steering requires prompt text.');
+    }
+    const targetType = payload.target_type || 'task';
+    const targetId = String(payload.target_id || '');
+    const normalizedTarget = payload.expected_normalized_target || `${targetType}:${targetId}`;
+    let outcome;
+    try {
+      outcome = await this.rpc('ipfs_accelerate_py', 'agent_supervisor.prompt_steering.request', {
+        prompt,
+        target_type: targetType,
+        target_id: targetId,
+        normalized_target: normalizedTarget,
+        client_request_id: payload.client_request_id || null,
+        correlation_id: invocation.correlation_id || null,
+      });
+    } catch (error) {
+      return unavailableGatewayResult(invocation, 'server_unavailable', messageFor(error));
+    }
+    if (!outcome || outcome.ok !== true) {
+      return unavailableGatewayResult(invocation, 'server_unavailable', outcome?.error || 'The ipfs_accelerate_py supervisor session did not accept the steering request.');
+    }
+    const observation = outcome.result || {};
+    const values = observation.values || {};
+    const steeringCid = String(values.steering_prompt_cid || '');
+    const receipt = {
+      receipt_id: `rcpt-steer-${steeringCid || observation.run_id || payload.client_request_id || 'unknown'}`,
+      cid: steeringCid || null,
+      owner: 'ipfs_accelerate_py',
+      action: 'agent_supervisor.prompt_steering.request',
+      target: normalizedTarget,
+      run_id: observation.run_id || null,
+      created_at: new Date().toISOString(),
+    };
+    return {
+      state: 'available', capability_id: invocation.capability_id, owner: invocation.owner,
+      correlation_id: invocation.correlation_id, observed_at: new Date().toISOString(),
+      data: {
+        request_id: payload.client_request_id || receipt.receipt_id,
+        correlation_id: invocation.correlation_id || null,
+        accepted: true,
+        dry_run: false,
+        normalized_target: normalizedTarget,
+        policy_class: invocation.policy_class || 'confirm',
+        affected_task_ids: targetType === 'task' && targetId ? [targetId] : [],
+        planned_mcp_action: null,
+        policy_effects: null,
+        receipt,
+        event_dag: steeringCid ? {
+          event_id: `evt-steer-${steeringCid}`,
+          cid: steeringCid,
+          receipt_cid: steeringCid,
+          owner: 'ipfs_accelerate_py',
+          event_type: 'prompt-steering-confirmed',
+          created_at: receipt.created_at,
+        } : null,
+        supervisor_observation: observation,
+        post_status: outcome.post_status || null,
+      },
+      receipt,
+    };
   }
 
   async request(url, options = {}) {

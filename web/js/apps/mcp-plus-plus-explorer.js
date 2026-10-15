@@ -220,6 +220,7 @@ export class MCPPlusPlusExplorerApp {
         <div class="mcppp-section-heading">
           <h3>VDA-G053 Diagnostics</h3>
           <span>peer, Event DAG, policy, scheduling, transports</span>
+          <p class="mcppp-evidence-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
         </div>
         <div class="mcppp-vda-grid">
           <article data-svd-vda-marker="peer-diagnostics">

@@ -638,7 +638,7 @@ export class UnifiedP2PChatApp {
     return `
       <section class="workflow-card">
         <h3>${VDA_ID} unified chat workflow</h3>
-        <p class="workflow-summary">Pubsub delivery, offline queue replay, moderation context, receipt visibility, audio fallback, and clear offline recovery are active.</p>
+        <p class="workflow-summary">Pubsub delivery, offline queue replay, moderation context, receipt visibility, audio fallback, and clear offline recovery are active. Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
         <div class="workflow-actions">
           <button type="button" class="primary-action" data-chat-action="send-pubsub" data-svd-workflow-action="publish-pubsub-message">Publish pubsub delivery</button>
           <button type="button" data-chat-action="queue-offline" data-svd-workflow-action="queue-offline-delivery">Queue offline delivery</button>

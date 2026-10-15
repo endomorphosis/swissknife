@@ -382,7 +382,7 @@ export class PeerTubeApp {
         <div class="workflow-header">
           <div>
             <h3>VDA-G036 governed playback</h3>
-            <p>CID playback, captions, diagnostics, buffering recovery, missing-content recovery, and media fallback.</p>
+            <p>CID playback, captions, diagnostics, buffering recovery, missing-content recovery, and media fallback. Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
           </div>
           <span class="workflow-badge">${state.vdaId}</span>
         </div>
