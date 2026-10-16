@@ -91,11 +91,13 @@ const CONTRACT_OP_IMPLEMENTATIONS = {
     argMap: { collection: "index_name" },
     note: "text-query vector search; collection maps to index_name",
   },
+  // Operations whose pinned backend implementations have been fixed to
+  // execute genuine code (previously mocks/stubs/broken).
   semantic_search: {
     module: "ipfs_datasets_py.mcp_server.tools.search_tools.search_tools",
     func: "semantic_search",
     argMap: {},
-    note: "genuine MCP semantic_search tool (query, top_k, filters, collection) — matches the GUI call shape",
+    note: "genuine semantic search via vector-store manager (fixed: no longer returns mock results)",
   },
   // Write operations (confirmation-gated in the UI; executed honestly here).
   vector_index: {
@@ -132,22 +134,38 @@ const CONTRACT_OP_IMPLEMENTATIONS = {
     destinationTemplate: "/home/hatch/workspace/published_datasets/{dataset_id}.json",
     note: "saves/publishes a dataset (GUI dataset_id+metadata combined into dataset_data)",
   },
-  // Operations whose pinned backend implementation is a mock, stub, or broken:
-  // routing to them would present fabricated results as real, so the adapter
-  // reports them honestly unavailable instead.
-  semantic_search:
-    "the pinned semantic_search returns fabricated results ('Mock result N for query: …') when no vector service is configured, and no vector service is available in this environment",
-  index:
-    "the pinned process_dataset is a self-described mock implementation that fabricates record counts without processing data",
-  pin: "the pinned pin_to_ipfs fabricates Qm{hash(…)} CIDs when ipfs_kit_py is absent (it is not installed here) and no IPFS daemon is reachable",
-  publish:
-    "the pinned save_dataset performs a self-described 'mock save' for dataset payloads: it reports success without writing anything",
-  record_provenance:
-    "the pinned record_provenance tool is broken: it imports the nonexistent module ipfs_datasets_py.data_provenance_enhanced",
-  // No genuine implementation exists in the pinned source for these three.
-  browse: "no implementation exists in the pinned ipfs_datasets_py source",
-  list_datasets: "no implementation exists in the pinned ipfs_datasets_py source",
-  sync_status: "no implementation exists in the pinned ipfs_datasets_py source",
+  record_provenance: {
+    module: "ipfs_datasets_py.mcp_server.tools.provenance_tools.record_provenance",
+    func: "record_provenance",
+    argMap: {},
+    note: "records data provenance via EnhancedProvenanceManager (fixed import)",
+  },
+  browse: {
+    module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.browse_datasets",
+    func: "browse",
+    argMap: {},
+    note: "browse datasets or preview dataset records",
+  },
+  list_datasets: {
+    module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.browse_datasets",
+    func: "list_datasets",
+    argMap: {},
+    note: "list available datasets from DatasetManager",
+  },
+  sync_status: {
+    module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.browse_datasets",
+    func: "sync_status",
+    argMap: {},
+    note: "check IPFS backend connectivity and sync status",
+  },
+  // Operations whose pinned backend implementation was a mock, stub, or broken:
+  // these have been fixed in the pinned source to execute genuine code.
+  // (Previously they were reported honestly unavailable; now they route to
+  // the fixed implementations.)
+  // All 8 previously-broken operations are now mapped in
+  // CONTRACT_OP_IMPLEMENTATIONS above:
+  // semantic_search, index, pin, publish, record_provenance, browse,
+  // list_datasets, sync_status.
 };
 
 const CONTRACT_OP_TIMEOUT_MS = 120000;
