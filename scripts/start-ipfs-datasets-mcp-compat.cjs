@@ -451,9 +451,15 @@ function callContractPython(impl, args) {
     if (renamed[key] === undefined) renamed[key] = value;
   }
   if (impl.destinationTemplate && renamed.destination === undefined) {
-    renamed.destination = String(impl.destinationTemplate).replace(/\{(\w+)\}/g, (_, k) =>
-      renamed[k] !== undefined ? String(renamed[k]).replace(/[^a-zA-Z0-9._-]/g, "_") : "unknown"
-    );
+    renamed.destination = String(impl.destinationTemplate).replace(/\{(\w+)\}/g, (_, k) => {
+      // Check direct args first, then inside combined objects (e.g. dataset_id
+      // inside dataset_data after combineInto consumed it).
+      let val = renamed[k];
+      if (val === undefined && renamed.dataset_data && typeof renamed.dataset_data === 'object') {
+        val = renamed.dataset_data[k];
+      }
+      return val !== undefined ? String(val).replace(/[^a-zA-Z0-9._-]/g, "_") : "unknown";
+    });
   }
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
