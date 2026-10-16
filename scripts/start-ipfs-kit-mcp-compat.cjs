@@ -587,6 +587,7 @@ async function callKitTool(payload) {
     payload.arguments ??
     payload.args ??
     {};
+  // Meta tools are handled locally (no backend invocation needed).
   if (name === "tools_list_categories") {
     const grouped = groupTools(
       tools.filter((tool) => !META_TOOLS.includes(tool.name)),
@@ -650,20 +651,26 @@ async function callKitTool(payload) {
         receipt: receipt(name, { category, target, status: "not_found" }),
       };
     }
-    return {
-      content: [
-        {
-          type: "json",
-          json: {
-            ok: true,
-            dry_run: Boolean(params?.dry_run || params?.preview),
-            category: found.category,
-            tool: found.name,
-          },
-        },
-      ],
-      receipt: receipt(name, { category: found.category, target: found.name }),
-    };
+    try {
+      const result = await callKitWorker(found.name, params);
+      if (!result.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: result.error || `ipfs_kit_py tool ${target} failed` }],
+          receipt: receipt(name, { category: found.category, target: found.name, status: "error" }),
+        };
+      }
+      return {
+        content: [{ type: "json", json: result.result }],
+        receipt: receipt(name, { category: found.category, target: found.name }),
+      };
+    } catch (error) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `ipfs_kit_py tool ${target} failed: ${error.message}` }],
+        receipt: receipt(name, { category: found.category, target: found.name, status: "error" }),
+      };
+    }
   }
   const found = findTool(null, name);
   if (!found) {
@@ -673,20 +680,201 @@ async function callKitTool(payload) {
       receipt: receipt(name, { status: "not_found" }),
     };
   }
-  return {
-    content: [
-      {
-        type: "json",
-        json: {
-          ok: true,
-          dry_run: true,
-          category: found.category,
-          tool: found.name,
-        },
-      },
-    ],
-    receipt: receipt(name, { category: found.category, target: found.name }),
-  };
+  // Execute the genuine backend implementation via the persistent Python
+  // worker. Never fabricate success: the worker invokes the real
+  // ipfs_kit_py tool and returns its actual result or honest error.
+  try {
+    const result = await callKitWorker(name, args);
+    if (!result.ok) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: result.error || `ipfs_kit_py tool ${name} failed` }],
+        receipt: receipt(name, { category: found.category, target: found.name, status: "error" }),
+      };
+    }
+    return {
+      content: [{ type: "json", json: result.result }],
+      receipt: receipt(name, { category: found.category, target: found.name }),
+    };
+  } catch (error) {
+    return {
+      isError: true,
+      content: [{ type: "text", text: `ipfs_kit_py tool ${name} failed: ${error.message}` }],
+      receipt: receipt(name, { category: found.category, target: found.name, status: "error" }),
+    };
+  }
+}
+
+// Persistent Python worker that holds the real ipfs_kit_py MCP server and
+// executes tool calls against the genuine backend implementations.
+const KIT_WORKER_TIMEOUT_MS = 120000;
+let kitWorkerState = null;
+
+function kitWorkerPython() {
+  const { execFileSync } = require("node:child_process");
+  const candidates = [
+    process.env.PYTHON,
+    path.join(WORKSPACE_ROOT, ".venv", "bin", "python"),
+    path.join(process.env.HOME || "/home/hatch", "workspace", "venvs", "scraping", "bin", "python"),
+    "python3",
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    try {
+      execFileSync(candidate, ["-c", "import sys"], { timeout: 15000, stdio: "ignore" });
+      return candidate;
+    } catch (_error) {
+      // try next
+    }
+  }
+  return "python3";
+}
+
+const KIT_WORKER_CODE = `
+import asyncio
+import inspect
+import json
+import sys
+import traceback
+
+from ipfs_kit_py.mcp.servers.unified_mcp_server import create_mcp_server
+
+_server = create_mcp_server(
+    host="127.0.0.1", port=8014,
+    auto_start_daemons=False, auto_start_lotus_daemon=False,
+    register_all_tools=True,
+)
+_tools = _server.tools or {}
+
+def _invoke(name, args):
+    tool = _tools.get(name)
+    if tool is None:
+        raise RuntimeError(
+            f"tool '{name}' is registered in the adapter manifest but has no "
+            "live implementation in this ipfs_kit_py server instance"
+        )
+    if isinstance(tool, dict):
+        fn = tool.get("func") or tool.get("handler") or tool.get("callable")
+        if fn is None:
+            raise RuntimeError(f"tool '{name}' has no callable implementation")
+        tool = fn
+    if not callable(tool) or inspect.isclass(tool):
+        raise RuntimeError(f"tool '{name}' is not callable")
+    params = dict(args or {})
+    # Most kit tools take a single 'arguments' dict; pass through directly
+    # when the signature declares it, otherwise filter to accepted params.
+    try:
+        sig = inspect.signature(tool)
+        accepted = sig.parameters
+        has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in accepted.values())
+        if "arguments" in accepted and len(accepted) == 1:
+            result = tool(params)
+        elif not has_var_kw:
+            filtered = {k: v for k, v in params.items() if k in accepted}
+            result = tool(**filtered)
+        else:
+            result = tool(**params)
+    except (TypeError, ValueError):
+        result = tool(params)
+    if inspect.isawaitable(result):
+        result = asyncio.run(result)
+    return result
+
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        request = json.loads(line)
+    except Exception as exc:
+        sys.stdout.write(json.dumps({"id": None, "ok": False, "error": "bad request: " + str(exc)}) + "\\n")
+        sys.stdout.flush()
+        continue
+    try:
+        result = _invoke(request["tool"], request.get("args") or {})
+        sys.stdout.write(json.dumps({"id": request.get("id"), "ok": True, "result": result}, default=str) + "\\n")
+    except Exception as exc:
+        sys.stdout.write(json.dumps({
+            "id": request.get("id"),
+            "ok": False,
+            "error": type(exc).__name__ + ": " + str(exc),
+        }, default=str) + "\\n")
+    sys.stdout.flush()
+`;
+
+function ensureKitWorker() {
+  if (kitWorkerState?.child && !kitWorkerState.child.killed) {
+    return kitWorkerState;
+  }
+  const { spawn } = require("node:child_process");
+  const kitRoot = path.join(WORKSPACE_ROOT, "external", "ipfs_kit");
+  const datasetsRoot = path.join(WORKSPACE_ROOT, "external", "ipfs_datasets");
+  const accelerateRoot = path.join(WORKSPACE_ROOT, "external", "ipfs_accelerate");
+  const child = spawn(kitWorkerPython(), ["-u", "-c", KIT_WORKER_CODE], {
+    cwd: WORKSPACE_ROOT,
+    env: {
+      ...process.env,
+      no_proxy: "localhost,127.0.0.1",
+      NO_PROXY: "localhost,127.0.0.1",
+      PYTHONPATH: [kitRoot, datasetsRoot, accelerateRoot, process.env.PYTHONPATH]
+        .filter(Boolean)
+        .join(path.delimiter),
+    },
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  const state = { child, nextId: 1, pending: new Map(), buffer: "" };
+  child.stdout.on("data", (chunk) => {
+    state.buffer += chunk.toString("utf8");
+    let idx;
+    while ((idx = state.buffer.indexOf("\n")) >= 0) {
+      const line = state.buffer.slice(0, idx).trim();
+      state.buffer = state.buffer.slice(idx + 1);
+      if (!line) continue;
+      let msg;
+      try {
+        msg = JSON.parse(line);
+      } catch (_error) {
+        continue;
+      }
+      const waiter = state.pending.get(msg.id);
+      if (waiter) {
+        state.pending.delete(msg.id);
+        clearTimeout(waiter.timer);
+        waiter.resolve(msg);
+      }
+    }
+  });
+  child.stderr.on("data", (chunk) => {
+    console.error(`[kit-contract-worker] ${chunk.toString("utf8").trim()}`);
+  });
+  child.on("exit", (code) => {
+    for (const waiter of state.pending.values()) {
+      clearTimeout(waiter.timer);
+      waiter.resolve({ id: waiter.id, ok: false, error: `kit worker exited (code ${code})` });
+    }
+    state.pending.clear();
+    if (kitWorkerState === state) kitWorkerState = null;
+  });
+  kitWorkerState = state;
+  return state;
+}
+
+function callKitWorker(tool, args) {
+  const state = ensureKitWorker();
+  const id = state.nextId++;
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      state.pending.delete(id);
+      resolve({ id, ok: false, error: `kit worker timed out after ${KIT_WORKER_TIMEOUT_MS}ms` });
+    }, KIT_WORKER_TIMEOUT_MS);
+    state.pending.set(id, { id, timer, resolve });
+    try {
+      state.child.stdin.write(JSON.stringify({ id, tool, args }) + "\n");
+    } catch (error) {
+      state.pending.delete(id);
+      clearTimeout(timer);
+      resolve({ id, ok: false, error: `kit worker write failed: ${error.message}` });
+    }
+  });
 }
 
 function groupTools(items) {
