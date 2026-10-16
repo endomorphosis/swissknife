@@ -1,10 +1,50 @@
 /**
  * Advanced Image Viewer App for SwissKnife Web Desktop
- * CID-backed image viewing, OCR metadata, enhancement workflow, and accessible
+ * CID-backed image viewing, metadata, enhancement workflow, and accessible
  * image state handling.
+ *
+ * Backend contract: image bytes and metadata persist through the genuine
+ * MCP++ desktop client to the ipfs_kit_py artifact store
+ * (POST /mcp/artifacts/put) and are read back via GET /mcp/artifacts/<cid>.
+ * Every backend-mutating POST sits behind an explicit user confirmation step;
+ * backend failures surface verbatim and never fall back to fixtures or
+ * simulated success. Zoom, pan, filters and alt text are honestly local.
  */
 
-import { runMediaArtifactWorkflow } from './media-artifact-capabilities.js';
+import { contentCidForBytes, stableStringifyValue, base64ForBytes } from '../core/mcp-plus-plus-desktop-client.js';
+
+async function backendClient() {
+  const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
+  return clientModule.getMCPPlusPlusDesktopClient();
+}
+
+function bytesFromBase64(b64) {
+  const bin = atob(String(b64 || '').replace(/\s+/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+function guessImageMime(artifact, bytes) {
+  const name = String(artifact?.name || artifact?.filename || '').toLowerCase();
+  const kind = String(artifact?.kind || '').toLowerCase();
+  if (bytes && bytes.length >= 4) {
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png';
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return 'image/gif';
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return 'image/webp';
+  }
+  if (bytes && bytes.length > 64) {
+    const head = new TextDecoder().decode(bytes.slice(0, 64)).trimStart();
+    if (head.startsWith('<svg')) return 'image/svg+xml';
+  }
+  if (/\.png$/.test(name) || kind.includes('png')) return 'image/png';
+  if (/\.(jpe?g)$/.test(name)) return 'image/jpeg';
+  if (/\.gif$/.test(name)) return 'image/gif';
+  if (/\.webp$/.test(name)) return 'image/webp';
+  if (/\.svg$/.test(name)) return 'image/svg+xml';
+  return 'application/octet-stream';
+}
 
 const APP_ID = 'image-viewer';
 
@@ -68,7 +108,7 @@ export class ImageViewerApp {
         <div class="image-toolbar" aria-label="Image Viewer toolbar">
           <div class="toolbar-section">
             <button class="toolbar-btn primary-action" id="open-files-btn" type="button" title="Open image files" aria-label="Open image files">Open</button>
-            <button class="toolbar-btn" id="retrieve-cid-btn" type="button" data-live-gateway-binding="ipfs.kit.tool.ipfs_cat" data-action="retrieve-cid-image" aria-label="Retrieve CID-backed image">Retrieve CID</button>
+            <button class="toolbar-btn" id="retrieve-cid-btn" type="button" data-live-gateway-binding="mcp++:ipfs_kit_py/artifacts/get" data-action="retrieve-cid-image" aria-label="Retrieve CID-backed image">Retrieve CID</button>
             <input type="file" id="image-file-input" accept="image/*" multiple hidden>
           </div>
           <div class="toolbar-section">
@@ -123,10 +163,11 @@ export class ImageViewerApp {
         </div>
 
         <div class="actions-panel" aria-label="Image actions">
-          <button class="action-btn" id="metadata-btn" type="button" data-svd-workflow-action="run-metadata-ocr" aria-label="Run metadata and OCR">Metadata/OCR</button>
-          <button class="action-btn" id="enhance-quality-btn" type="button" data-svd-workflow-action="start-enhancement-job" aria-label="Start optional enhancement job">Enhance</button>
+          <button class="action-btn" id="metadata-btn" type="button" data-svd-workflow-action="run-metadata-ocr" aria-label="Measure local image metadata">Metadata (local)</button>
+          <button class="action-btn" id="publish-btn" type="button" data-svd-workflow-action="publish-image" aria-label="Publish image to ipfs_kit_py">Publish</button>
+          <button class="action-btn" id="enhance-quality-btn" type="button" data-svd-workflow-action="start-enhancement-job" aria-label="Apply local auto-adjust">Enhance (local)</button>
           <button class="action-btn" id="unsupported-format-btn" type="button" data-svd-workflow-action="show-unsupported-format" aria-label="Show unsupported image format state">Unsupported state</button>
-          <button class="action-btn" id="alt-text-btn" type="button" data-svd-workflow-action="refresh-alt-text" aria-label="Refresh alt text state">Alt text</button>
+          <button class="action-btn" id="alt-text-btn" type="button" data-svd-workflow-action="refresh-alt-text" aria-label="Edit alt text">Alt text (local)</button>
         </div>
       </div>
       ${this.renderStyles()}
@@ -209,60 +250,60 @@ export class ImageViewerApp {
 
   renderVdaG038Workflow() {
     const state = this.vdaG038;
+    const published = this.readPublishedIndex();
     return `
       <section class="sidebar-section image-workflow" data-svd-workflow="${escapeHTML(state.workflowId)}" aria-label="VDA-G038 Image Viewer workflow">
         <div class="section-header">
           <h4>VDA-G038 Workflow</h4>
-          <p class="workflow-evidence-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
+          <p class="workflow-note">Retrieval and publishing run against the live ipfs_kit_py backend; every CID shown comes from a real artifacts/put or artifacts/get call. Zoom, filters and alt text are local. Backend writes ask for confirmation first.</p>
         </div>
         <div class="workflow-grid">
           <article class="workflow-card" data-svd-vda-marker="cid-retrieval" data-retrieval-state="${escapeHTML(state.retrievalState)}">
-            <strong>CID retrieval</strong>
-            <span>${escapeHTML(state.imageCid)}</span>
-            <span>${escapeHTML(state.retrievalManifestCid)}</span>
-            <small>${escapeHTML(state.retrievalReceipt)}</small>
+            <strong>CID retrieval (backend)</strong>
+            <span>${escapeHTML(state.lastRetrievedCid || 'No CID retrieved yet.')}</span>
+            <span>${escapeHTML(state.lastRetrievedInfo)}</span>
           </article>
           <article class="workflow-card" data-svd-vda-marker="metadata-ocr" data-metadata-state="${escapeHTML(state.metadataState)}">
-            <strong>Metadata/OCR</strong>
-            <span>${escapeHTML(state.metadataCid)}</span>
-            <small>${escapeHTML(state.ocrText)}</small>
-            <small>${escapeHTML(state.metadataReceipt)}</small>
+            <strong>Metadata (local)</strong>
+            <span>${escapeHTML(state.metadataSummary)}</span>
+            <span>No OCR backend is wired — no OCR text is claimed.</span>
           </article>
-          <article class="workflow-card" data-svd-vda-marker="enhancement-job" data-enhancement-state="${escapeHTML(state.enhancementState)}" aria-busy="${state.enhancementState === 'running' ? 'true' : 'false'}">
-            <strong>Enhancement job</strong>
-            <span>${escapeHTML(state.enhancementCid)}</span>
-            <progress value="${state.enhancementProgress}" max="100">${state.enhancementProgress}%</progress>
-            <small>${escapeHTML(state.enhancementReceipt)}</small>
+          <article class="workflow-card" data-svd-vda-marker="enhancement-job" data-enhancement-state="${escapeHTML(state.enhancementState)}">
+            <strong>Enhancement (local)</strong>
+            <span>Local auto-adjust via CSS filters only. No backend enhancement job exists.</span>
           </article>
           <article class="workflow-card" data-svd-vda-marker="zoom-pan" data-zoom-state="${escapeHTML(state.zoomPanState)}">
-            <strong>Zoom/pan</strong>
-            <span>${escapeHTML(state.zoomPanCid)}</span>
+            <strong>Zoom/pan (local)</strong>
             <span>${Math.round(this.zoomLevel * 100)}% at ${this.panX}, ${this.panY}</span>
-            <small>${escapeHTML(state.zoomPanReceipt)}</small>
           </article>
           <article class="workflow-card error-card" data-svd-vda-marker="unsupported-format" data-unsupported-format-state="${escapeHTML(state.unsupportedFormatState)}">
-            <strong>Unsupported format</strong>
-            <span>${escapeHTML(state.unsupportedCid)}</span>
-            <span>${escapeHTML(state.unsupportedFormatName)} rejected with recovery: choose JPG, PNG, GIF, WebP, BMP, or SVG.</span>
-            <small>${escapeHTML(state.unsupportedReceipt)}</small>
+            <strong>Unsupported format (local)</strong>
+            <span>Accepted: ${this.supportedFormats().map(f => f.toUpperCase()).join(', ')}.</span>
+            <span>${state.unsupportedFormatName ? `Last rejected: ${escapeHTML(state.unsupportedFormatName)}` : 'No rejections recorded.'}</span>
           </article>
           <article class="workflow-card" data-svd-vda-marker="alt-text" data-alt-text-state="${escapeHTML(state.altTextState)}">
-            <strong>Alt text</strong>
-            <span>${escapeHTML(state.altTextCid)}</span>
-            <span>${escapeHTML(this.currentImage?.altText || state.altText)}</span>
-            <small>${escapeHTML(state.altTextReceipt)}</small>
+            <strong>Alt text (local)</strong>
+            <span>${escapeHTML(this.currentImage?.altText || state.altText || 'No alt text set.')}</span>
           </article>
         </div>
         <div class="workflow-actions" aria-label="Image Viewer VDA-G038 workflow actions">
           <button type="button" data-svd-workflow-action="retrieve-cid-image" data-action="retrieve-cid-image">Retrieve CID</button>
-          <button type="button" data-svd-workflow-action="run-metadata-ocr" data-action="run-metadata-ocr">Metadata/OCR</button>
+          <button type="button" data-svd-workflow-action="publish-image" data-action="publish-image">Publish</button>
+          <button type="button" data-svd-workflow-action="run-metadata-ocr" data-action="run-metadata-ocr">Metadata</button>
           <button type="button" data-svd-workflow-action="start-enhancement-job" data-action="start-enhancement-job">Enhance</button>
           <button type="button" data-svd-workflow-action="apply-zoom-pan" data-action="apply-zoom-pan">Zoom/pan</button>
           <button type="button" data-svd-workflow-action="show-unsupported-format" data-action="show-unsupported-format">Unsupported</button>
           <button type="button" data-svd-workflow-action="refresh-alt-text" data-action="refresh-alt-text">Alt text</button>
         </div>
+        ${published.length > 0 ? `
+        <div class="published-index" aria-label="Previously published images">
+          <h5>Published (real artifacts — select to re-retrieve)</h5>
+          <ul>
+            ${published.map((entry, i) => `<li><button type="button" data-published-index="${i}" title="${escapeHTML(entry.cid)}">${escapeHTML(entry.name)} · ${escapeHTML(entry.cid.slice(0, 18))}…</button></li>`).join('')}
+          </ul>
+        </div>` : ''}
         <ol class="workflow-log" id="image-workflow-log" data-svd-vda-marker="workflow-receipts">
-          ${state.log.map(entry => `<li>${escapeHTML(entry)}</li>`).join('')}
+          ${state.log.length > 0 ? state.log.map(entry => `<li>${escapeHTML(entry)}</li>`).join('') : '<li>No backend operations yet.</li>'}
         </ol>
       </section>
     `;
@@ -506,6 +547,122 @@ export class ImageViewerApp {
           color: #cbd5e1;
           font-size: 11px;
         }
+        .workflow-note {
+          margin: 6px 0 0;
+          color: #94a3b8;
+          font-size: 11px;
+          line-height: 1.45;
+        }
+        .published-index {
+          margin-top: 10px;
+          padding: 8px;
+          background: #0f172a;
+          border: 1px solid #334155;
+          border-radius: 6px;
+        }
+        .published-index h5 {
+          margin: 0 0 6px;
+          font-size: 11px;
+          color: #f8fafc;
+        }
+        .published-index ul {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: grid;
+          gap: 4px;
+          max-height: 120px;
+          overflow-y: auto;
+        }
+        .published-index button {
+          width: 100%;
+          text-align: left;
+          background: #1e293b;
+          border: 1px solid #475569;
+          color: #e2e8f0;
+          border-radius: 4px;
+          padding: 6px 8px;
+          font-size: 11px;
+          cursor: pointer;
+          overflow-wrap: anywhere;
+        }
+        .published-index button:hover {
+          border-color: #2dd4bf;
+        }
+        .iv-governed-confirm-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(2, 6, 23, 0.78);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 20000;
+        }
+        .iv-governed-confirm-dialog {
+          background: #0f172a;
+          border: 1px solid #2dd4bf;
+          border-radius: 8px;
+          color: #f8fafc;
+          max-width: 430px;
+          width: calc(100% - 48px);
+          max-height: 80vh;
+          overflow-y: auto;
+          padding: 18px;
+        }
+        .iv-governed-confirm-dialog h3 {
+          margin: 0 0 8px;
+          font-size: 14px;
+          color: #5eead4;
+        }
+        .iv-governed-confirm-dialog p {
+          margin: 0 0 8px;
+          font-size: 12px;
+          color: #cbd5e1;
+          line-height: 1.5;
+          overflow-wrap: anywhere;
+        }
+        .iv-governed-target {
+          color: #5eead4 !important;
+          font-size: 11px !important;
+        }
+        .iv-governed-check {
+          display: flex;
+          gap: 8px;
+          align-items: flex-start;
+          font-size: 12px;
+          margin: 10px 0;
+          cursor: pointer;
+        }
+        .iv-governed-actions {
+          display: flex;
+          gap: 8px;
+          justify-content: flex-end;
+          margin-top: 12px;
+        }
+        .iv-governed-actions button {
+          background: #134e4a;
+          border: 1px solid #2dd4bf;
+          color: #f8fafc;
+          padding: 8px 14px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 12px;
+        }
+        .iv-governed-actions button:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+        .iv-cid-input {
+          width: 100%;
+          box-sizing: border-box;
+          background: #020617;
+          border: 1px solid #475569;
+          color: #f8fafc;
+          padding: 8px;
+          border-radius: 6px;
+          font-size: 12px;
+          margin-top: 4px;
+        }
         .empty-state,
         .welcome-screen {
           color: #cbd5e1;
@@ -560,6 +717,7 @@ export class ImageViewerApp {
     this.on(container, '#reset-filters-btn', 'click', () => this.resetFilters());
     this.on(container, '#auto-adjust-btn', 'click', () => this.autoAdjust());
     this.on(container, '#metadata-btn', 'click', () => this.runMetadataOcr());
+    this.on(container, '#publish-btn', 'click', () => this.publishCurrentImage());
     this.on(container, '#enhance-quality-btn', 'click', () => this.startEnhancementJob());
     this.on(container, '#unsupported-format-btn', 'click', () => this.showUnsupportedFormat());
     this.on(container, '#alt-text-btn', 'click', () => this.refreshAltText());
@@ -571,11 +729,19 @@ export class ImageViewerApp {
     container.querySelectorAll('[data-svd-workflow-action]').forEach(button => {
       const action = button.dataset.svdWorkflowAction;
       if (action === 'retrieve-cid-image') button.addEventListener('click', () => this.retrieveCidImage());
+      if (action === 'publish-image') button.addEventListener('click', () => this.publishCurrentImage());
       if (action === 'run-metadata-ocr') button.addEventListener('click', () => this.runMetadataOcr());
       if (action === 'start-enhancement-job') button.addEventListener('click', () => this.startEnhancementJob());
       if (action === 'apply-zoom-pan') button.addEventListener('click', () => this.applyZoomPan());
       if (action === 'show-unsupported-format') button.addEventListener('click', () => this.showUnsupportedFormat());
       if (action === 'refresh-alt-text') button.addEventListener('click', () => this.refreshAltText());
+    });
+
+    container.querySelectorAll('[data-published-index]').forEach(button => {
+      button.addEventListener('click', () => {
+        const entry = this.readPublishedIndex()[Number(button.dataset.publishedIndex)];
+        if (entry?.cid) this.retrieveCidImage(entry.cid);
+      });
     });
 
     ['brightness', 'contrast', 'saturation', 'hue', 'blur'].forEach(name => {
@@ -636,22 +802,26 @@ export class ImageViewerApp {
 
     for (const file of accepted) {
       const url = URL.createObjectURL(file);
-      this.images.push({
+      const image = {
         name: file.name,
         url,
-        cid: `local:${file.name}`,
+        cid: 'local (not published)',
         size: file.size,
         dimensions: 'pending',
         format: extensionLabel(file.name),
         location: 'local file',
         altText: `Local image ${file.name}`,
-      });
+        file,
+        bytes: null,
+      };
+      this.images.push(image);
+      this.measureImageDimensions(image);
     }
 
     if (unsupported.length > 0) {
       this.vdaG038.unsupportedFormatState = 'rejected';
       this.vdaG038.unsupportedFormatName = unsupported[0];
-      this.appendWorkflowLog(`${this.vdaG038.unsupportedReceipt} unsupported format ${unsupported[0]} rejected`);
+      this.appendWorkflowLog(`unsupported format ${unsupported[0]} rejected (accepted: ${this.supportedFormats().join(', ').toUpperCase()})`);
     }
 
     if (accepted.length > 0) {
@@ -661,53 +831,250 @@ export class ImageViewerApp {
     this.refreshContent();
   }
 
-  retrieveCidImage() {
-    this.vdaG038.retrievalState = 'retrieved';
-    this.currentImageIndex = 0;
-    this.currentImage = this.images[0];
-    this.appendWorkflowLog(`${this.vdaG038.retrievalReceipt} retrieved ${this.vdaG038.imageCid} through ipfs.kit.tool.ipfs_cat`);
+  /**
+   * 🛰️ Retrieve a CID-backed image: real GET /mcp/artifacts/<cid> from
+   * ipfs_kit_py. Bytes are decoded, sniffed for a real MIME type and shown
+   * from a blob URL. Retrieval time is measured, never fabricated. Backend
+   * failures surface verbatim — never a fixture gallery entry.
+   */
+  async retrieveCidImage(presetCid = null) {
+    const cid = presetCid || await this.promptForCid(
+      'Retrieve CID image',
+      'Enter the CID of an image artifact stored in ipfs_kit_py. Its real bytes will be fetched and added to the gallery.'
+    );
+    if (!cid) return;
+    this.vdaG038.retrievalState = 'retrieving';
+    this.vdaG038.lastRetrievedInfo = `Retrieving ${cid} from ipfs_kit_py…`;
+    this.appendWorkflowLog(`retrieving ${cid} from ipfs_kit_py…`);
+    this.refreshContent();
+    const started = performance.now();
+    try {
+      const client = await backendClient();
+      const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(cid));
+      const ms = Math.round(performance.now() - started);
+      if (!artifact || artifact.found !== true) {
+        throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
+      }
+      const bytes = bytesFromBase64(artifact.bytes_base64 || '');
+      if (bytes.length === 0) throw new Error(`Artifact ${cid} returned no bytes from ipfs_kit_py.`);
+      const mime = guessImageMime(artifact, bytes);
+      const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+      const image = {
+        name: artifact.name || artifact.filename || `cid-${cid.slice(0, 12)}`,
+        url,
+        cid,
+        size: bytes.length,
+        dimensions: 'measuring…',
+        format: (mime.split('/')[1] || 'image').toUpperCase(),
+        location: 'ipfs_kit_py artifact',
+        altText: `Image retrieved from ipfs_kit_py artifact ${cid}.`,
+        bytes,
+      };
+      this.images.push(image);
+      this.currentImageIndex = this.images.length - 1;
+      this.currentImage = image;
+      this.measureImageDimensions(image);
+      this.vdaG038.retrievalState = 'retrieved';
+      this.vdaG038.lastRetrievedCid = cid;
+      this.vdaG038.lastRetrievedInfo = `${bytes.length.toLocaleString()} bytes, verified=${artifact.verified === true}, measured ${ms} ms`;
+      this.appendWorkflowLog(`retrieved ${cid} (${bytes.length.toLocaleString()} bytes, verified=${artifact.verified === true}, ${ms} ms)`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.vdaG038.retrievalState = 'failed';
+      this.vdaG038.lastRetrievedInfo = message;
+      this.appendWorkflowLog(`retrieval failed for ${cid}: ${message}`);
+    }
     this.refreshContent();
   }
 
-  runMetadataOcr() {
-    this.vdaG038.metadataState = 'parsed';
-    this.vdaG038.ocrText = 'OCR: ridge trail sign, lake marker, and SwissKnife sample label detected.';
-    this.appendWorkflowLog(`${this.vdaG038.metadataReceipt} metadata and OCR parsed for ${this.vdaG038.metadataCid}`);
+  /**
+   * 📤 Publish the current image: persists real bytes plus a metadata record
+   * to ipfs_kit_py behind an explicit user confirmation. Returns real CIDs
+   * and records a real provenance event in the Event DAG.
+   */
+  async publishCurrentImage() {
+    const image = this.currentImage;
+    if (!image) {
+      this.appendWorkflowLog('publish skipped: no image selected');
+      return;
+    }
+    const bytes = image.bytes || await this.resolveImageBytes(image);
+    if (!bytes || bytes.length === 0) {
+      this.appendWorkflowLog(`publish failed for ${image.name}: could not read image bytes`);
+      this.refreshContent();
+      return;
+    }
+    const confirmed = await this.confirmGovernedWrite({
+      title: 'Publish image to backend',
+      description: `Persist “${image.name}” (${bytes.length.toLocaleString()} bytes) plus a metadata record to the ipfs_kit_py artifact store (pinned)?`,
+    });
+    if (!confirmed) return;
+    try {
+      const client = await backendClient();
+      const imageCid = await contentCidForBytes(bytes);
+      const putResult = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+        cid: imageCid,
+        bytes_base64: base64ForBytes(bytes),
+        profile: 'image-viewer-image',
+        kind: 'image',
+        service: 'ipfs_kit_py',
+        pin: true,
+      });
+      if (!putResult || putResult.persisted !== true || putResult.cid !== imageCid) {
+        throw new Error(putResult?.error || 'ipfs_kit_py did not verify the persisted image artifact.');
+      }
+      const metadata = {
+        schema: 'swissknife.image-viewer.image-metadata.v1',
+        app: 'image-viewer',
+        published_at: new Date().toISOString(),
+        name: image.name,
+        format: image.format,
+        dimensions: image.dimensions,
+        size_bytes: bytes.length,
+        alt_text: image.altText || '',
+        source_cid: imageCid,
+      };
+      const metaBytes = new TextEncoder().encode(stableStringifyValue(metadata));
+      const metaCid = await contentCidForBytes(metaBytes);
+      const metaResult = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+        cid: metaCid,
+        bytes_base64: base64ForBytes(metaBytes),
+        profile: 'image-viewer-image-metadata',
+        kind: 'image-metadata',
+        service: 'ipfs_kit_py',
+        pin: true,
+      });
+      if (!metaResult || metaResult.persisted !== true || metaResult.cid !== metaCid) {
+        throw new Error(metaResult?.error || 'ipfs_kit_py did not verify the persisted metadata artifact.');
+      }
+      let dagNote = '';
+      try {
+        const dagResult = await client.post('ipfs_kit_py', '/mcp/dag/append', {
+          event: {
+            event_type: 'image-viewer.image.published',
+            image_cid: imageCid,
+            metadata_cid: metaCid,
+            name: image.name,
+          },
+        });
+        if (dagResult?.event_cid) dagNote = `; event DAG ${dagResult.event_cid}`;
+      } catch (dagError) {
+        dagNote = `; event DAG append failed: ${dagError instanceof Error ? dagError.message : String(dagError)}`;
+      }
+      image.cid = imageCid;
+      image.location = 'ipfs_kit_py artifact';
+      image.bytes = bytes;
+      this.vdaG038.lastPublishedCid = imageCid;
+      this.vdaG038.lastPublishedInfo = `${image.name}: image ${imageCid} (verified=${putResult.verified === true}), metadata ${metaCid} (verified=${metaResult.verified === true})${dagNote}`;
+      this.recordPublishedImage({ name: image.name, cid: imageCid, metadata_cid: metaCid, size: bytes.length, published_at: metadata.published_at });
+      this.appendWorkflowLog(`published ${image.name} as ${imageCid} (verified=${putResult.verified === true}); metadata ${metaCid} (verified=${metaResult.verified === true})${dagNote}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.vdaG038.lastPublishedInfo = `Publish failed: ${message}`;
+      this.appendWorkflowLog(`publish failed for ${image.name}: ${message}`);
+    }
     this.refreshContent();
   }
 
+  /**
+   * 🖼️ Resolve the real bytes of a gallery image (File, data: URI or blob: URL).
+   */
+  async resolveImageBytes(image) {
+    try {
+      if (image.file) {
+        const buffer = await image.file.arrayBuffer();
+        return new Uint8Array(buffer);
+      }
+      if (typeof image.url === 'string' && image.url.startsWith('data:')) {
+        const [, payload = ''] = image.url.split(',');
+        if (image.url.includes(';base64,')) return bytesFromBase64(payload);
+        return new TextEncoder().encode(decodeURIComponent(payload));
+      }
+      const response = await fetch(image.url);
+      const buffer = await response.arrayBuffer();
+      return new Uint8Array(buffer);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * 📐 Measure an image's real dimensions locally.
+   */
+  measureImageDimensions(image) {
+    const probe = new Image();
+    probe.onload = () => {
+      image.dimensions = `${probe.naturalWidth}x${probe.naturalHeight}`;
+      if (this.currentImage === image) this.refreshContent();
+    };
+    probe.onerror = () => {
+      image.dimensions = 'unreadable';
+    };
+    probe.src = image.url;
+  }
+
+  /**
+   * 🧾 Measure real local metadata (name, format, size, dimensions, source).
+   * Honestly local: no OCR backend is wired, so no OCR text is claimed.
+   */
+  async runMetadataOcr() {
+    const image = this.currentImage;
+    if (!image) return;
+    if (image.dimensions === 'pending' || image.dimensions === 'measuring…') {
+      this.measureImageDimensions(image);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    this.vdaG038.metadataState = 'measured';
+    this.vdaG038.metadataSummary =
+      `name=${image.name}; format=${image.format}; size=${this.formatFileSize(image.size)}; ` +
+      `dimensions=${image.dimensions}; source=${image.location}; cid=${image.cid}. ` +
+      `Measured locally just now.`;
+    this.appendWorkflowLog(`metadata measured locally for ${image.name} (${image.dimensions}, ${this.formatFileSize(image.size)})`);
+    this.refreshContent();
+  }
+
+  /**
+   * ✨ Local auto-adjust: CSS filters only, honestly labeled. No backend
+   * enhancement job exists, so none is claimed.
+   */
   startEnhancementJob() {
-    this.vdaG038.enhancementState = 'completed';
-    this.vdaG038.enhancementProgress = 100;
+    this.vdaG038.enhancementState = 'applied-local';
     this.filters.brightness = 108;
     this.filters.contrast = 112;
     this.filters.saturation = 106;
     this.editMode = true;
-    this.appendWorkflowLog(`${this.vdaG038.enhancementReceipt} optional enhancement job completed with ${this.vdaG038.enhancementCid}`);
+    this.appendWorkflowLog('local auto-adjust applied (CSS filters only — no backend enhancement job exists)');
     this.refreshContent();
   }
+
 
   applyZoomPan() {
     this.zoomLevel = 1.45;
     this.panX = 28;
     this.panY = -18;
     this.vdaG038.zoomPanState = 'zoomed-panned';
-    this.appendWorkflowLog(`${this.vdaG038.zoomPanReceipt} zoom/pan state 145% at 28,-18`);
+    this.appendWorkflowLog('zoom/pan set locally: 145% at 28,-18 (local view state only)');
     this.updateImageDisplay();
   }
 
   showUnsupportedFormat() {
-    this.vdaG038.unsupportedFormatState = 'rejected';
-    this.vdaG038.unsupportedFormatName = 'diagram.tiff';
-    this.appendWorkflowLog(`${this.vdaG038.unsupportedReceipt} unsupported format diagram.tiff rejected with recovery choices`);
+    this.vdaG038.unsupportedFormatState = 'policy-shown';
+    this.appendWorkflowLog(`unsupported-format policy shown (accepted: ${this.supportedFormats().join(', ').toUpperCase()})`);
     this.refreshContent();
   }
 
-  refreshAltText() {
-    this.vdaG038.altTextState = 'available';
-    this.vdaG038.altText = 'CID-backed landscape sample with blue lake, green ridge, and readable OCR label.';
-    if (this.currentImage) this.currentImage.altText = this.vdaG038.altText;
-    this.appendWorkflowLog(`${this.vdaG038.altTextReceipt} alt text refreshed for accessible image state`);
+  async refreshAltText() {
+    const current = this.currentImage?.altText || this.vdaG038.altText || '';
+    const text = await this.promptForText(
+      'Alt text (local)',
+      'Enter alt text for the current image. Stored locally only — no backend involved.',
+      current
+    );
+    if (text === null) return;
+    this.vdaG038.altText = text;
+    this.vdaG038.altTextState = text ? 'available' : 'missing';
+    if (this.currentImage) this.currentImage.altText = text;
+    this.appendWorkflowLog(`alt text updated locally (${text.length} chars)`);
     this.updateImageDisplay();
     this.refreshContent();
   }
@@ -792,103 +1159,56 @@ export class ImageViewerApp {
     this.refreshContent();
   }
 
-  async analyzeImage() {
-    this.runMetadataOcr();
-    return this.vdaG038;
-  }
-
-  async enhanceQuality() {
-    this.startEnhancementJob();
-    return this.vdaG038;
-  }
-
-  async exerciseMediaArtifactGateway() {
-    return runMediaArtifactWorkflow({
-      desktop: this.desktop,
-      appId: APP_ID,
-      mediaType: 'image',
-      mimeType: 'image/svg+xml',
-      operation: 'analyze-enhance-image',
-      model: 'image-enhancement-ocr-v1',
-      prompt: 'Analyze image metadata, OCR visible text, and prepare an enhanced image artifact.',
-      artifact: {
-        id: this.currentImage?.cid || this.vdaG038.imageCid,
-        name: this.currentImage?.name || 'CID-backed image',
-        filename: 'image-viewer-enhancement.json',
-        content: {
-          source_cid: this.vdaG038.imageCid,
-          metadata_cid: this.vdaG038.metadataCid,
-          enhancement_cid: this.vdaG038.enhancementCid,
-          alt_text: this.vdaG038.altText,
-        },
-        metadata: {
-          ocr_text: this.vdaG038.ocrText,
-          dimensions: this.currentImage?.dimensions,
-          unsupported_state: this.vdaG038.unsupportedFormatState,
-        },
-      },
-      datasetId: 'swissknife-image-viewer-g038',
-      jobId: 'image-viewer-g038-enhancement-job',
-    });
-  }
-
   createSeedImages() {
-    const imageCid = 'bafyimageviewerg038sourcecidretrieval';
-    return [
+    // Built-in samples are honestly local: generated SVG data URIs, labeled
+    // as local, with no IPFS CID claim. Real CIDs only appear after a real
+    // publish to ipfs_kit_py.
+    const samples = [
       {
-        name: 'cid-ridge-lake.svg',
-        url: svgDataUri('CID ridge lake', '#0f766e', '#2563eb'),
-        cid: imageCid,
-        size: 184320,
-        dimensions: '1600x1000',
-        format: 'SVG',
-        location: 'ipfs_kit CID',
-        altText: 'CID-backed landscape sample with lake, ridge, and visible label.',
+        name: 'sample-ridge-lake.svg',
+        url: svgDataUri('Sample ridge lake', '#0f766e', '#2563eb'),
+        altText: 'Built-in local sample: gradient landscape with a readable label.',
       },
       {
-        name: 'ocr-contact-sheet.png',
-        url: svgDataUri('OCR contact sheet', '#7c2d12', '#f97316'),
-        cid: 'bafyimageviewerg038metadataocrcontactsheet',
-        size: 262144,
-        dimensions: '1200x800',
-        format: 'PNG',
-        location: 'local cache',
-        altText: 'Contact sheet sample for OCR and metadata extraction.',
+        name: 'sample-contact-sheet.svg',
+        url: svgDataUri('Sample contact sheet', '#7c2d12', '#f97316'),
+        altText: 'Built-in local sample: gradient sheet with a readable label.',
       },
     ];
+    return samples.map(sample => {
+      const payload = sample.url.split(',')[1] || '';
+      return {
+        name: sample.name,
+        url: sample.url,
+        cid: 'local (not published)',
+        size: new TextEncoder().encode(decodeURIComponent(payload)).length,
+        dimensions: '1600x1000',
+        format: 'SVG',
+        location: 'built-in local sample',
+        altText: sample.altText,
+        bytes: null,
+      };
+    });
   }
 
   createVdaG038WorkflowState() {
     return {
       workflowId: 'image-viewer.cid-metadata-enhancement',
       vdaId: 'VDA-G038',
-      imageCid: 'bafyimageviewerg038sourcecidretrieval',
-      retrievalManifestCid: 'bafyimageviewerg038retrievalmanifest',
-      metadataCid: 'bafyimageviewerg038metadataocr',
-      enhancementCid: 'bafyimageviewerg038enhancementjob',
-      zoomPanCid: 'bafyimageviewerg038zoompanstate',
-      unsupportedCid: 'bafyimageviewerg038unsupportedformat',
-      altTextCid: 'bafyimageviewerg038alttext',
-      retrievalReceipt: 'receipt:image-viewer:g038:cid-retrieval:retrieved',
-      metadataReceipt: 'receipt:image-viewer:g038:metadata-ocr:parsed',
-      enhancementReceipt: 'receipt:image-viewer:g038:enhancement-job:completed',
-      zoomPanReceipt: 'receipt:image-viewer:g038:zoom-pan:applied',
-      unsupportedReceipt: 'receipt:image-viewer:g038:unsupported-format:rejected',
-      altTextReceipt: 'receipt:image-viewer:g038:alt-text:available',
-      retrievalState: 'retrieved',
-      metadataState: 'parsed',
-      enhancementState: 'queued',
-      enhancementProgress: 35,
+      retrievalState: 'none',
+      lastRetrievedCid: '',
+      lastRetrievedInfo: 'No CID retrieved yet.',
+      metadataState: 'none',
+      metadataSummary: 'No metadata measured yet.',
+      lastPublishedCid: '',
+      lastPublishedInfo: 'Nothing published yet.',
+      enhancementState: 'local-only',
       zoomPanState: 'fit',
-      unsupportedFormatState: 'rejected',
-      unsupportedFormatName: 'diagram.tiff',
-      altTextState: 'available',
-      altText: 'CID-backed landscape sample with lake, ridge, and readable label.',
-      ocrText: 'OCR: ridge trail sign and lake marker visible.',
-      log: [
-        'receipt:image-viewer:g038:cid-retrieval:retrieved mapped bafyimageviewerg038sourcecidretrieval through bafyimageviewerg038retrievalmanifest',
-        'receipt:image-viewer:g038:metadata-ocr:parsed metadata CID bafyimageviewerg038metadataocr includes EXIF summary and OCR text',
-      ],
+      unsupportedFormatState: 'none',
+      unsupportedFormatName: '',
+      altTextState: 'missing',
+      altText: '',
+      log: [],
     };
   }
 
@@ -906,8 +1226,143 @@ export class ImageViewerApp {
     }
   }
 
+  loadStoredImages() {
+    try {
+      const storedImages = localStorage.getItem('image-viewer-images');
+      if (!storedImages) return;
+      const parsed = JSON.parse(storedImages);
+      if (!Array.isArray(parsed)) return;
+      for (const image of parsed) {
+        if (!image?.name || !image?.url) continue;
+        // blob: URLs do not survive a reload — drop them rather than showing
+        // dead gallery entries.
+        if (String(image.url).startsWith('blob:')) continue;
+        this.images.push({
+          ...image,
+          altText: image.altText || `Stored image ${image.name}`,
+          location: image.location || 'browser-local storage',
+          cid: image.cid || 'local (not published)',
+        });
+      }
+    } catch (error) {
+      console.warn('Could not load stored images:', error);
+    }
+  }
+
   appendWorkflowLog(entry) {
     if (!this.vdaG038.log.includes(entry)) this.vdaG038.log.push(entry);
+  }
+
+  /**
+   * 🔐 Confirmation-gated governed write (mirrors supervisor receipts.persist):
+   * every backend-mutating POST requires this explicit, reviewed user
+   * confirmation step first.
+   */
+  confirmGovernedWrite({ title, description, confirmLabel = 'Confirm write' }) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'iv-governed-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="iv-governed-confirm-dialog" role="dialog" aria-modal="true" aria-label="${escapeHTML(title)}">
+          <h3>${escapeHTML(title)}</h3>
+          <p>${escapeHTML(description)}</p>
+          <p class="iv-governed-target">Target: ipfs_kit_py · POST /mcp/artifacts/put (pinned)</p>
+          <label class="iv-governed-check">
+            <input type="checkbox">
+            <span>I confirm this governed write. I have reviewed the data being persisted.</span>
+          </label>
+          <div class="iv-governed-actions">
+            <button type="button" class="iv-governed-cancel">Cancel</button>
+            <button type="button" class="iv-governed-confirm" disabled>${escapeHTML(confirmLabel)}</button>
+          </div>
+        </div>`;
+      const checkbox = overlay.querySelector('input[type="checkbox"]');
+      const confirmBtn = overlay.querySelector('.iv-governed-confirm');
+      const done = (value) => { overlay.remove(); resolve(value); };
+      checkbox.addEventListener('change', () => { confirmBtn.disabled = !checkbox.checked; });
+      overlay.querySelector('.iv-governed-cancel').addEventListener('click', () => done(false));
+      confirmBtn.addEventListener('click', () => done(true));
+      overlay.addEventListener('click', (event) => { if (event.target === overlay) done(false); });
+      document.body.appendChild(overlay);
+    });
+  }
+
+  /**
+   * ⌨️ Prompt the user for a CID.
+   */
+  promptForCid(title, description) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'iv-governed-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="iv-governed-confirm-dialog" role="dialog" aria-modal="true" aria-label="${escapeHTML(title)}">
+          <h3>${escapeHTML(title)}</h3>
+          <p>${escapeHTML(description)}</p>
+          <input type="text" class="iv-cid-input" placeholder="bafy…" aria-label="Artifact CID" spellcheck="false">
+          <div class="iv-governed-actions">
+            <button type="button" class="iv-governed-cancel">Cancel</button>
+            <button type="button" class="iv-governed-confirm">Retrieve</button>
+          </div>
+        </div>`;
+      const input = overlay.querySelector('.iv-cid-input');
+      const done = (value) => { overlay.remove(); resolve(value ? value.trim() : null); };
+      overlay.querySelector('.iv-governed-cancel').addEventListener('click', () => done(null));
+      overlay.querySelector('.iv-governed-confirm').addEventListener('click', () => done(input.value));
+      input.addEventListener('keydown', (event) => { if (event.key === 'Enter') done(input.value); });
+      document.body.appendChild(overlay);
+      input.focus();
+    });
+  }
+
+  /**
+   * ⌨️ Prompt the user for free text (alt text editing).
+   */
+  promptForText(title, description, initialValue = '') {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'iv-governed-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="iv-governed-confirm-dialog" role="dialog" aria-modal="true" aria-label="${escapeHTML(title)}">
+          <h3>${escapeHTML(title)}</h3>
+          <p>${escapeHTML(description)}</p>
+          <input type="text" class="iv-cid-input" aria-label="${escapeHTML(title)}" value="${escapeHTML(initialValue)}" spellcheck="true">
+          <div class="iv-governed-actions">
+            <button type="button" class="iv-governed-cancel">Cancel</button>
+            <button type="button" class="iv-governed-confirm">Save</button>
+          </div>
+        </div>`;
+      const input = overlay.querySelector('.iv-cid-input');
+      const done = (value) => { overlay.remove(); resolve(value === null ? null : String(value)); };
+      overlay.querySelector('.iv-governed-cancel').addEventListener('click', () => done(null));
+      overlay.querySelector('.iv-governed-confirm').addEventListener('click', () => done(input.value));
+      input.addEventListener('keydown', (event) => { if (event.key === 'Enter') done(input.value); });
+      document.body.appendChild(overlay);
+      input.focus();
+      input.select();
+    });
+  }
+
+  /**
+   * 🗂️ Honest local index of real published artifact CIDs (the artifacts
+   * themselves live in ipfs_kit_py; this is only a pointer list).
+   */
+  readPublishedIndex() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('image-viewer-published') || '[]');
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
+  }
+
+  recordPublishedImage(entry) {
+    try {
+      const index = this.readPublishedIndex().filter(item => item.cid !== entry.cid);
+      index.unshift(entry);
+      localStorage.setItem('image-viewer-published', JSON.stringify(index.slice(0, 50)));
+    } catch (error) {
+      console.warn('Could not record published image:', error);
+    }
   }
 
   generateFilterStyle() {

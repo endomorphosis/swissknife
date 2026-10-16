@@ -666,8 +666,8 @@ export class FileManagerApp {
       <style>
         .file-manager-container {
           height: 100%;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
+          background: var(--sk-bg-deep, #0e1412);
+          color: var(--sk-text, #edf7f2);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', roboto, sans-serif;
           display: flex;
           flex-direction: column;
@@ -722,7 +722,8 @@ export class FileManagerApp {
         }
 
         .toolbar-btn.active {
-          background: linear-gradient(135deg, #4ade80, #22c55e);
+          background: var(--sk-ok, #5ee3a1);
+          color: #0e1412;
         }
 
         .path-breadcrumb {
@@ -822,11 +823,11 @@ export class FileManagerApp {
         }
 
         .provider-status.connected {
-          background: #22c55e;
+          background: var(--sk-ok, #5ee3a1);
         }
 
         .provider-status.disconnected {
-          background: #ef4444;
+          background: var(--sk-err, #ff6b6b);
         }
 
         .file-content {
@@ -904,7 +905,7 @@ export class FileManagerApp {
 
         .storage-used {
           height: 100%;
-          background: linear-gradient(90deg, #4ade80, #22c55e);
+          background: linear-gradient(90deg, var(--sk-ok, #5ee3a1), var(--sk-accent-strong, #5fb99d));
           border-radius: 3px;
           transition: width 0.3s ease;
         }
@@ -1007,7 +1008,7 @@ export class FileManagerApp {
         }
 
         .file-item.selected {
-          border-color: #4ade80;
+          border-color: var(--sk-ok, #5ee3a1);
           background: rgba(74, 222, 128, 0.2);
         }
 
@@ -1074,8 +1075,8 @@ export class FileManagerApp {
         }
 
         .location-local { color: #60a5fa; }
-        .location-ipfs { color: #34d399; }
-        .location-p2p { color: #fbbf24; }
+        .location-ipfs { color: var(--sk-ok, #5ee3a1); }
+        .location-p2p { color: var(--sk-warn, #ffd166); }
         .location-cloud { color: #a78bfa; }
 
         /* Context Menu */
@@ -1210,7 +1211,7 @@ export class FileManagerApp {
 
         .progress-fill {
           height: 100%;
-          background: linear-gradient(90deg, #4ade80, #22c55e);
+          background: linear-gradient(90deg, var(--sk-ok, #5ee3a1), var(--sk-accent-strong, #5fb99d));
           border-radius: 3px;
           transition: width 0.3s ease;
         }
@@ -1268,7 +1269,7 @@ export class FileManagerApp {
         }
 
         .file-item.selected {
-          background: linear-gradient(135deg, #4ade80, #22c55e);
+          background: var(--sk-ok, #5ee3a1);
           color: white;
         }
 
@@ -1745,7 +1746,7 @@ export class FileManagerApp {
     
     if (filteredFiles.length === 0) {
       return `
-        <div class="empty-folder">
+        <div class="empty-folder sk-empty">
           <div class="empty-icon">📂</div>
           <div class="empty-text">This folder is empty</div>
           <div class="empty-subtext">Drag files here or use the upload button</div>

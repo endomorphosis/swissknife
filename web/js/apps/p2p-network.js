@@ -161,8 +161,8 @@ import {
         padding: 15px;
         height: 100%;
         overflow-y: auto;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: var(--sk-bg, #0e1412);
+        color: var(--sk-text, #edf7f2);
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       }
       
@@ -933,12 +933,12 @@ import {
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #e1e5e9;
+            border-bottom: 2px solid var(--sk-border, #263a34);
           }
           
           .app-header h2 {
             margin: 0;
-            color: #2c3e50;
+            color: var(--sk-text, #edf7f2);
             font-size: 24px;
           }
           
@@ -984,7 +984,8 @@ import {
             display: flex;
             gap: 2px;
             margin-bottom: 20px;
-            background: #f8f9fa;
+            background: var(--sk-bg2, #101b18);
+            border: 1px solid var(--sk-border, #263a34);
             border-radius: 8px;
             padding: 4px;
           }
@@ -998,18 +999,19 @@ import {
             border-radius: 6px;
             font-weight: 500;
             transition: all 0.2s ease;
-            color: #6c757d;
+            color: var(--sk-text-faint, #7c8f87);
           }
           
           .tab-button:hover {
-            background: #e9ecef;
-            color: #495057;
+            background: var(--sk-card, #17241f);
+            color: var(--sk-text-dim, #a8bbb2);
           }
           
           .tab-button.active {
-            background: linear-gradient(135deg, #007bff, #0056b3);
-            color: white;
-            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+            background: var(--sk-accent-bg, #173029);
+            color: var(--sk-accent, #8bd8bd);
+            border: 1px solid var(--sk-accent-strong, #5fb99d);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
           }
           
           .tab-content {
@@ -1023,10 +1025,10 @@ import {
           .libp2p-browser-defaults {
             margin: 18px 0 24px;
             padding: 18px;
-            background: #ffffff;
-            border: 1px solid #d8dee8;
+            background: var(--sk-card, #17241f);
+            border: 1px solid var(--sk-border, #263a34);
             border-radius: 8px;
-            color: #243041;
+            color: var(--sk-text, #edf7f2);
           }
 
           .libp2p-browser-header,
@@ -1040,12 +1042,12 @@ import {
 
           .libp2p-browser-header h3 {
             margin: 0;
-            color: #243041;
+            color: var(--sk-text, #edf7f2);
           }
 
           .libp2p-browser-meta {
             margin-top: 8px;
-            color: #5d6b7c;
+            color: var(--sk-text-dim, #a8bbb2);
             font-size: 13px;
           }
 
@@ -1059,19 +1061,19 @@ import {
 
           .libp2p-capability {
             padding: 12px;
-            border: 1px solid #d8dee8;
-            border-left: 4px solid #94a3b8;
+            border: 1px solid var(--sk-border, #263a34);
+            border-left: 4px solid var(--sk-idle, #7e8d87);
             border-radius: 6px;
-            background: #f8fafc;
+            background: var(--sk-bg2, #101b18);
           }
 
           .libp2p-capability.configured {
-            border-left-color: #16a34a;
+            border-left-color: var(--sk-ok, #5ee3a1);
           }
 
           .libp2p-capability.gap {
-            border-left-color: #d97706;
-            background: #fff7ed;
+            border-left-color: var(--sk-warn, #ffd166);
+            background: rgba(255, 209, 102, 0.06);
           }
 
           .libp2p-capability strong,
@@ -1081,14 +1083,14 @@ import {
 
           .libp2p-capability code {
             margin-top: 4px;
-            color: #475569;
+            color: var(--sk-text-faint, #7c8f87);
             white-space: normal;
             word-break: break-word;
           }
 
           .libp2p-gap {
             margin-top: 6px;
-            color: #92400e;
+            color: var(--sk-warn, #ffd166);
             font-size: 12px;
           }
 
@@ -1105,8 +1107,8 @@ import {
           }
           
           .stat-card {
-            background: linear-gradient(135deg, #ffffff, #f8f9fa);
-            border: 1px solid #e9ecef;
+            background: var(--sk-card, #17241f);
+            border: 1px solid var(--sk-border, #263a34);
             border-radius: 12px;
             padding: 20px;
             display: flex;
@@ -1128,9 +1130,10 @@ import {
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #007bff, #0056b3);
+            background: var(--sk-accent-bg, #173029);
+            border: 1px solid var(--sk-accent-strong, #5fb99d);
             border-radius: 12px;
-            color: white;
+            color: var(--sk-accent, #8bd8bd);
           }
           
           .stat-info {
@@ -1140,12 +1143,12 @@ import {
           .stat-value {
             font-size: 28px;
             font-weight: bold;
-            color: #2c3e50;
+            color: var(--sk-text, #edf7f2);
             margin-bottom: 4px;
           }
           
           .stat-label {
-            color: #6c757d;
+            color: var(--sk-text-faint, #7c8f87);
             font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -1173,24 +1176,25 @@ import {
           }
           
           .action-btn.primary {
-            background: linear-gradient(135deg, #007bff, #0056b3);
-            color: white;
+            background: var(--sk-accent-bg, #173029);
+            color: var(--sk-accent, #8bd8bd);
+            border: 1px solid var(--sk-accent-strong, #5fb99d);
           }
           
           .action-btn.primary:hover {
             background: linear-gradient(135deg, #0056b3, #004085);
             transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
           }
           
           .action-btn:not(.primary) {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            color: #495057;
-            border: 1px solid #dee2e6;
+            background: linear-gradient(135deg, var(--sk-bg2, #101b18), var(--sk-card, #17241f));
+            color: var(--sk-text-dim, #a8bbb2);
+            border: 1px solid var(--sk-border-strong, #315248);
           }
           
           .action-btn:not(.primary):hover {
-            background: linear-gradient(135deg, #e9ecef, #dee2e6);
+            background: linear-gradient(135deg, var(--sk-card, #17241f), var(--sk-bg3, #12211d));
             transform: translateY(-1px);
           }
           
@@ -1206,8 +1210,8 @@ import {
           .topology-container {
             position: relative;
             height: 240px;
-            background: linear-gradient(135deg, #f8f9fa, #ffffff);
-            border: 2px solid #e9ecef;
+            background: linear-gradient(135deg, var(--sk-bg2, #101b18), var(--sk-card, #17241f));
+            border: 2px solid var(--sk-border, #263a34);
             border-radius: 12px;
             margin: 16px 0;
           }
@@ -1228,7 +1232,7 @@ import {
           }
           
           .node.self {
-            background: linear-gradient(135deg, #28a745, #20c997);
+            background: linear-gradient(135deg, #2f7a52, var(--sk-ok, #5ee3a1));
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -1236,20 +1240,20 @@ import {
           }
           
           .node.peer {
-            background: linear-gradient(135deg, #007bff, #6610f2);
+            background: linear-gradient(135deg, var(--sk-bg3, #12211d), var(--sk-card, #17241f));
             font-size: 16px;
           }
           
           .node.peer.connected {
-            background: linear-gradient(135deg, #28a745, #20c997);
+            background: linear-gradient(135deg, #2f7a52, var(--sk-ok, #5ee3a1));
           }
           
           .node.peer.connecting {
-            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            background: linear-gradient(135deg, #8a6a1f, var(--sk-warn, #ffd166));
           }
           
           .node.peer.disconnected {
-            background: linear-gradient(135deg, #6c757d, #495057);
+            background: linear-gradient(135deg, var(--sk-idle, #7e8d87), var(--sk-bg3, #12211d));
           }
           
           .node-label {
@@ -1260,7 +1264,7 @@ import {
           .connection {
             position: absolute;
             height: 2px;
-            background: linear-gradient(90deg, #007bff, transparent);
+            background: linear-gradient(90deg, var(--sk-accent, #8bd8bd), transparent);
             top: 50%;
             left: 50%;
             transform-origin: 0 50%;
@@ -1285,7 +1289,7 @@ import {
           
           .section-header h3 {
             margin: 0;
-            color: #2c3e50;
+            color: var(--sk-text, #edf7f2);
             font-size: 20px;
           }
           
@@ -1296,7 +1300,7 @@ import {
           
           .peer-card {
             background: white;
-            border: 1px solid #e9ecef;
+            border: 1px solid var(--sk-border, #263a34);
             border-radius: 8px;
             padding: 16px;
             transition: all 0.2s ease;
@@ -1316,7 +1320,7 @@ import {
           }
           
           .peer-card.disconnected {
-            border-left: 4px solid #6c757d;
+            border-left: 4px solid var(--sk-idle, #7e8d87);
           }
           
           .peer-header {
@@ -1328,7 +1332,7 @@ import {
           
           .peer-id {
             font-weight: bold;
-            color: #2c3e50;
+            color: var(--sk-text, #edf7f2);
             font-family: monospace;
           }
           
@@ -1400,12 +1404,12 @@ import {
           }
           
           .stat-label {
-            color: #6c757d;
+            color: var(--sk-text-faint, #7c8f87);
           }
           
           .stat-value {
             font-weight: 500;
-            color: #2c3e50;
+            color: var(--sk-text, #edf7f2);
           }
           
           .peer-actions {
@@ -1423,7 +1427,7 @@ import {
           .models-tabs {
             display: flex;
             gap: 2px;
-            background: #f8f9fa;
+            background: var(--sk-bg2, #101b18);
             border-radius: 8px;
             padding: 4px;
             margin: 16px 0;
@@ -1438,18 +1442,19 @@ import {
             border-radius: 6px;
             font-weight: 500;
             transition: all 0.2s ease;
-            color: #6c757d;
+            color: var(--sk-text-faint, #7c8f87);
           }
           
           .models-tab-btn:hover {
-            background: #e9ecef;
-            color: #495057;
+            background: var(--sk-card, #17241f);
+            color: var(--sk-text-dim, #a8bbb2);
           }
           
           .models-tab-btn.active {
-            background: linear-gradient(135deg, #007bff, #0056b3);
-            color: white;
-            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+            background: var(--sk-accent-bg, #173029);
+            color: var(--sk-accent, #8bd8bd);
+            border: 1px solid var(--sk-accent-strong, #5fb99d);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
           }
           
           .models-content {
@@ -1474,7 +1479,7 @@ import {
           
           .model-card {
             background: white;
-            border: 1px solid #e9ecef;
+            border: 1px solid var(--sk-border, #263a34);
             border-radius: 12px;
             padding: 16px;
             transition: all 0.2s ease;
@@ -1499,13 +1504,13 @@ import {
           
           .model-name {
             font-weight: bold;
-            color: #2c3e50;
+            color: var(--sk-text, #edf7f2);
             font-size: 16px;
           }
           
           .model-size {
-            background: #e9ecef;
-            color: #495057;
+            background: var(--sk-card, #17241f);
+            color: var(--sk-text-dim, #a8bbb2);
             padding: 4px 8px;
             border-radius: 12px;
             font-size: 12px;
@@ -1513,7 +1518,7 @@ import {
           }
           
           .model-type {
-            color: #6c757d;
+            color: var(--sk-text-faint, #7c8f87);
             font-size: 14px;
             margin-bottom: 8px;
           }
@@ -1526,8 +1531,9 @@ import {
           }
           
           .capability-tag {
-            background: linear-gradient(135deg, #007bff, #0056b3);
-            color: white;
+            background: var(--sk-accent-bg, #173029);
+            color: var(--sk-accent, #8bd8bd);
+            border: 1px solid var(--sk-accent-strong, #5fb99d);
             padding: 2px 6px;
             border-radius: 8px;
             font-size: 11px;
@@ -1576,7 +1582,7 @@ import {
           
           .loaded-model-item {
             background: white;
-            border: 1px solid #e9ecef;
+            border: 1px solid var(--sk-border, #263a34);
             border-left: 4px solid #28a745;
             border-radius: 8px;
             padding: 16px;
@@ -1608,7 +1614,7 @@ import {
           
           .inference-item {
             background: white;
-            border: 1px solid #e9ecef;
+            border: 1px solid var(--sk-border, #263a34);
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 12px;
@@ -1636,12 +1642,12 @@ import {
           .inference-id {
             font-family: monospace;
             font-size: 12px;
-            color: #6c757d;
+            color: var(--sk-text-faint, #7c8f87);
           }
           
           .inference-model {
             font-weight: 500;
-            color: #007bff;
+            color: var(--sk-accent, #8bd8bd);
           }
           
           .inference-status {
@@ -1672,7 +1678,7 @@ import {
           
           .inference-details {
             margin: 8px 0;
-            color: #6c757d;
+            color: var(--sk-text-faint, #7c8f87);
             font-size: 14px;
           }
           
@@ -1686,7 +1692,7 @@ import {
           }
           
           .inference-result {
-            background: #f8f9fa;
+            background: var(--sk-bg2, #101b18);
             border-radius: 8px;
             padding: 12px;
             margin-top: 8px;
@@ -1694,12 +1700,12 @@ import {
           
           .result-label {
             font-weight: 500;
-            color: #495057;
+            color: var(--sk-text-dim, #a8bbb2);
             margin-bottom: 4px;
           }
           
           .result-content {
-            color: #2c3e50;
+            color: var(--sk-text, #edf7f2);
             font-family: monospace;
             font-size: 13px;
           }
@@ -1763,10 +1769,59 @@ import {
 
   function getStatusText() {
     switch (connectionStatus) {
-      case 'connected': return `Connected (${peers.filter(p => p.status === 'connected').length} peers)`;
+      case 'connected': return `Connected (${peers.filter(p => p.status === 'connected' && !p.example).length} live peers)`;
       case 'connecting': return 'Connecting to network...';
+      case 'demo': return 'Demo — example peers only, no live connection';
       case 'disconnected': return 'Disconnected';
       default: return 'Unknown';
+    }
+  }
+
+  // Live MCP++ adapter introspection: real service health from the desktop
+  // client (or its verbatim error). inspectService() reports
+  // { service, available, toolCount, peers, errors }; peers observed here are
+  // merged into the peer list as REAL peers (example:false). Never fabricated.
+  async function refreshAdapterStatus() {
+    const output = document.querySelector('#adapter-status-output');
+    const setOutput = text => { if (output) output.textContent = text; };
+    setOutput('Querying MCP++ adapters…');
+    try {
+      const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
+      const client = clientModule.getMCPPlusPlusDesktopClient();
+      const inspections = await client.inspectAll();
+      const lines = [];
+      let realPeers = 0;
+      for (const inspection of inspections) {
+        const name = inspection?.service || 'unknown';
+        const state = inspection?.available ? 'available' : 'unavailable';
+        const tools = typeof inspection?.toolCount === 'number' ? `${inspection.toolCount} tools` : 'tools n/a';
+        lines.push(`${name}: ${state} (${tools})`);
+        for (const [probe, message] of Object.entries(inspection?.errors || {})) {
+          lines.push(`  ${probe}: ${message}`);
+        }
+        for (const peer of inspection?.peers || []) {
+          const peerId = peer?.id || peer?.peerId || peer?.peer_id;
+          if (!peerId || peers.some(existing => existing.id === peerId)) continue;
+          peers.push({
+            id: String(peerId),
+            status: 'connected',
+            example: false,
+            capabilities: peer?.capabilities || {},
+            lastSeen: new Date(),
+            reputation: typeof peer?.reputation === 'number' ? peer.reputation : 0,
+            source: name
+          });
+          realPeers++;
+        }
+      }
+      if (realPeers > 0) {
+        lines.push(`Discovered ${realPeers} real peer${realPeers === 1 ? '' : 's'} via mcp++/p2p/peers.`);
+        connectionStatus = 'connected';
+      }
+      setOutput(lines.length ? lines.join('\n') : 'No adapter inspections returned.');
+      updateDisplays();
+    } catch (error) {
+      setOutput(`Adapter introspection failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -1960,6 +2015,7 @@ import {
   }
 
   function renderPeersTab() {
+    const allExample = peers.length > 0 && peers.every(peer => peer.example === true);
     return `
       <div class="peers-section">
         <div class="section-header">
@@ -1968,15 +2024,22 @@ import {
             <span class="btn-icon">🔄</span>
             Refresh
           </button>
+          <button class="action-btn" onclick="window.p2pNetworkApp.refreshAdapterStatus()">
+            <span class="btn-icon">🛰️</span>
+            Live adapter status
+          </button>
         </div>
+        ${allExample ? '<p class="demo-data-note sk-honest-note">Example peers — illustrative only. No live P2P connection; these entries demonstrate the peer-card layout.</p>' : ''}
+        ${peers.length === 0 ? '<p class="demo-data-note sk-honest-note">No peers observed. Start networking to discover real peers.</p>' : ''}
+        <div id="adapter-status-output" class="adapter-status-output sk-code" style="margin:0 0 10px;white-space:pre-wrap;font-size:12px;"></div>
 
         <div class="peers-list">
           ${peers.map(peer => `
             <div class="peer-card ${peer.status}">
               <div class="peer-header">
-                <div class="peer-id">${peer.id.substring(0, 12)}...</div>
+                <div class="peer-id">${peer.id.substring(0, 12)}...${peer.example ? ' <span class="example-badge sk-badge" style="color:var(--sk-warn,#ffd166);border-color:var(--sk-warn,#ffd166);" title="Illustrative example, not a live peer">example</span>' : ''}</div>
                 <div class="peer-status ${peer.status}">
-                  <span class="status-dot"></span>
+                  <span class="status-dot sk-status-dot ${peer.status === 'connected' ? 'is-ok' : peer.status === 'connecting' ? 'is-warn' : peer.status === 'disconnected' ? 'is-err' : 'is-idle'}"></span>
                   ${peer.status}
                 </div>
               </div>
@@ -2056,11 +2119,12 @@ import {
         <div class="models-content">
           <div class="models-tab-content active" id="available-models">
             <h4>Available Models</h4>
+            ${availableModels.every(model => model.example) ? '<p class="demo-data-note sk-honest-note">Example models — illustrative only; no model backend is connected.</p>' : ''}
             <div class="models-grid">
               ${availableModels.map(model => `
                 <div class="model-card ${model.loaded ? 'loaded' : ''}">
                   <div class="model-header">
-                    <div class="model-name">${model.name}</div>
+                    <div class="model-name">${model.name}${model.example ? ' <span class="example-badge sk-badge" style="color:var(--sk-warn,#ffd166);border-color:var(--sk-warn,#ffd166);" title="Illustrative example, not a loaded model">example</span>' : ''}</div>
                     <div class="model-size">${(model.size / 1024).toFixed(1)}GB</div>
                   </div>
                   
@@ -2144,7 +2208,7 @@ import {
                     <div class="inference-id">${inference.id}</div>
                     <div class="inference-model">${inference.modelId}</div>
                     <div class="inference-status ${inference.status}">
-                      <span class="status-dot"></span>
+                      <span class="status-dot sk-status-dot ${inference.status === 'completed' ? 'is-ok' : inference.status === 'failed' ? 'is-err' : ['running','processing','queued','pending'].includes(inference.status) ? 'is-warn' : 'is-idle'}"></span>
                       ${inference.status}
                     </div>
                   </div>
@@ -2407,7 +2471,7 @@ import {
           }
 
           .model-card.ipfs-model {
-            border-left: 4px solid #007bff;
+            border-left: 4px solid var(--sk-accent, #8bd8bd);
           }
 
           .model-card.ipfs-model.local {
@@ -2453,7 +2517,7 @@ import {
             align-items: center;
             justify-content: space-between;
             padding: 16px;
-            border: 1px solid #e9ecef;
+            border: 1px solid var(--sk-border, #263a34);
             border-radius: 8px;
             margin-bottom: 12px;
             background: white;
@@ -2475,7 +2539,7 @@ import {
             align-items: center;
             gap: 4px;
             font-size: 12px;
-            color: #6c757d;
+            color: var(--sk-text-faint, #7c8f87);
           }
 
           .peer-dot {
@@ -2492,14 +2556,14 @@ import {
           }
 
           .storage-section {
-            background: #f8f9fa;
+            background: var(--sk-bg2, #101b18);
             padding: 20px;
             border-radius: 8px;
           }
 
           .storage-section h5 {
             margin: 0 0 16px 0;
-            color: #495057;
+            color: var(--sk-text-dim, #a8bbb2);
           }
 
           .storage-actions {
@@ -2512,7 +2576,7 @@ import {
           .usage-bar {
             width: 100%;
             height: 8px;
-            background: #e9ecef;
+            background: var(--sk-card, #17241f);
             border-radius: 4px;
             overflow: hidden;
             margin-bottom: 8px;
@@ -2520,7 +2584,7 @@ import {
 
           .usage-fill {
             height: 100%;
-            background: linear-gradient(90deg, #007bff, #0056b3);
+            background: linear-gradient(90deg, var(--sk-accent-strong, #5fb99d), var(--sk-accent, #8bd8bd));
             transition: width 0.3s ease;
           }
 
@@ -2534,7 +2598,7 @@ import {
             align-items: center;
             gap: 8px;
             font-size: 14px;
-            color: #495057;
+            color: var(--sk-text-dim, #a8bbb2);
           }
 
           .ipfs-tab-content {
@@ -2584,7 +2648,7 @@ import {
                 <div class="task-id">${task.id}</div>
                 <div class="task-type">${task.type}</div>
                 <div class="task-status ${task.status}">
-                  <span class="status-dot"></span>
+                  <span class="status-dot sk-status-dot ${task.status === 'completed' ? 'is-ok' : task.status === 'failed' ? 'is-err' : ['running','processing','queued','pending'].includes(task.status) ? 'is-warn' : 'is-idle'}"></span>
                   ${task.status}
                 </div>
               </div>
@@ -2827,7 +2891,7 @@ import {
                     <div class="cf-task-id">${task.id}</div>
                     <div class="cf-task-location">${task.location}</div>
                     <div class="cf-task-status ${task.status}">
-                      <span class="status-dot"></span>
+                      <span class="status-dot sk-status-dot ${task.status === 'completed' ? 'is-ok' : task.status === 'failed' ? 'is-err' : ['running','processing','queued','pending'].includes(task.status) ? 'is-warn' : 'is-idle'}"></span>
                       ${task.status}
                     </div>
                   </div>
@@ -2927,7 +2991,7 @@ import {
           display: flex;
           gap: 8px;
           margin: 20px 0;
-          border-bottom: 2px solid #e9ecef;
+          border-bottom: 2px solid var(--sk-border, #263a34);
         }
         
         .cf-tab-btn {
@@ -2941,8 +3005,9 @@ import {
         }
         
         .cf-tab-btn.active {
-          background: linear-gradient(135deg, #007bff, #0056b3);
-          color: white;
+          background: var(--sk-accent-bg, #173029);
+          color: var(--sk-accent, #8bd8bd);
+          border: 1px solid var(--sk-accent-strong, #5fb99d);
         }
         
         .cf-tab-content {
@@ -2962,8 +3027,8 @@ import {
         }
         
         .cf-stat-card {
-          background: linear-gradient(135deg, #f8f9fa, #ffffff);
-          border: 1px solid #e9ecef;
+          background: linear-gradient(135deg, var(--sk-bg2, #101b18), var(--sk-card, #17241f));
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 12px;
           padding: 20px;
           display: flex;
@@ -2978,12 +3043,12 @@ import {
         .cf-stat-value {
           font-size: 24px;
           font-weight: bold;
-          color: #007bff;
+          color: var(--sk-accent, #8bd8bd);
         }
         
         .cf-stat-label {
           font-size: 14px;
-          color: #6c757d;
+          color: var(--sk-text-faint, #7c8f87);
         }
         
         .cf-integration-status {
@@ -3003,7 +3068,7 @@ import {
           gap: 8px;
           padding: 12px;
           border-radius: 8px;
-          border: 1px solid #e9ecef;
+          border: 1px solid var(--sk-border, #263a34);
         }
         
         .cf-status-item.enabled {
@@ -3024,8 +3089,8 @@ import {
         }
         
         .cf-action-card {
-          background: linear-gradient(135deg, #f8f9fa, #ffffff);
-          border: 1px solid #e9ecef;
+          background: linear-gradient(135deg, var(--sk-bg2, #101b18), var(--sk-card, #17241f));
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 8px;
           padding: 16px;
           cursor: pointer;
@@ -3034,7 +3099,7 @@ import {
         }
         
         .cf-action-card:hover {
-          background: linear-gradient(135deg, #e9ecef, #f8f9fa);
+          background: linear-gradient(135deg, var(--sk-card, #17241f), var(--sk-bg2, #101b18));
           transform: translateY(-2px);
         }
         
@@ -3044,8 +3109,8 @@ import {
         }
         
         .cf-worker-card, .cf-task-card {
-          background: linear-gradient(135deg, #f8f9fa, #ffffff);
-          border: 1px solid #e9ecef;
+          background: linear-gradient(135deg, var(--sk-bg2, #101b18), var(--sk-card, #17241f));
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 8px;
           padding: 16px;
           margin-bottom: 12px;
@@ -3059,7 +3124,7 @@ import {
         }
         
         .cf-worker-status.active, .cf-task-status.completed {
-          background: linear-gradient(135deg, #28a745, #20c997);
+          background: linear-gradient(135deg, #2f7a52, var(--sk-ok, #5ee3a1));
           color: white;
           padding: 4px 8px;
           border-radius: 4px;
@@ -3067,7 +3132,7 @@ import {
         }
         
         .cf-task-status.running {
-          background: linear-gradient(135deg, #ffc107, #fd7e14);
+          background: linear-gradient(135deg, #8a6a1f, var(--sk-warn, #ffd166));
           color: white;
           padding: 4px 8px;
           border-radius: 4px;
@@ -3092,8 +3157,8 @@ import {
         .cf-storage-stat, .cf-cdn-stat {
           text-align: center;
           padding: 16px;
-          background: linear-gradient(135deg, #f8f9fa, #ffffff);
-          border: 1px solid #e9ecef;
+          background: linear-gradient(135deg, var(--sk-bg2, #101b18), var(--sk-card, #17241f));
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 8px;
         }
       </style>
@@ -3127,28 +3192,6 @@ import {
     `;
   }
 
-  function setupP2PManager() {
-    p2pManager = {
-      start: () => {
-        connectionStatus = 'connecting';
-        setTimeout(() => {
-          connectionStatus = 'connected';
-          addExamplePeers();
-        }, 2000);
-      },
-      stop: () => {
-        connectionStatus = 'disconnected';
-        peers.length = 0;
-      },
-      sendMessage: (peerId, message) => {
-        console.log(`Sending message to ${peerId}:`, message);
-      },
-      broadcast: (message) => {
-        console.log('Broadcasting message:', message);
-      }
-    };
-  }
-
   function setupEventHandlers(container) {
     // Tab navigation
     const tabButtons = container.querySelectorAll('.tab-button');
@@ -3178,7 +3221,9 @@ import {
       },
       discoverPeers: () => {
         console.log('Discovering peers...');
-        addExamplePeers();
+        // Try the real adapter introspection first; example peers are only
+        // illustrative and are badged as such in the peers tab.
+        refreshAdapterStatus();
         updateDisplay(container);
       },
       announceCapabilities: () => {
@@ -3189,6 +3234,9 @@ import {
       },
       refreshPeers: () => {
         updateDisplay(container);
+      },
+      refreshAdapterStatus: () => {
+        refreshAdapterStatus();
       },
       connectToPeer: (peerId) => {
         console.log(`Connecting to peer: ${peerId}`);
@@ -3639,11 +3687,14 @@ Availability:
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   }
 
+  // Example peers are ILLUSTRATIVE ONLY: every entry carries example:true
+  // and the UI badges them as such. They are never presented as live peers.
   function addExamplePeers() {
     const mockPeers = [
       {
         id: 'peer-gpu-node-001',
         status: 'connected',
+        example: true,
         capabilities: { gpu: true, webgpu: true, inference: true, training: true },
         lastSeen: new Date(),
         reputation: 95
@@ -3651,6 +3702,7 @@ Availability:
       {
         id: 'peer-cpu-node-002',
         status: 'connected',
+        example: true,
         capabilities: { gpu: false, webgpu: false, inference: true, training: false },
         lastSeen: new Date(Date.now() - 30000),
         reputation: 88
@@ -3658,6 +3710,7 @@ Availability:
       {
         id: 'peer-edge-device-003',
         status: 'connecting',
+        example: true,
         capabilities: { gpu: true, webgpu: true, inference: true, training: false },
         lastSeen: new Date(Date.now() - 60000),
         reputation: 76
@@ -3681,10 +3734,11 @@ Availability:
     if (P2PMLSystem) {
       return P2PMLSystem.getAvailableModels();
     }
-    // Example models for demonstration
+    // Example models for demonstration (illustrative only — no model backend)
     return [
       {
         id: 'bert-base-uncased',
+        example: true,
         name: 'BERT Base Uncased',
         type: 'text-classification',
         size: 110,
@@ -3694,6 +3748,7 @@ Availability:
       },
       {
         id: 't5-small',
+        example: true,
         name: 'T5 Small',
         type: 'text-generation',
         size: 242,
@@ -3703,6 +3758,7 @@ Availability:
       },
       {
         id: 'gpt2',
+        example: true,
         name: 'GPT-2',
         type: 'text-generation',
         size: 548,
@@ -3913,15 +3969,17 @@ Availability:
           }
         }
         
-        // Fallback to example peers if no real peers found
+        // Fallback to example peers if no real peers found. These are
+        // illustrative only: the status becomes 'demo', never 'connected'.
         if (peers.length === 0) {
           console.log('No real peers found, showing example peers');
           setTimeout(() => {
-            connectionStatus = 'connected';
+            connectionStatus = 'demo';
             addExamplePeers();
             updateDisplays();
           }, 1000);
         } else {
+          connectionStatus = 'connected';
           updateDisplays();
         }
       },
@@ -3988,12 +4046,15 @@ Availability:
   }
 
   function addExamplePeers() {
-    // Example peers for demonstration when no real peers available
+    // Example peers for demonstration when no real peers available.
+    // Illustrative only: every entry carries example:true and the UI badges
+    // them as such. Never presented as live peers.
     peers.push(
       {
         id: 'peer-001',
         name: 'ML Node Alpha',
         status: 'connected',
+        example: true,
         lastSeen: new Date(),
         capabilities: {
           gpu: { available: true, type: 'webgpu', memory: 8192 },
@@ -4004,6 +4065,7 @@ Availability:
         id: 'peer-002', 
         name: 'Inference Server',
         status: 'connected',
+        example: true,
         lastSeen: new Date(),
         capabilities: {
           gpu: { available: true, type: 'webgpu', memory: 4096 },

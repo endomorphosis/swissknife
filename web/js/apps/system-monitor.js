@@ -6,7 +6,9 @@ import { runSystemNetworkLocalWorkflow } from './system-network-local-capabiliti
  */
 
 const VDA_G041_WORKFLOW = 'system-monitor.live-diagnostics';
-const VDA_G041_SAMPLE_CID = 'bafysysmonitorliveg041';
+// NOTE: the old VDA_G041_SAMPLE_CID fixture constant was removed in the
+// no-mocks pass. Sample CIDs are only shown after a real persist to the
+// ipfs_kit_py artifact store (see persistTelemetrySample()).
 const VDA_G041_RECEIPTS = Object.freeze({
   liveTelemetry: 'receipt:system-monitor:live-telemetry:g041',
   diagnosticHistory: 'receipt:system-monitor:diagnostic-history:g041',
@@ -46,6 +48,10 @@ export class SystemMonitorApp {
     };
     this.telemetrySequence = 0;
     this.lastTelemetryAt = Date.now();
+    // Backend (accelerate) telemetry: refreshed at most every 30s through the
+    // real descriptor gateway. Until the first successful call it honestly
+    // reports "not run".
+    this.backendTelemetry = { state: 'not-run', at: null, data: null, error: null };
     this.telemetrySnapshot = this.createTelemetrySample();
     this.diagnosticHistory = [];
     this.diagnosticAnalysis = null;
@@ -98,20 +104,10 @@ export class SystemMonitorApp {
   }
 
   seedDiagnosticWorkflow() {
-    const now = this.lastTelemetryAt;
-    this.diagnosticHistory = [
-      this.createDiagnosticRecord('boot-baseline', now - 180000, 31.4, 47.8, 18.2, 'nominal'),
-      this.createDiagnosticRecord('ipfs-peer-scan', now - 120000, 38.1, 52.3, 22.6, 'watch'),
-      this.createDiagnosticRecord('accelerate-telemetry', now - 60000, 44.7, 56.8, 35.4, 'nominal')
-    ];
-    this.diagnosticHistory.push(this.createDiagnosticRecord(
-      'live-sample',
-      this.telemetrySnapshot.timestamp,
-      this.telemetrySnapshot.cpu,
-      this.telemetrySnapshot.memory,
-      this.telemetrySnapshot.gpu,
-      'nominal'
-    ));
+    // No seeded samples: the diagnostic history only ever contains samples
+    // actually observed in this session (local signals + real backend
+    // telemetry). Seeding fabricated history was removed in the no-mocks pass.
+    this.diagnosticHistory = [];
     this.updateDiagnosticAnalysis();
   }
 
@@ -125,45 +121,100 @@ export class SystemMonitorApp {
       memory,
       gpu,
       state,
-      sampleCid: `${VDA_G041_SAMPLE_CID}-${stableId}`,
+      sampleCid: null,
       receiptId: VDA_G041_RECEIPTS.diagnosticHistory
     };
   }
 
+  // Builds a telemetry sample from REAL signals only:
+  //  - local: browser APIs (JS heap, CPU cores)
+  //  - backend: the last real ipfs_accelerate_py telemetry envelope, if any
+  // Fields that cannot be measured are null and render as "n/a" — never
+  // fabricated.
   createTelemetrySample() {
     const sequence = this.telemetrySequence;
     this.telemetrySequence += 1;
     const timestamp = Date.now();
-    const cpu = 34 + ((sequence * 17) % 49) + (sequence % 3) * 0.4;
-    const memory = 48 + ((sequence * 11) % 34) + (sequence % 4) * 0.3;
-    const gpu = 18 + ((sequence * 19) % 43) + (sequence % 5) * 0.2;
-    const network = 7 + ((sequence * 13) % 38) + (sequence % 6) * 0.5;
-    const latency = 42 + ((sequence * 7) % 68);
+    const heap = (typeof performance !== 'undefined' && performance.memory) ? performance.memory : null;
+    const memory = heap && heap.totalJSHeapSize > 0
+      ? Number(((heap.usedJSHeapSize / heap.totalJSHeapSize) * 100).toFixed(1))
+      : null;
+    const backend = this.backendTelemetry && this.backendTelemetry.state === 'ok'
+      ? this.backendTelemetry.data
+      : null;
 
     return {
       sequence,
       timestamp,
       sampleId: `telemetry:system-monitor:g041:${String(sequence).padStart(3, '0')}`,
-      sampleCid: `${VDA_G041_SAMPLE_CID}-${String(sequence).padStart(3, '0')}`,
+      sampleCid: null,
       receiptId: VDA_G041_RECEIPTS.liveTelemetry,
-      cpu: Number(cpu.toFixed(1)),
-      memory: Number(memory.toFixed(1)),
-      gpu: Number(gpu.toFixed(1)),
-      network: Number(network.toFixed(1)),
-      download: Number((network * 0.64).toFixed(1)),
-      upload: Number((network * 0.36).toFixed(1)),
-      latency
+      // CPU % is not measurable from a browser; backend utilization is real
+      // when the accelerate telemetry op has returned.
+      cpu: backend && typeof backend.utilization === 'number' ? Number(backend.utilization.toFixed(1)) : null,
+      cpuSource: backend ? 'ipfs_accelerate_py telemetry' : null,
+      memory,
+      memorySource: heap ? 'browser performance.memory' : null,
+      gpu: null,
+      gpuSource: null,
+      network: backend && typeof backend.throughput === 'number' ? Number(backend.throughput.toFixed(1)) : null,
+      networkSource: backend ? 'ipfs_accelerate_py telemetry' : null,
+      download: null,
+      upload: null,
+      latency: this.backendTelemetry?.latencyMs ?? null,
+      backendState: this.backendTelemetry?.state || 'not-run',
+      backendError: this.backendTelemetry?.error || null,
+      eventFrontier: backend?.event_frontier || null
     };
   }
 
+  // Calls the REAL ipfs_accelerate_py telemetry operation through the app
+  // capability gateway. Cached: at most one call per 30s. Failures are stored
+  // verbatim and surface in the UI, never masked.
+  async refreshBackendTelemetry(force = false) {
+    const now = Date.now();
+    if (!force && this.backendTelemetry.at && (now - this.backendTelemetry.at) < 30000) return this.backendTelemetry;
+    const started = Date.now();
+    try {
+      const { invokeDescriptorOperation } = await import('../core/mcp-descriptor-registry.js');
+      const envelope = await invokeDescriptorOperation({
+        descriptor_id: 'ipfs_accelerate_py',
+        operation: 'telemetry',
+        input: { window: '1m' },
+        app_id: 'system-monitor',
+        desktop: this.desktop
+      });
+      if (envelope && envelope.status === 'ok') {
+        this.backendTelemetry = {
+          state: 'ok',
+          at: now,
+          latencyMs: Date.now() - started,
+          data: envelope.output || {},
+          error: null
+        };
+      } else {
+        const message = envelope?.error?.message || envelope?.summary || 'telemetry operation unavailable';
+        this.backendTelemetry = { state: 'degraded', at: now, latencyMs: Date.now() - started, data: null, error: message };
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.backendTelemetry = { state: 'error', at: now, latencyMs: Date.now() - started, data: null, error: message };
+    }
+    return this.backendTelemetry;
+  }
+
   recordDiagnosticSample(sample) {
+    const state = (typeof sample.cpu === 'number' && sample.cpu > this.alertThresholds.cpu)
+      || (typeof sample.memory === 'number' && sample.memory > this.alertThresholds.memory)
+      ? 'alert'
+      : 'nominal';
     this.diagnosticHistory.push(this.createDiagnosticRecord(
       `live-sample-${sample.sequence}`,
       sample.timestamp,
       sample.cpu,
       sample.memory,
       sample.gpu,
-      sample.cpu > this.alertThresholds.cpu ? 'alert' : 'nominal'
+      state
     ));
     if (this.diagnosticHistory.length > 12) {
       this.diagnosticHistory.shift();
@@ -173,26 +224,39 @@ export class SystemMonitorApp {
 
   updateDiagnosticAnalysis() {
     const history = this.diagnosticHistory.length > 0 ? this.diagnosticHistory : [];
-    const average = key => history.length === 0
-      ? 0
-      : history.reduce((sum, record) => sum + Number(record[key] || 0), 0) / history.length;
+    // Averages only over real observed values; nulls (unmeasurable) are
+    // excluded rather than counted as zero.
+    const realValues = key => history
+      .map(record => record[key])
+      .filter(value => typeof value === 'number' && !Number.isNaN(value));
+    const average = key => {
+      const values = realValues(key);
+      return values.length === 0 ? null : values.reduce((sum, value) => sum + value, 0) / values.length;
+    };
     const latest = history[history.length - 1] || this.telemetrySnapshot;
-    const peakCpu = history.reduce((peak, record) => Math.max(peak, Number(record.cpu || 0)), 0);
-    const risk = peakCpu >= this.alertThresholds.cpu || latest.memory >= this.alertThresholds.memory
+    const cpuValues = realValues('cpu');
+    const peakCpu = cpuValues.length ? Math.max(...cpuValues) : null;
+    const latestMemory = typeof latest.memory === 'number' ? latest.memory : null;
+    const risk = (peakCpu !== null && peakCpu >= this.alertThresholds.cpu)
+      || (latestMemory !== null && latestMemory >= this.alertThresholds.memory)
       ? 'elevated'
       : 'normal';
+    const averageCpu = average('cpu');
+    const trend = (typeof latest.cpu === 'number' && averageCpu !== null)
+      ? (latest.cpu >= averageCpu ? 'rising' : 'stable')
+      : 'unknown';
 
     this.diagnosticAnalysis = {
       receiptId: VDA_G041_RECEIPTS.analysis,
       risk,
-      trend: latest.cpu >= average('cpu') ? 'rising' : 'stable',
-      averageCpu: Number(average('cpu').toFixed(1)),
-      averageMemory: Number(average('memory').toFixed(1)),
-      averageGpu: Number(average('gpu').toFixed(1)),
-      peakCpu: Number(peakCpu.toFixed(1)),
+      trend,
+      averageCpu: averageCpu !== null ? Number(averageCpu.toFixed(1)) : null,
+      averageMemory: (() => { const v = average('memory'); return v !== null ? Number(v.toFixed(1)) : null; })(),
+      averageGpu: (() => { const v = average('gpu'); return v !== null ? Number(v.toFixed(1)) : null; })(),
+      peakCpu: peakCpu !== null ? Number(peakCpu.toFixed(1)) : null,
       recommendation: risk === 'elevated'
         ? 'Throttle optional AI workloads and refresh telemetry after remediation.'
-        : 'System load is within the operating envelope for local and IPFS Accelerate tasks.'
+        : 'Observed signals are within the operating envelope; unmeasurable fields are n/a.'
     };
   }
 
@@ -210,11 +274,16 @@ export class SystemMonitorApp {
   getAccessibleSummaryText() {
     const stale = this.getStaleDataState();
     const alertCount = this.activeAlerts.length;
+    const snapshot = this.telemetrySnapshot;
+    const backendNote = snapshot.backendState === 'ok'
+      ? `backend telemetry ok (${snapshot.cpuSource || 'accelerate'})`
+      : `backend telemetry ${snapshot.backendState}${snapshot.backendError ? `: ${snapshot.backendError}` : ''}`;
     return [
-      `Accessible summary: CPU ${this.telemetrySnapshot.cpu}%`,
-      `memory ${this.telemetrySnapshot.memory}%`,
-      `GPU ${this.telemetrySnapshot.gpu}%`,
-      `network ${this.telemetrySnapshot.network} MB/s`,
+      `Accessible summary: CPU ${this.formatMetric(snapshot.cpu, '%')}`,
+      `memory ${this.formatMetric(snapshot.memory, '%')}`,
+      `GPU ${this.formatMetric(snapshot.gpu, '%')}`,
+      `network ${this.formatMetric(snapshot.network, ' MB/s')}`,
+      backendNote,
       `${this.diagnosticHistory.length} diagnostic history samples`,
       `${alertCount} alert state ${alertCount === 1 ? 'entry' : 'entries'}`,
       `${stale.state} telemetry age ${Math.round(stale.ageMs / 1000)} seconds`,
@@ -365,8 +434,8 @@ export class SystemMonitorApp {
       <style>
         .system-monitor-container {
           height: 100%;
-          background: linear-gradient(135deg, #1a1a2e, #16213e);
-          color: #e8eaed;
+          background: var(--sk-bg, #0e1412);
+          color: var(--sk-text, #edf7f2);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', roboto, sans-serif;
           display: flex;
           flex-direction: column;
@@ -375,9 +444,9 @@ export class SystemMonitorApp {
 
         .monitor-header {
           padding: 12px 16px;
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--sk-bg2, #101b18);
           backdrop-filter: blur(20px);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          border-bottom: 1px solid var(--sk-border, #263a34);
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -394,10 +463,10 @@ export class SystemMonitorApp {
 
         .view-tab {
           padding: 8px 16px;
-          background: rgba(255, 255, 255, 0.1);
-          border: none;
+          background: var(--sk-bg3, #12211d);
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 8px;
-          color: white;
+          color: var(--sk-text, #edf7f2);
           cursor: pointer;
           transition: all 0.2s ease;
           display: flex;
@@ -407,13 +476,15 @@ export class SystemMonitorApp {
         }
 
         .view-tab:hover {
-          background: rgba(255, 255, 255, 0.2);
+          background: var(--sk-card, #17241f);
           transform: translateY(-1px);
         }
 
         .view-tab.active {
-          background: linear-gradient(135deg, #4ade80, #22c55e);
-          box-shadow: 0 2px 8px rgba(74, 222, 128, 0.3);
+          background: var(--sk-accent-bg, #173029);
+          color: var(--sk-accent, #8bd8bd);
+          border-color: var(--sk-accent-strong, #5fb99d);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         }
 
         .monitor-controls {
@@ -426,9 +497,9 @@ export class SystemMonitorApp {
           width: 36px;
           height: 36px;
           border-radius: 8px;
-          border: none;
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
+          border: 1px solid var(--sk-border, #263a34);
+          background: var(--sk-bg3, #12211d);
+          color: var(--sk-text, #edf7f2);
           cursor: pointer;
           transition: all 0.2s ease;
           display: flex;
@@ -437,14 +508,14 @@ export class SystemMonitorApp {
         }
 
         .control-btn:hover {
-          background: rgba(255, 255, 255, 0.2);
+          background: var(--sk-card, #17241f);
           transform: scale(1.05);
         }
 
         .status-bar {
           padding: 8px 16px;
-          background: rgba(0, 0, 0, 0.3);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          background: var(--sk-bg2, #101b18);
+          border-bottom: 1px solid var(--sk-border, #263a34);
           display: flex;
           gap: 24px;
           overflow-x: auto;
@@ -477,11 +548,11 @@ export class SystemMonitorApp {
         }
 
         .metric-card {
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--sk-card, #17241f);
           backdrop-filter: blur(10px);
           border-radius: 12px;
           padding: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--sk-border, #263a34);
         }
 
         .metric-header {
@@ -512,7 +583,7 @@ export class SystemMonitorApp {
         .progress-bar {
           width: 100%;
           height: 8px;
-          background: rgba(255, 255, 255, 0.1);
+          background: var(--sk-bg2, #101b18);
           border-radius: 4px;
           overflow: hidden;
           margin-top: 8px;
@@ -532,7 +603,8 @@ export class SystemMonitorApp {
         .chart-container {
           height: 150px;
           margin-top: 12px;
-          background: rgba(0, 0, 0, 0.3);
+          background: var(--sk-bg2, #101b18);
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 8px;
           position: relative;
           overflow: hidden;
@@ -560,15 +632,15 @@ export class SystemMonitorApp {
         .search-input {
           width: 100%;
           padding: 8px 12px;
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          background: var(--sk-bg2, #101b18);
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 8px;
-          color: white;
+          color: var(--sk-text, #edf7f2);
           font-size: 14px;
         }
 
         .search-input::placeholder {
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--sk-text-faint, #7c8f87);
         }
 
         .process-filters {
@@ -579,40 +651,46 @@ export class SystemMonitorApp {
 
         .filter-select {
           padding: 6px 12px;
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          background: var(--sk-bg2, #101b18);
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 6px;
-          color: white;
+          color: var(--sk-text, #edf7f2);
           font-size: 12px;
         }
 
         .process-table {
           width: 100%;
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--sk-card, #17241f);
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 8px;
           overflow: hidden;
         }
 
         .process-table th,
         .process-table td {
-          padding: 12px;
+          padding: 8px 12px;
           text-align: left;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          border-bottom: 1px solid var(--sk-border, #263a34);
+          font-size: 13px;
         }
 
         .process-table th {
-          background: rgba(255, 255, 255, 0.1);
+          background: var(--sk-bg3, #12211d);
+          color: var(--sk-text-dim, #a8bbb2);
           font-weight: 600;
           cursor: pointer;
           transition: background 0.2s ease;
+          text-transform: uppercase;
+          font-size: 11px;
+          letter-spacing: 0.04em;
         }
 
         .process-table th:hover {
-          background: rgba(255, 255, 255, 0.15);
+          background: var(--sk-card, #17241f);
         }
 
         .process-table tr:hover {
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--sk-bg3, #12211d);
         }
 
         .process-status {
@@ -624,13 +702,13 @@ export class SystemMonitorApp {
         }
 
         .status-running {
-          background: rgba(34, 197, 94, 0.2);
-          color: #22c55e;
+          background: rgba(94, 227, 161, 0.14);
+          color: var(--sk-ok, #5ee3a1);
         }
 
         .status-stopped {
-          background: rgba(239, 68, 68, 0.2);
-          color: #ef4444;
+          background: rgba(255, 107, 107, 0.14);
+          color: var(--sk-err, #ff6b6b);
         }
 
         /* Network Styles */
@@ -642,10 +720,11 @@ export class SystemMonitorApp {
         }
 
         .network-interface {
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--sk-card, #17241f);
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 12px;
           padding: 16px;
-          border-left: 4px solid #4ade80;
+          border-left: 4px solid var(--sk-ok, #5ee3a1);
         }
 
         .interface-header {
@@ -669,13 +748,13 @@ export class SystemMonitorApp {
         }
 
         .status-connected {
-          background: rgba(34, 197, 94, 0.2);
-          color: #22c55e;
+          background: rgba(94, 227, 161, 0.14);
+          color: var(--sk-ok, #5ee3a1);
         }
 
         .status-disconnected {
-          background: rgba(239, 68, 68, 0.2);
-          color: #ef4444;
+          background: rgba(255, 107, 107, 0.14);
+          color: var(--sk-err, #ff6b6b);
         }
 
         .interface-details {
@@ -698,10 +777,11 @@ export class SystemMonitorApp {
         }
 
         .storage-device {
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--sk-card, #17241f);
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 12px;
           padding: 16px;
-          border-left: 4px solid #fbbf24;
+          border-left: 4px solid var(--sk-warn, #ffd166);
         }
 
         .device-header {
@@ -718,8 +798,8 @@ export class SystemMonitorApp {
 
         .device-type {
           padding: 4px 8px;
-          background: rgba(251, 191, 36, 0.2);
-          color: #fbbf24;
+          background: rgba(255, 209, 102, 0.14);
+          color: var(--sk-warn, #ffd166);
           border-radius: 12px;
           font-size: 10px;
           font-weight: 600;
@@ -742,17 +822,17 @@ export class SystemMonitorApp {
           top: 60px;
           right: 16px;
           width: 350px;
-          background: rgba(0, 0, 0, 0.95);
+          background: var(--sk-bg2, #101b18);
           backdrop-filter: blur(20px);
           border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          border: 1px solid var(--sk-border, #263a34);
           max-height: 400px;
           z-index: 1000;
         }
 
         .alert-header {
           padding: 16px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+          border-bottom: 1px solid var(--sk-border, #263a34);
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -763,8 +843,8 @@ export class SystemMonitorApp {
           height: 24px;
           border-radius: 50%;
           border: none;
-          background: rgba(239, 68, 68, 0.3);
-          color: white;
+          background: rgba(255, 107, 107, 0.2);
+          color: var(--sk-text, #edf7f2);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -779,27 +859,27 @@ export class SystemMonitorApp {
 
         .alert-item {
           padding: 12px;
-          background: rgba(239, 68, 68, 0.1);
-          border-left: 4px solid #ef4444;
+          background: rgba(255, 107, 107, 0.08);
+          border-left: 4px solid var(--sk-err, #ff6b6b);
           border-radius: 6px;
           margin-bottom: 8px;
           font-size: 12px;
         }
 
         .alert-item.warning {
-          background: rgba(251, 191, 36, 0.1);
-          border-left-color: #fbbf24;
+          background: rgba(255, 209, 102, 0.08);
+          border-left-color: var(--sk-warn, #ffd166);
         }
 
         .alert-item.info {
-          background: rgba(59, 130, 246, 0.1);
-          border-left-color: #3b82f6;
+          background: rgba(139, 216, 189, 0.08);
+          border-left-color: var(--sk-accent, #8bd8bd);
         }
 
         .vda-workflow {
           margin-top: 18px;
           padding-top: 16px;
-          border-top: 1px solid rgba(255, 255, 255, 0.14);
+          border-top: 1px solid var(--sk-border, #263a34);
         }
 
         .vda-workflow h3 {
@@ -815,8 +895,8 @@ export class SystemMonitorApp {
 
         .vda-workflow-card {
           min-height: 108px;
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.13);
+          background: var(--sk-card, #17241f);
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 8px;
           padding: 12px;
         }
@@ -827,7 +907,7 @@ export class SystemMonitorApp {
           font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
-          color: rgba(232, 234, 237, 0.72);
+          color: var(--sk-text-dim, #a8bbb2);
         }
 
         .vda-workflow-card strong {
@@ -836,11 +916,22 @@ export class SystemMonitorApp {
           font-size: 15px;
         }
 
+        .detail-lines {
+          margin-top: 12px;
+          font-size: 13px;
+          line-height: 1.65;
+          color: var(--sk-text-dim, #a8bbb2);
+        }
+        .detail-lines strong {
+          color: var(--sk-text, #edf7f2);
+          font-weight: 600;
+        }
+
         .vda-workflow-card span:last-child,
         .vda-workflow-card div {
           font-size: 12px;
           line-height: 1.45;
-          color: rgba(232, 234, 237, 0.82);
+          color: var(--sk-text-dim, #a8bbb2);
         }
 
         .sr-telemetry-summary {
@@ -1015,7 +1106,7 @@ export class SystemMonitorApp {
                 <span>ℹ️</span>
                 <span>System Details</span>
               </div>
-              <div style="margin-top: 12px; font-size: 13px; line-height: 1.6;">
+              <div class="detail-lines">
                 <div><strong>OS:</strong> ${this.systemInfo.os} ${this.systemInfo.version}</div>
                 <div><strong>Architecture:</strong> ${this.systemInfo.architecture}</div>
                 <div><strong>CPU Cores:</strong> ${this.systemInfo.cpuCores}</div>
@@ -1028,11 +1119,10 @@ export class SystemMonitorApp {
                 <span>🔗</span>
                 <span>P2P Network</span>
               </div>
-              <div style="margin-top: 12px; font-size: 13px; line-height: 1.6;">
-                <div><strong>Status:</strong> <span class="status-connected">Connected</span></div>
-                <div><strong>Peers:</strong> 12 active</div>
-                <div><strong>Shared Models:</strong> 8</div>
-                <div><strong>Data Transferred:</strong> 2.4 GB</div>
+              <div class="detail-lines">
+                <div><strong>Status:</strong> <span id="p2p-local-status">checking…</span></div>
+                <div><strong>Peers:</strong> <span id="p2p-local-peers">n/a</span></div>
+                <div><strong>Note:</strong> local browser P2P state only; no fabricated network totals.</div>
               </div>
             </div>
 
@@ -1041,11 +1131,24 @@ export class SystemMonitorApp {
                 <span>🌐</span>
                 <span>IPFS Node</span>
               </div>
-              <div style="margin-top: 12px; font-size: 13px; line-height: 1.6;">
-                <div><strong>Status:</strong> <span class="status-connected">Online</span></div>
-                <div><strong>Peers:</strong> 234 connected</div>
-                <div><strong>Pinned Content:</strong> 45 items</div>
-                <div><strong>Storage Used:</strong> 1.2 GB</div>
+              <div class="detail-lines">
+                <div><strong>Status:</strong> <span id="ipfs-node-status">not queried</span></div>
+                <div><strong>Peer ID:</strong> <span id="ipfs-node-id">n/a</span></div>
+                <div><strong>Pins:</strong> <span id="ipfs-pin-count">n/a</span></div>
+                <div><button id="ipfs-node-refresh" class="btn btn-small sk-btn" style="margin-top:6px;">Query IPFS node</button></div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-title">
+                <span>⚡</span>
+                <span>Accelerate Telemetry</span>
+              </div>
+              <div class="detail-lines">
+                <div><strong>State:</strong> <span id="accel-telemetry-state">not run</span></div>
+                <div><strong>Utilization:</strong> <span id="accel-telemetry-util">n/a</span></div>
+                <div><strong>Throughput:</strong> <span id="accel-telemetry-tput">n/a</span></div>
+                <div><button id="refresh-backend-telemetry" class="btn btn-small sk-btn" style="margin-top:6px;">Refresh backend telemetry</button></div>
               </div>
             </div>
           </div>
@@ -1066,25 +1169,28 @@ export class SystemMonitorApp {
       receiptId: VDA_G041_RECEIPTS.alertState
     };
     const accessibleSummary = this.getAccessibleSummaryText();
+    const sampleCidText = latest.sampleCid || 'not persisted — use “Persist sample” for a real artifact CID';
 
     return `
       <section class="vda-workflow" data-svd-workflow="${VDA_G041_WORKFLOW}" aria-labelledby="vda-g041-title">
         <h3 id="vda-g041-title">Diagnostic Workflow</h3>
+        <p class="vda-evidence-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification unless a real artifact CID is shown after persisting.</p>
         <div class="vda-workflow-grid">
           <div class="vda-workflow-card" data-svd-vda-marker="live-telemetry">
             <span class="vda-workflow-label">Live telemetry</span>
-            <strong id="vda-live-cpu">CPU ${latest.cpu}% / RAM ${latest.memory}%</strong>
-            <div id="vda-live-sample">${latest.sampleId}; ${latest.sampleCid}; ${latest.receiptId}; latency ${latest.latency}ms</div>
+            <strong id="vda-live-cpu">CPU ${this.formatMetric(latest.cpu, '%')} / RAM ${this.formatMetric(latest.memory, '%')}</strong>
+            <div id="vda-live-sample">${latest.sampleId}; ${sampleCidText}; ${latest.receiptId}; backend ${latest.backendState}${latest.backendError ? `: ${latest.backendError}` : ''}</div>
+            <button id="vda-persist-sample" class="btn btn-small sk-btn" style="margin-top:6px;">Persist sample to IPFS</button>
           </div>
           <div class="vda-workflow-card" data-svd-vda-marker="diagnostic-history">
             <span class="vda-workflow-label">Diagnostic history</span>
             <strong id="vda-history-count">${this.diagnosticHistory.length} samples retained</strong>
-            <div id="vda-history-summary">Latest ${latestHistory.label} at ${this.formatClock(latestHistory.timestamp)}; ${latestHistory.sampleCid}; ${latestHistory.receiptId}</div>
+            <div id="vda-history-summary">${latestHistory.label ? `Latest ${latestHistory.label} at ${this.formatClock(latestHistory.timestamp)}` : 'No samples observed yet'}; ${latestHistory.sampleCid || 'not persisted'}; ${latestHistory.receiptId || ''}</div>
           </div>
           <div class="vda-workflow-card" data-svd-vda-marker="analysis">
             <span class="vda-workflow-label">Analysis</span>
             <strong id="vda-analysis-risk">${analysis.risk} risk / ${analysis.trend} trend</strong>
-            <div id="vda-analysis-summary">Average CPU ${analysis.averageCpu}%, memory ${analysis.averageMemory}%, GPU ${analysis.averageGpu}%; ${analysis.recommendation}; ${analysis.receiptId}</div>
+            <div id="vda-analysis-summary">Average CPU ${this.formatMetric(analysis.averageCpu, '%')}, memory ${this.formatMetric(analysis.averageMemory, '%')}, GPU ${this.formatMetric(analysis.averageGpu, '%')}; ${analysis.recommendation}; ${analysis.receiptId}</div>
           </div>
           <div class="vda-workflow-card" data-svd-vda-marker="stale-data">
             <span class="vda-workflow-label">Stale-data guard</span>
@@ -1110,6 +1216,7 @@ export class SystemMonitorApp {
   renderProcessesContent() {
     return `
       <div class="processes-content">
+        <p class="demo-data-note sk-honest-note">Illustrative demo data — a browser cannot enumerate OS processes, so this table is a static example, not live system state.</p>
         <div class="process-controls">
           <div class="process-search">
             <input type="text" class="search-input" id="process-search" placeholder="Search processes...">
@@ -1170,7 +1277,7 @@ export class SystemMonitorApp {
         </td>
         <td>${this.formatBytes(process.memory)}</td>
         <td>
-          <span class="process-status status-${process.status}">${process.status}</span>
+          <span class="process-status status-${process.status}"><span class="sk-status-dot ${process.status === 'running' ? 'is-ok' : 'is-err'}"></span>${process.status}</span>
         </td>
         <td>
           <button class="control-btn" style="width: 24px; height: 24px; font-size: 10px;" 
@@ -1184,6 +1291,7 @@ export class SystemMonitorApp {
   renderNetworkContent() {
     return `
       <div class="network-content">
+        <p class="demo-data-note sk-honest-note">Illustrative demo data — interface names and speeds are static examples; use the Overview tab's IPFS query for live node state.</p>
         <div class="network-grid">
           ${this.networkInterfaces.map(netInterface => `
             <div class="network-interface">
@@ -1219,7 +1327,7 @@ export class SystemMonitorApp {
                 <span>📊</span>
                 <span>Traffic Analysis</span>
               </div>
-              <div style="margin-top: 12px;">
+              <div class="detail-lines">
                 <div class="chart-container" style="height: 200px;">
                   <canvas id="traffic-chart" class="chart-canvas"></canvas>
                 </div>
@@ -1231,7 +1339,7 @@ export class SystemMonitorApp {
                 <span>🔗</span>
                 <span>Connection Status</span>
               </div>
-              <div style="margin-top: 12px; font-size: 13px; line-height: 1.8;">
+              <div class="detail-lines">
                 <div><strong>Active Connections:</strong> 24</div>
                 <div><strong>P2P Peers:</strong> 12</div>
                 <div><strong>IPFS Peers:</strong> 234</div>
@@ -1248,6 +1356,7 @@ export class SystemMonitorApp {
   renderStorageContent() {
     return `
       <div class="storage-content">
+        <p class="demo-data-note sk-honest-note">Illustrative demo data — drive capacities are static examples, not live disk state.</p>
         <div class="storage-list">
           ${this.storageDevices.map(device => {
             const usedPercent = device.total > 0 ? (device.used / device.total) * 100 : 0;
@@ -1283,7 +1392,7 @@ export class SystemMonitorApp {
                 <span>📈</span>
                 <span>Disk I/O Performance</span>
               </div>
-              <div style="margin-top: 12px;">
+              <div class="detail-lines">
                 <div class="chart-container" style="height: 150px;">
                   <canvas id="disk-io-chart" class="chart-canvas"></canvas>
                 </div>
@@ -1295,7 +1404,7 @@ export class SystemMonitorApp {
                 <span>🗂️</span>
                 <span>File System Stats</span>
               </div>
-              <div style="margin-top: 12px; font-size: 13px; line-height: 1.8;">
+              <div class="detail-lines">
                 <div><strong>Total Files:</strong> 1,247,382</div>
                 <div><strong>Total Folders:</strong> 85,294</div>
                 <div><strong>Largest File:</strong> 2.4 GB</div>
@@ -1341,7 +1450,7 @@ export class SystemMonitorApp {
                 <span>🌡️</span>
                 <span>Temperature Monitoring</span>
               </div>
-              <div style="margin-top: 12px; font-size: 13px; line-height: 1.8;">
+              <div class="detail-lines">
                 <div><strong>CPU Temperature:</strong> 65°C</div>
                 <div><strong>GPU Temperature:</strong> 72°C</div>
                 <div><strong>System Temperature:</strong> 45°C</div>
@@ -1354,7 +1463,7 @@ export class SystemMonitorApp {
                 <span>⚡</span>
                 <span>Performance Metrics</span>
               </div>
-              <div style="margin-top: 12px; font-size: 13px; line-height: 1.8;">
+              <div class="detail-lines">
                 <div><strong>Boot Time:</strong> 23.5s</div>
                 <div><strong>AI Model Load Time:</strong> 4.2s</div>
                 <div><strong>P2P Connection Time:</strong> 1.8s</div>
@@ -1388,6 +1497,33 @@ export class SystemMonitorApp {
     container.querySelector('#export-btn').addEventListener('click', () => {
       this.exportData();
     });
+
+    const persistSampleBtn = container.querySelector('#vda-persist-sample');
+    if (persistSampleBtn) {
+      persistSampleBtn.addEventListener('click', () => {
+        this.persistTelemetrySample();
+      });
+    }
+
+    const refreshBackendBtn = container.querySelector('#refresh-backend-telemetry');
+    if (refreshBackendBtn) {
+      refreshBackendBtn.addEventListener('click', async () => {
+        await this.refreshBackendTelemetry(true);
+        this.updateSystemMetrics();
+        this.updateVdaG041WorkflowDisplay();
+        this.updateBackendTelemetryCard();
+      });
+    }
+
+    const ipfsRefreshBtn = container.querySelector('#ipfs-node-refresh');
+    if (ipfsRefreshBtn) {
+      ipfsRefreshBtn.addEventListener('click', () => {
+        this.queryIpfsNode();
+      });
+    }
+
+    this.updateP2PLocalCard();
+    this.updateBackendTelemetryCard();
 
     const closeAlerts = container.querySelector('#close-alerts');
     if (closeAlerts) {
@@ -1490,8 +1626,12 @@ export class SystemMonitorApp {
     this.telemetrySnapshot = sample;
     this.lastTelemetryAt = sample.timestamp;
     this.recordDiagnosticSample(sample);
+    // Refresh the real backend telemetry at most every 30s (cached inside).
+    this.refreshBackendTelemetry().then(() => {
+      this.updateVdaG041WorkflowDisplay();
+    }).catch(() => {});
 
-    // Add to chart data
+    // Add to chart data (nulls are kept; charts render gaps, not fabrications)
     this.chartData.cpu.push(sample.cpu);
     this.chartData.memory.push(sample.memory);
     this.chartData.gpu.push(sample.gpu);
@@ -1509,8 +1649,12 @@ export class SystemMonitorApp {
     this.updateVdaG041WorkflowDisplay();
   }
 
+  formatMetric(value, unit) {
+    return (value === null || value === undefined || Number.isNaN(value)) ? 'n/a' : `${Number(value).toFixed(1)}${unit}`;
+  }
+
   updateMetricDisplays(cpu, memory, gpu, network) {
-    // Update overview cards
+    // Update overview cards — unmeasurable fields render as "n/a".
     const cpuMetric = document.querySelector('#cpu-metric');
     const memoryMetric = document.querySelector('#memory-metric');
     const gpuMetric = document.querySelector('#gpu-metric');
@@ -1518,23 +1662,23 @@ export class SystemMonitorApp {
     const downloadSpeed = document.querySelector('#download-speed');
     const uploadSpeed = document.querySelector('#upload-speed');
 
-    if (cpuMetric) cpuMetric.textContent = `${cpu.toFixed(1)}%`;
-    if (memoryMetric) memoryMetric.textContent = `${memory.toFixed(1)}%`;
-    if (gpuMetric) gpuMetric.textContent = `${gpu.toFixed(1)}%`;
-    if (networkMetric) networkMetric.textContent = `${network.toFixed(1)} MB/s`;
-    if (downloadSpeed) downloadSpeed.textContent = `${this.telemetrySnapshot.download.toFixed(1)} MB/s`;
-    if (uploadSpeed) uploadSpeed.textContent = `${this.telemetrySnapshot.upload.toFixed(1)} MB/s`;
+    if (cpuMetric) cpuMetric.textContent = this.formatMetric(cpu, '%');
+    if (memoryMetric) memoryMetric.textContent = this.formatMetric(memory, '%');
+    if (gpuMetric) gpuMetric.textContent = this.formatMetric(gpu, '%');
+    if (networkMetric) networkMetric.textContent = this.formatMetric(network, ' MB/s');
+    if (downloadSpeed) downloadSpeed.textContent = this.formatMetric(this.telemetrySnapshot.download, ' MB/s');
+    if (uploadSpeed) uploadSpeed.textContent = this.formatMetric(this.telemetrySnapshot.upload, ' MB/s');
 
-    // Update progress bars
+    // Update progress bars (0 width for n/a)
     const cpuProgress = document.querySelector('#cpu-progress');
     const memoryProgress = document.querySelector('#memory-progress');
     const gpuProgress = document.querySelector('#gpu-progress');
     const networkProgress = document.querySelector('#network-progress');
 
-    if (cpuProgress) cpuProgress.style.width = `${cpu}%`;
-    if (memoryProgress) memoryProgress.style.width = `${memory}%`;
-    if (gpuProgress) gpuProgress.style.width = `${gpu}%`;
-    if (networkProgress) networkProgress.style.width = `${Math.min(network, 100)}%`;
+    if (cpuProgress) cpuProgress.style.width = `${cpu ?? 0}%`;
+    if (memoryProgress) memoryProgress.style.width = `${memory ?? 0}%`;
+    if (gpuProgress) gpuProgress.style.width = `${gpu ?? 0}%`;
+    if (networkProgress) networkProgress.style.width = `${Math.min(network ?? 0, 100)}%`;
   }
 
   updateStatusBar() {
@@ -1545,10 +1689,10 @@ export class SystemMonitorApp {
     const uptimeStatus = document.querySelector('#uptime-status');
 
     const sample = this.telemetrySnapshot;
-    if (cpuStatus) cpuStatus.textContent = `${sample.cpu.toFixed(1)}%`;
-    if (memoryStatus) memoryStatus.textContent = `${sample.memory.toFixed(1)}%`;
-    if (gpuStatus) gpuStatus.textContent = `${sample.gpu.toFixed(1)}%`;
-    if (networkStatus) networkStatus.textContent = `${sample.network.toFixed(1)} MB/s`;
+    if (cpuStatus) cpuStatus.textContent = this.formatMetric(sample.cpu, '%');
+    if (memoryStatus) memoryStatus.textContent = this.formatMetric(sample.memory, '%');
+    if (gpuStatus) gpuStatus.textContent = this.formatMetric(sample.gpu, '%');
+    if (networkStatus) networkStatus.textContent = this.formatMetric(sample.network, ' MB/s');
 
     // Update uptime
     this.systemInfo.uptime += 1;
@@ -1574,17 +1718,68 @@ export class SystemMonitorApp {
       if (node) node.textContent = value;
     };
 
-    setText('#vda-live-cpu', `CPU ${latest.cpu}% / RAM ${latest.memory}%`);
-    setText('#vda-live-sample', `${latest.sampleId}; ${latest.sampleCid}; ${latest.receiptId}; latency ${latest.latency}ms`);
+    setText('#vda-live-cpu', `CPU ${this.formatMetric(latest.cpu, '%')} / RAM ${this.formatMetric(latest.memory, '%')}`);
+    setText('#vda-live-sample', `${latest.sampleId}; ${latest.sampleCid || 'not persisted'}; ${latest.receiptId}; backend ${latest.backendState}${latest.backendError ? `: ${latest.backendError}` : ''}`);
     setText('#vda-history-count', `${this.diagnosticHistory.length} samples retained`);
-    setText('#vda-history-summary', `Latest ${latestHistory.label} at ${this.formatClock(latestHistory.timestamp)}; ${latestHistory.sampleCid}; ${latestHistory.receiptId}`);
+    setText('#vda-history-summary', `${latestHistory.label ? `Latest ${latestHistory.label} at ${this.formatClock(latestHistory.timestamp)}` : 'No samples observed yet'}; ${latestHistory.sampleCid || 'not persisted'}; ${latestHistory.receiptId || ''}`);
     setText('#vda-analysis-risk', `${analysis.risk} risk / ${analysis.trend} trend`);
-    setText('#vda-analysis-summary', `Average CPU ${analysis.averageCpu}%, memory ${analysis.averageMemory}%, GPU ${analysis.averageGpu}%; ${analysis.recommendation}; ${analysis.receiptId}`);
+    setText('#vda-analysis-summary', `Average CPU ${this.formatMetric(analysis.averageCpu, '%')}, memory ${this.formatMetric(analysis.averageMemory, '%')}, GPU ${this.formatMetric(analysis.averageGpu, '%')}; ${analysis.recommendation}; ${analysis.receiptId}`);
     setText('#vda-stale-state', stale.state);
     setText('#vda-alert-state', alert ? alert.severity : 'info');
     setText('#vda-accessible-summary', accessibleSummary);
     const srSummary = document.querySelector('.sr-telemetry-summary');
     if (srSummary) srSummary.textContent = accessibleSummary;
+  }
+
+  // Persists the current telemetry sample to the real ipfs_kit_py artifact
+  // store with a canonical CID over the exact sample bytes. The user
+  // explicitly confirms the backend write; the backend's acknowledgement (or
+  // its verbatim error) is what the UI shows afterwards.
+  async persistTelemetrySample() {
+    let helper;
+    try {
+      helper = await import('./real-artifact.js');
+    } catch (error) {
+      this.showNotification(`Artifact helper unavailable: ${error.message}`, 'error');
+      return;
+    }
+    if (!helper.userConfirmsBackendWrite('Persist the current telemetry sample to the ipfs_kit_py artifact store?')) {
+      return;
+    }
+    try {
+      const sample = this.telemetrySnapshot;
+      const record = {
+        schema: 'swissknife.system-monitor.telemetry-sample.v1',
+        sample_id: sample.sampleId,
+        captured_at: new Date(sample.timestamp).toISOString(),
+        local: {
+          memory_pct: sample.memory,
+          memory_source: sample.memorySource,
+          cpu_cores: (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || null
+        },
+        backend: {
+          state: sample.backendState,
+          cpu_pct: sample.cpu,
+          cpu_source: sample.cpuSource,
+          network: sample.network,
+          network_source: sample.networkSource,
+          latency_ms: sample.latency,
+          event_frontier: sample.eventFrontier
+        }
+      };
+      const persisted = await helper.persistArtifactRecord({
+        record,
+        profile: 'system-monitor-telemetry',
+        kind: 'telemetry-sample'
+      });
+      sample.sampleCid = persisted.cid;
+      this.telemetrySnapshot = sample;
+      this.updateVdaG041WorkflowDisplay();
+      this.showNotification(`Sample persisted: ${persisted.cid}`, 'success');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.showNotification(`Persist failed: ${message}`, 'error');
+    }
   }
 
   initializeCharts() {
@@ -1625,38 +1820,39 @@ export class SystemMonitorApp {
 
   drawChart(ctx, data, color, width, height) {
     ctx.clearRect(0, 0, width, height);
-    
-    if (data.length < 2) return;
+
+    // Only real observed values are drawn; nulls (unmeasurable) break the
+    // line instead of being plotted as zero.
+    const points = data.filter(value => typeof value === 'number' && !Number.isNaN(value));
+    if (points.length < 2) return;
 
     const padding = 10;
     const chartWidth = width - padding * 2;
     const chartHeight = height - padding * 2;
-    const maxValue = Math.max(...data, 100);
-    
+    const maxValue = Math.max(...points, 100);
+
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    
+
+    let penDown = false;
     data.forEach((value, index) => {
+      if (typeof value !== 'number' || Number.isNaN(value)) {
+        penDown = false;
+        return;
+      }
       const x = padding + (index / (data.length - 1)) * chartWidth;
       const y = padding + chartHeight - (value / maxValue) * chartHeight;
-      
-      if (index === 0) {
+
+      if (!penDown) {
         ctx.moveTo(x, y);
+        penDown = true;
       } else {
         ctx.lineTo(x, y);
       }
     });
-    
-    ctx.stroke();
 
-    // Add fill
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = color;
-    ctx.lineTo(padding + chartWidth, padding + chartHeight);
-    ctx.lineTo(padding, padding + chartHeight);
-    ctx.closePath();
-    ctx.fill();
+    ctx.stroke();
     ctx.globalAlpha = 1;
   }
 
@@ -1830,6 +2026,89 @@ export class SystemMonitorApp {
   // Initialize method required by the desktop framework
   async initialize() {
     // App is ready for rendering
+  }
+
+  showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--sk-bg2,#101b18);color:var(--sk-text,#edf7f2);border:1px solid var(--sk-border,#263a34);padding:10px 16px;border-radius:6px;z-index:10000;font-size:13px;max-width:420px;';
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 4000);
+  }
+
+  // Real local P2P state: only what the browser actually knows. Never claims
+  // peers that were not observed.
+  updateP2PLocalCard() {
+    const statusEl = document.querySelector('#p2p-local-status');
+    const peersEl = document.querySelector('#p2p-local-peers');
+    let peerCount = null;
+    let connected = false;
+    try {
+      const p2p = (typeof window !== 'undefined' && (window.p2pMLSystem || window.swissknife?.p2p)) || null;
+      if (p2p?.peers?.size !== undefined) {
+        peerCount = p2p.peers.size;
+        connected = peerCount > 0;
+      }
+    } catch { /* stay honest: unknown */ }
+    if (statusEl) statusEl.textContent = peerCount === null ? 'unknown (no P2P system)' : (connected ? 'peers observed' : 'no peers');
+    if (peersEl) peersEl.textContent = peerCount === null ? 'n/a' : String(peerCount);
+  }
+
+  updateBackendTelemetryCard() {
+    const stateEl = document.querySelector('#accel-telemetry-state');
+    const utilEl = document.querySelector('#accel-telemetry-util');
+    const tputEl = document.querySelector('#accel-telemetry-tput');
+    const backend = this.backendTelemetry || { state: 'not-run' };
+    if (stateEl) {
+      stateEl.textContent = backend.state === 'ok'
+        ? 'ok'
+        : (backend.error ? `unavailable: ${backend.error}` : backend.state);
+    }
+    if (utilEl) utilEl.textContent = this.formatMetric(backend.data?.utilization, '%');
+    if (tputEl) tputEl.textContent = this.formatMetric(backend.data?.throughput, '');
+  }
+
+  // Queries the REAL IPFS node identity and pin inventory through the app
+  // capability gateway. Results (or the verbatim error) are what the UI shows.
+  async queryIpfsNode() {
+    const statusEl = document.querySelector('#ipfs-node-status');
+    const idEl = document.querySelector('#ipfs-node-id');
+    const pinsEl = document.querySelector('#ipfs-pin-count');
+    if (statusEl) statusEl.textContent = 'querying…';
+    try {
+      const { invokeDescriptorOperation } = await import('../core/mcp-descriptor-registry.js');
+      const nodeEnvelope = await invokeDescriptorOperation({
+        descriptor_id: 'ipfs_kit_py',
+        operation: 'node_id',
+        input: {},
+        app_id: 'system-monitor',
+        desktop: this.desktop
+      });
+      const pinEnvelope = await invokeDescriptorOperation({
+        descriptor_id: 'ipfs_kit_py',
+        operation: 'pin_ls',
+        input: {},
+        app_id: 'system-monitor',
+        desktop: this.desktop
+      });
+      const nodeOut = nodeEnvelope?.output || {};
+      const pinOut = pinEnvelope?.output || {};
+      const pinCount = Array.isArray(pinOut.pins) ? pinOut.pins.length
+        : Array.isArray(pinOut.items) ? pinOut.items.length : null;
+      if (statusEl) {
+        statusEl.textContent = nodeEnvelope?.status === 'ok'
+          ? 'online (gateway)'
+          : `unavailable: ${nodeEnvelope?.error?.message || nodeEnvelope?.summary || 'unknown'}`;
+      }
+      if (idEl) idEl.textContent = nodeOut.id || nodeOut.peer_id || 'n/a';
+      if (pinsEl) pinsEl.textContent = pinCount === null ? 'n/a' : String(pinCount);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (statusEl) statusEl.textContent = `error: ${message}`;
+      if (idEl) idEl.textContent = 'n/a';
+      if (pinsEl) pinsEl.textContent = 'n/a';
+    }
   }
 
   async exerciseSystemNetworkLocalGateway() {

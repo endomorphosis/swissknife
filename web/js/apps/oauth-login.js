@@ -125,14 +125,14 @@ class OAuthLoginSystem {
                         <h2>🔐 OAuth Login System</h2>
                         <div class="login-status">
                             <span class="status-indicator">
-                                🔑 ${this.activeTokens.size} active sessions
+                                <span class="sk-status-dot ${this.activeTokens.size > 0 ? 'is-ok' : 'is-idle'}"></span>🔑 ${this.activeTokens.size} active sessions
                             </span>
                         </div>
                     </div>
                     <div class="oauth-actions">
-                        <button onclick="oauthSystem.refreshTokens()" class="btn-primary">🔄 Refresh</button>
-                        <button onclick="oauthSystem.showProviderConfig()" class="btn-secondary">⚙️ Configure</button>
-                        <button onclick="oauthSystem.logoutAll()" class="btn-danger">🚪 Logout All</button>
+                        <button onclick="oauthSystem.refreshTokens()" class="btn-primary sk-btn sk-btn-primary">🔄 Refresh</button>
+                        <button onclick="oauthSystem.showProviderConfig()" class="btn-secondary sk-btn">⚙️ Configure</button>
+                        <button onclick="oauthSystem.logoutAll()" class="btn-danger sk-btn sk-btn-danger">🚪 Logout All</button>
                     </div>
                 </div>
                 
@@ -196,12 +196,12 @@ class OAuthLoginSystem {
                     <span class="provider-icon" style="color: ${provider.color}">${provider.icon}</span>
                     <span class="provider-name">${provider.name}</span>
                     <span class="provider-status">
-                        ${provider.enabled ? '✅ Enabled' : '❌ Disabled'}
+                        <span class="sk-status-dot ${provider.enabled ? 'is-ok' : 'is-idle'}"></span>${provider.enabled ? '✅ Enabled' : '❌ Disabled'}
                     </span>
                 </div>
                 <div class="provider-actions">
-                    <button onclick="oauthSystem.configureProvider('${provider.id}')" class="btn-sm btn-secondary">⚙️ Config</button>
-                    <button onclick="oauthSystem.testProvider('${provider.id}')" class="btn-sm btn-primary" 
+                    <button onclick="oauthSystem.configureProvider('${provider.id}')" class="btn-sm btn-secondary sk-btn">⚙️ Config</button>
+                    <button onclick="oauthSystem.testProvider('${provider.id}')" class="btn-sm btn-primary sk-btn sk-btn-primary" 
                             ${!provider.enabled ? 'disabled' : ''}>🧪 Test</button>
                 </div>
             </div>
@@ -210,7 +210,7 @@ class OAuthLoginSystem {
 
     renderActiveSessions() {
         if (this.activeTokens.size === 0) {
-            return '<div class="no-sessions">No active sessions</div>';
+            return '<div class="no-sessions sk-empty">No active sessions</div>';
         }
 
         return Array.from(this.activeTokens.entries()).map(([providerId, tokenData]) => {
@@ -228,8 +228,8 @@ class OAuthLoginSystem {
                         </div>
                     </div>
                     <div class="session-actions">
-                        <button onclick="oauthSystem.refreshToken('${providerId}')" class="btn-sm btn-secondary">🔄</button>
-                        <button onclick="oauthSystem.revokeToken('${providerId}')" class="btn-sm btn-danger">🗑️</button>
+                        <button onclick="oauthSystem.refreshToken('${providerId}')" class="btn-sm btn-secondary sk-btn">🔄</button>
+                        <button onclick="oauthSystem.revokeToken('${providerId}')" class="btn-sm btn-danger sk-btn sk-btn-danger">🗑️</button>
                     </div>
                 </div>
             `;
@@ -297,7 +297,7 @@ class OAuthLoginSystem {
             const hasActiveToken = this.activeTokens.has(provider.id);
             
             return `
-                <div class="login-provider-card ${provider.enabled ? 'enabled' : 'disabled'}">
+                <div class="login-provider-card sk-card ${provider.enabled ? 'enabled' : 'disabled'}">
                     <div class="provider-header">
                         <span class="provider-icon large" style="color: ${provider.color}">${provider.icon}</span>
                         <h4>${provider.name}</h4>
@@ -305,18 +305,18 @@ class OAuthLoginSystem {
                     
                     <div class="provider-status">
                         ${hasActiveToken ? 
-                            '<span class="status-badge connected">🟢 Connected</span>' :
-                            '<span class="status-badge disconnected">🔴 Not Connected</span>'
+                            '<span class="status-badge connected"><span class="sk-status-dot is-ok"></span>🟢 Connected</span>' :
+                            '<span class="status-badge disconnected"><span class="sk-status-dot is-err"></span>🔴 Not Connected</span>'
                         }
                     </div>
                     
                     <div class="provider-actions">
                         ${provider.enabled ? 
                             (hasActiveToken ? 
-                                `<button onclick="oauthSystem.logout('${provider.id}')" class="btn-danger">🚪 Logout</button>` :
-                                `<button onclick="oauthSystem.login('${provider.id}')" class="btn-primary">🔐 Login</button>`
+                                `<button onclick="oauthSystem.logout('${provider.id}')" class="btn-danger sk-btn sk-btn-danger">🚪 Logout</button>` :
+                                `<button onclick="oauthSystem.login('${provider.id}')" class="btn-primary sk-btn sk-btn-primary">🔐 Login</button>`
                             ) :
-                            `<button onclick="oauthSystem.configureProvider('${provider.id}')" class="btn-secondary">⚙️ Configure</button>`
+                            `<button onclick="oauthSystem.configureProvider('${provider.id}')" class="btn-secondary sk-btn">⚙️ Configure</button>`
                         }
                     </div>
                 </div>
@@ -353,9 +353,9 @@ class OAuthLoginSystem {
             </div>
             
             <div class="session-controls">
-                <button onclick="oauthSystem.checkTokenHealth()" class="btn-secondary">🔍 Check Token Health</button>
-                <button onclick="oauthSystem.refreshAllTokens()" class="btn-secondary">🔄 Refresh All</button>
-                <button onclick="oauthSystem.exportTokens()" class="btn-secondary">📤 Export Tokens</button>
+                <button onclick="oauthSystem.checkTokenHealth()" class="btn-secondary sk-btn">🔍 Check Token Health</button>
+                <button onclick="oauthSystem.refreshAllTokens()" class="btn-secondary sk-btn">🔄 Refresh All</button>
+                <button onclick="oauthSystem.exportTokens()" class="btn-secondary sk-btn">📤 Export Tokens</button>
             </div>
         `;
     }
@@ -364,7 +364,7 @@ class OAuthLoginSystem {
         const logs = this.getAuthLogs();
         
         if (logs.length === 0) {
-            return '<div class="no-logs">No authentication logs</div>';
+            return '<div class="no-logs sk-empty">No authentication logs</div>';
         }
 
         return `
@@ -402,8 +402,8 @@ class OAuthLoginSystem {
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button onclick="oauthSystem.saveProviderConfig()" class="btn-primary">💾 Save Configuration</button>
-                        <button onclick="oauthSystem.hideProviderConfig()" class="btn-secondary">Cancel</button>
+                        <button onclick="oauthSystem.saveProviderConfig()" class="btn-primary sk-btn sk-btn-primary">💾 Save Configuration</button>
+                        <button onclick="oauthSystem.hideProviderConfig()" class="btn-secondary sk-btn">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -754,25 +754,25 @@ class OAuthLoginSystem {
             
             <div class="form-group">
                 <label for="config-client-id">Client ID:</label>
-                <input type="text" id="config-client-id" value="${provider.clientId}" placeholder="Your ${provider.name} client ID">
+                <input type="text" id="config-client-id" class="sk-input" value="${provider.clientId}" placeholder="Your ${provider.name} client ID">
                 <small>Get this from your ${provider.name} developer console</small>
             </div>
             
             <div class="form-group">
                 <label for="config-client-secret">Client Secret:</label>
-                <input type="password" id="config-client-secret" value="${provider.clientSecret || ''}" placeholder="Your ${provider.name} client secret">
+                <input type="password" id="config-client-secret" class="sk-input" value="${provider.clientSecret || ''}" placeholder="Your ${provider.name} client secret">
                 <small>Keep this secure and never expose it publicly</small>
             </div>
             
             <div class="form-group">
                 <label for="config-redirect-uri">Redirect URI:</label>
-                <input type="text" id="config-redirect-uri" value="${provider.redirectUri}" readonly>
+                <input type="text" id="config-redirect-uri" class="sk-input" value="${provider.redirectUri}" readonly>
                 <small>Add this URL to your ${provider.name} app's allowed redirect URIs</small>
             </div>
             
             <div class="form-group">
                 <label for="config-scope">Scope:</label>
-                <input type="text" id="config-scope" value="${provider.scope}" placeholder="OAuth scopes">
+                <input type="text" id="config-scope" class="sk-input" value="${provider.scope}" placeholder="OAuth scopes">
                 <small>Space-separated list of OAuth scopes</small>
             </div>
             

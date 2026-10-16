@@ -78,69 +78,29 @@
 }
 
 .strudel-ai-daw.compact-controls-enabled .menu-btn,
-.strudel-ai-daw.compact-controls-enabled .transport-btn,
+.strudel-ai-daw.compact-controls-enabled .sk-transport-btn,
 .strudel-ai-daw.compact-controls-enabled .svd-g045-actions button {
     min-height: 32px;
     padding: 5px 8px;
     font-size: 11px;
 }
 
-.transport-controls {
+/* Transport buttons now use the shared .sk-transport-btn look from
+   web/css/apps.css (unified across media/creative apps). App-specific
+   compact-mode sizing is kept here. */
+.strudel-ai-daw .sk-transport {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.transport-btn {
-    background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
-    color: #e0e0e0;
-    border: 1px solid #444;
-    padding: 8px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: all 0.2s ease;
-    min-width: 40px;
-    min-height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.strudel-ai-daw .sk-transport-btn.is-recording {
+    animation: pulse 1.5s ease-in-out infinite;
 }
 
-.transport-btn.large {
-    min-width: 48px;
-    min-height: 48px;
-    font-size: 20px;
-}
-
-.transport-btn:hover {
-    background: linear-gradient(135deg, #3a3a3a 0%, #4a4a4a 100%);
-    border-color: #00ff88;
-    transform: scale(1.05);
-    box-shadow: 0 4px 16px rgba(0, 255, 136, 0.3);
-}
-
-.transport-btn:active {
-    transform: scale(0.95);
-}
-
-.transport-btn:disabled {
-    background: #1a1a1a;
-    color: #666;
-    cursor: not-allowed;
-    border-color: #333;
-    transform: none;
-    box-shadow: none;
-}
-
-.transport-btn#play-btn:not(:disabled) {
-    background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
-    color: #000;
-}
-
-.transport-btn#record-btn:hover {
-    background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
-    border-color: #ff4444;
+.strudel-ai-daw .sk-transport-btn#record-btn:hover {
+    border-color: var(--sk-err, #ff6b6b);
+    color: var(--sk-err, #ff6b6b);
 }
 
 /* Tempo and Master Controls */
@@ -1618,7 +1578,7 @@
     }
 }
 
-.transport-btn#play-btn:not(:disabled):hover {
+.strudel-ai-daw .sk-transport-btn#play-btn:not(:disabled):hover {
     animation: pulse 1s infinite;
 }
 

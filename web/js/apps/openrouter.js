@@ -4,6 +4,8 @@
 class OpenRouterApp {
     constructor() {
         this.name = 'OpenRouter Hub';
+        // Single live instance for inline handlers (one desktop window per app).
+        if (typeof window !== 'undefined') window.openRouterApp = this;
         this.currentTab = 'models';
         this.models = new Map();
         this.conversations = [];
@@ -54,22 +56,24 @@ class OpenRouterApp {
                         <div class="or-logo-text">OpenRouter Hub</div>
                     </div>
                     <div class="or-status ${this.isAuthenticated ? 'authenticated' : 'unauthenticated'}">
-                        <div class="status-indicator"></div>
+                        <div class="status-indicator sk-status-dot ${this.isAuthenticated ? 'is-ok' : 'is-idle'}"></div>
                         <span>${this.isAuthenticated ? 'Connected' : 'Not Connected'}</span>
                     </div>
                     ${this.isAuthenticated ? `
                     <div class="or-credits">
                         <span class="credits-icon">💰</span>
-                        <span class="credits-balance">$${this.credits.balance.toFixed(4)}</span>
+                        ${this.credits.unavailable
+                            ? `<span class="credits-balance sk-badge" title="${this.credits.unavailable}">n/a</span>`
+                            : `<span class="credits-balance">$${Number(this.credits.balance || 0).toFixed(4)}</span>`}
                     </div>
                     ` : ''}
                 </div>
                 <div class="or-header-right">
-                    <button class="or-btn or-btn-secondary" onclick="this.showSettings()">
+                    <button class="or-btn or-btn-secondary sk-btn" onclick="window.openRouterApp.showSettings()">
                         <span class="btn-icon">⚙️</span>
                         Settings
                     </button>
-                    <button class="or-btn or-btn-primary" onclick="this.showAuthentication()">
+                    <button class="or-btn or-btn-primary sk-btn sk-btn-primary" onclick="window.openRouterApp.showAuthentication()">
                         <span class="btn-icon">🔑</span>
                         ${this.isAuthenticated ? 'Manage API Key' : 'Connect'}
                     </button>
@@ -136,16 +140,16 @@ class OpenRouterApp {
             <div class="models-header">
                 <div class="models-controls">
                     <div class="search-bar">
-                        <input type="text" placeholder="Search models..." id="model-search" oninput="this.filterModels(event.target.value)">
+                        <input type="text" class="sk-input" placeholder="Search models..." id="model-search" oninput="window.openRouterApp.filterModels(event.target.value)">
                         <span class="search-icon">🔍</span>
                     </div>
-                    <select id="provider-filter" onchange="this.filterByProvider(event.target.value)">
+                    <select id="provider-filter" class="sk-select" onchange="window.openRouterApp.filterByProvider(event.target.value)">
                         <option value="">All Providers</option>
                         ${Array.from(this.providers.keys()).map(provider => 
                             `<option value="${provider}">${provider}</option>`
                         ).join('')}
                     </select>
-                    <select id="model-sort" onchange="this.sortModels(event.target.value)">
+                    <select id="model-sort" class="sk-select" onchange="window.openRouterApp.sortModels(event.target.value)">
                         <option value="name">Sort by Name</option>
                         <option value="provider">Sort by Provider</option>
                         <option value="pricing">Sort by Price</option>
@@ -198,15 +202,15 @@ class OpenRouterApp {
         const isCurrentDefault = model.id === this.settings.defaultModel;
         
         return `
-        <div class="model-card ${isCurrentDefault ? 'default-model' : ''}" data-model-id="${model.id}">
+        <div class="model-card sk-card ${isCurrentDefault ? 'default-model' : ''}" data-model-id="${model.id}">
             <div class="model-header">
                 <div class="model-name">${model.name}</div>
                 <div class="model-actions">
                     <button class="action-btn favorite-btn ${this.favoriteModels.has(model.id) ? 'active' : ''}" 
-                            onclick="this.toggleFavorite('${model.id}')" title="Toggle Favorite">
+                            onclick="window.openRouterApp.toggleFavorite('${model.id}')" title="Toggle Favorite">
                         ⭐
                     </button>
-                    <button class="action-btn info-btn" onclick="this.showModelInfo('${model.id}')" title="Model Info">
+                    <button class="action-btn info-btn" onclick="window.openRouterApp.showModelInfo('${model.id}')" title="Model Info">
                         ℹ️
                     </button>
                 </div>
@@ -226,10 +230,10 @@ class OpenRouterApp {
             </div>
 
             <div class="model-footer">
-                <button class="or-btn or-btn-secondary or-btn-sm" onclick="this.tryModel('${model.id}')">
+                <button class="or-btn or-btn-secondary or-btn-sm sk-btn" onclick="window.openRouterApp.tryModel('${model.id}')">
                     Try Model
                 </button>
-                <button class="or-btn or-btn-primary or-btn-sm" onclick="this.setDefaultModel('${model.id}')">
+                <button class="or-btn or-btn-primary or-btn-sm sk-btn sk-btn-primary" onclick="window.openRouterApp.setDefaultModel('${model.id}')">
                     ${isCurrentDefault ? '✓ Default' : 'Set Default'}
                 </button>
             </div>
@@ -244,14 +248,14 @@ class OpenRouterApp {
                 <div class="chat-sidebar">
                     <div class="sidebar-header">
                         <h3>Conversations</h3>
-                        <button class="or-btn or-btn-primary or-btn-sm" onclick="this.createNewConversation()">
+                        <button class="or-btn or-btn-primary or-btn-sm sk-btn sk-btn-primary" onclick="window.openRouterApp.createNewConversation()">
                             + New Chat
                         </button>
                     </div>
                     <div class="conversations-list">
                         ${this.conversations.length === 0 ? `
-                        <div class="empty-state">
-                            <div class="empty-icon">💬</div>
+                        <div class="empty-state sk-empty">
+                            <div class="empty-icon sk-empty-icon">💬</div>
                             <div class="empty-text">No conversations yet</div>
                             <div class="empty-subtext">Start a new conversation to begin</div>
                         </div>
@@ -280,9 +284,9 @@ class OpenRouterApp {
                     </div>
                 </div>
                 <div class="conversation-actions">
-                    <button class="action-btn" onclick="this.exportConversation()" title="Export">📤</button>
-                    <button class="action-btn" onclick="this.shareConversation()" title="Share">🔗</button>
-                    <button class="action-btn" onclick="this.deleteConversation()" title="Delete">🗑️</button>
+                    <button class="action-btn" onclick="window.openRouterApp.exportConversation()" title="Export">📤</button>
+                    <button class="action-btn" onclick="window.openRouterApp.shareConversation()" title="Share">🔗</button>
+                    <button class="action-btn" onclick="window.openRouterApp.deleteConversation()" title="Delete">🗑️</button>
                 </div>
             </div>
 
@@ -292,7 +296,7 @@ class OpenRouterApp {
 
             <div class="message-input-area">
                 <div class="input-controls">
-                    <select id="chat-model" onchange="this.changeConversationModel(event.target.value)">
+                    <select id="chat-model" class="sk-select" onchange="window.openRouterApp.changeConversationModel(event.target.value)">
                         ${Array.from(this.models.values()).map(model => 
                             `<option value="${model.id}" ${model.id === this.currentConversation.model ? 'selected' : ''}>
                                 ${model.name}
@@ -300,13 +304,13 @@ class OpenRouterApp {
                         ).join('')}
                     </select>
                     <div class="generation-controls">
-                        <label>Temp: <input type="range" min="0" max="2" step="0.1" value="${this.settings.temperature}" onchange="this.updateTemperature(event.target.value)"></label>
-                        <label>Max Tokens: <input type="number" min="1" max="4096" value="${this.settings.maxTokens}" onchange="this.updateMaxTokens(event.target.value)"></label>
+                        <label>Temp: <input type="range" min="0" max="2" step="0.1" value="${this.settings.temperature}" onchange="window.openRouterApp.updateTemperature(event.target.value)"></label>
+                        <label>Max Tokens: <input type="number" min="1" max="4096" value="${this.settings.maxTokens}" onchange="window.openRouterApp.updateMaxTokens(event.target.value)"></label>
                     </div>
                 </div>
                 <div class="input-row">
-                    <textarea id="message-input" placeholder="Type your message..." onkeydown="this.handleInputKeyDown(event)"></textarea>
-                    <button class="send-btn" onclick="this.sendMessage()" id="send-btn">
+                    <textarea id="message-input" class="sk-textarea" placeholder="Type your message..." onkeydown="window.openRouterApp.handleInputKeyDown(event)"></textarea>
+                    <button class="send-btn" onclick="window.openRouterApp.sendMessage()" id="send-btn">
                         <span class="send-icon">📤</span>
                     </button>
                 </div>
@@ -324,7 +328,7 @@ class OpenRouterApp {
                         <h3>Model Configuration</h3>
                         <div class="control-group">
                             <label>Model:</label>
-                            <select id="playground-model" onchange="this.updatePlaygroundModel(event.target.value)">
+                            <select id="playground-model" class="sk-select" onchange="window.openRouterApp.updatePlaygroundModel(event.target.value)">
                                 ${Array.from(this.models.values()).map(model => 
                                     `<option value="${model.id}" ${model.id === this.settings.defaultModel ? 'selected' : ''}>
                                         ${model.name}
@@ -335,29 +339,29 @@ class OpenRouterApp {
                         <div class="control-group">
                             <label>Temperature: <span id="temp-value">${this.settings.temperature}</span></label>
                             <input type="range" min="0" max="2" step="0.1" value="${this.settings.temperature}" 
-                                   onchange="this.updatePlaygroundSetting('temperature', event.target.value)">
+                                   onchange="window.openRouterApp.updatePlaygroundSetting('temperature', event.target.value)">
                         </div>
                         <div class="control-group">
                             <label>Max Tokens: <span id="tokens-value">${this.settings.maxTokens}</span></label>
                             <input type="range" min="1" max="4096" step="1" value="${this.settings.maxTokens}" 
-                                   onchange="this.updatePlaygroundSetting('maxTokens', event.target.value)">
+                                   onchange="window.openRouterApp.updatePlaygroundSetting('maxTokens', event.target.value)">
                         </div>
                         <div class="control-group">
                             <label>Top P: <span id="topp-value">${this.settings.topP}</span></label>
                             <input type="range" min="0" max="1" step="0.1" value="${this.settings.topP}" 
-                                   onchange="this.updatePlaygroundSetting('topP', event.target.value)">
+                                   onchange="window.openRouterApp.updatePlaygroundSetting('topP', event.target.value)">
                         </div>
                     </div>
 
                     <div class="control-section">
                         <h3>Quick Prompts</h3>
                         <div class="quick-prompts">
-                            <button class="prompt-btn" onclick="this.loadQuickPrompt('creative')">✨ Creative Writing</button>
-                            <button class="prompt-btn" onclick="this.loadQuickPrompt('code')">💻 Code Assistant</button>
-                            <button class="prompt-btn" onclick="this.loadQuickPrompt('analyze')">📊 Data Analysis</button>
-                            <button class="prompt-btn" onclick="this.loadQuickPrompt('translate')">🌍 Translation</button>
-                            <button class="prompt-btn" onclick="this.loadQuickPrompt('summarize')">📝 Summarization</button>
-                            <button class="prompt-btn" onclick="this.loadQuickPrompt('explain')">🧠 Explanation</button>
+                            <button class="prompt-btn" onclick="window.openRouterApp.loadQuickPrompt('creative')">✨ Creative Writing</button>
+                            <button class="prompt-btn" onclick="window.openRouterApp.loadQuickPrompt('code')">💻 Code Assistant</button>
+                            <button class="prompt-btn" onclick="window.openRouterApp.loadQuickPrompt('analyze')">📊 Data Analysis</button>
+                            <button class="prompt-btn" onclick="window.openRouterApp.loadQuickPrompt('translate')">🌍 Translation</button>
+                            <button class="prompt-btn" onclick="window.openRouterApp.loadQuickPrompt('summarize')">📝 Summarization</button>
+                            <button class="prompt-btn" onclick="window.openRouterApp.loadQuickPrompt('explain')">🧠 Explanation</button>
                         </div>
                     </div>
                 </div>
@@ -366,17 +370,17 @@ class OpenRouterApp {
                     <div class="input-section">
                         <div class="section-header">
                             <h3>Input</h3>
-                            <button class="or-btn or-btn-secondary or-btn-sm" onclick="this.clearPlayground()">Clear</button>
+                            <button class="or-btn or-btn-secondary or-btn-sm sk-btn" onclick="window.openRouterApp.clearPlayground()">Clear</button>
                         </div>
-                        <textarea id="playground-input" placeholder="Enter your prompt here..."></textarea>
+                        <textarea id="playground-input" class="sk-textarea" placeholder="Enter your prompt here..."></textarea>
                     </div>
 
                     <div class="output-section">
                         <div class="section-header">
                             <h3>Output</h3>
                             <div class="output-actions">
-                                <button class="or-btn or-btn-secondary or-btn-sm" onclick="this.copyOutput()">📋 Copy</button>
-                                <button class="or-btn or-btn-secondary or-btn-sm" onclick="this.saveOutput()">💾 Save</button>
+                                <button class="or-btn or-btn-secondary or-btn-sm sk-btn" onclick="window.openRouterApp.copyOutput()">📋 Copy</button>
+                                <button class="or-btn or-btn-secondary or-btn-sm sk-btn" onclick="window.openRouterApp.saveOutput()">💾 Save</button>
                             </div>
                         </div>
                         <div id="playground-output" class="output-content">
@@ -389,7 +393,7 @@ class OpenRouterApp {
                     </div>
 
                     <div class="playground-footer">
-                        <button class="or-btn or-btn-primary" onclick="this.generateResponse()" id="generate-btn">
+                        <button class="or-btn or-btn-primary sk-btn sk-btn-primary" onclick="window.openRouterApp.generateResponse()" id="generate-btn">
                             <span class="btn-icon">⚡</span>
                             Generate Response
                         </button>
@@ -406,7 +410,7 @@ class OpenRouterApp {
             <div class="analytics-header">
                 <h2>Usage Analytics</h2>
                 <div class="date-range">
-                    <select id="analytics-period" onchange="this.updateAnalyticsPeriod(event.target.value)">
+                    <select id="analytics-period" class="sk-select" onchange="window.openRouterApp.updateAnalyticsPeriod(event.target.value)">
                         <option value="24h">Last 24 Hours</option>
                         <option value="7d">Last 7 Days</option>
                         <option value="30d">Last 30 Days</option>
@@ -586,51 +590,40 @@ class OpenRouterApp {
     async loadModels() {
         try {
             console.log('🔄 Loading OpenRouter models...');
-            
-            // Sample models data (in real implementation, this would fetch from OpenRouter API)
-            const sampleModels = [
-                {
-                    id: 'openai/gpt-4',
-                    name: 'GPT-4',
-                    provider: 'OpenAI',
-                    context_length: 8192,
-                    pricing: { prompt: 0.03, completion: 0.06 },
-                    features: ['chat', 'reasoning', 'code']
-                },
-                {
-                    id: 'anthropic/claude-3-opus',
-                    name: 'Claude 3 Opus',
-                    provider: 'Anthropic',
-                    context_length: 200000,
-                    pricing: { prompt: 0.015, completion: 0.075 },
-                    features: ['chat', 'analysis', 'long-context']
-                },
-                {
-                    id: 'google/gemini-pro',
-                    name: 'Gemini Pro',
-                    provider: 'Google',
-                    context_length: 32768,
-                    pricing: { prompt: 0.0005, completion: 0.0015 },
-                    features: ['chat', 'multimodal', 'vision']
-                },
-                {
-                    id: 'mistralai/mistral-7b-instruct',
-                    name: 'Mistral 7B Instruct',
-                    provider: 'Mistral AI',
-                    context_length: 32768,
-                    pricing: { prompt: 0.0002, completion: 0.0002 },
-                    features: ['chat', 'instruct', 'efficient']
-                }
-            ];
 
-            // Populate models
-            sampleModels.forEach(model => {
-                this.models.set(model.id, model);
+            // Real OpenRouter catalog endpoint (public, no key required).
+            let modelList = [];
+            try {
+                const response = await fetch('https://openrouter.ai/api/v1/models');
+                if (!response.ok) throw new Error(`OpenRouter models request failed: ${response.status}`);
+                const data = await response.json();
+                modelList = Array.isArray(data?.data) ? data.data : [];
+            } catch (fetchError) {
+                console.warn('OpenRouter catalog unreachable, no models loaded:', fetchError);
+            }
+
+            if (modelList.length === 0) {
+                console.log('ℹ️ No models returned by the OpenRouter catalog; model list stays empty.');
+                return;
+            }
+
+            // Populate models from the real catalog
+            modelList.forEach(model => {
+                const id = model.id || model.name;
+                if (!id) return;
+                this.models.set(id, {
+                    id,
+                    name: model.name || id,
+                    provider: id.split('/')[0] || 'unknown',
+                    context_length: model.context_length || 0,
+                    pricing: model.pricing || { prompt: 0, completion: 0 },
+                    features: model.description ? ['chat'] : ['chat']
+                });
             });
 
             // Group by providers
             this.providers.clear();
-            sampleModels.forEach(model => {
+            Array.from(this.models.values()).forEach(model => {
                 if (!this.providers.has(model.provider)) {
                     this.providers.set(model.provider, {
                         name: model.provider,
@@ -639,18 +632,19 @@ class OpenRouterApp {
                         priceRange: { min: Infinity, max: 0 }
                     });
                 }
-                
+
                 const provider = this.providers.get(model.provider);
                 provider.models.push(model);
-                
+
                 // Update price range
-                const minPrice = Math.min(model.pricing.prompt, model.pricing.completion);
-                const maxPrice = Math.max(model.pricing.prompt, model.pricing.completion);
+                const minPrice = Math.min(Number(model.pricing.prompt) || 0, Number(model.pricing.completion) || 0);
+                const maxPrice = Math.max(Number(model.pricing.prompt) || 0, Number(model.pricing.completion) || 0);
                 provider.priceRange.min = Math.min(provider.priceRange.min, minPrice);
                 provider.priceRange.max = Math.max(provider.priceRange.max, maxPrice);
             });
 
-            console.log(`✅ Loaded ${this.models.size} models from ${this.providers.size} providers`);
+            console.log(`✅ Loaded ${this.models.size} models from ${this.providers.size} providers (live catalog)`);
+            this.updateDisplay();
         } catch (error) {
             console.error('❌ Failed to load models:', error);
         }
@@ -658,13 +652,25 @@ class OpenRouterApp {
 
     async loadUserCredits() {
         try {
-            // In real implementation, this would fetch from OpenRouter API
+            // Real OpenRouter key-info endpoint; only callable with a user key.
+            if (!this.apiKey) {
+                this.credits = { balance: 0, used: 0, unavailable: 'Enter your OpenRouter API key to read credit balance.' };
+                return;
+            }
+            const response = await fetch('https://openrouter.ai/api/v1/auth/key', {
+                headers: { 'Authorization': `Bearer ${this.apiKey}` }
+            });
+            if (!response.ok) throw new Error(`OpenRouter key check failed: ${response.status}`);
+            const data = await response.json();
             this.credits = {
-                balance: 5.0,
-                used: 2.5
+                balance: data?.data?.limit ?? 0,
+                used: data?.data?.usage ?? 0,
+                label: data?.data?.label || ''
             };
+            this.updateDisplay();
         } catch (error) {
             console.error('❌ Failed to load credits:', error);
+            this.credits = { balance: 0, used: 0, unavailable: String(error.message || error) };
         }
     }
 
@@ -812,20 +818,20 @@ class OpenRouterApp {
         <div class="modal-content">
             <div class="modal-header">
                 <h3>OpenRouter API Configuration</h3>
-                <button class="modal-close" onclick="this.closeModal()">&times;</button>
+                <button class="modal-close" onclick="window.openRouterApp.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
                     <label>API Key:</label>
-                    <input type="password" id="api-key-input" value="${this.apiKey}" placeholder="Enter your OpenRouter API key">
+                    <input type="password" id="api-key-input" class="sk-input" value="${this.apiKey}" placeholder="Enter your OpenRouter API key">
                     <div class="help-text">
                         Get your API key from <a href="https://openrouter.ai/keys" target="_blank">OpenRouter Dashboard</a>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="or-btn or-btn-secondary" onclick="this.closeModal()">Cancel</button>
-                <button class="or-btn or-btn-primary" onclick="this.saveApiKey()">Save API Key</button>
+                <button class="or-btn or-btn-secondary sk-btn" onclick="window.openRouterApp.closeModal()">Cancel</button>
+                <button class="or-btn or-btn-primary sk-btn sk-btn-primary" onclick="window.openRouterApp.saveApiKey()">Save API Key</button>
             </div>
         </div>
         `;
@@ -875,15 +881,242 @@ class OpenRouterApp {
 
     // Placeholder methods for interaction
     showSettings() {
-        console.log('🔧 Opening OpenRouter settings...');
+        this.currentTab = 'settings';
+        this.updateDisplay();
     }
 
     createNewConversation() {
-        console.log('💬 Creating new conversation...');
+        const conversation = {
+            id: 'conv-' + Date.now(),
+            title: 'New conversation',
+            model: this.settings.defaultModel,
+            messages: [],
+            tokenCount: 0,
+            createdAt: new Date().toISOString()
+        };
+        this.conversations.unshift(conversation);
+        this.currentConversation = conversation;
+        this.saveSettings();
+        this.currentTab = 'chat';
+        this.updateDisplay();
     }
 
-    generateResponse() {
-        console.log('⚡ Generating AI response...');
+    deleteConversation() {
+        if (!this.currentConversation) return;
+        if (!confirm('Delete this conversation?')) return;
+        this.conversations = this.conversations.filter(c => c.id !== this.currentConversation.id);
+        this.currentConversation = this.conversations[0] || null;
+        this.saveSettings();
+        this.updateDisplay();
+    }
+
+    exportConversation() {
+        if (!this.currentConversation) return;
+        const blob = new Blob([JSON.stringify(this.currentConversation, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${this.currentConversation.id}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    shareConversation() {
+        if (!this.currentConversation) return;
+        const text = JSON.stringify(this.currentConversation, null, 2);
+        if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(text).then(
+                () => alert('Conversation copied to clipboard (local).'),
+                () => alert('Could not access the clipboard.')
+            );
+        } else {
+            alert('Clipboard access is not available in this browser.');
+        }
+    }
+
+    renderMessage(message) {
+        const role = message.role === 'user' ? 'user' : 'assistant';
+        const content = String(message.content ?? '')
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<div class="or-message or-message-${role}"><div class="or-message-role">${role === 'user' ? '👤 You' : '🤖 Assistant'}</div><div class="or-message-content">${content}</div></div>`;
+    }
+
+    handleInputKeyDown(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            this.sendMessage();
+        }
+    }
+
+    async sendMessage() {
+        const input = document.getElementById('message-input');
+        const text = (input?.value || '').trim();
+        if (!text) return;
+        if (!this.currentConversation) this.createNewConversation();
+        if (!this.apiKey) {
+            alert('Enter your OpenRouter API key (Settings tab) to send messages.');
+            return;
+        }
+        const conversation = this.currentConversation;
+        conversation.messages.push({ role: 'user', content: text });
+        if (input) input.value = '';
+        this.updateDisplay();
+        try {
+            const reply = await this.chatCompletion(conversation.model, conversation.messages);
+            conversation.messages.push({ role: 'assistant', content: reply });
+        } catch (error) {
+            conversation.messages.push({ role: 'assistant', content: `⚠️ Request failed: ${error.message}` });
+        }
+        this.saveSettings();
+        this.updateDisplay();
+        const container = document.getElementById('messages-container');
+        if (container) container.scrollTop = container.scrollHeight;
+    }
+
+    async chatCompletion(model, messages) {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.apiKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': location.origin,
+                'X-Title': 'SwissKnife OpenRouter Hub'
+            },
+            body: JSON.stringify({
+                model,
+                messages: messages.map(m => ({ role: m.role, content: String(m.content) })),
+                temperature: this.settings.temperature,
+                max_tokens: this.settings.maxTokens
+            })
+        });
+        if (!response.ok) {
+            const errText = await response.text().catch(() => '');
+            throw new Error(`OpenRouter API ${response.status}: ${errText.slice(0, 200)}`);
+        }
+        const data = await response.json();
+        const reply = data?.choices?.[0]?.message?.content;
+        if (!reply) throw new Error('OpenRouter returned no message content.');
+        const usage = data?.usage;
+        if (usage && this.currentConversation) {
+            this.currentConversation.tokenCount = (this.currentConversation.tokenCount || 0) + (usage.total_tokens || 0);
+        }
+        this.requestHistory.unshift({ model, at: new Date().toISOString(), promptTokens: usage?.prompt_tokens || 0, completionTokens: usage?.completion_tokens || 0 });
+        return reply;
+    }
+
+    async generateResponse() {
+        const input = document.getElementById('playground-input');
+        const output = document.getElementById('playground-output');
+        const prompt = (input?.value || '').trim();
+        if (!prompt) return;
+        if (!this.apiKey) {
+            if (output) output.textContent = 'Enter your OpenRouter API key (Settings tab) to generate.';
+            return;
+        }
+        const model = document.getElementById('playground-model')?.value || this.settings.defaultModel;
+        if (output) output.textContent = 'Generating...';
+        try {
+            const reply = await this.chatCompletion(model, [{ role: 'user', content: prompt }]);
+            if (output) output.textContent = reply;
+            this.saveSettings();
+        } catch (error) {
+            if (output) output.textContent = `⚠️ Request failed: ${error.message}`;
+        }
+    }
+
+    changeConversationModel(modelId) {
+        if (this.currentConversation) {
+            this.currentConversation.model = modelId;
+            this.saveSettings();
+            this.updateDisplay();
+        }
+    }
+
+    updateTemperature(value) {
+        this.settings.temperature = parseFloat(value);
+        this.saveSettings();
+    }
+
+    updateMaxTokens(value) {
+        this.settings.maxTokens = parseInt(value, 10) || 2048;
+        this.saveSettings();
+    }
+
+    updatePlaygroundModel(modelId) {
+        this.settings.defaultModel = modelId;
+        this.saveSettings();
+    }
+
+    updatePlaygroundSetting(key, value) {
+        this.settings[key] = value;
+        this.saveSettings();
+    }
+
+    loadQuickPrompt(kind) {
+        const prompts = {
+            creative: 'Write a short creative story about...',
+            code: 'Write a Python function that...',
+            analyze: 'Analyze the following data and summarize key insights: ...',
+            translate: 'Translate the following text to French: ...',
+            summarize: 'Summarize the following text in 3 bullet points: ...',
+            explain: 'Explain the following concept in simple terms: ...'
+        };
+        const input = document.getElementById('playground-input');
+        if (input && prompts[kind]) input.value = prompts[kind];
+    }
+
+    clearPlayground() {
+        const input = document.getElementById('playground-input');
+        const output = document.getElementById('playground-output');
+        if (input) input.value = '';
+        if (output) output.textContent = '';
+    }
+
+    copyOutput() {
+        const output = document.getElementById('playground-output');
+        const text = output?.textContent || '';
+        if (text && navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(text).then(() => alert('Output copied (local).'));
+        }
+    }
+
+    saveOutput() {
+        const output = document.getElementById('playground-output');
+        const text = output?.textContent || '';
+        if (!text) return;
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `openrouter-output-${Date.now()}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    showModelInfo(modelId) {
+        const model = this.models.get(modelId);
+        if (!model) return;
+        alert(`Model: ${model.name}\nID: ${model.id}\nProvider: ${model.provider}\nContext: ${model.context_length || 'n/a'} tokens\nPrompt price: $${model.pricing?.prompt ?? 'n/a'}/1M tokens\nCompletion price: $${model.pricing?.completion ?? 'n/a'}/1M tokens`);
+    }
+
+    filterModels(query) {
+        this.modelFilter = (query || '').toLowerCase();
+        this.updateDisplay();
+    }
+
+    filterByProvider(provider) {
+        this.providerFilter = provider || '';
+        this.updateDisplay();
+    }
+
+    sortModels(key) {
+        this.modelSort = key || 'name';
+        this.updateDisplay();
+    }
+
+    updateAnalyticsPeriod(period) {
+        this.analyticsPeriod = period;
+        this.updateDisplay();
     }
 }
 

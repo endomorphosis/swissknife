@@ -1171,6 +1171,8 @@ export class AgentSupervisorApp {
     const review = this.buildSteeringReview();
     const result = steering.result;
     const error = steering.error;
+    const modeLocal = typeof result?.receipt?.receipt_id === 'string' && result.receipt.receipt_id.startsWith('rcpt-prompt-steering-');
+    const modeText = result ? (result.dry_run ? (modeLocal ? 'dry-run (local preview)' : 'dry-run') : (modeLocal ? 'confirmed — local preview, no backend call' : 'confirmed')) : '';
     const canSubmit = steering.targetId
       && steering.prompt.trim().length > 0
       && steering.prompt.trim().length <= 8000
@@ -1227,15 +1229,15 @@ export class AgentSupervisorApp {
         ${result ? `
           <div class="as-steering-result" data-testid="steering-result">
             ${metric('Correlation', result.correlation_id)}
-            ${metric('Receipt', result.receipt?.receipt_id || 'pending')}
-            ${metric('CID', result.receipt?.cid || 'pending')}
+            ${metric('Receipt', result.receipt?.receipt_id || 'pending', result.receipt?.receipt_id ? '' : 'as-honest')}
+            ${metric('CID', result.receipt?.cid || 'pending', result.receipt?.cid ? '' : 'as-honest')}
             ${metric('Accepted', String(result.accepted))}
-            ${metric('Mode', (() => { const local = typeof result.receipt?.receipt_id === 'string' && result.receipt.receipt_id.startsWith('rcpt-prompt-steering-'); return result.dry_run ? (local ? 'dry-run (local preview)' : 'dry-run') : (local ? 'confirmed — local preview, no backend call' : 'confirmed'); })())}
+            ${metric('Mode', modeText, modeLocal ? 'as-honest' : '')}
             ${metric('Policy', result.policy_class || 'unknown')}
             ${metric('Policy effect', result.policy_effects?.outcome || 'reviewed')}
             ${metric('Budget', result.policy_effects?.budget || 'not reported')}
             ${metric('Dependencies', result.policy_effects?.dependencies || 'not reported')}
-            ${metric('Event DAG', result.event_dag?.cid || 'pending')}
+            ${metric('Event DAG', result.event_dag?.cid || 'pending', result.event_dag?.cid ? '' : 'as-honest')}
             ${metric('Event', result.event_dag?.event_type || 'governed-action')}
           </div>
         ` : ''}
@@ -1319,16 +1321,16 @@ export class AgentSupervisorApp {
           ${receipts.length ? receipts.map(item => `
             <button type="button" class="${selected?.receipt_id === item.receipt_id ? 'is-selected' : ''}" data-receipt-id="${escapeHtml(item.receipt_id)}" data-supervisor-focusable>
               <strong>${escapeHtml(item.receipt_id)}</strong>
-              <span>${escapeHtml(item.cid || 'pending-cid')}</span>
+              <span class="${item.cid ? '' : 'as-honest'}">${escapeHtml(item.cid || 'pending-cid')}</span>
             </button>
           `).join('') : '<div class="as-list-empty">No receipts available.</div>'}
         </div>
         ${selected ? `
           <div class="as-receipt-detail">
             ${metric('Receipt', selected.receipt_id)}
-            ${metric('CID', selected.cid || 'pending')}
+            ${metric('CID', selected.cid || 'pending', selected.cid ? '' : 'as-honest')}
             ${metric('Owner', selected.owner)}
-            ${metric('Created', selected.created_at || 'unknown')}
+            ${metric('Created', selected.created_at || 'unknown', selected.created_at ? '' : 'as-honest')}
           </div>
           <label class="as-confirm-line">
             <input type="checkbox" data-receipt-operation-confirm data-testid="receipt-operation-confirm" ${operation.confirm ? 'checked' : ''} ${operation.loading ? 'disabled' : ''}>
@@ -1344,10 +1346,10 @@ export class AgentSupervisorApp {
             ${operationResult ? `
               ${metric('Operation', operation.operation || 'unknown')}
               ${metric('Owner', operationResult.owner || 'ipfs_kit_py')}
-              ${metric('Transport', operationResult.runtime?.transport || 'unobserved')}
-              ${metric('Policy', operationResult.runtime?.policy_outcome || operationResult.policy_class || 'unobserved')}
-              ${metric('CID', operationResult.runtime?.event_dag_cid || operationResult.runtime?.content_cid || operationResult.receipt?.cid || 'no-cid')}
-              ${metric('Event DAG', operationResult.runtime?.event_dag_cid || operationResult.data?.cid || operationResult.data?.event_dag?.cid || 'no-checkpoint')}
+              ${metric('Transport', operationResult.runtime?.transport || 'unobserved', operationResult.runtime?.transport ? '' : 'as-honest')}
+              ${metric('Policy', operationResult.runtime?.policy_outcome || operationResult.policy_class || 'unobserved', (operationResult.runtime?.policy_outcome || operationResult.policy_class) ? '' : 'as-honest')}
+              ${metric('CID', operationResult.runtime?.event_dag_cid || operationResult.runtime?.content_cid || operationResult.receipt?.cid || 'no-cid', (operationResult.runtime?.event_dag_cid || operationResult.runtime?.content_cid || operationResult.receipt?.cid) ? '' : 'as-honest')}
+              ${metric('Event DAG', operationResult.runtime?.event_dag_cid || operationResult.data?.cid || operationResult.data?.event_dag?.cid || 'no-checkpoint', (operationResult.runtime?.event_dag_cid || operationResult.data?.cid || operationResult.data?.event_dag?.cid) ? '' : 'as-honest')}
               ${metric('Failure', operationResult.runtime?.failure_code || 'none')}
             ` : '<span>Persist, retrieve, or checkpoint the selected receipt to record mediated kit or browser-Helia evidence.</span>'}
             ${operationError ? `<span role="alert">${escapeHtml(operationError.reason || operationError.state || 'unavailable')}: ${escapeHtml(operationError.message || 'Receipt operation failed.')}</span>` : ''}
@@ -1362,15 +1364,15 @@ export class AgentSupervisorApp {
     return `
       <div class="as-detail-body" data-testid="backend-health">
         <div class="as-backends">
-          ${backends.map(item => `
+          ${backends.length ? backends.map(item => `
             <div class="as-backend-row">
               <span class="as-status ${escapeHtml(item.status)}"></span>
               <strong>${escapeHtml(item.owner)}</strong>
               <span>${escapeHtml(item.transport)}</span>
-              <span>${escapeHtml(item.receipt?.receipt_id || 'no-receipt')}</span>
-              <span>${escapeHtml(item.receipt?.cid || 'no-cid')}</span>
+              <span class="${item.receipt?.receipt_id ? '' : 'as-honest'}">${escapeHtml(item.receipt?.receipt_id || 'no-receipt')}</span>
+              <span class="${item.receipt?.cid ? '' : 'as-honest'}">${escapeHtml(item.receipt?.cid || 'no-cid')}</span>
             </div>
-          `).join('')}
+          `).join('') : '<div class="as-list-empty">No backends reported.</div>'}
         </div>
         <div class="as-section-line">
           <h4>MCP++ / libp2p</h4>
@@ -1397,13 +1399,13 @@ export class AgentSupervisorApp {
             <span class="as-status ${escapeHtml(state === 'available' ? 'available' : 'unavailable')}"></span>
             <strong>${escapeHtml(result?.capability_id || 'unknown-capability')}</strong>
             <span>${escapeHtml(result?.owner || 'unknown-owner')}</span>
-            <span>${escapeHtml(state)}</span>
+            <span class="${state === 'available' ? '' : 'as-honest'}">${escapeHtml(state)}</span>
             <span>${escapeHtml(reason)}</span>
-            <span>${escapeHtml(transport)}</span>
-            <span>${escapeHtml(policy)}</span>
-            <span>${escapeHtml(correlation)}</span>
-            <span>${escapeHtml(receiptId)}</span>
-            <span>${escapeHtml(cid)}</span>
+            <span class="${transport === 'unobserved' ? 'as-honest' : ''}">${escapeHtml(transport)}</span>
+            <span class="${policy === 'unobserved' ? 'as-honest' : ''}">${escapeHtml(policy)}</span>
+            <span class="${correlation === 'uncorrelated' ? 'as-honest' : ''}">${escapeHtml(correlation)}</span>
+            <span class="${receiptId === 'no-receipt' ? 'as-honest' : ''}">${escapeHtml(receiptId)}</span>
+            <span class="${cid === 'no-cid' ? 'as-honest' : ''}">${escapeHtml(cid)}</span>
           </div>
         `;
       }).join('')
@@ -1561,22 +1563,24 @@ export class AgentSupervisorApp {
         .agent-supervisor * { box-sizing: border-box; }
         .as-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-bottom: 1px solid #263a34; background: #12211d; }
         .as-header h2, .as-pane-title h3, .as-active-heading h3 { margin: 0; letter-spacing: 0; }
+        .as-header h2 { font-size: 16px; font-weight: 650; }
+        .as-pane-title h3 { font-size: 13px; font-weight: 650; }
         .as-subtitle, .as-pane-title span, .as-state span, .as-section-line span, .as-active-heading p { color: #a8bbb2; }
         .as-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .as-actions button, .as-actions a, .as-tabs button, .as-row, .as-queue-row, .as-receipt-list button, .as-section-line button { border: 1px solid #315248; background: #173029; color: #edf7f2; border-radius: 6px; padding: 7px 10px; min-height: 32px; text-decoration: none; cursor: pointer; }
+        .as-actions button, .as-actions a, .as-tabs button, .as-row, .as-queue-row, .as-receipt-list button, .as-section-line button, .as-state button { border: 1px solid #315248; background: #173029; color: #edf7f2; border-radius: 6px; padding: 7px 10px; min-height: 32px; text-decoration: none; cursor: pointer; }
         .as-actions button:disabled { color: #7c8f87; border-color: #263a34; background: #121b18; cursor: not-allowed; }
         .as-actions button[aria-disabled="true"] { color: #9eb2aa; border-color: #315248; }
-        .as-actions button:hover, .as-actions a:hover, .as-tabs button:hover, .as-row:hover, .as-queue-row:hover, .as-receipt-list button:hover, .as-section-line button:hover { border-color: #5fb99d; }
-        .as-actions button:focus-visible, .as-actions a:focus-visible, .as-tabs button:focus-visible, .as-row:focus-visible, .as-queue-row:focus-visible, .as-receipt-list button:focus-visible, .as-section-line button:focus-visible { outline: 2px solid #8bd8bd; outline-offset: 2px; }
+        .as-actions button:hover, .as-actions a:hover, .as-tabs button:hover, .as-row:hover, .as-queue-row:hover, .as-receipt-list button:hover, .as-section-line button:hover, .as-state button:hover { border-color: #5fb99d; }
+        .as-actions button:focus-visible, .as-actions a:focus-visible, .as-tabs button:focus-visible, .as-row:focus-visible, .as-queue-row:focus-visible, .as-receipt-list button:focus-visible, .as-section-line button:focus-visible, .as-state button:focus-visible, .as-proof-actions button:focus-visible { outline: 2px solid #8bd8bd; outline-offset: 2px; }
         .as-health-band, .as-inline-grid { display: grid; grid-template-columns: repeat(5, minmax(96px, 1fr)); gap: 1px; background: #263a34; border-bottom: 1px solid #263a34; }
         .as-metric { background: #101b18; padding: 10px 12px; min-width: 0; }
-        .as-metric span { display: block; color: #91a79d; font-size: 11px; text-transform: uppercase; }
+        .as-metric span { display: block; color: #91a79d; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
         .as-metric strong { display: block; overflow-wrap: anywhere; font-size: 13px; }
         .as-layout { display: grid; grid-template-columns: minmax(220px, 0.9fr) minmax(260px, 1.1fr) minmax(320px, 1.4fr); gap: 1px; background: #263a34; min-height: 430px; }
         .as-pane { background: #0e1412; min-width: 0; overflow: auto; }
         .as-pane-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-bottom: 1px solid #263a34; background: #101b18; position: sticky; top: 0; z-index: 1; }
-        .as-tree, .as-queue-list, .as-detail-body, .as-backends { display: grid; gap: 8px; padding: 10px; }
-        .as-detail-body { padding-bottom: 86px; }
+        .as-tree, .as-queue-list, .as-detail-body, .as-backends { display: grid; gap: 12px; padding: 12px; align-content: start; }
+        .as-detail-body { padding-bottom: 24px; }
         .as-tree-children { display: grid; gap: 6px; margin: 6px 0 10px 18px; }
         .as-row, .as-queue-row { width: 100%; display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 9px; text-align: left; }
         .as-subgoal { grid-template-columns: 10px minmax(0, 1fr); background: #101b18; }
@@ -1592,46 +1596,65 @@ export class AgentSupervisorApp {
         .as-tabs { display: grid; grid-template-columns: repeat(6, minmax(66px, 1fr)); gap: 1px; background: #263a34; border-bottom: 1px solid #263a34; }
         .as-tabs button { border-radius: 0; border: 0; border-right: 1px solid #263a34; }
         .as-active-heading { display: flex; align-items: flex-start; gap: 10px; padding: 4px 0 8px; }
+        .as-active-heading .as-status { margin-top: 5px; flex: none; }
         .as-active-heading p { margin: 4px 0 0; }
         .as-detail .as-inline-grid { grid-template-columns: repeat(4, minmax(80px, 1fr)); border: 1px solid #263a34; }
-        .as-section-line { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid #263a34; }
-        .as-section-line h4 { margin: 0; }
+        .as-section-line { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid #263a34; align-content: start; }
+        .as-section-line h4 { margin: 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #a8bbb2; }
         .as-section-line a { color: #8bd8bd; overflow-wrap: anywhere; }
         .as-section-line code { background: #17241f; border: 1px solid #263a34; border-radius: 4px; padding: 4px 6px; overflow-wrap: anywhere; }
         .as-field { display: grid; gap: 6px; }
-        .as-field span, .as-confirm-line span { color: #a8bbb2; }
+        .as-field > span { color: #a8bbb2; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
         .as-field textarea { min-height: 132px; resize: vertical; border: 1px solid #315248; border-radius: 6px; background: #101b18; color: #edf7f2; padding: 10px; font: inherit; width: 100%; }
         .as-field textarea:focus-visible { outline: 2px solid #8bd8bd; outline-offset: 2px; }
-        .as-confirm-line { display: flex; align-items: flex-start; gap: 8px; border-top: 1px solid #263a34; padding-top: 10px; }
-        .as-confirm-line input { margin-top: 3px; }
+        .as-confirm-line { display: flex; align-items: flex-start; gap: 10px; border: 1px solid #4a3d24; border-left: 3px solid #ffd166; border-radius: 6px; background: rgba(255, 209, 102, 0.07); padding: 10px 12px; }
+        .as-confirm-line input { margin-top: 3px; flex: none; accent-color: #ffd166; }
+        .as-confirm-line input:focus-visible { outline: 2px solid #8bd8bd; outline-offset: 2px; }
+        .as-confirm-line span { color: #edf7f2; }
         .as-steering-actions { justify-content: flex-start; }
-        .as-steering-result { display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 1px; background: #263a34; border: 1px solid #263a34; }
-        .as-receipt-list { display: grid; gap: 6px; }
+        .as-steering-result { display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 1px; background: #263a34; border: 1px solid #263a34; border-radius: 6px; overflow: hidden; }
+        .as-receipt-list { display: grid; gap: 6px; align-content: start; }
         .as-receipt-list button { display: grid; gap: 2px; text-align: left; }
         .as-receipt-list span { color: #9eb2aa; overflow-wrap: anywhere; }
-        .as-receipt-detail { display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 1px; background: #263a34; margin-top: 8px; }
+        .as-receipt-detail { display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 1px; background: #263a34; border: 1px solid #263a34; border-radius: 6px; overflow: hidden; margin-top: 8px; }
         .as-backend-row { display: grid; grid-template-columns: 10px minmax(150px, 1fr) minmax(70px, auto) minmax(120px, 1fr); gap: 10px; align-items: center; border-bottom: 1px solid #263a34; padding: 8px 0; min-width: 0; }
         .as-backend-row span:last-child { overflow-wrap: anywhere; color: #9eb2aa; }
-        .as-gateway-table { display: grid; gap: 1px; background: #263a34; border: 1px solid #263a34; overflow-x: auto; }
-        .as-gateway-row { display: grid; grid-template-columns: 10px minmax(190px, 1.2fr) minmax(120px, 0.8fr) minmax(86px, 0.6fr) minmax(130px, 0.8fr) minmax(80px, .55fr) minmax(90px, .65fr) minmax(150px, 1fr) minmax(120px, .8fr) minmax(120px, .8fr); gap: 8px; align-items: center; min-width: 1280px; background: #101b18; padding: 8px; }
+        .as-gateway-table { display: grid; gap: 1px; background: #263a34; border: 1px solid #263a34; border-radius: 6px; overflow-x: auto; }
+        .as-gateway-table > span { padding: 10px 12px; color: #a8bbb2; }
+        .as-gateway-row { display: grid; grid-template-columns: 10px minmax(190px, 1.2fr) minmax(120px, 0.8fr) minmax(86px, 0.6fr) minmax(130px, 0.8fr) minmax(80px, .55fr) minmax(90px, .65fr) minmax(150px, 1fr) minmax(120px, .8fr) minmax(120px, .8fr); gap: 8px; align-items: center; min-width: 1280px; background: #101b18; padding: 8px 10px; }
         .as-gateway-row span, .as-gateway-row strong { overflow-wrap: anywhere; min-width: 0; }
         .as-gateway-row span { color: #a8bbb2; }
+        .as-gateway-row strong { color: #edf7f2; font-weight: 600; }
         .as-gateway-head { background: #17241f; }
-        .as-workflow-proof { display: grid; gap: 10px; padding: 12px; border-top: 1px solid #263a34; background: #101b18; }
+        .as-gateway-head span, .as-gateway-head strong { color: #91a79d; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+        .as-workflow-proof { display: grid; gap: 12px; padding: 12px; border-top: 1px solid #263a34; background: #101b18; }
         .as-workflow-proof-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-        .as-workflow-proof-head h3 { margin: 0; font-size: 15px; letter-spacing: 0; }
+        .as-workflow-proof-head h3 { margin: 0; font-size: 14px; font-weight: 650; letter-spacing: 0; }
         .as-workflow-proof-head span { color: #a8bbb2; }
         .as-proof-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .as-proof-actions button { border: 1px solid #315248; background: #173029; color: #edf7f2; border-radius: 6px; padding: 6px 9px; min-height: 30px; cursor: pointer; }
-        .as-proof-grid { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 1px; background: #263a34; border: 1px solid #263a34; }
-        .as-proof-grid > div { display: grid; gap: 4px; background: #0e1412; padding: 9px; min-width: 0; }
-        .as-proof-grid strong { color: #8bd8bd; }
+        .as-proof-grid { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 1px; background: #263a34; border: 1px solid #263a34; border-radius: 6px; overflow: hidden; }
+        .as-proof-grid > div { display: grid; gap: 4px; background: #0e1412; padding: 10px 12px; min-width: 0; align-content: start; }
+        .as-proof-grid strong { color: #8bd8bd; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
         .as-proof-grid span { color: #a8bbb2; overflow-wrap: anywhere; }
         .as-state { margin: 12px; padding: 12px; border: 1px solid #315248; background: #101b18; border-radius: 6px; display: flex; align-items: center; gap: 10px; }
         .as-error { border-color: #8c3d3d; background: #231312; }
-        .as-spinner { width: 20px; height: 20px; border: 3px solid #315248; border-top-color: #8bd8bd; border-radius: 50%; animation: as-spin 900ms linear infinite; }
-        .as-list-empty { padding: 12px; color: #a8bbb2; }
+        .as-spinner { width: 20px; height: 20px; border: 3px solid #315248; border-top-color: #8bd8bd; border-radius: 50%; animation: as-spin 900ms linear infinite; flex: none; }
+        .as-list-empty { padding: 12px; color: #a8bbb2; font-size: 12px; }
+        .as-honest { color: #ffd166; }
+        span.as-honest, .as-metric.as-honest strong, .as-receipt-list span.as-honest { color: #ffd166; }
         @keyframes as-spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+          .as-spinner { animation: none; }
+        }
+        @media (max-width: 1024px) {
+          .as-layout { grid-template-columns: 1fr; }
+          .as-health-band { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+          .as-detail .as-inline-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .as-proof-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .as-steering-result { grid-template-columns: 1fr; }
+          .as-receipt-detail { grid-template-columns: 1fr; }
+        }
         @media (max-width: 760px) {
           .agent-supervisor { min-height: 640px; }
           .as-header { align-items: flex-start; flex-direction: column; }
@@ -1711,8 +1734,9 @@ function runRecord(runId, goalId, subgoalId, taskId, status, receiptId) {
   return { run_id: runId, goal_id: goalId, subgoal_id: subgoalId, task_id: taskId, status, started_at: '2026-07-10T12:00:00.000Z', receipt: receipt(receiptId, `bafy${receiptId.replace(/[^a-z0-9]/gi, '').toLowerCase()}`) };
 }
 
-function metric(label, value) {
-  return `<div class="as-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+function metric(label, value, cls = '') {
+  const extra = cls ? ` ${cls}` : '';
+  return `<div class="as-metric${extra}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
 }
 
 function workflowActionButton(action, label) {

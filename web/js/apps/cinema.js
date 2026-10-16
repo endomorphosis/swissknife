@@ -303,111 +303,99 @@ export class CinemaApp {
   renderCinemaWorkflowPanel() {
     const workflow = this.cinemaWorkflow;
     return `
-      <section class="cinema-vda-workflow"
+      <section class="cinema-vda-workflow sk-card cinema-vda-panel"
                data-svd-workflow="${workflow.workflowId}"
                aria-label="Cinema project media render workflow"
-               style="
-                 background: rgba(255,255,255,0.06);
-                 border: 1px solid rgba(255,255,255,0.14);
-                 border-radius: 8px;
-                 padding: 12px;
-                 margin-bottom: 18px;
-                 display: grid;
-                 gap: 10px;
-               ">
-        <div style="display: flex; justify-content: space-between; gap: 10px; align-items: flex-start;">
+               >
+        <div class="cinema-vda-head">
           <div>
-            <div style="font-size: 11px; color: #7dd3fc; font-weight: 700;">${workflow.vdaId}</div>
-            <h3 style="margin: 2px 0 0; font-size: 14px; color: #fff;">Project Render Workflow</h3>
+            <div class="sk-badge">${workflow.vdaId}</div>
+            <h3 class="cinema-vda-title">Project Render Workflow</h3>
+            <p class="vda-evidence-note sk-honest-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification until a real project is persisted via “Load CIDs”.</p>
           </div>
-          <span data-render-queue-state="queued"
-                style="font-size: 11px; color: #fde68a;">Queue 1 active</span>
+          <span class="sk-badge" data-render-queue-state="queued">Queue 1 active</span>
         </div>
 
-        <div class="cinema-workflow-actions" style="
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 6px;
-        ">
-          <button data-svd-workflow-action="load-project-media-cids"
+        <div class="cinema-workflow-actions cinema-actions" >
+          <button class="sk-btn" data-svd-workflow-action="load-project-media-cids"
                   aria-label="Load project and media CIDs"
-                  style="background: #2563eb; border: 0; color: #fff; border-radius: 6px; padding: 7px; font-size: 11px; cursor: pointer;">Load CIDs</button>
-          <button data-svd-workflow-action="verify-rights-metadata"
+                  >Load CIDs</button>
+          <button class="sk-btn" data-svd-workflow-action="verify-rights-metadata"
                   aria-label="Verify rights metadata"
-                  style="background: #0f766e; border: 0; color: #fff; border-radius: 6px; padding: 7px; font-size: 11px; cursor: pointer;">Rights</button>
-          <button data-svd-workflow-action="submit-render-queue"
+                  >Rights</button>
+          <button class="sk-btn" data-svd-workflow-action="submit-render-queue"
                   aria-label="Submit render queue job"
-                  style="background: #7c3aed; border: 0; color: #fff; border-radius: 6px; padding: 7px; font-size: 11px; cursor: pointer;">Render</button>
-          <button data-svd-workflow-action="simulate-failed-export"
+                  >Render</button>
+          <button class="sk-btn" data-svd-workflow-action="simulate-failed-export"
                   aria-label="Simulate failed export"
-                  style="background: #b45309; border: 0; color: #fff; border-radius: 6px; padding: 7px; font-size: 11px; cursor: pointer;">Fail Export</button>
-          <button data-svd-workflow-action="activate-playback-fallback"
+                  >Fail Export</button>
+          <button class="sk-btn" data-svd-workflow-action="activate-playback-fallback"
                   aria-label="Activate playback fallback"
-                  style="background: #0369a1; border: 0; color: #fff; border-radius: 6px; padding: 7px; font-size: 11px; cursor: pointer;">Fallback</button>
-          <button data-svd-workflow-action="stabilize-timeline-controls"
+                  >Fallback</button>
+          <button class="sk-btn" data-svd-workflow-action="stabilize-timeline-controls"
                   aria-label="Stabilize timeline controls"
-                  style="background: #4d7c0f; border: 0; color: #fff; border-radius: 6px; padding: 7px; font-size: 11px; cursor: pointer;">Timeline</button>
+                  >Timeline</button>
         </div>
 
-        <article data-svd-vda-marker="project-media-cids"
+        <article class="sk-card cinema-vda-card" data-svd-vda-marker="project-media-cids"
                  data-project-cid-state="loaded"
                  data-media-cid-state="loaded"
                  data-project-cid="${workflow.projectCid}"
                  data-media-cid="${workflow.mediaCid}"
-                 style="background: rgba(0,0,0,0.18); border-radius: 6px; padding: 8px;">
-          <strong style="font-size: 12px;">Project/media CIDs</strong>
-          <p style="margin: 4px 0; font-size: 11px; color: rgba(255,255,255,0.76);">${workflow.projectName} stores project CID ${workflow.projectCid}, media CID ${workflow.mediaCid}, and Event DAG ${workflow.eventDagCid}.</p>
+                 >
+          <strong>Project/media CIDs</strong>
+          <p class="cinema-vda-desc">${workflow.projectName} stores project CID ${workflow.projectCid}, media CID ${workflow.mediaCid}, and Event DAG ${workflow.eventDagCid}.</p>
           <small>${workflow.receiptPrefix}:project-media-cids</small>
         </article>
 
-        <article data-svd-vda-marker="rights-metadata"
+        <article class="sk-card cinema-vda-card" data-svd-vda-marker="rights-metadata"
                  data-rights-state="verified"
                  data-rights-cid="${workflow.rightsCid}"
-                 style="background: rgba(0,0,0,0.18); border-radius: 6px; padding: 8px;">
-          <strong style="font-size: 12px;">Rights metadata</strong>
-          <p style="margin: 4px 0; font-size: 11px; color: rgba(255,255,255,0.76);">Clip ${workflow.mediaTitle} license ${workflow.rightsLicense}; rights CID ${workflow.rightsCid}.</p>
+                 >
+          <strong>Rights metadata</strong>
+          <p class="cinema-vda-desc">Clip ${workflow.mediaTitle} license ${workflow.rightsLicense}; rights CID ${workflow.rightsCid}.</p>
           <small>${workflow.receiptPrefix}:rights-metadata</small>
         </article>
 
-        <article data-svd-vda-marker="render-queue"
+        <article class="sk-card cinema-vda-card" data-svd-vda-marker="render-queue"
                  data-render-queue-state="queued"
                  data-render-job-id="${workflow.renderJob}"
-                 style="background: rgba(0,0,0,0.18); border-radius: 6px; padding: 8px;">
-          <strong style="font-size: 12px;">Render queue</strong>
-          <p style="margin: 4px 0; font-size: 11px; color: rgba(255,255,255,0.76);">Job ${workflow.renderJob} queued at 72% with queue CID ${workflow.renderQueueCid}.</p>
-          <progress value="72" max="100" data-render-progress="queued" style="width: 100%; height: 8px;"></progress>
+                 >
+          <strong>Render queue</strong>
+          <p class="cinema-vda-desc">Job ${workflow.renderJob} queued at 72% with queue CID ${workflow.renderQueueCid}.</p>
+          <progress class="sk-progress" value="72" max="100" data-render-progress="queued"></progress>
           <small>${workflow.receiptPrefix}:render-queue</small>
         </article>
 
-        <article data-svd-vda-marker="failed-export"
+        <article class="sk-card cinema-vda-card is-err" data-svd-vda-marker="failed-export"
                  data-export-state="failed-recoverable"
                  data-failed-export-cid="${workflow.failedExportCid}"
-                 style="background: rgba(127,29,29,0.24); border-radius: 6px; padding: 8px;">
-          <strong style="font-size: 12px;">Failed export</strong>
-          <p style="margin: 4px 0; font-size: 11px; color: rgba(255,255,255,0.78);">${workflow.failedExport}; failure CID ${workflow.failedExportCid}.</p>
+                 >
+          <strong>Failed export</strong>
+          <p class="cinema-vda-desc">${workflow.failedExport}; failure CID ${workflow.failedExportCid}.</p>
           <small>${workflow.receiptPrefix}:failed-export</small>
         </article>
 
-        <article data-svd-vda-marker="playback-fallback"
+        <article class="sk-card cinema-vda-card" data-svd-vda-marker="playback-fallback"
                  data-playback-fallback-state="active"
                  data-playback-state="fallback-preview"
-                 style="background: rgba(12,74,110,0.28); border-radius: 6px; padding: 8px;">
-          <strong style="font-size: 12px;">Playback fallback</strong>
-          <p style="margin: 4px 0; font-size: 11px; color: rgba(255,255,255,0.78);">${workflow.fallback}; fallback CID ${workflow.playbackFallbackCid}.</p>
+                 >
+          <strong>Playback fallback</strong>
+          <p class="cinema-vda-desc">${workflow.fallback}; fallback CID ${workflow.playbackFallbackCid}.</p>
           <small>${workflow.receiptPrefix}:playback-fallback</small>
         </article>
 
-        <article data-svd-vda-marker="stable-timeline-controls"
+        <article class="sk-card cinema-vda-card" data-svd-vda-marker="stable-timeline-controls"
                  data-timeline-state="stable"
                  data-timeline-cid="${workflow.timelineCid}"
-                 style="background: rgba(20,83,45,0.24); border-radius: 6px; padding: 8px;">
-          <strong style="font-size: 12px;">Stable timeline controls</strong>
-          <p style="margin: 4px 0; font-size: 11px; color: rgba(255,255,255,0.78);">Playhead ${workflow.timeline.playhead}s of ${workflow.timeline.duration}s, zoom ${workflow.timeline.zoom}x, snap enabled, timeline CID ${workflow.timelineCid}.</p>
-          <label style="display: block; font-size: 10px; color: rgba(255,255,255,0.7);">Playhead
-            <input type="range" min="0" max="${workflow.timeline.duration}" value="${workflow.timeline.playhead}" data-timeline-control="playhead" data-timeline-state="stable" style="width: 100%;">
+                 >
+          <strong>Stable timeline controls</strong>
+          <p class="cinema-vda-desc">Playhead ${workflow.timeline.playhead}s of ${workflow.timeline.duration}s, zoom ${workflow.timeline.zoom}x, snap enabled, timeline CID ${workflow.timelineCid}.</p>
+          <label class="sk-label">Playhead
+            <input type="range" min="0" max="${workflow.timeline.duration}" value="${workflow.timeline.playhead}" data-timeline-control="playhead" data-timeline-state="stable" class="sk-range">
           </label>
-          <label style="display: block; font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 4px;">Zoom
-            <input type="range" min="50" max="400" value="125" data-timeline-control="zoom" data-timeline-state="stable" style="width: 100%;">
+          <label class="sk-label">Zoom
+            <input type="range" min="50" max="400" value="125" data-timeline-control="zoom" data-timeline-state="stable" class="sk-range">
           </label>
           <small>${workflow.receiptPrefix}:stable-timeline-controls</small>
         </article>
@@ -426,22 +414,236 @@ export class CinemaApp {
     
     // Create main Cinema interface
     container.innerHTML = `
-      <div class="cinema-app" style="
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
-        color: #ffffff;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      ">
+      <div class="cinema-app cinema-root" >
         <style>
           .cinema-app button:focus-visible,
           .cinema-app input:focus-visible {
-            outline: 2px solid #7dd3fc;
+            outline: 2px solid var(--sk-accent, #7dd3fc);
             outline-offset: 2px;
           }
+          /* --- Scoped theme: layout + chrome on --sk- tokens --- */
+          .cinema-app.cinema-root {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            color: var(--sk-text, #ffffff);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+          }
+          .cinema-app .cinema-header {
+            background: rgba(0,0,0,0.3);
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--sk-border, rgba(255,255,255,0.1));
+            display: flex;
+            align-items: center;
+            gap: 15px;
+          }
+          .cinema-app .cinema-icon { font-size: 24px; }
+          .cinema-app .cinema-title { font-size: 18px; font-weight: 600; }
+          .cinema-app .cinema-project-cid {
+            margin-left: auto;
+            font-size: 12px;
+            color: var(--sk-text-dim, rgba(255,255,255,0.7));
+            word-break: break-all;
+          }
+          .cinema-app .cinema-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            min-height: 0;
+          }
+          .cinema-app .cinema-toolpanel {
+            width: 80px;
+            flex: none;
+            background: rgba(0,0,0,0.4);
+            border-right: 1px solid var(--sk-border, rgba(255,255,255,0.1));
+            padding: 15px 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            overflow-y: auto;
+          }
+          .cinema-app .cinema-tool {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease;
+            font-size: 20px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+          }
+          .cinema-app .cinema-tool:hover { background: rgba(255,255,255,0.18); }
+          .cinema-app .cinema-tool.active {
+            background: rgba(139,216,189,0.25);
+            border-color: var(--sk-accent, #8bd8bd);
+          }
+          .cinema-app .cinema-tool-name {
+            font-size: 9px;
+            margin-top: 2px;
+            color: rgba(255,255,255,0.8);
+          }
+          .cinema-app .cinema-editing {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+          }
+          .cinema-app .cinema-preview-area {
+            height: 60%;
+            min-height: 220px;
+            background: rgba(0,0,0,0.6);
+            border-bottom: 1px solid var(--sk-border, rgba(255,255,255,0.1));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+          }
+          .cinema-app .cinema-video-frame {
+            width: 480px;
+            max-width: 88%;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.6);
+            font-size: 16px;
+            text-align: center;
+            padding: 12px;
+          }
+          .cinema-app .cinema-playback {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 10px 20px;
+            border-radius: 25px;
+            gap: 15px;
+          }
+          .cinema-app .cinema-time {
+            color: rgba(255,255,255,0.8);
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+          }
+          .cinema-app .cinema-timeline {
+            flex: 1;
+            min-height: 0;
+            background: rgba(0,0,0,0.4);
+            padding: 15px;
+            overflow-y: auto;
+          }
+          .cinema-app .cinema-timeline-head {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+          }
+          .cinema-app .cinema-timeline-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+          .cinema-app .cinema-tracks {
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .cinema-app .cinema-empty-icon { font-size: 24px; margin-bottom: 10px; }
+          .cinema-app .cinema-empty-sub { font-size: 12px; margin-top: 5px; }
+          .cinema-app .cinema-props {
+            width: 280px;
+            flex: none;
+            background: rgba(0,0,0,0.4);
+            border-left: 1px solid var(--sk-border, rgba(255,255,255,0.1));
+            padding: 15px;
+            overflow-y: auto;
+          }
+          .cinema-app .cinema-prop-card {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+          }
+          .cinema-app .cinema-prop-row {
+            font-size: 12px;
+            color: var(--sk-text-dim, rgba(255,255,255,0.7));
+            margin-bottom: 8px;
+          }
+          .cinema-app .cinema-cid {
+            font-size: 11px;
+            color: rgba(255,255,255,0.65);
+            word-break: break-word;
+          }
+          .cinema-app .cinema-effects-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 20px;
+          }
+          .cinema-app .cinema-effect {
+            padding: 8px;
+            text-align: center;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease;
+          }
+          .cinema-app .cinema-effect:hover {
+            border-color: var(--sk-accent, #8bd8bd);
+            background: rgba(139,216,189,0.12);
+          }
+          .cinema-app .cinema-ai-tools {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+          /* --- VDA workflow panel --- */
+          .cinema-app .cinema-vda-panel {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 18px;
+          }
+          .cinema-app .cinema-vda-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: flex-start;
+          }
+          .cinema-app .cinema-vda-title { margin: 2px 0 0; font-size: 14px; }
+          .cinema-app .cinema-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px;
+          }
+          .cinema-app .cinema-vda-card { padding: 8px; }
+          .cinema-app .cinema-vda-card strong { font-size: 12px; }
+          .cinema-app .cinema-vda-card.is-err {
+            border-color: var(--sk-err, #ff6b6b);
+          }
+          .cinema-app .cinema-vda-card .sk-label {
+            display: block;
+            font-size: 10px;
+            margin-top: 4px;
+            color: var(--sk-text-dim, rgba(255,255,255,0.7));
+          }
+          .cinema-app .cinema-vda-desc {
+            margin: 4px 0;
+            font-size: 11px;
+            color: rgba(255,255,255,0.76);
+          }
+          .cinema-app .cinema-vda-card.is-err .cinema-vda-desc { color: rgba(255,255,255,0.78); }
           @media (max-width: 700px) {
             .cinema-content {
               flex-direction: column !important;
@@ -474,331 +676,96 @@ export class CinemaApp {
           }
         </style>
         <!-- Header -->
-        <div class="cinema-header" style="
-          background: rgba(0,0,0,0.3);
-          padding: 10px 20px;
-          border-bottom: 1px solid rgba(255,255,255,0.1);
-          display: flex;
-          align-items: center;
-          gap: 15px;
-        ">
-          <div class="app-icon" style="font-size: 24px;">🎬</div>
-          <div class="app-title" style="
-            font-size: 18px;
-            font-weight: 600;
-            color: #ffffff;
-          ">Cinema - Professional Video Editor</div>
-          <div class="project-info" style="
-            margin-left: auto;
-            font-size: 12px;
-            color: rgba(255,255,255,0.7);
-          ">Project CID ${this.cinemaWorkflow.projectCid}</div>
+        <div class="cinema-header" >
+          <div class="app-icon cinema-icon">🎬</div>
+          <div class="app-title cinema-title" >Cinema - Professional Video Editor</div>
+          <div class="project-info cinema-project-cid" >Project CID ${this.cinemaWorkflow.projectCid}</div>
         </div>
         
         <!-- Main Content -->
-        <div class="cinema-content" style="
-          flex: 1;
-          display: flex;
-          overflow: hidden;
-        ">
+        <div class="cinema-content" >
           <!-- Tool Panel -->
-          <div class="tool-panel" style="
-            width: 80px;
-            background: rgba(0,0,0,0.4);
-            border-right: 1px solid rgba(255,255,255,0.1);
-            padding: 15px 5px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-          ">
+          <div class="tool-panel cinema-toolpanel" >
             ${Object.entries(this.tools).map(([key, tool]) => `
-              <div class="tool-item ${tool.active ? 'active' : ''}" 
+              <div class="tool-item cinema-tool ${tool.active ? 'active' : ''}"
                    data-tool="${key}"
-                   title="${tool.name} (${tool.shortcut})"
-                   style="
-                     width: 60px;
-                     height: 60px;
-                     background: ${tool.active ? 'rgba(74, 144, 226, 0.3)' : 'rgba(255,255,255,0.1)'};
-                     border: 1px solid ${tool.active ? '#4a90e2' : 'rgba(255,255,255,0.2)'};
-                     border-radius: 8px;
-                     display: flex;
-                     flex-direction: column;
-                     align-items: center;
-                     justify-content: center;
-                     cursor: pointer;
-                     transition: all 0.2s ease;
-                     font-size: 20px;
-                   ">
+                   title="${tool.name} (${tool.shortcut})">
                 <div>${tool.icon}</div>
-                <div style="font-size: 9px; margin-top: 2px; color: rgba(255,255,255,0.8);">${tool.name}</div>
+                <div class="cinema-tool-name">${tool.name}</div>
               </div>
             `).join('')}
           </div>
           
           <!-- Main Editing Area -->
-          <div class="editing-area" style="
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-          ">
+          <div class="editing-area cinema-editing" >
             <!-- Preview Area -->
-            <div class="preview-area" style="
-              height: 60%;
-              background: rgba(0,0,0,0.6);
-              border-bottom: 1px solid rgba(255,255,255,0.1);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              position: relative;
-            ">
-              <div class="video-preview" style="
-                width: 480px;
-                height: 270px;
-                background: #000;
-                border: 2px solid rgba(255,255,255,0.2);
-                border-radius: 8px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: rgba(255,255,255,0.6);
-                font-size: 16px;
-              " data-playback-fallback-state="active" data-playback-state="fallback-preview">
+            <div class="preview-area cinema-preview-area" >
+              <div class="video-preview cinema-video-frame"  data-playback-fallback-state="active" data-playback-state="fallback-preview">
                 🎬 Proxy Preview Ready
                 <br><small>${this.cinemaWorkflow.playbackFallbackCid}</small>
               </div>
               
               <!-- Playback Controls -->
-              <div class="playback-controls" style="
-                position: absolute;
-                bottom: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(0,0,0,0.8);
-                padding: 10px 20px;
-                border-radius: 25px;
-                display: flex;
-                align-items: center;
-                gap: 15px;
-              ">
-                <button class="control-btn" style="
-                  background: none;
-                  border: none;
-                  color: #fff;
-                  font-size: 18px;
-                  cursor: pointer;
-                  padding: 5px;
-                ">⏮️</button>
-                <button class="control-btn play-pause" style="
-                  background: #4a90e2;
-                  border: none;
-                  color: #fff;
-                  font-size: 18px;
-                  cursor: pointer;
-                  padding: 8px 12px;
-                  border-radius: 50%;
-                ">▶️</button>
-                <button class="control-btn" style="
-                  background: none;
-                  border: none;
-                  color: #fff;
-                  font-size: 18px;
-                  cursor: pointer;
-                  padding: 5px;
-                ">⏭️</button>
-                <div class="time-display" style="
-                  color: rgba(255,255,255,0.8);
-                  font-size: 12px;
-                  font-weight: 500;
-                ">00:00 / 00:00</div>
+              <div class="playback-controls sk-transport cinema-playback" >
+                <button class="sk-transport-btn" aria-label="Previous">⏮️</button>
+                <button class="play-pause sk-transport-btn is-main" aria-label="Play or pause">▶️</button>
+                <button class="sk-transport-btn" aria-label="Next">⏭️</button>
+                <div class="time-display cinema-time" >00:00 / 00:00</div>
               </div>
             </div>
             
             <!-- Timeline Area -->
-            <div class="timeline-area" style="
-              height: 40%;
-              background: rgba(0,0,0,0.4);
-              padding: 15px;
-              overflow-y: auto;
-            ">
-              <div class="timeline-header" style="
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                margin-bottom: 15px;
-              ">
-                <div style="font-weight: 600; color: #fff;">Timeline</div>
-                <div class="timeline-controls" style="
-                  display: flex;
-                  gap: 10px;
-                ">
-                  <button class="timeline-btn" style="
-                    background: rgba(255,255,255,0.1);
-                    border: 1px solid rgba(255,255,255,0.2);
-                    color: #fff;
-                    padding: 5px 10px;
-                    border-radius: 4px;
-                    font-size: 12px;
-                    cursor: pointer;
-                  ">📹 Video</button>
-                  <button class="timeline-btn" style="
-                    background: rgba(255,255,255,0.1);
-                    border: 1px solid rgba(255,255,255,0.2);
-                    color: #fff;
-                    padding: 5px 10px;
-                    border-radius: 4px;
-                    font-size: 12px;
-                    cursor: pointer;
-                  ">🔊 Audio</button>
-                  <button class="timeline-btn" style="
-                    background: rgba(255,255,255,0.1);
-                    border: 1px solid rgba(255,255,255,0.2);
-                    color: #fff;
-                    padding: 5px 10px;
-                    border-radius: 4px;
-                    font-size: 12px;
-                    cursor: pointer;
-                  ">📝 Text</button>
+            <div class="timeline-area cinema-timeline" >
+              <div class="timeline-header cinema-timeline-head" >
+                <div class="sk-section-head">Timeline</div>
+                <div class="timeline-controls cinema-timeline-controls" >
+                  <button class="timeline-btn sk-btn">📹 Video</button>
+                  <button class="timeline-btn sk-btn">🔊 Audio</button>
+                  <button class="timeline-btn sk-btn">📝 Text</button>
                 </div>
               </div>
               
               <!-- Timeline Tracks -->
-              <div class="timeline-tracks" style="
-                background: rgba(255,255,255,0.05);
-                border: 1px solid rgba(255,255,255,0.1);
-                border-radius: 6px;
-                padding: 10px;
-                min-height: 120px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: rgba(255,255,255,0.6);
-              ">
-                <div style="text-align: center;">
-                  <div style="font-size: 24px; margin-bottom: 10px;">🎞️</div>
+              <div class="timeline-tracks sk-card cinema-tracks" >
+                <div class="sk-empty">
+                  <div class="cinema-empty-icon">🎞️</div>
                   <div>Drop video clips here to start editing</div>
-                  <div style="font-size: 12px; margin-top: 5px;">Multi-track timeline with precision controls</div>
+                  <div class="cinema-empty-sub">Multi-track timeline with precision controls</div>
                 </div>
               </div>
             </div>
           </div>
           
           <!-- Properties Panel -->
-          <div class="properties-panel" style="
-            width: 280px;
-            background: rgba(0,0,0,0.4);
-            border-left: 1px solid rgba(255,255,255,0.1);
-            padding: 15px;
-            overflow-y: auto;
-          ">
+          <div class="properties-panel cinema-props" >
             <div class="panel-section">
-              <h3 style="
-                color: #fff;
-                font-size: 14px;
-                font-weight: 600;
-                margin-bottom: 15px;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-                padding-bottom: 8px;
-              ">🎬 Project</h3>
-              <div class="project-info" style="
-                background: rgba(255,255,255,0.05);
-                padding: 12px;
-                border-radius: 6px;
-                margin-bottom: 20px;
-              ">
-                <div style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 8px;">Resolution: 1920x1080</div>
-                <div style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 8px;">Frame Rate: 30fps</div>
-                <div style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 8px;">Duration: 00:02:08</div>
-                <div style="font-size: 11px; color: rgba(255,255,255,0.65); word-break: break-word;">${this.cinemaWorkflow.mediaCid}</div>
+              <h3 class="sk-section-head">🎬 Project</h3>
+              <div class="project-info sk-card cinema-prop-card" >
+                <div class="cinema-prop-row">Resolution: 1920x1080</div>
+                <div class="cinema-prop-row">Frame Rate: 30fps</div>
+                <div class="cinema-prop-row">Duration: 00:02:08</div>
+                <div class="cinema-cid">${this.cinemaWorkflow.mediaCid}</div>
               </div>
             </div>
 
             ${this.renderCinemaWorkflowPanel()}
             
             <div class="panel-section">
-              <h3 style="
-                color: #fff;
-                font-size: 14px;
-                font-weight: 600;
-                margin-bottom: 15px;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-                padding-bottom: 8px;
-              ">✨ Effects</h3>
-              <div class="effects-grid" style="
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 8px;
-                margin-bottom: 20px;
-              ">
+              <h3 class="sk-section-head">✨ Effects</h3>
+              <div class="effects-grid cinema-effects-grid" >
                 ${this.effects.video.slice(0, 6).map(effect => `
-                  <div class="effect-item" style="
-                    background: rgba(255,255,255,0.1);
-                    border: 1px solid rgba(255,255,255,0.2);
-                    padding: 8px;
-                    border-radius: 4px;
-                    text-align: center;
-                    font-size: 11px;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                  " onmouseover="this.style.background='rgba(74, 144, 226, 0.2)'"
-                     onmouseout="this.style.background='rgba(255,255,255,0.1)'">${effect.name}</div>
+                  <div class="effect-item sk-card cinema-effect">${effect.name}</div>
                 `).join('')}
               </div>
             </div>
             
             <div class="panel-section">
-              <h3 style="
-                color: #fff;
-                font-size: 14px;
-                font-weight: 600;
-                margin-bottom: 15px;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-                padding-bottom: 8px;
-              ">🤖 AI Tools</h3>
-              <div class="ai-tools" style="
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-              ">
-                <button class="ai-tool-btn" style="
-                  background: linear-gradient(135deg, #4a90e2, #357abd);
-                  border: none;
-                  color: #fff;
-                  padding: 10px;
-                  border-radius: 6px;
-                  font-size: 12px;
-                  cursor: pointer;
-                  transition: all 0.2s ease;
-                ">🎯 Auto Scene Detection</button>
-                <button class="ai-tool-btn" style="
-                  background: linear-gradient(135deg, #4a90e2, #357abd);
-                  border: none;
-                  color: #fff;
-                  padding: 10px;
-                  border-radius: 6px;
-                  font-size: 12px;
-                  cursor: pointer;
-                  transition: all 0.2s ease;
-                ">📹 Video Stabilization</button>
-                <button class="ai-tool-btn" style="
-                  background: linear-gradient(135deg, #4a90e2, #357abd);
-                  border: none;
-                  color: #fff;
-                  padding: 10px;
-                  border-radius: 6px;
-                  font-size: 12px;
-                  cursor: pointer;
-                  transition: all 0.2s ease;
-                ">🔍 AI Upscaling</button>
-                <button class="ai-tool-btn" style="
-                  background: linear-gradient(135deg, #4a90e2, #357abd);
-                  border: none;
-                  color: #fff;
-                  padding: 10px;
-                  border-radius: 6px;
-                  font-size: 12px;
-                  cursor: pointer;
-                  transition: all 0.2s ease;
-                ">🔇 Noise Reduction</button>
+              <h3 class="sk-section-head">🤖 AI Tools</h3>
+              <div class="ai-tools cinema-ai-tools" >
+                <button class="ai-tool-btn sk-btn sk-btn-primary">🎯 Auto Scene Detection</button>
+                <button class="ai-tool-btn sk-btn sk-btn-primary">📹 Video Stabilization</button>
+                <button class="ai-tool-btn sk-btn sk-btn-primary">🔍 AI Upscaling</button>
+                <button class="ai-tool-btn sk-btn sk-btn-primary">🔇 Noise Reduction</button>
               </div>
             </div>
           </div>
@@ -844,28 +811,19 @@ export class CinemaApp {
       });
     });
     
-    // AI tool buttons
+    // AI tool buttons — each click really invokes the accelerate inference
+    // gateway; the real outcome (or verbatim error) is shown.
     const aiToolBtns = container.querySelectorAll('.ai-tool-btn');
     aiToolBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const toolName = btn.textContent.trim();
         console.log(`🤖 Activating AI tool: ${toolName}`);
-        
-        // Add loading state
-        const originalText = btn.textContent;
-        btn.textContent = '⏳ Processing...';
-        btn.disabled = true;
-        
-        setTimeout(() => {
-          btn.textContent = originalText;
-          btn.disabled = false;
-          console.log(`✅ AI tool completed: ${toolName}`);
-        }, 2000);
+        this.runCinemaAIOperation(toolName, btn);
       });
     });
   }
 
-  handleCinemaWorkflowAction(container, action) {
+  async handleCinemaWorkflowAction(container, action) {
     const workflow = this.cinemaWorkflow;
     const status = container.querySelector('[data-render-queue-state]');
     const setText = message => {
@@ -873,33 +831,115 @@ export class CinemaApp {
     };
 
     if (action === 'load-project-media-cids') {
-      this.currentProject = {
-        id: workflow.projectCid,
-        name: workflow.projectName,
-        mediaCid: workflow.mediaCid,
-        rightsCid: workflow.rightsCid,
-        created: new Date('2026-07-21T09:00:00-07:00'),
-        timeline: { tracks: [{ id: 'video-1', clips: [workflow.mediaCid] }], duration: workflow.timeline.duration },
-        settings: { resolution: '1920x1080', fps: 30 }
-      };
-      setText('CIDs loaded');
+      // Real persistence: the project record goes to the ipfs_kit_py
+      // artifact store with a canonical CID over the exact bytes, after the
+      // user's explicit confirmation. The fixture CIDs above are replaced by
+      // the real one; backend failures surface verbatim.
+      setText('Persisting project…');
+      try {
+        const helper = await import('./real-artifact.js');
+        if (!helper.userConfirmsBackendWrite('Persist this Cinema project record to the ipfs_kit_py artifact store?')) {
+          setText('Persist cancelled');
+          return;
+        }
+        const record = {
+          schema: 'swissknife.cinema.project.v1',
+          name: workflow.projectName,
+          mediaTitle: workflow.mediaTitle,
+          rightsLicense: workflow.rightsLicense,
+          timeline: workflow.timeline,
+          created: new Date().toISOString()
+        };
+        const persisted = await helper.persistArtifactRecord({
+          record,
+          profile: 'cinema-project',
+          kind: 'video-project'
+        });
+        this.currentProject = {
+          id: persisted.cid,
+          name: workflow.projectName,
+          mediaTitle: workflow.mediaTitle,
+          rightsLicense: workflow.rightsLicense,
+          created: new Date().toISOString(),
+          timeline: { tracks: [], duration: workflow.timeline.duration },
+          settings: { resolution: '1920x1080', fps: 30 }
+        };
+        workflow.projectCid = persisted.cid;
+        const headerCid = container.querySelector('.cinema-header .project-info');
+        if (headerCid) headerCid.textContent = `Project CID ${persisted.cid}`;
+        setText(`Project persisted: ${persisted.cid.slice(0, 20)}…`);
+        console.log(`🎬 Cinema project persisted: ${persisted.cid}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setText(`Persist failed: ${message}`);
+        console.warn('Cinema project persist failed:', message);
+      }
     } else if (action === 'verify-rights-metadata') {
-      setText('Rights verified');
+      setText('Rights metadata is a local project field; no rights backend is connected');
     } else if (action === 'submit-render-queue') {
       this.renderQueue[0].status = 'queued';
-      setText('Render queued');
+      setText('Render queued (local queue; no render backend connected)');
     } else if (action === 'simulate-failed-export') {
       this.renderQueue[0].status = 'failed-recoverable';
-      setText('Export fallback ready');
+      setText('Export fallback ready (test control)');
     } else if (action === 'activate-playback-fallback') {
-      setText('Proxy playback active');
+      setText('Proxy playback active (local preview)');
     } else if (action === 'stabilize-timeline-controls') {
       this.timeline.currentTime = workflow.timeline.playhead;
       this.timeline.duration = workflow.timeline.duration;
       this.timeline.zoom = workflow.timeline.zoom;
-      setText('Timeline stable');
+      setText('Timeline stable (local)');
     }
     console.log(`🎬 Cinema workflow action: ${action}`);
+  }
+
+  // Runs a cinema AI tool for real through the ipfs_accelerate_py inference
+  // gateway. The envelope's real outcome (or its verbatim error) is what the
+  // user sees; nothing is faked as a completed analysis.
+  async runCinemaAIOperation(toolName, btn) {
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Running…';
+    btn.disabled = true;
+    try {
+      const { invokeDescriptorOperation } = await import('../core/mcp-descriptor-registry.js');
+      const project = this.currentProject?.name || this.cinemaWorkflow.projectName;
+      const envelope = await invokeDescriptorOperation({
+        descriptor_id: 'ipfs_accelerate_py',
+        operation: 'run_inference_job',
+        input: {
+          model: 'default',
+          input: `Cinema project "${project}": perform ${toolName}. Describe the analysis steps and any findings as text.`,
+          max_tokens: 256
+        },
+        app_id: 'cinema',
+        desktop: this.desktop || null,
+        execution_mode: 'confirmed'
+      });
+      if (envelope && envelope.status === 'ok') {
+        const output = envelope.output || {};
+        console.log(`🤖 ${toolName} result:`, output.text || output.result || output);
+        btn.textContent = originalText;
+        btn.disabled = false;
+        this.showCinemaNotice(`✅ ${toolName}: backend job ${output.job_id || 'accepted'} — see console for the result envelope.`);
+      } else {
+        const reason = envelope?.error?.message || envelope?.summary || 'inference backend unavailable';
+        throw new Error(reason);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      btn.textContent = originalText;
+      btn.disabled = false;
+      console.warn(`🤖 ${toolName} failed:`, message);
+      this.showCinemaNotice(`❌ ${toolName} failed: ${message}`);
+    }
+  }
+
+  showCinemaNotice(message) {
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#1f2937;color:#fff;padding:10px 16px;border-radius:6px;z-index:10000;font-size:13px;max-width:420px;';
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 5000);
   }
   
   selectTool(toolName) {

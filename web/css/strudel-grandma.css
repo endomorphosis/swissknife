@@ -649,3 +649,48 @@
         font-size: 1.2em;
     }
 }
+
+/* === Session recovery VDA workflow panel (light theme, matches app) === */
+.sg-vda-panel {
+    background: rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(15, 23, 42, 0.16);
+    border-radius: 8px;
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+    margin: 16px 0;
+}
+.sg-vda-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+.sg-vda-title {
+    margin: 2px 0 0;
+    font-size: 1rem;
+}
+.sg-vda-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+.sg-vda-card {
+    background: rgba(255,255,255,0.72);
+    border-radius: 6px;
+    padding: 8px;
+}
+.sg-vda-card strong {
+    font-size: 0.85rem;
+}
+.sg-vda-desc {
+    margin: 4px 0;
+    font-size: 0.82rem;
+}
+.sg-status-line {
+    font-size: 0.82rem;
+    color: #0f172a;
+}
+@media (max-width: 560px) {
+    .sg-vda-actions { grid-template-columns: 1fr; }
+}

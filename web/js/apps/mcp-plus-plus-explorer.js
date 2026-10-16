@@ -2,6 +2,9 @@ import {
   MCP_PLUS_PLUS_DESKTOP_SERVICES,
   getMCPPlusPlusDesktopClient,
   installMCPPlusPlusSupervisorGateway,
+  contentCidForBytes,
+  stableStringifyValue,
+  base64ForBytes,
 } from '../core/mcp-plus-plus-desktop-client.js';
 
 const TABS = ['overview', 'tools', 'protocol', 'diagnostics', 'events', 'policy', 'artifacts'];
@@ -53,31 +56,6 @@ const PROTOCOL_OPERATIONS = Object.freeze([
   { profile: 'G', method: 'mcp++/schedule/reconcile', description: 'Reconcile durable lease state after recovery.', params: { task_cids: [], caller_did: '', idempotency_key: '', correlation_id: '', parents: [], proof_cid: '', policy_decision_cid: '' } },
 ]);
 
-const VDA_G053 = Object.freeze({
-  workflowId: 'mcp-plus-plus.diagnose-profiles-peers-event-dag',
-  peerDiagnosticsCid: 'bafymcppg053peerdiagnostics',
-  eventDagCid: 'bafymcppg053eventdagfrontier',
-  policyCid: 'bafymcppg053policydecision',
-  scheduleCid: 'bafymcppg053schedulefrontier',
-  transportCid: 'bafymcppg053transportmatrix',
-  didCid: 'bafymcppg053dididentity',
-  profileFailureCid: 'bafymcppg053profilefailure',
-  evidenceCid: 'bafymcppg053evidencedrilldown',
-  peerDid: 'did:key:z6MkwSwssKnfeMCPPPExpPeerG53',
-  audienceDid: 'did:key:z6MkwSwssKnfeAudnceG53',
-  eventCid: 'event:mcp-plus-plus:g053:diagnostic-frontier',
-  receipts: {
-    peer: 'receipt:mcp-plus-plus:g053:peer-diagnostics:ok',
-    eventDag: 'receipt:mcp-plus-plus:g053:event-dag:frontier',
-    policy: 'receipt:mcp-plus-plus:g053:policy:allow-read',
-    scheduling: 'receipt:mcp-plus-plus:g053:scheduling:frontier',
-    transport: 'receipt:mcp-plus-plus:g053:transport:http-libp2p',
-    did: 'receipt:mcp-plus-plus:g053:did-identity:verified',
-    profileFailure: 'receipt:mcp-plus-plus:g053:profile-failure:unavailable',
-    evidence: 'receipt:mcp-plus-plus:g053:evidence-drilldown:opened',
-  },
-});
-
 export class MCPPlusPlusExplorerApp {
   constructor(desktop = null, options = {}) {
     this.desktop = desktop;
@@ -99,6 +77,22 @@ export class MCPPlusPlusExplorerApp {
       artifact: null,
       policy: null,
       identity: null,
+      // Live VDA-G053 diagnostic workflow state. Every card below starts
+      // empty and is filled only by real adapter calls; nothing here is
+      // prefabricated.
+      diag: {
+        peers: null,
+        transport: null,
+        did: null,
+        policy: null,
+        scheduling: null,
+        eventDag: null,
+        profileFailure: null,
+        evidence: null,
+        evidenceCid: null,
+        log: [],
+        pendingConfirm: null,
+      },
     };
     this.container = null;
   }
@@ -210,94 +204,287 @@ export class MCPPlusPlusExplorerApp {
     `;
   }
 
+  // VDA-G053 diagnostics, live: every card below is populated by a real
+  // adapter call against the selected service. Nothing is prefabricated;
+  // cards read "not run yet" until their action executes.
   renderVdaG053Workflow() {
-    const services = this.services.map(service => service.id).join(', ');
+    const diag = this.state.diag;
+    const card = (marker, title, body, action, actionLabel) => `
+      <article data-svd-vda-marker="${marker}">
+        <h4>${escapeHtml(title)}</h4>
+        ${body}
+        <div class="mcppp-actions mcppp-actions-spaced">
+          <button type="button" data-svd-workflow-action="${action}" data-action="${action}">${escapeHtml(actionLabel)}</button>
+        </div>
+      </article>`;
+    const resultBlock = value => value === null || value === undefined
+      ? '<p class="mcppp-note sk-honest-note">Not run yet — use the action below.</p>'
+      : `<pre>${escapeHtml(prettyJson(value))}</pre>`;
     return `
       <section class="mcppp-section mcppp-vda-g053"
-        data-svd-workflow="${VDA_G053.workflowId}"
+        data-svd-workflow="mcp-plus-plus.diagnose-profiles-peers-event-dag"
         data-mcppp-correlation-id="corr:mcp-plus-plus:g053:diagnostic-workflow"
         aria-label="VDA-G053 MCP++ diagnostic workflow">
         <div class="mcppp-section-heading">
           <h3>VDA-G053 Diagnostics</h3>
-          <span>peer, Event DAG, policy, scheduling, transports</span>
-          <p class="mcppp-evidence-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
+          <span>live peer, Event DAG, policy, scheduling, transports</span>
         </div>
+        <p class="mcppp-note">Each action below executes a real MCP++ call against the selected service (<strong>${escapeHtml(this.state.selectedService || 'none')}</strong>) and shows the verbatim result. Failures are reported with the adapter's own error; nothing is simulated.</p>
+        ${diag.pendingConfirm ? this.renderDiagConfirmCard() : ''}
         <div class="mcppp-vda-grid">
-          <article data-svd-vda-marker="peer-diagnostics">
-            <h4>Peer Diagnostics</h4>
-            <p>Peer/CID diagnostics cover ${escapeHtml(services)} with libp2p peer id 12D3KooWMCPPPG053, DID ${VDA_G053.peerDid}, descriptor CID ${VDA_G053.peerDiagnosticsCid}, and correlation id corr:mcp-plus-plus:g053:peer.</p>
-            <code>${VDA_G053.receipts.peer}</code>
-          </article>
-          <article data-svd-vda-marker="event-dag-diagnostics">
-            <h4>Event DAG</h4>
-            <p>Event DAG frontier ${VDA_G053.eventDagCid} contains ${VDA_G053.eventCid}, parent bafymcppg053parentroot, policy parent ${VDA_G053.policyCid}, and receipt/event-DAG CID continuity for drill-down.</p>
-            <code>${VDA_G053.receipts.eventDag}</code>
-          </article>
-          <article data-svd-vda-marker="policy-diagnostics">
-            <h4>Policy Diagnostics</h4>
-            <p>Formal Profile D policy/provenance decision ${VDA_G053.policyCid} evaluates actor ${VDA_G053.peerDid}, action tools.call, default_deny false for read diagnostics, proof_cid bafymcppg053policyproof, and receipt_policy required.</p>
-            <code>${VDA_G053.receipts.policy}</code>
-          </article>
-          <article data-svd-vda-marker="scheduling-diagnostics">
-            <h4>Scheduling Diagnostics</h4>
-            <p>Profile G scheduling frontier ${VDA_G053.scheduleCid} reports risk score 0.18, lease 30000 ms, fencing token 42, ready task bafymcppg053taskready, no duplicate claim, and queue recovery state ready.</p>
-            <code>${VDA_G053.receipts.scheduling}</code>
-          </article>
-          <article data-svd-vda-marker="http-libp2p-distinction">
-            <h4>HTTP and libp2p</h4>
-            <p>HTTP JSON-RPC uses /mcp over mcp++/http; libp2p uses /mcp+p2p/1.0.0 with peer sessions and GossipSub. Transport matrix ${VDA_G053.transportCid} keeps HTTP/libp2p distinction explicit and does not label raw sockets as MCP++.</p>
-            <code>${VDA_G053.receipts.transport}</code>
-          </article>
-          <article data-svd-vda-marker="did-identity">
-            <h4>DID Identity</h4>
-            <p>DID identity challenge binds peer ${VDA_G053.peerDid} to audience ${VDA_G053.audienceDid}, nonce nonce-g053, UCAN capability mcp++/invoke, proof CID ${VDA_G053.didCid}, and verified signature status.</p>
-            <code>${VDA_G053.receipts.did}</code>
-          </article>
-          <article data-svd-vda-marker="profile-failure">
-            <h4>Profile Failure</h4>
-            <p>Unavailable profile Profile H x402 payment profile is failed closed as profile_unavailable with reason not configured; no data mutation occurs, retry requires Configure profile, and failure CID ${VDA_G053.profileFailureCid} is preserved.</p>
-            <code>${VDA_G053.receipts.profileFailure}</code>
-          </article>
-          <article data-svd-vda-marker="evidence-drill-down">
-            <h4>Evidence Drill-Down</h4>
-            <details open data-mcppp-evidence-drilldown="${VDA_G053.evidenceCid}">
-              <summary>${VDA_G053.receipts.evidence}</summary>
-              <pre>${escapeHtml(prettyJson({
-                evidence_cid: VDA_G053.evidenceCid,
-                descriptor_cid: VDA_G053.peerDiagnosticsCid,
-                transport_cid: VDA_G053.transportCid,
-                event_dag_cid: VDA_G053.eventDagCid,
-                policy_decision_cid: VDA_G053.policyCid,
-                schedule_frontier_cid: VDA_G053.scheduleCid,
-                did_identity_cid: VDA_G053.didCid,
-                profile_failure_cid: VDA_G053.profileFailureCid,
-                event_cid: VDA_G053.eventCid,
-                receipts: Object.values(VDA_G053.receipts),
-              }))}</pre>
-            </details>
-          </article>
-        </div>
-        <div class="mcppp-actions mcppp-vda-actions">
-          <button type="button" data-svd-workflow-action="inspect-peer-diagnostics" data-action="inspect-peer-diagnostics">Inspect Peers</button>
-          <button type="button" data-svd-workflow-action="compare-http-libp2p" data-action="compare-http-libp2p">Compare Transports</button>
-          <button type="button" data-svd-workflow-action="verify-did-identity" data-action="verify-did-identity">Verify DID</button>
-          <button type="button" data-svd-workflow-action="evaluate-policy-diagnostics" data-action="evaluate-policy-diagnostics">Evaluate Policy</button>
-          <button type="button" data-svd-workflow-action="evaluate-scheduling-frontier" data-action="evaluate-scheduling-frontier">Scheduling</button>
-          <button type="button" data-svd-workflow-action="diagnose-profile-failure" data-action="diagnose-profile-failure">Profile Failure</button>
-          <button type="button" data-svd-workflow-action="open-evidence-drilldown" data-action="open-evidence-drilldown">Open Evidence</button>
+          ${card('peer-diagnostics', 'Peer Diagnostics',
+            `<p>Live <code>mcp++/p2p/peers</code> discovery on the selected service.</p>${resultBlock(diag.peers)}`,
+            'inspect-peer-diagnostics', 'Inspect Peers')}
+          ${card('event-dag-diagnostics', 'Event DAG',
+            `<p>Live <code>mcp++/dag/history</code> (limit 50); frontier and archives come from the inspected snapshot.</p>${resultBlock(diag.eventDag)}`,
+            'load-event-dag', 'Load Event DAG')}
+          ${card('policy-diagnostics', 'Policy Diagnostics',
+            `<p>Live <code>mcp++/policy/evaluate</code> for <code>tools.call</code> by <code>did:key:swissknife-desktop</code>.</p>${resultBlock(diag.policy)}`,
+            'evaluate-policy-diagnostics', 'Evaluate Policy')}
+          ${card('scheduling-diagnostics', 'Scheduling Diagnostics',
+            `<p>Live <code>mcp++/schedule/frontier</code> (limit 100).</p>${resultBlock(diag.scheduling)}`,
+            'evaluate-scheduling-frontier', 'Scheduling')}
+          ${card('http-libp2p-distinction', 'HTTP and libp2p',
+            `<p>Transport facts from the live service inspection; HTTP JSON-RPC uses /mcp, libp2p uses /mcp+p2p/1.0.0.</p>${resultBlock(diag.transport)}`,
+            'compare-http-libp2p', 'Compare Transports')}
+          ${card('did-identity', 'DID Identity',
+            `<p>Live <code>mcp++/ucan/identity</code> challenge response.</p>${resultBlock(diag.did)}`,
+            'verify-did-identity', 'Verify DID')}
+          ${card('profile-failure', 'Profile Failure',
+            `<p>Fail-closed check: profiles the selected service did <em>not</em> negotiate are genuinely unavailable — calls to them are denied, not simulated.</p>${resultBlock(diag.profileFailure)}`,
+            'diagnose-profile-failure', 'Profile Failure')}
+          ${card('evidence-drill-down', 'Evidence Drill-Down',
+            `<p>Bundles every live diagnostic result above and persists it to the kit artifact store behind your confirmation.</p>${diag.evidenceCid ? `<p>Evidence CID <code class="sk-code">${escapeHtml(diag.evidenceCid)}</code></p>${resultBlock(diag.evidence)}` : '<p class="mcppp-note sk-honest-note">No evidence bundle persisted yet.</p>'}`,
+            'open-evidence-drilldown', 'Open Evidence')}
         </div>
         <ol class="mcppp-vda-log" aria-live="polite">
-          <li>${VDA_G053.receipts.peer} ${VDA_G053.peerDiagnosticsCid} ${VDA_G053.peerDid}</li>
-          <li>${VDA_G053.receipts.eventDag} ${VDA_G053.eventDagCid} ${VDA_G053.eventCid}</li>
-          <li>${VDA_G053.receipts.policy} ${VDA_G053.policyCid} formal-policy provenance</li>
-          <li>${VDA_G053.receipts.scheduling} ${VDA_G053.scheduleCid} Profile G lease fencing risk</li>
-          <li>${VDA_G053.receipts.transport} ${VDA_G053.transportCid} mcp++/http /mcp+p2p/1.0.0</li>
-          <li>${VDA_G053.receipts.did} ${VDA_G053.didCid} ${VDA_G053.peerDid}</li>
-          <li>${VDA_G053.receipts.profileFailure} ${VDA_G053.profileFailureCid} profile_unavailable failed closed</li>
-          <li>${VDA_G053.receipts.evidence} ${VDA_G053.evidenceCid} receipt/event-DAG drill-down</li>
+          ${diag.log.length ? diag.log.map(entry => `<li>${escapeHtml(entry)}</li>`).join('') : '<li>No diagnostic actions have run yet in this session.</li>'}
         </ol>
       </section>
     `;
+  }
+
+  renderDiagConfirmCard() {
+    const pending = this.state.diag.pendingConfirm;
+    if (!pending) return '';
+    return `
+      <section class="mcppp-section" aria-label="Confirm evidence persist">
+        <div class="mcppp-section-heading"><h3>Confirm evidence persist</h3></div>
+        <p class="mcppp-note">This will POST the evidence bundle (${pending.bytes} bytes, CID ${escapeHtml(pending.expectedCid)}) to <code>ipfs_kit_py /mcp/artifacts/put</code> with pin=true. The store verifies the CID over the exact bytes sent.</p>
+        <div class="mcppp-actions">
+          <button type="button" data-action="confirm-evidence-persist">Confirm persist</button>
+          <button type="button" data-action="cancel-evidence-persist">Cancel</button>
+        </div>
+      </section>
+    `;
+  }
+
+  diagLog(entry) {
+    this.state.diag.log = [...this.state.diag.log, `${new Date().toISOString()} ${entry}`].slice(-12);
+  }
+
+  diagServiceId() {
+    return this.state.selectedService;
+  }
+
+  async inspectPeerDiagnostics() {
+    const serviceId = this.diagServiceId();
+    try {
+      const result = await this.client.discoverPeers(serviceId);
+      const peers = Array.isArray(result?.peers) ? result.peers : [];
+      this.state.diag.peers = { service: serviceId, count: peers.length, peers };
+      this.state.message = `Peer diagnostics: ${peers.length} peer(s) discovered on ${serviceId}.`;
+      this.diagLog(`peer-diagnostics: ${peers.length} peer(s) via mcp++/p2p/peers on ${serviceId}`);
+    } catch (error) {
+      this.state.diag.peers = { service: serviceId, error: messageFor(error) };
+      this.state.message = `Peer diagnostics failed: ${messageFor(error)}`;
+      this.diagLog(`peer-diagnostics failed on ${serviceId}: ${messageFor(error)}`);
+    }
+    this.update();
+  }
+
+  async compareTransports() {
+    const serviceId = this.diagServiceId();
+    const snapshot = this.selectedSnapshot();
+    if (!snapshot) {
+      this.state.message = 'Refresh the service inspection first.';
+      this.update();
+      return;
+    }
+    const service = this.client.getService(serviceId);
+    this.state.diag.transport = {
+      service: serviceId,
+      http: { base_url: service.baseUrl, mcp_path: service.mcpPath, endpoint: `${service.baseUrl}${service.mcpPath}` },
+      libp2p: {
+        protocol: '/mcp+p2p/1.0.0',
+        helia: snapshot.helia || null,
+        discovered_peers: (snapshot.peers || []).length,
+      },
+      eventDag: { frontier: snapshot.frontier || [], archives: snapshot.archives || [] },
+      inspected_at: snapshot.inspectedAt,
+    };
+    this.state.message = 'Transport comparison built from the live service inspection.';
+    this.diagLog(`compare-transports: http ${service.baseUrl}${service.mcpPath}, helia ${snapshot.helia ? 'reported' : 'not reported'} on ${serviceId}`);
+    this.update();
+  }
+
+  async verifyDidWorkflow() {
+    const serviceId = this.diagServiceId();
+    try {
+      const peers = this.state.diag.peers?.peers?.length
+        ? this.state.diag.peers.peers
+        : (this.selectedSnapshot()?.peers || []);
+      const audience = peers[0]?.peer_id || peers[0]?.id || peers[0]?.did || '';
+      const response = await this.client.identifyPeer(serviceId, audience);
+      this.state.diag.did = { service: serviceId, audience: audience || '(none supplied)', response };
+      this.state.message = 'DID identity challenge response received.';
+      this.diagLog(`verify-did-identity: challenge response received on ${serviceId}`);
+    } catch (error) {
+      this.state.diag.did = { service: serviceId, error: messageFor(error) };
+      this.state.message = `DID verification failed: ${messageFor(error)}`;
+      this.diagLog(`verify-did-identity failed on ${serviceId}: ${messageFor(error)}`);
+    }
+    this.update();
+  }
+
+  async evaluatePolicyDiagnostics() {
+    const serviceId = this.diagServiceId();
+    try {
+      const request = {
+        actor: 'did:key:swissknife-desktop',
+        action: 'tools.call',
+        evaluated_at: new Date().toISOString(),
+        policy: { clauses: [{ clause_type: 'permission', actor: 'did:key:swissknife-desktop', action: 'tools.call' }] },
+      };
+      const decision = await this.client.evaluatePolicy(serviceId, request);
+      this.state.diag.policy = { service: serviceId, request, decision };
+      this.state.message = 'Policy diagnostics evaluation completed.';
+      this.diagLog(`evaluate-policy-diagnostics: decision received on ${serviceId}`);
+    } catch (error) {
+      this.state.diag.policy = { service: serviceId, error: messageFor(error) };
+      this.state.message = `Policy diagnostics failed: ${messageFor(error)}`;
+      this.diagLog(`evaluate-policy-diagnostics failed on ${serviceId}: ${messageFor(error)}`);
+    }
+    this.update();
+  }
+
+  async evaluateSchedulingFrontier() {
+    const serviceId = this.diagServiceId();
+    try {
+      const frontier = await this.client.rpc(serviceId, 'mcp++/schedule/frontier', { limit: 100 });
+      this.state.diag.scheduling = { service: serviceId, frontier };
+      this.state.message = 'Scheduling frontier received.';
+      this.diagLog(`evaluate-scheduling-frontier: frontier received on ${serviceId}`);
+    } catch (error) {
+      this.state.diag.scheduling = { service: serviceId, error: messageFor(error) };
+      this.state.message = `Scheduling frontier failed: ${messageFor(error)}`;
+      this.diagLog(`evaluate-scheduling-frontier failed on ${serviceId}: ${messageFor(error)}`);
+    }
+    this.update();
+  }
+
+  async loadEventDag() {
+    const serviceId = this.diagServiceId();
+    try {
+      const history = await this.client.getDagHistory(serviceId, 50);
+      const events = Array.isArray(history?.events) ? history.events : [];
+      this.state.diag.eventDag = { service: serviceId, count: events.length, events };
+      this.state.message = `Event DAG: ${events.length} live entr(ies) loaded from ${serviceId}.`;
+      this.diagLog(`load-event-dag: ${events.length} event(s) via mcp++/dag/history on ${serviceId}`);
+    } catch (error) {
+      this.state.diag.eventDag = { service: serviceId, error: messageFor(error) };
+      this.state.message = `Event DAG load failed: ${messageFor(error)}`;
+      this.diagLog(`load-event-dag failed on ${serviceId}: ${messageFor(error)}`);
+    }
+    this.update();
+  }
+
+  // Genuine fail-closed diagnostic: profiles the service did not negotiate  // are reported as unavailable from the real inspection snapshot. No
+  // failure is invented for profiles that are present.
+  diagnoseProfileFailure() {
+    const serviceId = this.diagServiceId();
+    const snapshot = this.selectedSnapshot();
+    if (!snapshot) {
+      this.state.message = 'Refresh the service inspection first.';
+      this.update();
+      return;
+    }
+    const expectedProfiles = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    const negotiated = snapshot.profiles || [];
+    const missing = expectedProfiles.filter(profile => !negotiated.includes(profile));
+    this.state.diag.profileFailure = {
+      service: serviceId,
+      negotiated_profiles: negotiated,
+      unavailable_profiles: missing,
+      fail_closed: missing.map(profile => ({
+        profile,
+        disposition: 'profile_unavailable',
+        note: `Profile ${profile} was not negotiated by ${serviceId}; calls requiring it are denied by the gateway. No mutation occurs.`,
+      })),
+      inspection_errors: snapshot.errors || {},
+      inspected_at: snapshot.inspectedAt,
+    };
+    this.state.message = missing.length
+      ? `${missing.length} profile(s) genuinely unavailable (fail closed) on ${serviceId}.`
+      : `All expected profiles negotiated on ${serviceId}; nothing is failed closed.`;
+    this.diagLog(`diagnose-profile-failure: ${missing.length} unavailable profile(s) on ${serviceId}`);
+    this.update();
+  }
+
+  async requestEvidencePersist() {
+    const bundle = {
+      schema: 'swissknife.mcp-plus-plus-explorer.evidence.v1',
+      service: this.diagServiceId(),
+      collected_at: new Date().toISOString(),
+      diagnostics: {
+        peers: this.state.diag.peers,
+        transport: this.state.diag.transport,
+        eventDag: this.state.diag.eventDag,
+        did: this.state.diag.did,
+        policy: this.state.diag.policy,
+        scheduling: this.state.diag.scheduling,
+        profileFailure: this.state.diag.profileFailure,
+      },
+      log: this.state.diag.log,
+    };
+    const bytes = new TextEncoder().encode(stableStringifyValue(bundle));
+    const expectedCid = await contentCidForBytes(bytes);
+    this.state.diag.pendingConfirm = { bundle, bytes: bytes.length, expectedCid };
+    this.state.message = `Evidence bundle ready (CID ${expectedCid}). Confirm to persist it to the kit backend.`;
+    this.update();
+  }
+
+  async confirmEvidencePersist() {
+    const pending = this.state.diag.pendingConfirm;
+    this.state.diag.pendingConfirm = null;
+    if (!pending) {
+      this.state.message = 'Nothing was pending confirmation.';
+      this.update();
+      return;
+    }
+    try {
+      const bytes = new TextEncoder().encode(stableStringifyValue(pending.bundle));
+      const cid = await contentCidForBytes(bytes);
+      const res = await this.client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+        cid,
+        bytes_base64: base64ForBytes(bytes),
+        profile: 'mcppp-explorer-artifact',
+        kind: 'diagnostic-evidence',
+        service: 'ipfs_kit_py',
+        pin: true,
+      });
+      if (!res || res.persisted !== true || res.cid !== cid) {
+        throw new Error(res?.error || 'ipfs_kit_py did not verify the persisted evidence artifact.');
+      }
+      this.state.diag.evidence = pending.bundle;
+      this.state.diag.evidenceCid = cid;
+      this.state.message = `Evidence bundle persisted to ipfs_kit_py at CID ${cid} (verified: ${res.verified === true}).`;
+      this.diagLog(`open-evidence-drilldown: bundle persisted at ${cid}`);
+    } catch (error) {
+      this.state.message = `Evidence persist failed: ${messageFor(error)}`;
+      this.diagLog(`open-evidence-drilldown failed: ${messageFor(error)}`);
+    }
+    this.update();
   }
 
   renderServiceSummary(service, snapshot) {
@@ -324,7 +511,7 @@ export class MCPPlusPlusExplorerApp {
           <div class="mcppp-section-heading"><h3>Tools</h3><span>${snapshot?.toolCount ?? 0} discovered</span></div>
           <input id="mcppp-tool-search" type="search" placeholder="Filter tools" value="${escapeAttribute(this.state.toolSearch)}">
           <div class="mcppp-list" role="listbox" aria-label="MCP tools">
-            ${tools.slice(0, 300).map(tool => `<button type="button" data-tool="${escapeAttribute(tool.name)}" class="${tool.name === this.state.selectedTool ? 'is-selected' : ''}"><strong>${escapeHtml(tool.name)}</strong><span>${escapeHtml(tool.description || 'No description')}</span></button>`).join('') || '<div class="mcppp-empty">No tools discovered for this service.</div>'}
+            ${tools.slice(0, 300).map(tool => `<button type="button" data-tool="${escapeAttribute(tool.name)}" class="${tool.name === this.state.selectedTool ? 'is-selected' : ''}"><strong>${escapeHtml(tool.name)}</strong><span>${escapeHtml(tool.description || 'No description')}</span></button>`).join('') || '<div class="mcppp-empty sk-empty">No tools discovered for this service.</div>'}
           </div>
         </section>
         <section class="mcppp-section mcppp-tool-call">
@@ -357,7 +544,7 @@ export class MCPPlusPlusExplorerApp {
         <label for="mcppp-protocol-params">Parameters</label>
         <textarea id="mcppp-protocol-params" spellcheck="false">${escapeHtml(prettyJson(operation.params))}</textarea>
         <div class="mcppp-actions"><button type="button" data-action="execute-protocol">Run protocol request</button></div>
-        ${this.state.protocolResult ? `<pre class="mcppp-output">${escapeHtml(prettyJson(this.state.protocolResult))}</pre>` : '<div class="mcppp-note">No protocol request has been sent.</div>'}
+        ${this.state.protocolResult ? `<pre class="mcppp-output">${escapeHtml(prettyJson(this.state.protocolResult))}</pre>` : '<div class="mcppp-note sk-honest-note">No protocol request has been sent.</div>'}
       </section>
     `;
   }
@@ -385,7 +572,7 @@ export class MCPPlusPlusExplorerApp {
           <label for="mcppp-identity-audience">Audience DID</label>
           <input id="mcppp-identity-audience" placeholder="did:key:z..." value="">
           <button type="button" data-action="identify-peer">Verify peer identity</button>
-          ${this.state.identity ? `<pre class="mcppp-output">${escapeHtml(prettyJson(this.state.identity))}</pre>` : '<div class="mcppp-note">A valid Ed25519 did:key is required. The explorer does not create or store a browser identity.</div>'}
+          ${this.state.identity ? `<pre class="mcppp-output">${escapeHtml(prettyJson(this.state.identity))}</pre>` : '<div class="mcppp-note sk-honest-note">A valid Ed25519 did:key is required. The explorer does not create or store a browser identity.</div>'}
         </section>
       </div>
     `;
@@ -496,6 +683,22 @@ export class MCPPlusPlusExplorerApp {
     this.container.querySelector('[data-action="load-events"]')?.addEventListener('click', () => void this.loadEvents());
     this.container.querySelector('[data-action="evaluate-policy"]')?.addEventListener('click', () => void this.evaluatePolicy());
     this.container.querySelector('[data-action="read-artifact"]')?.addEventListener('click', () => void this.readArtifact());
+    // Live VDA-G053 diagnostic workflow actions: each executes a real
+    // adapter call and renders the verbatim result in its card.
+    this.container.querySelector('[data-action="inspect-peer-diagnostics"]')?.addEventListener('click', () => void this.inspectPeerDiagnostics());
+    this.container.querySelector('[data-action="compare-http-libp2p"]')?.addEventListener('click', () => void this.compareTransports());
+    this.container.querySelector('[data-action="verify-did-identity"]')?.addEventListener('click', () => void this.verifyDidWorkflow());
+    this.container.querySelector('[data-action="evaluate-policy-diagnostics"]')?.addEventListener('click', () => void this.evaluatePolicyDiagnostics());
+    this.container.querySelector('[data-action="evaluate-scheduling-frontier"]')?.addEventListener('click', () => void this.evaluateSchedulingFrontier());
+    this.container.querySelector('[data-action="load-event-dag"]')?.addEventListener('click', () => void this.loadEventDag());
+    this.container.querySelector('[data-action="diagnose-profile-failure"]')?.addEventListener('click', () => this.diagnoseProfileFailure());
+    this.container.querySelector('[data-action="open-evidence-drilldown"]')?.addEventListener('click', () => void this.requestEvidencePersist());
+    this.container.querySelector('[data-action="confirm-evidence-persist"]')?.addEventListener('click', () => void this.confirmEvidencePersist());
+    this.container.querySelector('[data-action="cancel-evidence-persist"]')?.addEventListener('click', () => {
+      this.state.diag.pendingConfirm = null;
+      this.state.message = 'Evidence persist cancelled; nothing was sent.';
+      this.update();
+    });
   }
 
   async executeTool() {
@@ -580,7 +783,7 @@ export class MCPPlusPlusExplorerApp {
   renderStyles() {
     return `<style>
       .mcp-plus-plus-explorer { height: 100%; overflow: auto; background: #101820; color: #e7edf4; font: 13px/1.45 system-ui, sans-serif; padding: 16px; box-sizing: border-box; }
-      .mcppp-header, .mcppp-header-actions, .mcppp-section-heading, .mcppp-actions, .mcppp-result-heading { display: flex; align-items: center; gap: 10px; }
+      .mcppp-header, .mcppp-header-actions, .mcppp-section-heading, .mcppp-actions, .mcppp-result-heading { display: flex; align-items: center; gap: 10px; } .mcppp-actions-spaced { margin-top: 8px; }
       .mcppp-header { justify-content: space-between; border-bottom: 1px solid #2b3a49; padding-bottom: 12px; }
       .mcppp-header h2, .mcppp-section h3 { margin: 0; font-size: 16px; } .mcppp-header p { margin: 3px 0 0; color: #aebdcc; }
       .mcppp-state, .mcppp-dot { display: inline-block; border-radius: 50%; } .mcppp-state { border-radius: 3px; padding: 3px 7px; background: #3a4855; text-transform: uppercase; font-size: 11px; } .mcppp-state.is-ready { background: #1f6b52; } .mcppp-state.is-degraded { background: #7a5c22; } .mcppp-state.is-unavailable { background: #7a3030; }

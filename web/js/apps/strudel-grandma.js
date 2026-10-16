@@ -82,15 +82,17 @@ class GrandmaStrudelDAW {
         this.strudelWorkflow = {
             workflowId: 'strudel.session-sample-pattern-recovery',
             vdaId: 'VDA-G044',
-            sessionCid: 'bafystrudelg044sessioncid',
-            sampleCid: 'bafystrudelg044samplecid',
-            patternCid: 'bafystrudelg044patterncontext',
-            assistanceCid: 'bafystrudelg044optionalassistance',
-            compileErrorCid: 'bafystrudelg044compileerror',
-            audioErrorCid: 'bafystrudelg044audioerror',
-            restoreCid: 'bafystrudelg044restoredsession',
-            eventDagCid: 'bafystrudelg044eventdag',
-            receiptPrefix: 'receipt:strudel:g044',
+            // Real CIDs are filled in when records are actually persisted to the
+            // kit artifact store (see handleStrudelWorkflowAction). No fixtures:
+            // a null CID means "not persisted yet", never a fake reference.
+            sessionCid: null,
+            sampleCid: null,
+            patternCid: null,
+            assistanceCid: null,
+            compileErrorCid: null,
+            audioErrorCid: null,
+            restoreCid: null,
+            eventDagCid: null,
             sessionId: 'strudel-session-g044-polyrhythm-sketch',
             sampleName: 'warm-kick-trimmed.wav',
             pattern: 'stack(s(\"bd*4\"), note(\"c4 eb4 g4 bb4\").s(\"sawtooth\").slow(2))',
@@ -432,103 +434,70 @@ class GrandmaStrudelDAW {
     renderStrudelWorkflowPanel() {
         const workflow = this.strudelWorkflow;
         return `
-            <section class="strudel-vda-workflow"
+            <section class="strudel-vda-workflow sg-vda-panel"
                      data-svd-workflow="${workflow.workflowId}"
-                     aria-label="Strudel session sample pattern restore workflow"
-                     style="
-                        background: rgba(15, 23, 42, 0.08);
-                        border: 1px solid rgba(15, 23, 42, 0.16);
-                        border-radius: 8px;
-                        padding: 12px;
-                        display: grid;
-                        gap: 10px;
-                     ">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+                     aria-label="Strudel session sample pattern restore workflow">
+                <div class="sg-vda-head">
                     <div>
-                        <div style="font-size: 0.75rem; font-weight: 800; color: #2563eb;">${workflow.vdaId}</div>
-                        <h3 style="margin: 2px 0 0; font-size: 1rem;">Session Recovery Workflow</h3>
+                        <div class="sk-badge">${workflow.vdaId}</div>
+                        <h3 class="sg-vda-title">Session Recovery Workflow</h3>
                     </div>
-                    <span data-session-restore-state="${workflow.restored ? 'restored' : 'ready'}"
-                          style="font-size: 0.78rem; font-weight: 700; color: #166534;">${workflow.restored ? 'Session restored' : 'Restore ready'}</span>
+                    <span class="sk-badge" data-session-restore-state="${workflow.restored ? 'restored' : 'ready'}">${workflow.restored ? 'Session restored' : 'Restore ready'}</span>
                 </div>
 
-                <div class="strudel-workflow-actions"
-                     aria-label="Strudel VDA-G044 workflow actions"
-                     style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;">
-                    <button data-svd-workflow-action="load-session-sample-cids"
-                            aria-label="Load Strudel session and sample CIDs"
-                            style="border: 0; border-radius: 6px; padding: 7px; background: #2563eb; color: #fff; font-weight: 700; cursor: pointer;">Load CIDs</button>
-                    <button data-svd-workflow-action="inspect-pattern-context"
-                            aria-label="Inspect Strudel pattern context"
-                            style="border: 0; border-radius: 6px; padding: 7px; background: #0f766e; color: #fff; font-weight: 700; cursor: pointer;">Pattern</button>
-                    <button data-svd-workflow-action="request-optional-assistance"
-                            aria-label="Request optional Strudel assistance"
-                            style="border: 0; border-radius: 6px; padding: 7px; background: #7c3aed; color: #fff; font-weight: 700; cursor: pointer;">Assist</button>
-                    <button data-svd-workflow-action="simulate-compile-error"
-                            aria-label="Simulate Strudel compile error"
-                            style="border: 0; border-radius: 6px; padding: 7px; background: #b45309; color: #fff; font-weight: 700; cursor: pointer;">Compile</button>
-                    <button data-svd-workflow-action="simulate-audio-error"
-                            aria-label="Simulate Strudel audio backend error"
-                            style="border: 0; border-radius: 6px; padding: 7px; background: #0369a1; color: #fff; font-weight: 700; cursor: pointer;">Audio</button>
-                    <button data-svd-workflow-action="restore-session"
-                            aria-label="Restore Strudel session"
-                            style="border: 0; border-radius: 6px; padding: 7px; background: #4d7c0f; color: #fff; font-weight: 700; cursor: pointer;">Restore</button>
+                <div class="strudel-workflow-actions sg-vda-actions"
+                     aria-label="Strudel VDA-G044 workflow actions">
+                    <button class="sk-btn" data-svd-workflow-action="load-session-sample-cids"
+                            aria-label="Load Strudel session and sample CIDs">Load CIDs</button>
+                    <button class="sk-btn" data-svd-workflow-action="inspect-pattern-context"
+                            aria-label="Inspect Strudel pattern context">Pattern</button>
+                    <button class="sk-btn" data-svd-workflow-action="request-optional-assistance"
+                            aria-label="Request optional Strudel assistance">Assist</button>
+                    <button class="sk-btn" data-svd-workflow-action="simulate-compile-error"
+                            aria-label="Simulate Strudel compile error">Compile</button>
+                    <button class="sk-btn" data-svd-workflow-action="simulate-audio-error"
+                            aria-label="Simulate Strudel audio backend error">Audio</button>
+                    <button class="sk-btn" data-svd-workflow-action="restore-session"
+                            aria-label="Restore Strudel session">Restore</button>
                 </div>
 
-                <article data-svd-vda-marker="session-sample-cids"
-                         data-session-cid-state="loaded"
-                         data-sample-cid-state="loaded"
-                         data-session-cid="${workflow.sessionCid}"
-                         data-sample-cid="${workflow.sampleCid}"
-                         style="background: rgba(255,255,255,0.72); border-radius: 6px; padding: 8px;">
-                    <strong>Session/sample CIDs</strong>
-                    <p style="margin: 4px 0; font-size: 0.82rem;">Session ${workflow.sessionId} uses session CID ${workflow.sessionCid}, sample CID ${workflow.sampleCid}, and event DAG ${workflow.eventDagCid}.</p>
-                    <small>${workflow.receiptPrefix}:session-sample-cids</small>
+                <article class="sg-vda-card" data-svd-vda-marker="session-sample-cids"
+                         data-session-cid-state="${workflow.sessionCid ? 'persisted' : 'local-only'}"
+                         data-session-cid="${workflow.sessionCid || ''}">
+                    <strong>Session persistence</strong>
+                    <p class="sg-vda-desc">Session ${workflow.sessionId}: ${workflow.sessionCid ? `persisted to ipfs_kit_py — real CID ${workflow.sessionCid}` : 'local only so far — press "Load CIDs" to persist it and get a real CID'}.</p>
                 </article>
 
-                <article data-svd-vda-marker="pattern-context"
-                         data-pattern-context-state="available"
-                         data-pattern-cid="${workflow.patternCid}"
-                         style="background: rgba(255,255,255,0.72); border-radius: 6px; padding: 8px;">
+                <article class="sg-vda-card" data-svd-vda-marker="pattern-context"
+                         data-pattern-context-state="available">
                     <strong>Pattern context</strong>
-                    <p style="margin: 4px 0; font-size: 0.82rem; word-break: break-word;">Pattern CID ${workflow.patternCid}: ${workflow.pattern}</p>
-                    <p style="margin: 4px 0; font-size: 0.82rem;">${workflow.context}</p>
-                    <small>${workflow.receiptPrefix}:pattern-context</small>
+                    <p class="sg-vda-desc" style="word-break: break-word;">${workflow.pattern} <em>(local pattern data — no backend call)</em></p>
+                    <p class="sg-vda-desc">${workflow.context}</p>
                 </article>
 
-                <article data-svd-vda-marker="optional-assistance"
-                         data-assistance-state="optional"
-                         data-assistance-cid="${workflow.assistanceCid}"
-                         style="background: rgba(255,255,255,0.72); border-radius: 6px; padding: 8px;">
+                <article class="sg-vda-card" data-svd-vda-marker="optional-assistance"
+                         data-assistance-state="optional">
                     <strong>Optional assistance</strong>
-                    <p style="margin: 4px 0; font-size: 0.82rem;">${workflow.assistance} Assistance CID ${workflow.assistanceCid}; user can keep composing without it.</p>
-                    <small>${workflow.receiptPrefix}:optional-assistance</small>
+                    <p class="sg-vda-desc">${workflow.assistance} <em>(local suggestion — no backend call)</em>; user can keep composing without it.</p>
                 </article>
 
-                <article data-svd-vda-marker="compile-audio-errors"
+                <article class="sg-vda-card" data-svd-vda-marker="compile-audio-errors"
                          data-compile-error-state="recoverable"
-                         data-audio-error-state="fallback-active"
-                         data-compile-error-cid="${workflow.compileErrorCid}"
-                         data-audio-error-cid="${workflow.audioErrorCid}"
-                         style="background: rgba(255,255,255,0.72); border-radius: 6px; padding: 8px;">
+                         data-audio-error-state="fallback-active">
                     <strong>Compile/audio errors</strong>
-                    <p style="margin: 4px 0; font-size: 0.82rem;">${workflow.compileError} Compile error CID ${workflow.compileErrorCid}.</p>
-                    <p style="margin: 4px 0; font-size: 0.82rem;">${workflow.audioError} Audio error CID ${workflow.audioErrorCid}.</p>
-                    <small>${workflow.receiptPrefix}:compile-error ${workflow.receiptPrefix}:audio-error</small>
+                    <p class="sg-vda-desc">${workflow.compileError} <em>(local error-handling demo)</em></p>
+                    <p class="sg-vda-desc">${workflow.audioError} <em>(local error-handling demo)</em></p>
                 </article>
 
-                <article data-svd-vda-marker="session-restore"
+                <article class="sg-vda-card" data-svd-vda-marker="session-restore"
                          data-session-restore-proof="local-storage"
-                         data-restore-cid="${workflow.restoreCid}"
-                         style="background: rgba(255,255,255,0.72); border-radius: 6px; padding: 8px;">
+                         data-restore-cid="${workflow.restoreCid || ''}">
                     <strong>Session restore</strong>
-                    <p style="margin: 4px 0; font-size: 0.82rem;">Restored pattern, volume ${Math.round(this.state.volume * 100)}%, and selected samples from restore CID ${workflow.restoreCid}.</p>
-                    <small>${workflow.receiptPrefix}:session-restore</small>
+                    <p class="sg-vda-desc">Restored pattern, volume ${Math.round(this.state.volume * 100)}%, and selected samples${workflow.restoreCid ? ` — persisted to ipfs_kit_py, real CID ${workflow.restoreCid}` : ' (local restore — press "Restore" to persist it for a real CID)'}.</p>
                 </article>
 
-                <output id="strudel-workflow-status"
-                        data-workflow-status="ready"
-                        style="font-size: 0.82rem; color: #0f172a;">Workflow ready for ${workflow.sampleName}.</output>
+                <output id="strudel-workflow-status" class="sg-status-line"
+                        data-workflow-status="ready">Workflow ready for ${workflow.sampleName}.</output>
             </section>
         `;
     }
@@ -732,9 +701,31 @@ class GrandmaStrudelDAW {
     }
 
     /**
-     * 🧾 Handle deterministic VDA-G044 workflow actions.
+     * Persist the live session record to the kit artifact store and return
+     * its real, backend-verified CID. Confirmation-gated; failures surface
+     * verbatim. Shared helper: ./real-artifact.js (no mocks).
      */
-    handleStrudelWorkflowAction(action) {
+    async persistStrudelSessionRecord(record, kind) {
+        const { persistArtifactRecord, userConfirmsBackendWrite } =
+            await import('./real-artifact.js');
+        if (!userConfirmsBackendWrite(
+            `Persist this Strudel ${kind} to the ipfs_kit_py artifact store?`)) {
+            return null;
+        }
+        const { cid } = await persistArtifactRecord({
+            record,
+            profile: 'strudel-grandma-session',
+            kind,
+        });
+        return cid;
+    }
+
+    /**
+     * Handle VDA-G044 workflow actions. Persist actions write real records to
+     * the kit artifact store (real CIDs); demo actions are plainly labeled
+     * local. Nothing here fabricates CIDs or receipts.
+     */
+    async handleStrudelWorkflowAction(action) {
         const workflow = this.strudelWorkflow;
         const status = document.getElementById('strudel-workflow-status');
         const setStatus = (message, state) => {
@@ -749,17 +740,33 @@ class GrandmaStrudelDAW {
             this.highlightSelectedSong(this.state.currentSong.id);
             this.updateSongDisplay(this.state.currentSong);
             this.enablePlayButton();
-            setStatus(`Loaded session CID ${workflow.sessionCid} and sample CID ${workflow.sampleCid}.`, 'cids-loaded');
+            try {
+                const cid = await this.persistStrudelSessionRecord({
+                    sessionId: workflow.sessionId,
+                    song: this.state.currentSong ? { id: this.state.currentSong.id, name: this.state.currentSong.name } : null,
+                    pattern: workflow.pattern,
+                    context: workflow.context,
+                    savedAt: new Date().toISOString(),
+                }, 'session');
+                if (cid) {
+                    workflow.sessionCid = cid;
+                    setStatus(`Session persisted to ipfs_kit_py. Real session CID: ${cid}.`, 'cids-loaded');
+                } else {
+                    setStatus('Session not persisted (cancelled). Song loaded locally.', 'cids-local');
+                }
+            } catch (error) {
+                setStatus(`Session persist failed: ${error instanceof Error ? error.message : String(error)}`, 'cids-error');
+            }
         } else if (action === 'inspect-pattern-context') {
-            setStatus(`Pattern context loaded from ${workflow.patternCid}: ${workflow.context}.`, 'pattern-context');
+            setStatus(`Pattern context (local, not from a backend): ${workflow.context}.`, 'pattern-context');
         } else if (action === 'request-optional-assistance') {
-            setStatus(`${workflow.assistance} ${workflow.receiptPrefix}:optional-assistance:accepted`, 'assistance-optional');
+            setStatus(`Local suggestion (no backend call): ${workflow.assistance}`, 'assistance-optional');
         } else if (action === 'simulate-compile-error') {
             this.showFriendlyError(workflow.compileError);
-            setStatus(`${workflow.compileError} ${workflow.receiptPrefix}:compile-error:recoverable`, 'compile-error');
+            setStatus(`Local error-handling demo (no backend call): ${workflow.compileError}`, 'compile-error');
         } else if (action === 'simulate-audio-error') {
             this.showFriendlyError(workflow.audioError);
-            setStatus(`${workflow.audioError} ${workflow.receiptPrefix}:audio-error:fallback-active`, 'audio-error');
+            setStatus(`Local error-handling demo (no backend call): ${workflow.audioError}`, 'audio-error');
         } else if (action === 'restore-session') {
             this.strudelWorkflow.restored = true;
             this.strudelWorkflow.restoredAt = Date.now();
@@ -772,7 +779,22 @@ class GrandmaStrudelDAW {
                 restoreState.dataset.sessionRestoreState = 'restored';
                 restoreState.textContent = 'Session restored';
             }
-            setStatus(`Restored session from ${workflow.restoreCid}. ${workflow.receiptPrefix}:session-restore:restored`, 'session-restored');
+            try {
+                const cid = await this.persistStrudelSessionRecord({
+                    sessionId: workflow.sessionId,
+                    restoredAt: new Date(workflow.restoredAt).toISOString(),
+                    song: this.state.currentSong ? { id: this.state.currentSong.id, name: this.state.currentSong.name } : null,
+                    volume: this.state.volume,
+                }, 'session-restore');
+                if (cid) {
+                    workflow.restoreCid = cid;
+                    setStatus(`Session restored and persisted to ipfs_kit_py. Real restore CID: ${cid}.`, 'session-restored');
+                } else {
+                    setStatus('Session restored locally (persist cancelled).', 'session-restored-local');
+                }
+            } catch (error) {
+                setStatus(`Session restored locally; persist failed: ${error instanceof Error ? error.message : String(error)}`, 'session-restored-local');
+            }
             this.saveState();
         }
 

@@ -16,6 +16,18 @@ export class TerminalApp {
     this.aiAssist = null;
     this.autoComplete = [];
     
+    // Local virtual filesystem: this terminal is a simulated in-browser
+    // shell with no backend filesystem behind it. The virtual FS is real
+    // within the session (mkdir/touch/cat/ls stay consistent) and is
+    // plainly presented as local simulation, never as a backend host FS.
+    this.virtualFS = new Map([
+      ['config.json', { type: 'file', content: '{\n  "theme": "dark",\n  "language": "en",\n  "ai_provider": "openai"\n}', size: '1.2K', modified: '2025-06-27' }],
+      ['projects', { type: 'directory', content: null, size: '-', modified: '2025-06-26' }],
+      ['README.md', { type: 'file', content: '# SwissKnife Web Desktop\n\nA browser-based development environment.\n\n## Features\n- AI Chat\n- File Management\n- Terminal Access', size: '3.4K', modified: '2025-06-25' }],
+      ['scripts', { type: 'directory', content: null, size: '-', modified: '2025-06-24' }],
+      ['data.json', { type: 'file', content: '{\n  "version": "1.0.0",\n  "timestamp": "2025-06-27T10:30:00Z"\n}', size: '856B', modified: '2025-06-23' }]
+    ]);
+    
     // Built-in commands
     this.builtinCommands = new Map([
       ['help', { handler: this.showHelp.bind(this), description: 'Show available commands' }],
@@ -113,7 +125,7 @@ export class TerminalApp {
           </div>
         </div>
         <div class="terminal-status">
-          <span class="status-left">Ready</span>
+          <span class="status-left">Ready · local simulated shell (no backend filesystem)</span>
           <span class="status-right">Session: main | ${this.environment.USER}@${this.environment.TERM}</span>
         </div>
       </div>
@@ -188,11 +200,14 @@ export class TerminalApp {
     style.textContent = `
       .terminal-container {
         height: 100%;
+        border: 1px solid var(--sk-border, #263a34);
+        border-radius: 8px;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
         font-family: 'Courier New', monospace;
-        background: #1a1a1a;
-        color: #00ff00;
+        background: var(--sk-bg, #0e1412);
+        color: var(--sk-ok, #5ee3a1);
       }
       
       .terminal-header {
@@ -200,13 +215,13 @@ export class TerminalApp {
         justify-content: space-between;
         align-items: center;
         padding: 8px 12px;
-        background: #2d2d2d;
-        border-bottom: 1px solid #444;
+        background: var(--sk-bg2, #101b18);
+        border-bottom: 1px solid var(--sk-border, #263a34);
       }
       
       .terminal-title {
         font-size: 14px;
-        color: #fff;
+        color: var(--sk-text, #edf7f2);
       }
       
       .terminal-controls button {
@@ -220,7 +235,7 @@ export class TerminalApp {
       }
       
       .terminal-controls button:hover {
-        background: #444;
+        background: var(--sk-card, #17241f);
       }
       
       .terminal-body {
@@ -245,7 +260,7 @@ export class TerminalApp {
       }
       
       .terminal-prompt {
-        color: #00ff00;
+        color: var(--sk-ok, #5ee3a1);
         font-weight: bold;
         margin-right: 8px;
       }
@@ -254,7 +269,7 @@ export class TerminalApp {
         flex: 1;
         background: transparent;
         border: none;
-        color: #00ff00;
+        color: var(--sk-ok, #5ee3a1);
         font-family: inherit;
         font-size: 14px;
         outline: none;
@@ -265,33 +280,33 @@ export class TerminalApp {
       }
       
       .terminal-command {
-        color: #ffff00;
+        color: var(--sk-warn, #ffd166);
       }
       
       .terminal-error {
-        color: #ff4444;
+        color: var(--sk-err, #ff6b6b);
       }
       
       .terminal-success {
-        color: #44ff44;
+        color: var(--sk-ok, #5ee3a1);
       }
       
       .terminal-info {
-        color: #4488ff;
+        color: var(--sk-accent, #8bd8bd);
       }
       
       .terminal-welcome {
-        color: #ff8844;
+        color: var(--sk-warn, #ffd166);
         font-weight: bold;
       }
       
       .terminal-category {
-        color: #ff44ff;
+        color: var(--sk-accent, #8bd8bd);
         font-weight: bold;
       }
       
       .terminal-help {
-        color: #44ffff;
+        color: var(--sk-accent, #8bd8bd);
         font-weight: bold;
       }
     `;
@@ -467,17 +482,18 @@ export class TerminalApp {
     const flags = args.filter(a => a.startsWith('-'));
     const path = args.find(a => !a.startsWith('-')) || this.currentDirectory;
     
-    // Simulate file listing
-    const files = [
-      { name: 'config.json', type: 'file', size: '1.2K', modified: '2025-06-27' },
-      { name: 'projects', type: 'directory', size: '-', modified: '2025-06-26' },
-      { name: 'README.md', type: 'file', size: '3.4K', modified: '2025-06-25' },
-      { name: 'scripts', type: 'directory', size: '-', modified: '2025-06-24' },
-      { name: 'data.json', type: 'file', size: '856B', modified: '2025-06-23' }
-    ];
+    // Local virtual filesystem (see constructor): ls reflects the real
+    // in-session virtual FS; the shell makes no claim to a backend host FS.
+    const files = Array.from(this.virtualFS.entries()).map(([name, entry]) => ({
+      name,
+      type: entry.type,
+      size: entry.size,
+      modified: entry.modified
+    }));
     
+    this.addOutput(`(local virtual directory: ${path})`, 'info');
     if (flags.includes('-l')) {
-      this.addOutput('total 5');
+      this.addOutput(`total ${files.length}`);
       files.forEach(file => {
         const perms = file.type === 'directory' ? 'drwxr-xr-x' : '-rw-r--r--';
         const icon = file.type === 'directory' ? '📁' : '📄';
@@ -522,9 +538,11 @@ export class TerminalApp {
       this.addOutput('mkdir: missing operand', 'error');
       return;
     }
-    
-    // Simulate directory creation
-    this.addOutput(`Created directory: ${name}`);
+
+    // Real local virtual-FS mutation (session-scoped, honestly local).
+    const today = new Date().toISOString().slice(0, 10);
+    this.virtualFS.set(name, { type: 'directory', content: null, size: '-', modified: today });
+    this.addOutput(`Created directory: ${name} (local virtual FS)`);
   }
 
   async createFile(name) {
@@ -532,9 +550,13 @@ export class TerminalApp {
       this.addOutput('touch: missing file operand', 'error');
       return;
     }
-    
-    // Simulate file creation
-    this.addOutput(`Created file: ${name}`);
+
+    // Real local virtual-FS mutation (session-scoped, honestly local).
+    const today = new Date().toISOString().slice(0, 10);
+    if (!this.virtualFS.has(name)) {
+      this.virtualFS.set(name, { type: 'file', content: '', size: '0B', modified: today });
+    }
+    this.addOutput(`Created file: ${name} (local virtual FS)`);
   }
 
   async displayFile(name) {
@@ -542,30 +564,31 @@ export class TerminalApp {
       this.addOutput('cat: missing file operand', 'error');
       return;
     }
-    
-    // Simulate file content display
-    const sampleContent = {
-      'config.json': '{\n  "theme": "dark",\n  "language": "en",\n  "ai_provider": "openai"\n}',
-      'README.md': '# SwissKnife Web Desktop\n\nA browser-based development environment.\n\n## Features\n- AI Chat\n- File Management\n- Terminal Access',
-      'data.json': '{\n  "version": "1.0.0",\n  "timestamp": "2025-06-27T10:30:00Z"\n}'
-    };
-    
-    const content = sampleContent[name] || `Content of ${name}:\nThis is a sample file in the SwissKnife Web Desktop.`;
-    this.addOutput(content);
+
+    // Reads from the real in-session virtual FS; no backend claim.
+    const entry = this.virtualFS.get(name);
+    if (!entry) {
+      this.addOutput(`cat: ${name}: No such file in local virtual FS`, 'error');
+      return;
+    }
+    if (entry.type === 'directory') {
+      this.addOutput(`cat: ${name}: Is a directory`, 'error');
+      return;
+    }
+    this.addOutput(entry.content || '(empty file — local virtual FS)');
   }
 
   showProcesses() {
-    this.addOutput('PID   COMMAND');
-    this.addOutput('1     SwissKnife Desktop Manager');
-    this.addOutput('2     Window Manager');
-    this.addOutput('3     AI Engine');
-    this.addOutput('4     Storage Engine');
-    this.addOutput('5     Terminal App');
+    // Honestly local: the browser exposes no host process table, so ps lists
+    // the real desktop session's open windows — nothing fabricated.
+    this.addOutput('PID   COMMAND  (local desktop session — no host process access from browser)');
     if (window.desktop && window.desktop.windows) {
       Object.keys(window.desktop.windows).forEach((id, index) => {
         const window = window.desktop.windows[id];
         this.addOutput(`${6 + index}     ${window.title || 'Unknown App'}`);
       });
+    } else {
+      this.addOutput('(no open windows)');
     }
   }
 
@@ -885,6 +908,11 @@ Welcome to SwissKnife Terminal
 =============================
 
 A powerful terminal with AI assistance, P2P connectivity, and SwissKnife integration.
+
+Note: this is a LOCAL simulated shell — its filesystem is an in-browser
+virtual workspace, not a backend host filesystem. Commands that would
+need a backend (ssh, ipfs, install, backup…) report their real status
+instead of pretending.
 
 Available commands:
 • help - Show all available commands

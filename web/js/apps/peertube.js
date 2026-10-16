@@ -2,7 +2,47 @@
  * PeerTube - IPFS/libp2p Video Player App for SwissKnife Web Desktop
  * Decentralized video streaming platform with synchronized watching and chat
  * Similar to YouTube but powered by IPFS/libp2p with features like cytu.be/synctube
+ *
+ * Backend contract: video bytes and video metadata persist through the genuine
+ * MCP++ desktop client to the ipfs_kit_py artifact store
+ * (POST /mcp/artifacts/put) and are read back via GET /mcp/artifacts/<cid>.
+ * Every backend-mutating POST sits behind an explicit user confirmation step;
+ * backend failures surface verbatim and never fall back to fixtures or
+ * simulated success. Playback is honestly local; the catalog is a local index
+ * of real artifacts (no canned videos, no fabricated view counts).
  */
+
+import { contentCidForBytes, stableStringifyValue, base64ForBytes } from '../core/mcp-plus-plus-desktop-client.js';
+
+async function backendClient() {
+  const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
+  return clientModule.getMCPPlusPlusDesktopClient();
+}
+
+function bytesFromBase64(b64) {
+  const bin = atob(String(b64 || '').replace(/\s+/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+function guessVideoMime(artifact, bytes, fileName = '') {
+  const name = String(artifact?.name || artifact?.filename || fileName).toLowerCase();
+  if (bytes && bytes.length >= 12) {
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return 'video/webm';
+    if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) return 'video/mp4';
+  }
+  if (/\.webm$/.test(name)) return 'video/webm';
+  if (/\.ogv$/.test(name)) return 'video/ogg';
+  if (/\.mov$/.test(name)) return 'video/quicktime';
+  return 'video/mp4';
+}
+
+function escapeHtmlPt(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 
 export class PeerTubeApp {
   constructor(desktop) {
@@ -26,7 +66,11 @@ export class PeerTubeApp {
     
     // IPFS integration
     this.ipfsNode = null;
+    // The library is an honest local index of REAL artifacts: entries only
+    // exist after a real publish or a real CID open in this app. No canned
+    // videos, no fabricated view counts.
     this.videoLibrary = new Map();
+    this.loadLocalLibraryIndex();
     this.vdaG036 = this.createVdaG036WorkflowState();
     
     // Categories for content
@@ -42,84 +86,45 @@ export class PeerTubeApp {
     ];
     
     // Sample video library
-    this.initializeVideoLibrary();
   }
   
-  initializeVideoLibrary() {
-    // Sample videos (in real implementation, these would be IPFS hashes)
-    this.videoLibrary.set('demo1', {
-      id: 'demo1',
-      title: 'Welcome to PeerTube',
-      description: 'Introduction to decentralized video streaming',
-      thumbnail: '/assets/thumbnails/demo1.jpg',
-      duration: '5:30',
-      views: 1234,
-      likes: 89,
-      category: 'tech',
-      ipfsHash: 'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG',
-      uploader: 'SwissKnife Team',
-      uploadDate: new Date('2025-09-01'),
-      quality: ['480p', '720p', '1080p']
-    });
-    
-    this.videoLibrary.set('demo2', {
-      id: 'demo2',
-      title: 'Building Decentralized Applications',
-      description: 'Learn how to create apps using IPFS and libp2p',
-      thumbnail: '/assets/thumbnails/demo2.jpg',
-      duration: '12:45',
-      views: 5678,
-      likes: 234,
-      category: 'education',
-      ipfsHash: 'QmT4AeWE9Q8ErgxEYGG19hYzqHCz7oXyp5YcGXKRfmfVt2',
-      uploader: 'Tech Academy',
-      uploadDate: new Date('2025-08-15'),
-      quality: ['720p', '1080p']
-    });
-    
-    this.videoLibrary.set('demo3', {
-      id: 'demo3',
-      title: 'Future of P2P Networks',
-      description: 'Exploring the next generation of peer-to-peer technologies',
-      thumbnail: '/assets/thumbnails/demo3.jpg',
-      duration: '8:20',
-      views: 3456,
-      likes: 156,
-      category: 'tech',
-      ipfsHash: 'QmXn4jP8YwJ2BpVy8K9c3DgLm2Q5w7h8x9FaA1bCd3fgH4',
-      uploader: 'Future Network',
-      uploadDate: new Date('2025-09-10'),
-      quality: ['480p', '720p', '1080p', '4K']
-    });
+  /**
+   * 🗂️ Load the honest local index of real video artifacts (pointer list only;
+   * bytes are fetched live from ipfs_kit_py when a video is played).
+   */
+  loadLocalLibraryIndex() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('peertube-library') || '[]');
+      if (!Array.isArray(raw)) return;
+      for (const entry of raw) {
+        if (entry && entry.cid && entry.id) this.videoLibrary.set(entry.id, entry);
+      }
+    } catch (error) {
+      console.warn('Could not load PeerTube library index:', error);
+    }
+  }
+
+  saveLocalLibraryIndex() {
+    try {
+      localStorage.setItem('peertube-library', JSON.stringify(Array.from(this.videoLibrary.values()).slice(0, 200)));
+    } catch (error) {
+      console.warn('Could not save PeerTube library index:', error);
+    }
   }
 
   createVdaG036WorkflowState() {
     return {
       workflowId: 'peertube.cid-playback-quality-recovery',
       vdaId: 'VDA-G036',
-      videoCid: 'bafypeertubeg036videocidplayback',
-      retrievalCid: 'bafypeertubeg036retrievalmanifest',
-      captionCid: 'bafypeertubeg036captioncatalog',
-      diagnosticsCid: 'bafypeertubeg036transcodediagnostics',
-      bufferingCid: 'bafypeertubeg036bufferrecovery',
-      missingCid: 'bafypeertubeg036missingcontentrecovery',
-      fallbackCid: 'bafypeertubeg036mediafallback',
-      playbackReceipt: 'receipt:peertube:g036:cid-playback:retrieved',
-      captionReceipt: 'receipt:peertube:g036:captions:enabled',
-      diagnosticsReceipt: 'receipt:peertube:g036:diagnostics:quality-profile',
-      bufferingReceipt: 'receipt:peertube:g036:buffering:recovered',
-      missingReceipt: 'receipt:peertube:g036:missing-content:switched-source',
-      fallbackReceipt: 'receipt:peertube:g036:media-fallback:audio-summary',
-      playbackState: 'ready',
-      captionState: 'available',
-      diagnosticsState: 'queued',
-      bufferState: 'monitoring',
-      missingState: 'standby',
-      fallbackState: 'armed',
-      log: [
-        'receipt:peertube:g036:cid-playback:retrieved mapped bafypeertubeg036videocidplayback through IPFS retrieval manifest bafypeertubeg036retrievalmanifest',
-        'receipt:peertube:g036:captions:enabled caption catalog bafypeertubeg036captioncatalog includes English VTT and transcript summary'
-      ]
+      // Real values, populated only by live backend calls or local media state.
+      playbackCid: '',
+      playbackInfo: 'No video loaded.',
+      captionState: 'available-local',
+      diagnosticsInfo: 'No diagnostics run yet.',
+      bufferInfo: 'No playback session yet.',
+      missingInfo: 'No retrieval failures recorded.',
+      fallbackState: 'armed-local',
+      log: []
     };
   }
   
@@ -266,8 +271,8 @@ export class PeerTubeApp {
             <!-- Video Player (hidden initially) -->
             <div id="video-player" class="video-player hidden">
               <div class="player-container">
-                <video id="video-element" controls data-cid="${this.vdaG036.videoCid}">
-                  <track id="caption-track" kind="captions" label="English captions" srclang="en" default src="${this.getCaptionTrackDataUri()}">
+                <video id="video-element" controls data-cid="">
+                  <track id="caption-track" kind="captions" label="English captions" srclang="en" src="${this.getCaptionTrackDataUri()}">
                 </video>
                 <div class="player-overlay">
                   <div class="sync-status">
@@ -281,12 +286,12 @@ export class PeerTubeApp {
               <div class="video-info">
                 <h2 id="video-title">Video Title</h2>
                 <div class="video-meta">
-                  <span id="video-views">0 views</span>
+                  <span id="video-views">No video loaded</span>
                   <div class="video-actions">
-                    <button id="like-btn" class="action-btn">👍 <span id="like-count">0</span></button>
-                    <button id="dislike-btn" class="action-btn">👎</button>
-                    <button id="share-btn" class="action-btn">📤 Share</button>
-                    <button id="download-btn" class="action-btn">📥 Download</button>
+                    <button id="like-btn" class="action-btn" title="Likes are stored locally in this browser">👍 <span id="like-count"></span></button>
+                    <button id="dislike-btn" class="action-btn" title="Dislikes are stored locally in this browser">👎</button>
+                    <button id="share-btn" class="action-btn" title="Copy the video's artifact CID">📤 Share</button>
+                    <button id="download-btn" class="action-btn" title="Download the video's real bytes from ipfs_kit_py">📥 Download</button>
                   </div>
                 </div>
                 <div class="video-description">
@@ -298,11 +303,16 @@ export class PeerTubeApp {
             <!-- Video Grid -->
             <div id="video-grid" class="video-grid">
               <div class="section-header">
-                <h2 id="section-title">Featured Videos</h2>
+                <h2 id="section-title">Your Videos</h2>
                 <div class="view-controls">
                   <button id="grid-view" class="view-btn active">⊞</button>
                   <button id="list-view" class="view-btn">☰</button>
                 </div>
+              </div>
+              <div class="cid-open-bar" aria-label="Open video by CID">
+                <input type="text" id="cid-open-input" placeholder="Open a video by artifact CID (bafy…)" spellcheck="false" aria-label="Video artifact CID">
+                <button id="cid-open-btn" class="header-btn">📥 Open by CID</button>
+                <span class="cid-open-note" id="cid-open-status">Fetches real bytes from ipfs_kit_py. Playback is local.</span>
               </div>
               <div class="videos-container" id="videos-container">
                 <!-- Videos will be populated by JavaScript -->
@@ -332,7 +342,7 @@ export class PeerTubeApp {
         <div id="upload-modal" class="modal hidden">
           <div class="modal-content">
             <div class="modal-header">
-              <h3>Upload Video to IPFS</h3>
+              <h3>Publish Video to ipfs_kit_py</h3>
               <button id="close-upload" class="modal-close">×</button>
             </div>
             <div class="upload-form">
@@ -352,7 +362,7 @@ export class PeerTubeApp {
                 </select>
                 <div class="upload-actions">
                   <button id="cancel-upload" class="btn-secondary">Cancel</button>
-                  <button id="start-upload" class="btn-primary">Upload to IPFS</button>
+                  <button id="start-upload" class="btn-primary">Publish to backend</button>
                 </div>
               </div>
             </div>
@@ -382,49 +392,50 @@ export class PeerTubeApp {
         <div class="workflow-header">
           <div>
             <h3>VDA-G036 governed playback</h3>
-            <p>CID playback, captions, diagnostics, buffering recovery, missing-content recovery, and media fallback. Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
+            <p>CID playback, captions, diagnostics, buffering state, missing-content recovery, and media fallback. Every CID and timing below comes from a live ipfs_kit_py call or the real video element — nothing is fabricated. Backend writes ask for confirmation first; playback is local.</p>
           </div>
           <span class="workflow-badge">${state.vdaId}</span>
         </div>
 
         <div class="workflow-grid">
-          <article class="workflow-card" data-svd-vda-marker="cid-playback" data-playback-state="${state.playbackState}">
-            <strong>CID playback</strong>
-            <span>Retrieved ${state.videoCid} through retrieval manifest ${state.retrievalCid}; playback state ${state.playbackState}; ${state.playbackReceipt}</span>
+          <article class="workflow-card" data-svd-vda-marker="cid-playback" data-playback-state="${escapeHtmlPt(state.playbackCid ? 'loaded' : 'idle')}">
+            <strong>CID playback (backend bytes, local player)</strong>
+            <span>${escapeHtmlPt(state.playbackCid ? `CID ${state.playbackCid}` : state.playbackInfo)}</span>
+            <span>${escapeHtmlPt(state.playbackCid ? state.playbackInfo : '')}</span>
           </article>
-          <article class="workflow-card" data-svd-vda-marker="captions" data-caption-state="${state.captionState}">
-            <strong>Captions</strong>
-            <span>Caption catalog ${state.captionCid} provides English VTT, transcript summary, and keyboard-visible caption toggle; ${state.captionReceipt}</span>
+          <article class="workflow-card" data-svd-vda-marker="captions" data-caption-state="${escapeHtmlPt(state.captionState)}">
+            <strong>Captions (local)</strong>
+            <span>Built-in English VTT caption track generated locally in this app; toggling it drives the real video element's text track. No backend involved.</span>
           </article>
-          <article class="workflow-card" data-svd-vda-marker="diagnostics" data-diagnostic-state="${state.diagnosticsState}">
-            <strong>Diagnostics</strong>
-            <span>Transcode and quality diagnostics ${state.diagnosticsCid}: source 1080p, selected 720p, dropped frames 0, gateway RTT 34ms; ${state.diagnosticsReceipt}</span>
+          <article class="workflow-card" data-svd-vda-marker="diagnostics" data-diagnostic-state="${escapeHtmlPt(state.diagnosticsInfo === 'No diagnostics run yet.' ? 'none' : 'measured')}">
+            <strong>Diagnostics (measured)</strong>
+            <span>${escapeHtmlPt(state.diagnosticsInfo)}</span>
           </article>
-          <article class="workflow-card" data-svd-vda-marker="buffering-recovery" data-buffer-state="${state.bufferState}">
-            <strong>Buffering recovery</strong>
-            <span>Buffering recovery ${state.bufferingCid}: switched from 1080p to 720p and resumed after 2.1s; ${state.bufferingReceipt}</span>
+          <article class="workflow-card" data-svd-vda-marker="buffering-recovery" data-buffer-state="${escapeHtmlPt(state.bufferInfo === 'No playback session yet.' ? 'none' : 'reported')}">
+            <strong>Buffering / media state (local)</strong>
+            <span>${escapeHtmlPt(state.bufferInfo)}</span>
           </article>
-          <article class="workflow-card" data-svd-vda-marker="missing-content-recovery" data-missing-content-state="${state.missingState}">
-            <strong>Missing content recovery</strong>
-            <span>Missing content recovery ${state.missingCid}: unavailable segment 004 redirected to mirrored CID provider; ${state.missingReceipt}</span>
+          <article class="workflow-card" data-svd-vda-marker="missing-content-recovery" data-missing-content-state="${escapeHtmlPt(state.missingInfo === 'No retrieval failures recorded.' ? 'none' : 'failed')}">
+            <strong>Missing content recovery (backend)</strong>
+            <span>${escapeHtmlPt(state.missingInfo)}</span>
           </article>
-          <article class="workflow-card" data-svd-vda-marker="media-fallback" data-media-fallback="${state.fallbackState}">
-            <strong>Media fallback</strong>
-            <span>Media fallback ${state.fallbackCid}: fallback target audio-summary with still frame and transcript when video codec or gateway retrieval fails; ${state.fallbackReceipt}</span>
+          <article class="workflow-card" data-svd-vda-marker="media-fallback" data-media-fallback="${escapeHtmlPt(state.fallbackState)}">
+            <strong>Media fallback (local)</strong>
+            <span>When real playback fails, the player shows a local still frame with the transcript summary instead of a broken video. Local only — no backend involved.</span>
           </article>
         </div>
 
         <div class="workflow-actions" aria-label="PeerTube VDA-G036 workflow actions">
           <button type="button" data-svd-workflow-action="retrieve-cid-playback" data-action="retrieve-cid-playback" aria-label="Retrieve CID playback">Retrieve CID playback</button>
-          <button type="button" data-svd-workflow-action="toggle-captions" data-action="toggle-captions" aria-label="Enable captions">Captions</button>
+          <button type="button" data-svd-workflow-action="toggle-captions" data-action="toggle-captions" aria-label="Toggle captions">Captions</button>
           <button type="button" data-svd-workflow-action="run-quality-diagnostics" data-action="run-quality-diagnostics" aria-label="Run quality diagnostics">Diagnostics</button>
-          <button type="button" data-svd-workflow-action="recover-buffering" data-action="recover-buffering" aria-label="Recover buffering playback">Buffer recovery</button>
-          <button type="button" data-svd-workflow-action="recover-missing-content" data-action="recover-missing-content" aria-label="Recover missing content">Missing content</button>
+          <button type="button" data-svd-workflow-action="recover-buffering" data-action="recover-buffering" aria-label="Show media state">Media state</button>
+          <button type="button" data-svd-workflow-action="recover-missing-content" data-action="recover-missing-content" aria-label="Retry last failed retrieval">Retry missing</button>
           <button type="button" data-svd-workflow-action="activate-media-fallback" data-action="activate-media-fallback" aria-label="Activate media fallback">Media fallback</button>
         </div>
 
         <ol id="peertube-workflow-log" class="workflow-log" data-svd-vda-marker="workflow-receipts">
-          ${state.log.map(entry => `<li>${entry}</li>`).join('\n          ')}
+          ${state.log.length > 0 ? state.log.map(entry => `<li>${escapeHtmlPt(entry)}</li>`).join('\n          ') : '<li>No backend operations yet.</li>'}
         </ol>
       </section>
     `;
@@ -881,6 +892,110 @@ export class PeerTubeApp {
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 1.5rem;
       }
+
+      .cid-open-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+      }
+
+      .cid-open-bar input {
+        flex: 1;
+        min-width: 220px;
+        padding: 0.6rem 0.75rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 6px;
+        outline: none;
+        font-size: 0.9rem;
+      }
+
+      .cid-open-bar input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .cid-open-note {
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .video-real-meta {
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 0.78rem;
+        margin-top: 0.35rem;
+        overflow-wrap: anywhere;
+      }
+
+      .empty-library {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: rgba(255, 255, 255, 0.65);
+        grid-column: 1 / -1;
+      }
+
+      .empty-library .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+      }
+
+      .pt-governed-confirm-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.78);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 20000;
+      }
+
+      .pt-governed-confirm-dialog {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+        border: 1px solid rgba(147, 197, 253, 0.5);
+        border-radius: 12px;
+        color: #fff;
+        max-width: 440px;
+        width: calc(100% - 48px);
+        max-height: 80vh;
+        overflow-y: auto;
+        padding: 1.25rem;
+      }
+
+      .pt-governed-confirm-dialog h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.05rem;
+      }
+
+      .pt-governed-confirm-dialog p {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.8);
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+
+      .pt-governed-target {
+        color: #bfdbfe !important;
+        font-size: 0.78rem !important;
+      }
+
+      .pt-governed-check {
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-start;
+        font-size: 0.85rem;
+        margin: 0.75rem 0;
+        cursor: pointer;
+      }
+
+      .pt-governed-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        margin-top: 1rem;
+      }
       
       .video-card {
         background: rgba(255, 255, 255, 0.1);
@@ -993,6 +1108,16 @@ export class PeerTubeApp {
         font-weight: 600;
         color: #60a5fa;
         margin-bottom: 0.25rem;
+      }
+
+      .chat-transport {
+        margin-top: 0.25rem;
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.55);
+      }
+
+      .chat-transport.chat-failed {
+        color: #fca5a5;
       }
       
       .chat-input {
@@ -1262,19 +1387,42 @@ export class PeerTubeApp {
     uploadBtn?.addEventListener('click', () => {
       uploadModal?.classList.remove('hidden');
     });
-    
+
     closeUpload?.addEventListener('click', () => {
       uploadModal?.classList.add('hidden');
     });
-    
+
+    container.querySelector('#cancel-upload')?.addEventListener('click', () => {
+      uploadModal?.classList.add('hidden');
+    });
+
+    container.querySelector('#start-upload')?.addEventListener('click', () => {
+      this.publishVideoFile();
+    });
+
     fileDropZone?.addEventListener('click', () => {
       fileInput?.click();
     });
-    
+
+    // Open by CID
+    const cidOpenInput = container.querySelector('#cid-open-input');
+    const cidOpenBtn = container.querySelector('#cid-open-btn');
+    const openByCid = () => this.openVideoByCid(cidOpenInput?.value || '');
+    cidOpenBtn?.addEventListener('click', openByCid);
+    cidOpenInput?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') openByCid();
+    });
+
+    // Video actions (like/dislike are honestly local; share/download are real)
+    container.querySelector('#like-btn')?.addEventListener('click', () => this.toggleLocalLike());
+    container.querySelector('#dislike-btn')?.addEventListener('click', () => this.toggleLocalDislike());
+    container.querySelector('#share-btn')?.addEventListener('click', () => this.shareVideo());
+    container.querySelector('#download-btn')?.addEventListener('click', () => this.downloadVideo());
+
     // Chat
     const chatInput = container.querySelector('#chat-input');
     const sendChatBtn = container.querySelector('#send-chat');
-    
+
     const sendMessage = () => {
       const message = chatInput?.value.trim();
       if (message) {
@@ -1307,30 +1455,12 @@ export class PeerTubeApp {
 
   setupVdaG036Workflow(container) {
     const actions = {
-      'retrieve-cid-playback': () => this.updateVdaG036State({
-        playbackState: 'playing',
-        log: `${this.vdaG036.playbackReceipt} playback state playing for ${this.vdaG036.videoCid} via ${this.vdaG036.retrievalCid}`
-      }),
-      'toggle-captions': () => this.updateVdaG036State({
-        captionState: 'enabled',
-        log: `${this.vdaG036.captionReceipt} captions enabled from ${this.vdaG036.captionCid}`
-      }),
-      'run-quality-diagnostics': () => this.updateVdaG036State({
-        diagnosticsState: 'transcode-ready',
-        log: `${this.vdaG036.diagnosticsReceipt} transcode diagnostics ready: selected 720p, fallback 480p, gateway RTT 34ms, ${this.vdaG036.diagnosticsCid}`
-      }),
-      'recover-buffering': () => this.updateVdaG036State({
-        bufferState: 'recovered',
-        log: `${this.vdaG036.bufferingReceipt} buffering recovered by quality downgrade using ${this.vdaG036.bufferingCid}`
-      }),
-      'recover-missing-content': () => this.updateVdaG036State({
-        missingState: 'recovered',
-        log: `${this.vdaG036.missingReceipt} missing content recovered from mirrored provider using ${this.vdaG036.missingCid}`
-      }),
-      'activate-media-fallback': () => this.updateVdaG036State({
-        fallbackState: 'audio-summary',
-        log: `${this.vdaG036.fallbackReceipt} media fallback active: audio-summary with captions and still frame from ${this.vdaG036.fallbackCid}`
-      })
+      'retrieve-cid-playback': () => this.focusCidOpen(),
+      'toggle-captions': () => this.toggleRealCaptions(),
+      'run-quality-diagnostics': () => this.runRealDiagnostics(),
+      'recover-buffering': () => this.reportRealMediaState(),
+      'recover-missing-content': () => this.retryMissingContent(),
+      'activate-media-fallback': () => this.activateRealMediaFallback()
     };
 
     Object.entries(actions).forEach(([action, handler]) => {
@@ -1338,65 +1468,192 @@ export class PeerTubeApp {
     });
   }
 
-  updateVdaG036State(update) {
-    Object.assign(this.vdaG036, update);
+  /**
+   * ♻️ Re-render the workflow section in place so cards always show real state.
+   */
+  refreshWorkflowSection() {
     const workflow = document.querySelector('[data-svd-workflow="peertube.cid-playback-quality-recovery"]');
     if (!workflow) return;
+    workflow.outerHTML = this.getVdaG036WorkflowHTML();
+    this.setupVdaG036Workflow(document);
+  }
 
-    const playback = workflow.querySelector('[data-svd-vda-marker="cid-playback"]');
-    const captions = workflow.querySelector('[data-svd-vda-marker="captions"]');
-    const diagnostics = workflow.querySelector('[data-svd-vda-marker="diagnostics"]');
-    const buffering = workflow.querySelector('[data-svd-vda-marker="buffering-recovery"]');
-    const missing = workflow.querySelector('[data-svd-vda-marker="missing-content-recovery"]');
-    const fallback = workflow.querySelector('[data-svd-vda-marker="media-fallback"]');
-    if (playback) playback.dataset.playbackState = this.vdaG036.playbackState;
-    if (captions) captions.dataset.captionState = this.vdaG036.captionState;
-    if (diagnostics) diagnostics.dataset.diagnosticState = this.vdaG036.diagnosticsState;
-    if (buffering) buffering.dataset.bufferState = this.vdaG036.bufferState;
-    if (missing) missing.dataset.missingContentState = this.vdaG036.missingState;
-    if (fallback) fallback.dataset.mediaFallback = this.vdaG036.fallbackState;
-
-    const log = workflow.querySelector('#peertube-workflow-log');
-    if (log && update.log) {
+  appendWorkflowLog(entry) {
+    this.vdaG036.log.push(`${new Date().toISOString()} — ${entry}`);
+    const log = document.querySelector('#peertube-workflow-log');
+    if (log) {
+      const placeholder = log.querySelector('li:only-child');
+      if (placeholder && /No backend operations yet/.test(placeholder.textContent || '')) placeholder.remove();
       const item = document.createElement('li');
-      item.textContent = update.log;
-      log.appendChild(document.createTextNode('\n'));
+      item.textContent = `${new Date().toISOString()} — ${entry}`;
       log.appendChild(item);
     }
+  }
 
-    const video = document.querySelector('#video-element');
-    if (video) {
-      video.dataset.cid = this.vdaG036.videoCid;
-      video.dataset.playbackState = this.vdaG036.playbackState;
-      video.dataset.captionState = this.vdaG036.captionState;
-      video.dataset.fallbackState = this.vdaG036.fallbackState;
+  focusCidOpen() {
+    const input = document.querySelector('#cid-open-input');
+    if (input) {
+      input.scrollIntoView({ block: 'nearest' });
+      input.focus();
     }
   }
+
+  /**
+   * 🔤 Toggle the real caption text track on the real video element.
+   */
+  toggleRealCaptions() {
+    const video = document.querySelector('#video-element');
+    if (!video) return;
+    const track = video.textTracks && video.textTracks[0];
+    if (!track) {
+      this.appendWorkflowLog('caption toggle: no text track on the video element');
+      this.refreshWorkflowSection();
+      return;
+    }
+    track.mode = track.mode === 'showing' ? 'disabled' : 'showing';
+    this.vdaG036.captionState = track.mode === 'showing' ? 'showing-local' : 'hidden-local';
+    this.appendWorkflowLog(`captions ${track.mode === 'showing' ? 'shown' : 'hidden'} on the real video element (local VTT track)`);
+    this.refreshWorkflowSection();
+  }
+
+  /**
+   * 📊 Diagnostics: re-fetch the current video's artifact and report the
+   * MEASURED round-trip plus real video-element metadata. No fabricated RTTs.
+   */
+  async runRealDiagnostics() {
+    const cid = this.vdaG036.playbackCid;
+    const video = document.querySelector('#video-element');
+    if (!cid) {
+      this.vdaG036.diagnosticsInfo = 'No video loaded — open a video by CID or publish one first, then diagnostics will measure a real re-read.';
+      this.refreshWorkflowSection();
+      return;
+    }
+    this.vdaG036.diagnosticsInfo = `Re-reading ${cid} from ipfs_kit_py…`;
+    this.refreshWorkflowSection();
+    const started = performance.now();
+    try {
+      const client = await backendClient();
+      const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(cid));
+      const ms = Math.round(performance.now() - started);
+      if (!artifact || artifact.found !== true) {
+        throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
+      }
+      const payloadChars = (artifact.bytes_base64 || '').length;
+      const meta = video
+        ? `video ${video.videoWidth || '?'}x${video.videoHeight || '?'}px, duration ${Number.isFinite(video.duration) ? video.duration.toFixed(1) + 's' : 'n/a'}, readyState ${video.readyState}, networkState ${video.networkState}`
+        : 'no video element';
+      this.vdaG036.diagnosticsInfo =
+        `Measured just now: backend re-read of ${cid} took ${ms} ms, payload ~${payloadChars.toLocaleString()} base64 chars, verified=${artifact.verified === true}; local element: ${meta}.`;
+      this.appendWorkflowLog(`diagnostics re-read ${cid}: ${ms} ms, verified=${artifact.verified === true}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.vdaG036.diagnosticsInfo = `Diagnostics failed: ${message}`;
+      this.appendWorkflowLog(`diagnostics failed for ${cid}: ${message}`);
+    }
+    this.refreshWorkflowSection();
+  }
+
+  /**
+   * 📡 Report the real media element state (networkState/readyState/error).
+   */
+  reportRealMediaState() {
+    const video = document.querySelector('#video-element');
+    if (!video) {
+      this.vdaG036.bufferInfo = 'No video element yet.';
+    } else {
+      const networkStates = ['empty', 'idle', 'loading', 'no-source'];
+      const readyStates = ['nothing', 'metadata', 'current-data', 'future-data', 'enough-data'];
+      const err = video.error ? `error code ${video.error.code} (${video.error.message || 'no message'})` : 'no error';
+      this.vdaG036.bufferInfo =
+        `Real element state just now: networkState=${networkStates[video.networkState] || video.networkState} (${video.networkState}), ` +
+        `readyState=${readyStates[video.readyState] || video.readyState} (${video.readyState}), buffered ranges=${video.buffered ? video.buffered.length : 0}, ${err}. Local only.`;
+    }
+    this.appendWorkflowLog('media state reported from the real video element');
+    this.refreshWorkflowSection();
+  }
+
+  /**
+   * 🔁 Retry the last failed CID retrieval for real.
+   */
+  async retryMissingContent() {
+    const cid = this.lastFailedCid;
+    if (!cid) {
+      this.vdaG036.missingInfo = 'No retrieval failures recorded — nothing to retry.';
+      this.refreshWorkflowSection();
+      return;
+    }
+    this.vdaG036.missingInfo = `Retrying ${cid}…`;
+    this.refreshWorkflowSection();
+    await this.openVideoByCid(cid, { silent: false });
+  }
+
+  /**
+   * 🖼️ Local media fallback: still frame + transcript when real playback fails.
+   */
+  activateRealMediaFallback() {
+    const player = document.querySelector('#video-player');
+    if (!player) return;
+    this.vdaG036.fallbackState = 'active-local';
+    let fallback = player.querySelector('.pt-media-fallback');
+    if (!fallback) {
+      fallback = document.createElement('div');
+      fallback.className = 'pt-media-fallback';
+      fallback.innerHTML = `
+        <div class="sk-empty pt-media-fallback-frame">
+          <div class="pt-fallback-icon">🖼️</div>
+          <p><strong>Local media fallback active.</strong></p>
+          <p class="sk-honest-note">Video playback is unavailable; showing this local still frame with the transcript summary instead.</p>
+          <p class="pt-fallback-transcript">Transcript: “Welcome to PeerTube CID playback. Captions, diagnostics, and fallback are local.”</p>
+        </div>`;
+      player.querySelector('.player-container')?.appendChild(fallback);
+    } else {
+      fallback.remove();
+      this.vdaG036.fallbackState = 'armed-local';
+    }
+    this.appendWorkflowLog(`media fallback ${this.vdaG036.fallbackState === 'active-local' ? 'activated' : 'cleared'} (local)`);
+    this.refreshWorkflowSection();
+  }
   
+  /**
+   * 🎬 Render the real video library: only videos published or opened in this
+   * app (real artifacts). Shows real CIDs and sizes — no fabricated views.
+   */
   renderVideoLibrary() {
     const container = document.querySelector('#videos-container');
     if (!container) return;
-    
+
     const videos = Array.from(this.videoLibrary.values());
-    
+
+    if (videos.length === 0) {
+      container.innerHTML = `
+        <div class="empty-library">
+          <div class="empty-icon">📺</div>
+          <h3>No videos yet</h3>
+          <p>Publish a video with the Upload button or open one by CID above.<br>
+          Only real artifacts from ipfs_kit_py appear here — there is no canned catalog.</p>
+        </div>`;
+      return;
+    }
+
     container.innerHTML = videos.map(video => `
-      <div class="video-card" data-video-id="${video.id}">
+      <div class="video-card" data-video-id="${escapeHtmlPt(video.id)}">
         <div class="video-thumbnail">
           🎬
-          <div class="video-duration">${video.duration}</div>
+          <div class="video-duration">${escapeHtmlPt(video.duration || '')}</div>
         </div>
         <div class="video-details">
-          <div class="video-title">${video.title}</div>
-          <div class="video-uploader">${video.uploader}</div>
-          <div class="video-stats">
-            <span>👁️ ${video.views.toLocaleString()}</span>
-            <span>👍 ${video.likes}</span>
-          </div>
+          <div class="video-title">${escapeHtmlPt(video.title)}</div>
+          <div class="video-uploader">${escapeHtmlPt(video.uploader || 'local user')}</div>
+          <div class="video-real-meta">CID ${escapeHtmlPt(video.cid)}${video.size ? ` · ${(video.size / 1048576).toFixed(1)} MB` : ''}</div>
+          <div class="video-real-meta">${escapeHtmlPt(video.source === 'published' ? 'Published from this app' : 'Opened by CID')} · ${escapeHtmlPt(video.publishedAt || '')}</div>
         </div>
       </div>
     `).join('');
-    
-    // Add click handlers
+
+    this.bindVideoCards(container);
+  }
+
+  bindVideoCards(container) {
     const videoCards = container.querySelectorAll('.video-card');
     videoCards.forEach(card => {
       card.addEventListener('click', () => {
@@ -1409,14 +1666,14 @@ export class PeerTubeApp {
   switchView(view) {
     const sectionTitle = document.querySelector('#section-title');
     if (!sectionTitle) return;
-    
+
     switch (view) {
       case 'home':
-        sectionTitle.textContent = 'Featured Videos';
+        sectionTitle.textContent = 'Your Videos';
         this.renderVideoLibrary();
         break;
       case 'trending':
-        sectionTitle.textContent = 'Trending Videos';
+        sectionTitle.textContent = 'Trending';
         this.renderTrendingVideos();
         break;
       case 'subscriptions':
@@ -1447,154 +1704,530 @@ export class PeerTubeApp {
   renderFilteredVideos(videos) {
     const container = document.querySelector('#videos-container');
     if (!container) return;
-    
+
+    if (videos.length === 0) {
+      container.innerHTML = `
+        <div class="empty-library">
+          <div class="empty-icon">🔍</div>
+          <h3>No matches</h3>
+          <p>Nothing in your local collection matches. Search covers videos you published or opened by CID.</p>
+        </div>`;
+      return;
+    }
+
     container.innerHTML = videos.map(video => `
-      <div class="video-card" data-video-id="${video.id}">
+      <div class="video-card" data-video-id="${escapeHtmlPt(video.id)}">
         <div class="video-thumbnail">
           🎬
-          <div class="video-duration">${video.duration}</div>
+          <div class="video-duration">${escapeHtmlPt(video.duration || '')}</div>
         </div>
         <div class="video-details">
-          <div class="video-title">${video.title}</div>
-          <div class="video-uploader">${video.uploader}</div>
-          <div class="video-stats">
-            <span>👁️ ${video.views.toLocaleString()}</span>
-            <span>👍 ${video.likes}</span>
-          </div>
+          <div class="video-title">${escapeHtmlPt(video.title)}</div>
+          <div class="video-uploader">${escapeHtmlPt(video.uploader || 'local user')}</div>
+          <div class="video-real-meta">CID ${escapeHtmlPt(video.cid)}${video.size ? ` · ${(video.size / 1048576).toFixed(1)} MB` : ''}</div>
         </div>
       </div>
     `).join('');
-    
-    // Add click handlers
-    const videoCards = container.querySelectorAll('.video-card');
-    videoCards.forEach(card => {
-      card.addEventListener('click', () => {
-        const videoId = card.dataset.videoId;
-        this.playVideo(videoId);
-      });
-    });
+
+    this.bindVideoCards(container);
   }
   
-  playVideo(videoId) {
+  /**
+   * ▶️ Play a library video: fetch its REAL bytes live from ipfs_kit_py
+   * (GET /mcp/artifacts/<cid>) and play them in the local video element.
+   * Failures surface verbatim.
+   */
+  async playVideo(videoId) {
     const video = this.videoLibrary.get(videoId);
     if (!video) return;
-    
+
     this.currentVideo = video;
-    
-    // Show video player
+
     const videoGrid = document.querySelector('#video-grid');
     const videoPlayer = document.querySelector('#video-player');
-    
+
     if (videoGrid && videoPlayer) {
       videoGrid.classList.add('hidden');
       videoPlayer.classList.remove('hidden');
     }
-    
-    // Update video info
+
     document.querySelector('#video-title').textContent = video.title;
-    document.querySelector('#video-desc').textContent = video.description;
-    document.querySelector('#video-views').textContent = `${video.views.toLocaleString()} views`;
-    document.querySelector('#like-count').textContent = video.likes;
-    
-    // In a real implementation, this would load the video from IPFS
-    console.log(`🎬 Playing video: ${video.title} (IPFS: ${video.ipfsHash})`);
-    this.updateVdaG036State({
-      playbackState: 'playing',
-      log: `${this.vdaG036.playbackReceipt} selected catalog video ${video.id} with source CID ${video.ipfsHash} and workflow CID ${this.vdaG036.videoCid}`
-    });
-    
-    // Show chat if in a room
+    document.querySelector('#video-desc').textContent = video.description || '';
+    document.querySelector('#video-views').textContent = `CID ${video.cid}`;
+    const likeCount = document.querySelector('#like-count');
+    if (likeCount) likeCount.textContent = '';
+
+    const videoElement = document.querySelector('#video-element');
+    if (!videoElement) return;
+
+    const started = performance.now();
+    try {
+      const client = await backendClient();
+      const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(video.cid));
+      const ms = Math.round(performance.now() - started);
+      if (!artifact || artifact.found !== true) {
+        throw new Error(artifact?.error || `Artifact ${video.cid} was not found in ipfs_kit_py.`);
+      }
+      const bytes = bytesFromBase64(artifact.bytes_base64 || '');
+      if (bytes.length === 0) throw new Error(`Artifact ${video.cid} returned no bytes from ipfs_kit_py.`);
+      const mime = guessVideoMime(artifact, bytes, video.title);
+      if (this.currentObjectUrl) URL.revokeObjectURL(this.currentObjectUrl);
+      this.currentObjectUrl = URL.createObjectURL(new Blob([bytes], { type: mime }));
+      videoElement.dataset.cid = video.cid;
+      videoElement.src = this.currentObjectUrl;
+      await videoElement.play().catch(() => {});
+      this.vdaG036.playbackCid = video.cid;
+      this.vdaG036.playbackInfo = `${bytes.length.toLocaleString()} bytes, verified=${artifact.verified === true}, measured ${ms} ms — playback is local.`;
+      this.vdaG036.missingInfo = 'No retrieval failures recorded.';
+      this.lastFailedCid = null;
+      this.appendWorkflowLog(`playing ${video.cid} (${bytes.length.toLocaleString()} bytes, verified=${artifact.verified === true}, ${ms} ms)`);
+      console.log(`🎬 Playing video: ${video.title} (CID: ${video.cid})`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.vdaG036.playbackCid = '';
+      this.vdaG036.playbackInfo = `Playback failed: ${message}`;
+      this.vdaG036.missingInfo = `Retrieval failed for ${video.cid}: ${message}. Use “Retry missing” to try again.`;
+      this.lastFailedCid = video.cid;
+      this.appendWorkflowLog(`playback failed for ${video.cid}: ${message}`);
+      document.querySelector('#video-desc').textContent = `Retrieval failed: ${message}`;
+    }
+    this.refreshWorkflowSection();
+
     if (this.roomId) {
       this.showChat();
     }
-    
-    // Sync with room if applicable
+
     if (this.roomId && this.syncEnabled) {
       this.syncVideoWithRoom(video);
     }
   }
   
+  /**
+   * 📡 Resolve a real libp2p pubsub publish function from the desktop P2P API
+   * (mirrors p2p-chat-unified). Returns null when no transport exists — the
+   * caller must then stay honestly local, never fake delivery.
+   */
+  resolveLibp2pPublish() {
+    const p2pApi = this.desktop?.swissknife?.p2p || window.SwissKnife?.p2p || null;
+    if (!p2pApi) return null;
+    return async (topic, payload) => {
+      if (typeof p2pApi.pubsubPublish === 'function') return p2pApi.pubsubPublish(topic, payload);
+      if (typeof p2pApi.publish === 'function') return p2pApi.publish(topic, payload);
+      if (typeof p2pApi.sendMessage === 'function') return p2pApi.sendMessage(payload.to, payload.content);
+      throw new Error('No browser pubsub publish method is registered.');
+    };
+  }
+
   createRoom() {
     this.roomId = this.generateRoomId();
     this.isHost = true;
-    
+    const publish = this.resolveLibp2pPublish();
+
     const roomStatus = document.querySelector('#room-status');
     if (roomStatus) {
       roomStatus.innerHTML = `
-        <div style="color: #10b981;">
-          🏠 Room created: <strong>${this.roomId}</strong><br>
-          👥 Waiting for peers to join...
+        <div class="pt-room-status">
+          <span class="sk-status-dot is-ok" aria-hidden="true"></span>
+          <span>
+          🏠 Room created: <strong>${escapeHtmlPt(this.roomId)}</strong><br>
+          ${publish
+            ? '📡 P2P transport available — chat publishes via real libp2p pubsub.'
+            : '🏠 Local-only session — no P2P transport in this environment, chat stays in this browser.'}
+          </span>
         </div>
       `;
     }
-    
-    console.log(`🏠 Created room: ${this.roomId}`);
+
+    console.log(`🏠 Created room: ${this.roomId} (${publish ? 'libp2p' : 'local-only'})`);
     this.showChat();
   }
-  
+
   joinRoom(roomId) {
     this.roomId = roomId;
     this.isHost = false;
-    
+    const publish = this.resolveLibp2pPublish();
+
     const roomStatus = document.querySelector('#room-status');
     if (roomStatus) {
       roomStatus.innerHTML = `
-        <div style="color: #3b82f6;">
-          🔗 Joined room: <strong>${roomId}</strong><br>
-          👥 Connected to host
+        <div class="pt-room-status">
+          <span class="sk-status-dot is-idle" aria-hidden="true"></span>
+          <span>
+          🔗 Joined room: <strong>${escapeHtmlPt(roomId)}</strong><br>
+          ${publish
+            ? '📡 P2P transport available — chat publishes via real libp2p pubsub.'
+            : '🏠 Local-only session — no P2P transport in this environment, chat stays in this browser.'}
+          </span>
         </div>
       `;
     }
-    
-    console.log(`🔗 Joined room: ${roomId}`);
+
+    console.log(`🔗 Joined room: ${roomId} (${publish ? 'libp2p' : 'local-only'})`);
     this.showChat();
   }
-  
+
   showChat() {
     const chatPanel = document.querySelector('#chat-panel');
     if (chatPanel) {
       chatPanel.classList.remove('hidden');
     }
   }
-  
-  sendChatMessage(message) {
+
+  /**
+   * 💬 Send a room chat message: real libp2p pubsub publish when a transport
+   * exists, otherwise an honestly-labeled local message. Failures surface
+   * verbatim on the message — never a fake success.
+   */
+  async sendChatMessage(message) {
+    const publish = this.roomId ? this.resolveLibp2pPublish() : null;
     const chatMessage = {
       id: Date.now(),
       sender: 'You',
       message: message,
-      timestamp: new Date()
+      timestamp: new Date(),
+      transport: 'local-only'
     };
-    
+
+    if (publish) {
+      try {
+        await publish(`/swissknife/peertube/room/${this.roomId}`, {
+          type: 'chat',
+          room: this.roomId,
+          id: chatMessage.id,
+          sender: chatMessage.sender,
+          message,
+          timestamp: chatMessage.timestamp.toISOString()
+        });
+        chatMessage.transport = 'libp2p';
+      } catch (error) {
+        chatMessage.transport = 'failed';
+        chatMessage.error = error instanceof Error ? error.message : String(error);
+      }
+    }
+
     this.chatMessages.push(chatMessage);
-    
+    this.renderChatMessage(chatMessage);
+    console.log(`💬 Chat message (${chatMessage.transport}): ${message}`);
+  }
+
+  renderChatMessage(chatMessage) {
     const chatMessagesContainer = document.querySelector('#chat-messages');
-    if (chatMessagesContainer) {
-      const messageElement = document.createElement('div');
-      messageElement.className = 'chat-message';
-      messageElement.innerHTML = `
-        <div class="sender">${chatMessage.sender}</div>
-        <div>${chatMessage.message}</div>
-      `;
-      chatMessagesContainer.appendChild(messageElement);
-      chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-    }
-    
-    // In a real implementation, this would broadcast to room peers
-    console.log(`💬 Chat message sent: ${message}`);
+    if (!chatMessagesContainer) return;
+    const messageElement = document.createElement('div');
+    messageElement.className = 'chat-message';
+    const transportNote = chatMessage.transport === 'libp2p'
+      ? '<div class="chat-transport">via libp2p pubsub</div>'
+      : chatMessage.transport === 'failed'
+        ? `<div class="chat-transport chat-failed">send failed: ${escapeHtmlPt(chatMessage.error || 'unknown error')}</div>`
+        : '<div class="chat-transport">local-only (no P2P transport)</div>';
+    messageElement.innerHTML = `
+      <div class="sender">${escapeHtmlPt(chatMessage.sender)}</div>
+      <div>${escapeHtmlPt(chatMessage.message)}</div>
+      ${transportNote}
+    `;
+    chatMessagesContainer.appendChild(messageElement);
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
   }
-  
-  syncVideoWithRoom(video) {
-    // In a real implementation, this would sync playback with room peers
-    console.log(`🔄 Syncing video with room: ${this.roomId}`);
-    
+
+  async syncVideoWithRoom(video) {
+    const publish = this.roomId ? this.resolveLibp2pPublish() : null;
     const syncIndicator = document.querySelector('#sync-indicator');
-    if (syncIndicator) {
-      syncIndicator.textContent = '✅';
-      setTimeout(() => {
-        syncIndicator.textContent = '🔄';
-      }, 2000);
+    if (publish) {
+      try {
+        await publish(`/swissknife/peertube/room/${this.roomId}`, {
+          type: 'sync',
+          room: this.roomId,
+          video_cid: video.cid,
+          video_title: video.title,
+          at: new Date().toISOString()
+        });
+        if (syncIndicator) syncIndicator.textContent = '✅';
+        console.log(`🔄 Synced video with room ${this.roomId} via libp2p`);
+      } catch (error) {
+        if (syncIndicator) syncIndicator.textContent = '⚠️';
+        console.warn('Room sync publish failed:', error instanceof Error ? error.message : String(error));
+      }
+    } else {
+      if (syncIndicator) syncIndicator.textContent = '🏠';
+      console.log('Room sync is local-only: no P2P transport in this environment.');
+    }
+    setTimeout(() => {
+      if (syncIndicator) syncIndicator.textContent = '🔄';
+    }, 2000);
+  }
+
+  /**
+   * 📥 Open a video directly by CID: real GET /mcp/artifacts/<cid> from
+   * ipfs_kit_py. The artifact joins the local library and starts playing.
+   * Failures surface verbatim.
+   */
+  async openVideoByCid(cid) {
+    cid = String(cid || '').trim();
+    if (!cid) {
+      this.setCidOpenStatus('Enter an artifact CID first.');
+      return;
+    }
+    this.setCidOpenStatus(`Fetching ${cid} from ipfs_kit_py…`);
+    const started = performance.now();
+    try {
+      const client = await backendClient();
+      const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(cid));
+      const ms = Math.round(performance.now() - started);
+      if (!artifact || artifact.found !== true) {
+        throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
+      }
+      const bytes = bytesFromBase64(artifact.bytes_base64 || '');
+      if (bytes.length === 0) throw new Error(`Artifact ${cid} returned no bytes from ipfs_kit_py.`);
+      const mime = guessVideoMime(artifact, bytes);
+      const id = `cid-${cid.slice(0, 12)}`;
+      this.videoLibrary.set(id, {
+        id,
+        title: artifact.name || artifact.filename || `Video ${cid.slice(0, 12)}…`,
+        description: 'Opened by CID from ipfs_kit_py.',
+        cid,
+        size: bytes.length,
+        mime,
+        category: '',
+        uploader: 'local user',
+        publishedAt: new Date().toISOString().split('T')[0],
+        source: 'opened',
+        verified: artifact.verified === true
+      });
+      this.saveLocalLibraryIndex();
+      this.vdaG036.missingInfo = 'No retrieval failures recorded.';
+      this.lastFailedCid = null;
+      this.appendWorkflowLog(`opened ${cid} by CID (${bytes.length.toLocaleString()} bytes, verified=${artifact.verified === true}, ${ms} ms)`);
+      this.setCidOpenStatus(`Opened ${cid} (${ms} ms)`);
+      await this.playVideo(id);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.vdaG036.missingInfo = `Retrieval failed for ${cid}: ${message}. Use “Retry missing” to try again.`;
+      this.lastFailedCid = cid;
+      this.appendWorkflowLog(`open-by-CID failed for ${cid}: ${message}`);
+      this.setCidOpenStatus(`Open failed: ${message}`);
+      this.refreshWorkflowSection();
     }
   }
+
+  /**
+   * 📤 Publish: read the chosen video file's real bytes and persist them to
+   * ipfs_kit_py behind an explicit confirmation, then persist a metadata
+   * record and a provenance event. Returns real CIDs.
+   */
+  async publishVideoFile() {
+    const fileInput = document.querySelector('#video-file-input');
+    const file = fileInput?.files?.[0];
+    const title = (document.querySelector('#upload-title')?.value || '').trim() || (file ? file.name : '');
+    const description = (document.querySelector('#upload-description')?.value || '').trim();
+    const category = document.querySelector('#upload-category')?.value || '';
+    if (!file) {
+      this.setCidOpenStatus('Choose a video file first.');
+      return;
+    }
+    const confirmed = await this.confirmGovernedWrite({
+      title: 'Publish video to backend',
+      description: `Persist “${title}” (${(file.size / 1048576).toFixed(1)} MB) to the ipfs_kit_py artifact store (pinned), plus a metadata record and a provenance event?`
+    });
+    if (!confirmed) return;
+    this.setCidOpenStatus(`Publishing “${title}”…`);
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (bytes.length === 0) throw new Error('The selected file is empty.');
+      const client = await backendClient();
+      const videoCid = await contentCidForBytes(bytes);
+      const putResult = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+        cid: videoCid,
+        bytes_base64: base64ForBytes(bytes),
+        profile: 'peertube-video',
+        kind: 'video',
+        service: 'ipfs_kit_py',
+        pin: true
+      });
+      if (!putResult || putResult.persisted !== true || putResult.cid !== videoCid) {
+        throw new Error(putResult?.error || 'ipfs_kit_py did not verify the persisted video artifact.');
+      }
+      const metadata = {
+        schema: 'swissknife.peertube.video-metadata.v1',
+        app: 'peertube',
+        published_at: new Date().toISOString(),
+        title,
+        description,
+        category,
+        file_name: file.name,
+        mime_type: file.type || guessVideoMime(null, bytes, file.name),
+        size_bytes: bytes.length,
+        source_cid: videoCid,
+        uploader: 'local user'
+      };
+      const metaBytes = new TextEncoder().encode(stableStringifyValue(metadata));
+      const metaCid = await contentCidForBytes(metaBytes);
+      const metaResult = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+        cid: metaCid,
+        bytes_base64: base64ForBytes(metaBytes),
+        profile: 'peertube-video-metadata',
+        kind: 'video-metadata',
+        service: 'ipfs_kit_py',
+        pin: true
+      });
+      if (!metaResult || metaResult.persisted !== true || metaResult.cid !== metaCid) {
+        throw new Error(metaResult?.error || 'ipfs_kit_py did not verify the persisted metadata artifact.');
+      }
+      let dagNote = '';
+      try {
+        const dagResult = await client.post('ipfs_kit_py', '/mcp/dag/append', {
+          event: {
+            event_type: 'peertube.video.published',
+            video_cid: videoCid,
+            metadata_cid: metaCid,
+            title
+          }
+        });
+        if (dagResult?.event_cid) dagNote = `; event DAG ${dagResult.event_cid}`;
+      } catch (dagError) {
+        dagNote = `; event DAG append failed: ${dagError instanceof Error ? dagError.message : String(dagError)}`;
+      }
+      const id = `pub-${videoCid.slice(0, 12)}`;
+      this.videoLibrary.set(id, {
+        id,
+        title,
+        description,
+        cid: videoCid,
+        size: bytes.length,
+        mime: metadata.mime_type,
+        category,
+        uploader: 'local user',
+        publishedAt: metadata.published_at.split('T')[0],
+        source: 'published',
+        verified: putResult.verified === true,
+        metadata_cid: metaCid
+      });
+      this.saveLocalLibraryIndex();
+      this.renderVideoLibrary();
+      document.querySelector('#upload-modal')?.classList.add('hidden');
+      if (fileInput) fileInput.value = '';
+      this.appendWorkflowLog(`published “${title}” as ${videoCid} (verified=${putResult.verified === true}); metadata ${metaCid} (verified=${metaResult.verified === true})${dagNote}`);
+      this.setCidOpenStatus(`Published “${title}”: ${videoCid}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.appendWorkflowLog(`publish failed: ${message}`);
+      this.setCidOpenStatus(`Publish failed: ${message}`);
+    }
+  }
+
+  /**
+   * 🔐 Confirmation-gated governed write (mirrors supervisor receipts.persist):
+   * every backend-mutating POST requires this explicit, reviewed user
+   * confirmation step first.
+   */
+  confirmGovernedWrite({ title, description, confirmLabel = 'Confirm write' }) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'pt-governed-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="pt-governed-confirm-dialog" role="dialog" aria-modal="true" aria-label="${escapeHtmlPt(title)}">
+          <h3>${escapeHtmlPt(title)}</h3>
+          <p>${escapeHtmlPt(description)}</p>
+          <p class="pt-governed-target">Target: ipfs_kit_py · POST /mcp/artifacts/put (pinned)</p>
+          <label class="pt-governed-check">
+            <input type="checkbox">
+            <span>I confirm this governed write. I have reviewed the data being persisted.</span>
+          </label>
+          <div class="pt-governed-actions">
+            <button type="button" class="btn-secondary pt-governed-cancel">Cancel</button>
+            <button type="button" class="btn-primary pt-governed-confirm" disabled>${escapeHtmlPt(confirmLabel)}</button>
+          </div>
+        </div>`;
+      const checkbox = overlay.querySelector('input[type="checkbox"]');
+      const confirmBtn = overlay.querySelector('.pt-governed-confirm');
+      const done = (value) => { overlay.remove(); resolve(value); };
+      checkbox.addEventListener('change', () => { confirmBtn.disabled = !checkbox.checked; });
+      overlay.querySelector('.pt-governed-cancel').addEventListener('click', () => done(false));
+      confirmBtn.addEventListener('click', () => done(true));
+      overlay.addEventListener('click', (event) => { if (event.target === overlay) done(false); });
+      document.body.appendChild(overlay);
+    });
+  }
+
+  setCidOpenStatus(text) {
+    const status = document.querySelector('#cid-open-status');
+    if (status) status.textContent = text;
+  }
+
+  /**
+   * 👍 Local likes: stored in the local library index, plainly labeled local.
+   */
+  toggleLocalLike() {
+    if (!this.currentVideo) return;
+    const video = this.currentVideo;
+    video.liked = !video.liked;
+    video.localLikes = Math.max(0, (video.localLikes || 0) + (video.liked ? 1 : -1));
+    this.saveLocalLibraryIndex();
+    const likeBtn = document.querySelector('#like-btn');
+    if (likeBtn) {
+      likeBtn.innerHTML = `👍 <span id="like-count">${video.localLikes > 0 ? video.localLikes : ''}</span>${video.liked ? ' ✓' : ''}`;
+      likeBtn.title = 'Likes are stored locally in this browser';
+    }
+  }
+
+  toggleLocalDislike() {
+    if (!this.currentVideo) return;
+    const video = this.currentVideo;
+    video.disliked = !video.disliked;
+    this.saveLocalLibraryIndex();
+    const dislikeBtn = document.querySelector('#dislike-btn');
+    if (dislikeBtn) {
+      dislikeBtn.textContent = video.disliked ? '👎 ✓' : '👎';
+      dislikeBtn.title = 'Dislikes are stored locally in this browser';
+    }
+  }
+
+  /**
+   * 📤 Share: copies the video's real artifact CID to the clipboard.
+   */
+  async shareVideo() {
+    if (!this.currentVideo) return;
+    const cid = this.currentVideo.cid;
+    try {
+      await navigator.clipboard.writeText(cid);
+      this.setCidOpenStatus(`Copied CID to clipboard: ${cid}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.setCidOpenStatus(`CID: ${cid} (clipboard unavailable: ${message})`);
+    }
+  }
+
+  /**
+   * 📥 Download: fetches the video's real bytes live from ipfs_kit_py and
+   * downloads them as a file.
+   */
+  async downloadVideo() {
+    if (!this.currentVideo) return;
+    const video = this.currentVideo;
+    this.setCidOpenStatus(`Downloading ${video.cid}…`);
+    try {
+      const client = await backendClient();
+      const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(video.cid));
+      if (!artifact || artifact.found !== true) {
+        throw new Error(artifact?.error || `Artifact ${video.cid} was not found in ipfs_kit_py.`);
+      }
+      const bytes = bytesFromBase64(artifact.bytes_base64 || '');
+      if (bytes.length === 0) throw new Error(`Artifact ${video.cid} returned no bytes from ipfs_kit_py.`);
+      const blob = new Blob([bytes], { type: video.mime || 'video/mp4' });
+      const anchor = document.createElement('a');
+      anchor.href = URL.createObjectURL(blob);
+      anchor.download = `${(video.title || video.cid).replace(/[^\w\-.]+/g, '_')}.mp4`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      this.setCidOpenStatus(`Downloaded ${bytes.length.toLocaleString()} bytes from ${video.cid}`);
+      this.appendWorkflowLog(`downloaded ${video.cid} (${bytes.length.toLocaleString()} bytes)`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.setCidOpenStatus(`Download failed: ${message}`);
+      this.appendWorkflowLog(`download failed for ${video.cid}: ${message}`);
+    }
+  }
+
   
   generateRoomId() {
     return Math.random().toString(36).substr(2, 8).toUpperCase();
@@ -1617,39 +2250,38 @@ export class PeerTubeApp {
   }
   
   renderTrendingVideos() {
-    // Sort by views and render
-    const videos = Array.from(this.videoLibrary.values())
-      .sort((a, b) => b.views - a.views);
-    
-    this.renderFilteredVideos(videos);
+    // No backend video index is wired in this build, so trending cannot be
+    // computed honestly. Show that plainly instead of a fabricated ranking.
+    const container = document.querySelector('#videos-container');
+    if (container) {
+      container.innerHTML = `
+        <div class="empty-library">
+          <div class="empty-icon">🔥</div>
+          <h3>Trending unavailable</h3>
+          <p>Trending needs a backend video index, which is not wired in this build.<br>
+          Your local collection of real artifacts is under Home.</p>
+        </div>
+      `;
+    }
   }
-  
+
   renderSubscriptions() {
-    // In a real implementation, this would show subscribed channels
+    // Honest empty state: no subscription backend exists.
     const container = document.querySelector('#videos-container');
     if (container) {
       container.innerHTML = `
-        <div style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">📺</div>
+        <div class="empty-library">
+          <div class="empty-icon">📺</div>
           <h3>No Subscriptions Yet</h3>
-          <p>Subscribe to channels to see their latest videos here.</p>
+          <p>Subscriptions need a backend channel index, which is not wired in this build.</p>
         </div>
       `;
     }
   }
-  
+
   renderLibrary() {
-    // In a real implementation, this would show user's uploaded/saved videos
-    const container = document.querySelector('#videos-container');
-    if (container) {
-      container.innerHTML = `
-        <div style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">📚</div>
-          <h3>Your Library is Empty</h3>
-          <p>Upload videos or save favorites to build your library.</p>
-        </div>
-      `;
-    }
+    // Your Library shows the same honest local collection of real artifacts.
+    this.renderVideoLibrary();
   }
   
   updatePlayerState() {

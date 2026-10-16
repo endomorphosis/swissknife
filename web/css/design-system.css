@@ -1,0 +1,290 @@
+/* SwissKnife Design System
+ * ------------------------------------------------------------------
+ * Shared visual layer for all SwissKnife GUI apps (web/js/apps/*).
+ * Aesthetic anchor: agent-supervisor.js renderStyles() — dark ops-console.
+ *
+ * Five sibling migration workers reference these EXACT class names:
+ * do NOT rename classes, and do NOT change token values without
+ * coordinating across all app files.
+ *
+ * Load order: this file must load AFTER web/css/apps.css so the
+ * utility classes win over older generic selectors.
+ *
+ * All rules are class-scoped. No bare element selectors exist outside
+ * of .sk-app, so this file cannot nuke existing app layouts on its own.
+ */
+
+/* ---- Tokens ------------------------------------------------------ */
+:root {
+  --sk-bg-deep: #0e1412;
+  --sk-bg-panel: #101b18;
+  --sk-bg-header: #12211d;
+  --sk-bg-inset: #17241f;
+  --sk-border: #263a34;
+  --sk-border-strong: #315248;
+  --sk-text: #edf7f2;
+  --sk-text-dim: #a8bbb2;
+  --sk-text-faint: #9eb2aa;
+  --sk-text-faintest: #7c8f87;
+  --sk-accent: #8bd8bd;
+  --sk-accent-strong: #5fb99d;
+  --sk-accent-bg: #173029;
+  --sk-accent-selected: #1b3d34;
+  --sk-ok: #5ee3a1;
+  --sk-warn: #ffd166;
+  --sk-err: #ff6b6b;
+  --sk-idle: #7e8d87;
+  --sk-err-bg: #231312;
+  --sk-err-border: #8c3d3d;
+}
+
+/* ---- App wrapper ------------------------------------------------- */
+/* Apply to the app root element. Scopes the base font and colors so
+ * apps render identically whether they were migrated or not. */
+.sk-app {
+  font: 13px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--sk-text);
+  background: var(--sk-bg-deep);
+  box-sizing: border-box;
+}
+
+.sk-app * {
+  box-sizing: border-box;
+}
+
+/* ---- Buttons ----------------------------------------------------- */
+.sk-btn {
+  min-height: 32px;
+  padding: 7px 10px;
+  border: 1px solid var(--sk-border-strong);
+  background: var(--sk-accent-bg);
+  color: var(--sk-text);
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sk-btn:hover {
+  border-color: var(--sk-accent-strong);
+}
+
+.sk-btn:focus-visible {
+  outline: 2px solid var(--sk-accent);
+  outline-offset: 2px;
+}
+
+.sk-btn:disabled,
+.sk-btn[aria-disabled="true"] {
+  color: var(--sk-text-faintest);
+  border-color: var(--sk-border);
+  background: var(--sk-bg-panel);
+  cursor: not-allowed;
+}
+
+/* Primary: accent-strong border, brighter fill than the default button. */
+.sk-btn-primary {
+  border-color: var(--sk-accent-strong);
+  background: var(--sk-accent-strong);
+  color: #0e1412;
+  font-weight: 600;
+}
+
+.sk-btn-primary:hover {
+  border-color: var(--sk-accent);
+}
+
+/* Danger: error border over the error-tinted background. */
+.sk-btn-danger {
+  border-color: var(--sk-err);
+  background: var(--sk-err-bg);
+  color: var(--sk-text);
+}
+
+/* ---- Form controls ----------------------------------------------- */
+.sk-input,
+.sk-select,
+.sk-textarea {
+  background: var(--sk-bg-panel);
+  border: 1px solid var(--sk-border-strong);
+  border-radius: 6px;
+  padding: 10px;
+  color: var(--sk-text);
+  font: inherit;
+  min-height: 32px;
+}
+
+.sk-textarea {
+  resize: vertical;
+}
+
+.sk-input::placeholder,
+.sk-textarea::placeholder {
+  color: var(--sk-text-faintest);
+}
+
+.sk-input:focus-visible,
+.sk-select:focus-visible,
+.sk-textarea:focus-visible {
+  outline: 2px solid var(--sk-accent);
+  outline-offset: 2px;
+}
+
+.sk-input:disabled,
+.sk-select:disabled,
+.sk-textarea:disabled {
+  color: var(--sk-text-faintest);
+  border-color: var(--sk-border);
+  cursor: not-allowed;
+}
+
+/* ---- Cards, sections, metrics ------------------------------------ */
+.sk-card {
+  background: var(--sk-bg-panel);
+  border: 1px solid var(--sk-border);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.sk-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid var(--sk-border);
+  background: var(--sk-bg-header);
+}
+
+/* Metric: label (11px uppercase dim) + value (13px). Use:
+ *   <div class="sk-metric"><span>Label</span><strong>Value</strong></div> */
+.sk-metric {
+  background: var(--sk-bg-panel);
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.sk-metric > span {
+  display: block;
+  color: var(--sk-text-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.sk-metric > strong {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+/* ---- Status ------------------------------------------------------- */
+/* Status dot: 10px circle. Modifiers: .is-ok .is-warn .is-err .is-idle */
+.sk-status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sk-idle);
+  flex: none;
+}
+
+.sk-status-dot.is-ok {
+  background: var(--sk-ok);
+}
+
+.sk-status-dot.is-warn {
+  background: var(--sk-warn);
+}
+
+.sk-status-dot.is-err {
+  background: var(--sk-err);
+}
+
+.sk-status-dot.is-idle {
+  background: var(--sk-idle);
+}
+
+/* ---- States ------------------------------------------------------- */
+.sk-empty {
+  padding: 12px;
+  color: var(--sk-text-dim);
+  text-align: center;
+}
+
+.sk-spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--sk-border);
+  border-top-color: var(--sk-accent);
+  animation: sk-spin 0.8s linear infinite;
+  flex: none;
+}
+
+@keyframes sk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Text primitives ---------------------------------------------- */
+.sk-code {
+  background: var(--sk-bg-inset);
+  border: 1px solid var(--sk-border);
+  border-radius: 4px;
+  padding: 4px 6px;
+  overflow-wrap: anywhere;
+}
+
+/* Bordered pill, e.g. for counts or environment tags. */
+.sk-badge {
+  display: inline-block;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--sk-text-dim);
+  border: 1px solid var(--sk-border-strong);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+/* 11px uppercase dim label for fields, headings, table headers. */
+.sk-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--sk-text-dim);
+}
+
+/* ---- Honest note --------------------------------------------------- */
+/* For "Evidence draft", local-only, and not-wired labels. These labels
+ * carry truthfulness obligations (audit4): they MUST stay visually
+ * distinct and MUST NOT be hidden, restyled into invisibility, or
+ * toned down to look like ordinary content. Never remove this class
+ * from a disclaimer — replacing it with .sk-empty/.sk-badge or
+ * deleting the text is a regression. */
+.sk-honest-note {
+  border: 1px solid var(--sk-warn);
+  background: rgba(255, 209, 102, 0.08);
+  color: var(--sk-warn);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Layout helpers ------------------------------------------------ */
+.sk-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.sk-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}

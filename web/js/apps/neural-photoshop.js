@@ -122,7 +122,18 @@ export class NeuralPhotoshopApp {
 
   async initializeAI() {
     console.log('🤖 Initializing AI services...');
-    
+
+    // Capture the app's vision backend in a closure. (Previously the
+    // sub-objects below read `this.swissknife`, which inside those object
+    // literals referred to the sub-object itself — the real backend could
+    // never fire and every tool silently ran its local heuristic.)
+    const appVision = (this.swissknife && this.swissknife.vision) || null;
+    if (appVision) {
+      console.log('✅ Vision backend available; AI tools will use it when possible');
+    } else {
+      console.log('ℹ️ No vision backend; AI tools run local heuristics and say so');
+    }
+
     // Initialize AI models and services with proper error handling
     this.aiService = {
       segmentation: {
@@ -132,14 +143,15 @@ export class NeuralPhotoshopApp {
           console.log('🎯 Running AI segmentation...');
           
           // Try to use SwissKnife AI API for segmentation if available
-          if (this.swissknife && this.swissknife.vision && this.swissknife.vision.segment) {
+          if (appVision && appVision.segment) {
             try {
-              const result = await this.swissknife.vision.segment({
+              const result = await appVision.segment({
                 image: imageData,
                 points: points,
                 model: this.model
               });
               if (result && result.mask) {
+                this.lastBackend = 'vision-api';
                 return result.mask;
               }
             } catch (error) {
@@ -148,6 +160,7 @@ export class NeuralPhotoshopApp {
           }
           
           // Fallback: create selection based on clicked points
+          this.lastBackend = 'local-heuristic';
           return this.fallbackSegmentation(imageData, points);
         },
         fallbackSegmentation(imageData, points) {
@@ -177,13 +190,14 @@ export class NeuralPhotoshopApp {
           console.log('🖼️ Running background removal...');
           
           // Try to use SwissKnife AI API for background removal
-          if (this.swissknife && this.swissknife.vision && this.swissknife.vision.removeBackground) {
+          if (appVision && appVision.removeBackground) {
             try {
-              const result = await this.swissknife.vision.removeBackground({
+              const result = await appVision.removeBackground({
                 image: imageData,
                 model: this.model
               });
               if (result && result.image) {
+                this.lastBackend = 'vision-api';
                 return result.image;
               }
             } catch (error) {
@@ -192,6 +206,7 @@ export class NeuralPhotoshopApp {
           }
           
           // Fallback: edge-based background removal
+          this.lastBackend = 'local-heuristic';
           return this.fallbackBackgroundRemoval(imageData);
         },
         fallbackBackgroundRemoval(imageData) {
@@ -217,14 +232,15 @@ export class NeuralPhotoshopApp {
           console.log('🖌️ Running AI inpainting...');
           
           // Try to use SwissKnife AI API for inpainting
-          if (this.swissknife && this.swissknife.vision && this.swissknife.vision.inpaint) {
+          if (appVision && appVision.inpaint) {
             try {
-              const result = await this.swissknife.vision.inpaint({
+              const result = await appVision.inpaint({
                 image: imageData,
                 mask: mask,
                 model: this.model
               });
               if (result && result.image) {
+                this.lastBackend = 'vision-api';
                 return result.image;
               }
             } catch (error) {
@@ -233,6 +249,7 @@ export class NeuralPhotoshopApp {
           }
           
           // Fallback: blur-based inpainting
+          this.lastBackend = 'local-heuristic';
           return this.fallbackInpainting(imageData, mask);
         },
         fallbackInpainting(imageData, mask) {
@@ -259,14 +276,15 @@ export class NeuralPhotoshopApp {
           console.log('🎨 Running style transfer...');
           
           // Try to use SwissKnife AI API for style transfer
-          if (this.swissknife && this.swissknife.vision && this.swissknife.vision.styleTransfer) {
+          if (appVision && appVision.styleTransfer) {
             try {
-              const result = await this.swissknife.vision.styleTransfer({
+              const result = await appVision.styleTransfer({
                 image: imageData,
                 style: style,
                 model: this.model
               });
               if (result && result.image) {
+                this.lastBackend = 'vision-api';
                 return result.image;
               }
             } catch (error) {
@@ -275,6 +293,7 @@ export class NeuralPhotoshopApp {
           }
           
           // Fallback: color-based style adjustments
+          this.lastBackend = 'local-heuristic';
           return this.fallbackStyleTransfer(imageData, style);
         },
         fallbackStyleTransfer(imageData, style) {
@@ -306,14 +325,15 @@ export class NeuralPhotoshopApp {
           console.log('📈 Running image upscaling...');
           
           // Try to use SwissKnife AI API for upscaling
-          if (this.swissknife && this.swissknife.vision && this.swissknife.vision.upscale) {
+          if (appVision && appVision.upscale) {
             try {
-              const result = await this.swissknife.vision.upscale({
+              const result = await appVision.upscale({
                 image: imageData,
                 scale: scale,
                 model: this.model
               });
               if (result && result.image) {
+                this.lastBackend = 'vision-api';
                 return result.image;
               }
             } catch (error) {
@@ -322,6 +342,7 @@ export class NeuralPhotoshopApp {
           }
           
           // Fallback: bicubic upscaling
+          this.lastBackend = 'local-heuristic';
           return this.fallbackUpscaling(imageData, scale);
         },
         fallbackUpscaling(imageData, scale) {
@@ -525,6 +546,23 @@ export class NeuralPhotoshopApp {
           flex-direction: column;
           overflow: hidden;
         }
+
+        /* AI style-picker dialog + processing overlay (mounted on body) */
+        .nps-dialog {
+          background: var(--sk-bg-panel, #1a1a2e);
+          border: 1px solid var(--sk-border, #263a34);
+          padding: 30px;
+          border-radius: 10px;
+          max-width: 400px;
+        }
+        .nps-style-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin: 20px 0;
+        }
+        .nps-center { text-align: center; }
+        .nps-center .sk-spinner { margin: 0 auto 20px; }
 
         .menu-bar {
           background: rgba(255, 255, 255, 0.08);
@@ -1167,7 +1205,7 @@ export class NeuralPhotoshopApp {
           </div>
           <div class="property-control">
             <label>Font Family:</label>
-            <select id="text-font-family" style="background: rgba(255,255,255,0.1); color: white; border: none; padding: 4px;">
+            <select id="text-font-family" class="sk-select">
               <option value="Arial" ${this.toolSettings.text.fontFamily === 'Arial' ? 'selected' : ''}>Arial</option>
               <option value="Helvetica" ${this.toolSettings.text.fontFamily === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
               <option value="Times New Roman" ${this.toolSettings.text.fontFamily === 'Times New Roman' ? 'selected' : ''}>Times New Roman</option>
@@ -1181,14 +1219,14 @@ export class NeuralPhotoshopApp {
           </div>
           <div class="property-control">
             <label>Style:</label>
-            <div style="display: flex; gap: 8px;">
+            <div class="sk-row">
               <button class="menu-btn ${this.toolSettings.text.bold ? 'active' : ''}" id="text-bold" style="font-weight: bold;">B</button>
               <button class="menu-btn ${this.toolSettings.text.italic ? 'active' : ''}" id="text-italic" style="font-style: italic;">I</button>
             </div>
           </div>
           <div class="property-control">
             <label>Align:</label>
-            <select id="text-align" style="background: rgba(255,255,255,0.1); color: white; border: none; padding: 4px;">
+            <select id="text-align" class="sk-select">
               <option value="left" ${this.toolSettings.text.align === 'left' ? 'selected' : ''}>Left</option>
               <option value="center" ${this.toolSettings.text.align === 'center' ? 'selected' : ''}>Center</option>
               <option value="right" ${this.toolSettings.text.align === 'right' ? 'selected' : ''}>Right</option>
@@ -2037,129 +2075,6 @@ export class NeuralPhotoshopApp {
     this.redrawCanvas();
   }
 
-  // AI methods
-  async performAISegmentation() {
-    this.showAIProgress('Performing AI segmentation...');
-    
-    try {
-      // Try real AI segmentation
-      const layer = this.layers[this.activeLayerIndex];
-      if (!layer) {
-        throw new Error('No active layer');
-      }
-      
-      const imageData = layer.context.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
-      const segmentationData = await this.aiSegmentationService.segment(imageData);
-      
-      if (segmentationData.segments && segmentationData.segments.length > 0) {
-        this.createSegmentationMask(segmentationData);
-        this.showNotification('✅ AI segmentation completed!');
-      } else {
-        this.showNotification('ℹ️ No segments detected. Configure AI service for advanced segmentation.');
-      }
-      
-      this.hideAIProgress();
-    } catch (error) {
-      this.hideAIProgress();
-      this.showNotification('❌ AI segmentation failed: ' + error.message);
-    }
-  }
-
-  async performBackgroundRemoval() {
-    this.showAIProgress('Removing background with AI...');
-    
-    try {
-      // Try real AI background removal
-      const layer = this.layers[this.activeLayerIndex];
-      if (!layer) {
-        throw new Error('No active layer');
-      }
-      
-      const ctx = layer.context;
-      const imageData = ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
-      const processedData = await this.backgroundRemovalService.removeBackground(imageData);
-      
-      this.applyBackgroundRemoval(processedData);
-      ctx.putImageData(imageData, 0, 0);
-      this.redrawCanvas();
-      
-      this.hideAIProgress();
-      this.showNotification('✅ Background removed successfully!');
-    } catch (error) {
-      this.hideAIProgress();
-      this.showNotification('❌ Background removal failed: ' + error.message);
-    }
-  }
-
-  async performAIUpscaling() {
-    this.showAIProgress('AI upscaling in progress...');
-    
-    try {
-      const layer = this.layers[this.activeLayerIndex];
-      if (!layer) {
-        throw new Error('No active layer');
-      }
-      
-      // Get current image data
-      const imageData = layer.context.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
-      
-      // Try real AI upscaling
-      const upscaledData = await this.upscalingService.upscale(imageData, 2);
-      
-      // Resize project to accommodate upscaled image
-      const newWidth = upscaledData.width;
-      const newHeight = upscaledData.height;
-      
-      this.resizeProject(newWidth, newHeight);
-      
-      // Apply upscaled data to layer
-      layer.context.putImageData(upscaledData, 0, 0);
-      
-      this.hideAIProgress();
-      this.showNotification('✅ AI upscaling completed! Resolution doubled.');
-      this.renderCanvas();
-    } catch (error) {
-      this.hideAIProgress();
-      this.showNotification('❌ AI upscaling failed: ' + error.message);
-    }
-  }
-
-  async performAIInpainting() {
-    if (!this.activeSelection) {
-      this.showNotification('⚠️ Please make a selection first for inpainting.');
-      return;
-    }
-
-    this.showAIProgress('AI inpainting selected area...');
-    
-    try {
-      const layer = this.layers[this.activeLayerIndex];
-      if (!layer) {
-        throw new Error('No active layer');
-      }
-      
-      // Get image data and selection mask
-      const imageData = layer.context.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
-      const selectionMask = this.createSelectionMask(this.activeSelection);
-      
-      // Get prompt if available
-      const prompt = prompt('Enter inpainting prompt (optional):') || 'fill naturally';
-      
-      // Try real AI inpainting
-      const inpaintedData = await this.inpaintingService.inpaint(imageData, selectionMask, prompt);
-      
-      // Apply inpainted data
-      layer.context.putImageData(inpaintedData, 0, 0);
-      this.redrawCanvas();
-      
-      this.hideAIProgress();
-      this.showNotification('✅ AI inpainting completed!');
-    } catch (error) {
-      this.hideAIProgress();
-      this.showNotification('❌ AI inpainting failed: ' + error.message);
-    }
-  }
-
   // Clipboard functionality
   async copyToClipboard() {
     try {
@@ -2467,12 +2382,9 @@ export class NeuralPhotoshopApp {
       
       const imageData = layer.context.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
       
-      // Simulate processing time
-      await this.simulateAIProcessing(2000);
-      
-      // Use mock points for now - would use actual click points in real implementation
-      const mockPoints = [{ x: layer.canvas.width / 2, y: layer.canvas.height / 2 }];
-      const maskData = await this.aiService.segmentation.process(imageData, mockPoints);
+      // Local heuristic seeds from the layer center (no click-point capture in this UI)
+      const seedPoints = [{ x: layer.canvas.width / 2, y: layer.canvas.height / 2 }];
+      const maskData = await this.aiService.segmentation.process(imageData, seedPoints);
       
       // Create mask layer
       const maskLayer = this.createLayer('Segmentation Mask');
@@ -2482,7 +2394,7 @@ export class NeuralPhotoshopApp {
       this.redrawCanvas();
       this.refreshUI();
       this.saveToHistory('AI Segmentation');
-      this.showNotification('✅ AI segmentation completed');
+      this.showNotification(this.aiService.segmentation.lastBackend === 'vision-api' ? '✅ Segmentation completed (vision backend)' : '✅ Segmentation completed (local heuristic — no vision backend)');
       
     } catch (error) {
       this.hideAIProgress();
@@ -2505,9 +2417,6 @@ export class NeuralPhotoshopApp {
       
       const imageData = layer.context.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
       
-      // Simulate processing time
-      await this.simulateAIProcessing(3000);
-      
       const processedData = await this.aiService.backgroundRemoval.process(imageData);
       
       layer.context.putImageData(processedData, 0, 0);
@@ -2515,7 +2424,7 @@ export class NeuralPhotoshopApp {
       this.hideAIProgress();
       this.redrawCanvas();
       this.saveToHistory('Background Removal');
-      this.showNotification('✅ Background removed');
+      this.showNotification(this.aiService.backgroundRemoval.lastBackend === 'vision-api' ? '✅ Background removed (vision backend)' : '✅ Background removed (local heuristic — no vision backend)');
       
     } catch (error) {
       this.hideAIProgress();
@@ -2538,9 +2447,6 @@ export class NeuralPhotoshopApp {
       
       const imageData = layer.context.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
       
-      // Simulate processing time
-      await this.simulateAIProcessing(4000);
-      
       const upscaledData = await this.aiService.upscaling.process(imageData, 2);
       
       // Create new project with upscaled dimensions
@@ -2556,7 +2462,7 @@ export class NeuralPhotoshopApp {
       this.redrawCanvas();
       this.refreshUI();
       this.saveToHistory('AI Upscaling');
-      this.showNotification('✅ Image upscaled');
+      this.showNotification(this.aiService.upscaling.lastBackend === 'vision-api' ? '✅ Image upscaled (vision backend)' : '✅ Image upscaled (local heuristic — no vision backend)');
       
     } catch (error) {
       this.hideAIProgress();
@@ -2607,7 +2513,7 @@ export class NeuralPhotoshopApp {
       this.hideAIProgress();
       this.redrawCanvas();
       this.saveToHistory('AI Inpainting');
-      this.showNotification('✅ AI inpainting completed');
+      this.showNotification(this.aiService.inpainting.lastBackend === 'vision-api' ? '✅ Inpainting completed (vision backend)' : '✅ Inpainting completed (local heuristic — no vision backend)');
       
     } catch (error) {
       this.hideAIProgress();
@@ -2630,9 +2536,6 @@ export class NeuralPhotoshopApp {
       
       const imageData = layer.context.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
       
-      // Simulate processing time
-      await this.simulateAIProcessing(2500);
-      
       // Create edge-based mask
       const maskData = this.createEdgeMask(imageData);
       
@@ -2643,7 +2546,7 @@ export class NeuralPhotoshopApp {
       this.redrawCanvas();
       this.refreshUI();
       this.saveToHistory('AI Mask Creation');
-      this.showNotification('✅ AI mask created');
+      this.showNotification(this.aiService.segmentation.lastBackend === 'vision-api' ? '✅ Mask created (vision backend)' : '✅ Mask created (local heuristic — no vision backend)');
       
     } catch (error) {
       this.hideAIProgress();
@@ -2698,9 +2601,6 @@ export class NeuralPhotoshopApp {
       
       const imageData = layer.context.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
       
-      // Simulate processing time
-      await this.simulateAIProcessing(2000);
-      
       // Apply simple blur denoising
       const denoisedData = this.applyGaussianBlur(imageData, 1);
       
@@ -2709,7 +2609,7 @@ export class NeuralPhotoshopApp {
       this.hideAIProgress();
       this.redrawCanvas();
       this.saveToHistory('Denoise');
-      this.showNotification('✅ Image denoised');
+      this.showNotification('✅ Image denoised (local filter — no vision backend)');
       
     } catch (error) {
       this.hideAIProgress();
@@ -2767,9 +2667,6 @@ export class NeuralPhotoshopApp {
         return;
       }
       
-      // Simulate processing time
-      await this.simulateAIProcessing(3500);
-      
       // For demo purposes, apply simple sharpening
       const imageData = layer.context.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
       const sharpenedData = this.applySharpen(imageData);
@@ -2779,7 +2676,7 @@ export class NeuralPhotoshopApp {
       this.hideAIProgress();
       this.redrawCanvas();
       this.saveToHistory('Face Restoration');
-      this.showNotification('✅ Face restoration completed');
+      this.showNotification('✅ Face restoration completed (local heuristic — no vision backend)');
       
     } catch (error) {
       this.hideAIProgress();
@@ -2841,9 +2738,6 @@ export class NeuralPhotoshopApp {
       
       const imageData = layer.context.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
       
-      // Simulate processing time
-      await this.simulateAIProcessing(3500);
-      
       const styledData = await this.aiService.styleTransfer.process(imageData, style);
       
       const newLayer = this.createLayer(`${style} Style`);
@@ -2880,16 +2774,16 @@ export class NeuralPhotoshopApp {
       `;
       
       dialog.innerHTML = `
-        <div style="background: #1a1a2e; padding: 30px; border-radius: 10px; max-width: 400px;">
+        <div class="nps-dialog">
           <h3>🎨 Select Art Style</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0;">
+          <div class="nps-style-grid">
             <button class="style-btn" data-style="oil-painting">🖼️ Oil Painting</button>
             <button class="style-btn" data-style="watercolor">🎨 Watercolor</button>
             <button class="style-btn" data-style="sketch">✏️ Sketch</button>
             <button class="style-btn" data-style="pop-art">🌈 Pop Art</button>
           </div>
-          <div style="text-align: center;">
-            <button id="cancel-style" style="background: #555; color: white; border: none; padding: 10px 20px; border-radius: 5px;">Cancel</button>
+          <div class="nps-center">
+            <button id="cancel-style" class="sk-btn">Cancel</button>
           </div>
         </div>
       `;
@@ -2925,9 +2819,6 @@ export class NeuralPhotoshopApp {
       
       const imageData = layer.context.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
       
-      // Simulate processing time
-      await this.simulateAIProcessing(3000);
-      
       // Apply simple colorization by enhancing existing colors
       const colorizedData = this.enhanceColors(imageData);
       
@@ -2938,7 +2829,7 @@ export class NeuralPhotoshopApp {
       this.redrawCanvas();
       this.refreshUI();
       this.saveToHistory('AI Colorization');
-      this.showNotification('✅ AI colorization completed');
+      this.showNotification('✅ Colorization completed (local heuristic — no vision backend)');
       
     } catch (error) {
       this.hideAIProgress();
@@ -3018,9 +2909,6 @@ export class NeuralPhotoshopApp {
   }
 
   // Utility methods
-  async simulateAIProcessing(duration) {
-    return new Promise(resolve => setTimeout(resolve, duration));
-  }
 
   showAIProgress(message) {
     // Create progress overlay
@@ -3041,8 +2929,8 @@ export class NeuralPhotoshopApp {
       font-size: 18px;
     `;
     overlay.innerHTML = `
-      <div style="text-align: center;">
-        <div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid white; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+      <div class="nps-center">
+        <div class="sk-spinner"></div>
         <div>${message}</div>
       </div>
     `;
@@ -3172,17 +3060,6 @@ export class NeuralPhotoshopApp {
   }
 
   // AI helper implementations
-  async mockAISegmentation() {
-    // Fallback segmentation data when AI not available
-    return {
-      masks: [
-        { label: 'person', confidence: 0.95, bounds: [100, 100, 200, 300] },
-        { label: 'background', confidence: 0.89, bounds: [0, 0, 1024, 1024] }
-      ],
-      note: 'Example segmentation. Configure AI service for real segmentation.'
-    };
-  }
-
   applyBackgroundRemoval(imageData) {
     const data = imageData.data;
     // Fallback background removal using edge detection

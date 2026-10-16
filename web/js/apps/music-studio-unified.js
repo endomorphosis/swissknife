@@ -421,45 +421,364 @@ note("c2 eb2 f2 g2").slow(4)
                         align-items: stretch !important;
                     }
                 }
+                /* --- Scoped theme: layout + chrome on --sk- tokens --- */
+                .unified-music-studio.ums-root {
+                    height: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+                    color: var(--sk-text, #ffffff);
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                }
+                .unified-music-studio .ums-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 12px 20px;
+                    background: rgba(0,0,0,0.3);
+                    border-bottom: 2px solid var(--sk-border, rgba(255,255,255,0.1));
+                }
+                .unified-music-studio .ums-header-left {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                    min-width: 0;
+                }
+                .unified-music-studio .ums-title {
+                    margin: 0;
+                    font-size: 20px;
+                    font-weight: 600;
+                    white-space: nowrap;
+                    background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+                    -webkit-background-clip: text;
+                    background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    color: transparent;
+                }
+                .unified-music-studio .ums-tempo {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                .unified-music-studio .ums-bpm { width: 64px; }
+                .unified-music-studio .ums-header-controls {
+                    display: flex;
+                    gap: 8px;
+                    align-items: center;
+                }
+                .unified-music-studio .ums-view-btn {
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                    border: 1px solid transparent;
+                    background: rgba(255,255,255,0.1);
+                    color: #fff;
+                    cursor: pointer;
+                    font-size: 12px;
+                    white-space: nowrap;
+                    transition: background 0.2s, border-color 0.2s, color 0.2s;
+                }
+                .unified-music-studio .ums-view-btn:hover {
+                    background: rgba(255,255,255,0.18);
+                }
+                .unified-music-studio .ums-view-btn.active {
+                    background: rgba(139,216,189,0.18);
+                    border-color: var(--sk-accent, #8bd8bd);
+                    color: var(--sk-accent, #8bd8bd);
+                }
+                .unified-music-studio .ums-main {
+                    flex: 1;
+                    display: flex;
+                    overflow: hidden;
+                    min-height: 0;
+                }
+                .unified-music-studio .ums-statusbar {
+                    padding: 8px 16px;
+                    background: rgba(0,0,0,0.4);
+                    border-top: 1px solid var(--sk-border, rgba(255,255,255,0.1));
+                    font-size: 12px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 12px;
+                    color: var(--sk-text-dim, rgba(255,255,255,0.85));
+                }
+                .unified-music-studio .ums-view {
+                    display: flex;
+                    flex: 1;
+                    gap: 16px;
+                    padding: 16px;
+                    min-width: 0;
+                }
+                .unified-music-studio .ums-panel {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    min-width: 0;
+                    overflow: hidden;
+                }
+                .unified-music-studio .ums-sidepanels {
+                    width: 300px;
+                    flex: none;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                    min-height: 0;
+                    overflow-y: auto;
+                }
+                .unified-music-studio .ums-master { width: 200px; flex: none; }
+                .unified-music-studio .ums-presets { width: 250px; flex: none; }
+                .unified-music-studio .ums-live { width: 400px; flex: none; }
+                .unified-music-studio .ums-panel-header {
+                    padding: 12px 16px;
+                    border-bottom: 1px solid var(--sk-border, rgba(255,255,255,0.1));
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 8px;
+                }
+                .unified-music-studio .ums-flexrow {
+                    display: flex;
+                    gap: 8px;
+                    align-items: center;
+                }
+                .unified-music-studio .ums-col {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+                .unified-music-studio .ums-col-gap16 { gap: 16px; }
+                .unified-music-studio .ums-wrap { flex-wrap: wrap; }
+                .unified-music-studio .ums-center { justify-content: center; }
+                .unified-music-studio .ums-full { width: 100%; }
+                .unified-music-studio .ums-flex1 { flex: 1; }
+                .unified-music-studio .ums-chip {
+                    padding: 4px 10px;
+                    border-radius: 12px;
+                    border: 1px solid var(--sk-border, #315248);
+                    background: rgba(255,255,255,0.08);
+                    color: #fff;
+                    cursor: pointer;
+                    font-size: 11px;
+                    white-space: nowrap;
+                    transition: border-color 0.2s, background 0.2s;
+                }
+                .unified-music-studio .ums-chip:hover {
+                    border-color: var(--sk-accent, #8bd8bd);
+                    background: rgba(139,216,189,0.15);
+                }
+                .unified-music-studio .ums-code {
+                    font-family: 'Fira Code', 'Consolas', monospace;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    width: 100%;
+                    height: 100%;
+                    resize: none;
+                }
+                .unified-music-studio .ums-code-container {
+                    flex: 1;
+                    position: relative;
+                    min-height: 120px;
+                }
+                .unified-music-studio .ums-suggestions {
+                    padding: 12px 16px;
+                    border-top: 1px solid var(--sk-border, rgba(255,255,255,0.1));
+                }
+                .unified-music-studio .ums-canvas-frame {
+                    width: 100%;
+                    height: 120px;
+                    border-radius: 8px;
+                    display: block;
+                }
+                .unified-music-studio .ums-visualizer {
+                    display: flex;
+                    flex-direction: column;
+                }
+                .unified-music-studio .ums-library { min-height: 200px; }
+                .unified-music-studio .ums-pattern-item {
+                    padding: 8px 10px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                    background: rgba(255,255,255,0.05);
+                }
+                .unified-music-studio .ums-pattern-item:hover {
+                    background: rgba(255,255,255,0.12);
+                }
+                .unified-music-studio .ums-pattern-name {
+                    font-size: 12px;
+                    font-weight: 600;
+                    margin-bottom: 2px;
+                }
+                .unified-music-studio .ums-pattern-code {
+                    font-size: 10px;
+                    opacity: 0.7;
+                    font-family: monospace;
+                    word-break: break-all;
+                }
+                .unified-music-studio .ums-mixer-channels {
+                    display: flex;
+                    gap: 12px;
+                    overflow-x: auto;
+                    padding-bottom: 4px;
+                }
+                .unified-music-studio .ums-channel {
+                    width: 88px;
+                    flex: none;
+                    padding: 12px 8px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 12px;
+                }
+                .unified-music-studio .ums-channel-head { text-align: center; }
+                .unified-music-studio .ums-channel-name {
+                    font-size: 11px;
+                    font-weight: 600;
+                    margin-bottom: 4px;
+                    word-break: break-word;
+                }
+                .unified-music-studio .ums-channel-type {
+                    font-size: 9px;
+                    opacity: 0.7;
+                    text-transform: capitalize;
+                }
+                .unified-music-studio .ums-channel-controls {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 8px;
+                    flex: 1;
+                }
+                .unified-music-studio .ums-fader {
+                    writing-mode: vertical-lr;
+                    direction: rtl;
+                    width: 24px;
+                    height: 100px;
+                    accent-color: var(--sk-accent, #8bd8bd);
+                    cursor: pointer;
+                }
+                .unified-music-studio .ums-readout {
+                    font-size: 10px;
+                    text-align: center;
+                    color: var(--sk-text-dim, rgba(255,255,255,0.8));
+                }
+                .unified-music-studio .ums-mini-btn {
+                    width: 28px;
+                    height: 22px;
+                    border: none;
+                    border-radius: 4px;
+                    background: rgba(255,255,255,0.2);
+                    color: #fff;
+                    font-size: 9px;
+                    font-weight: 700;
+                    cursor: pointer;
+                }
+                .unified-music-studio .ums-mini-btn.solo.active {
+                    background: #FFD700;
+                    color: #000;
+                }
+                .unified-music-studio .ums-mini-btn.mute.active {
+                    background: var(--sk-err, #f44336);
+                    color: #fff;
+                }
+                .unified-music-studio .ums-effects-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 16px;
+                }
+                .unified-music-studio .ums-effect { padding: 16px; }
+                .unified-music-studio .ums-effect-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 8px;
+                }
+                .unified-music-studio .ums-pad-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 12px;
+                    margin-bottom: 24px;
+                }
+                .unified-music-studio .ums-pad {
+                    aspect-ratio: 1;
+                    border: 2px solid var(--sk-border, rgba(255,255,255,0.2));
+                    border-radius: 8px;
+                    background: rgba(255,255,255,0.1);
+                    color: #fff;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 16px;
+                    transition: background 0.1s, border-color 0.1s;
+                }
+                .unified-music-studio .ums-pad:hover,
+                .unified-music-studio .ums-pad:active {
+                    background: rgba(139,216,189,0.35);
+                    border-color: var(--sk-accent, #8bd8bd);
+                }
+                .unified-music-studio .ums-ai-panel {
+                    border: 1px solid rgba(156,39,176,0.3);
+                }
+                .unified-music-studio .ums-ai-settings {
+                    margin-top: 12px;
+                    padding-top: 12px;
+                    border-top: 1px solid var(--sk-border, rgba(255,255,255,0.1));
+                }
+                .unified-music-studio .ums-preset { text-align: left; }
+                .unified-music-studio .ums-gap16 { gap: 16px; }
+                .unified-music-studio .ums-caps { text-transform: capitalize; }
+                .unified-music-studio .ums-field-label {
+                    display: block;
+                    margin-bottom: 8px;
+                }
+                .unified-music-studio .ums-label-sm {
+                    font-size: 10px;
+                    opacity: 0.85;
+                }
+                .unified-music-studio .ums-suggestions .sk-label {
+                    display: block;
+                    margin-bottom: 8px;
+                }
             </style>
-            <div class="unified-music-studio" style="height: 100%; display: flex; flex-direction: column; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+            <div class="unified-music-studio ums-root">
                 <!-- Header -->
-                <div class="studio-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: rgba(0,0,0,0.3); border-bottom: 2px solid rgba(255,255,255,0.1);">
-                    <div class="header-left" style="display: flex; align-items: center; gap: 16px;">
-                        <h2 style="margin: 0; font-size: 20px; font-weight: 600; background: linear-gradient(45deg, #ff6b6b, #4ecdc4); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🎵 Music Studio</h2>
-                        <div class="transport-controls" style="display: flex; gap: 8px;">
-                            <button class="play-btn ${this.isPlaying ? 'playing' : ''}" onclick="togglePlayback()" style="width: 40px; height: 40px; border: none; border-radius: 50%; background: ${this.isPlaying ? '#f44336' : '#4CAF50'}; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.3s;">
+                <div class="studio-header ums-header">
+                    <div class="header-left ums-header-left">
+                        <h2 class="ums-title">🎵 Music Studio</h2>
+                        <div class="transport-controls sk-transport">
+                            <button class="play-btn sk-transport-btn is-main ${this.isPlaying ? 'is-playing' : ''}" onclick="togglePlayback()" aria-label="Play or pause">
                                 ${this.isPlaying ? '⏸️' : '▶️'}
                             </button>
-                            <button class="stop-btn" onclick="stopPlayback()" style="width: 40px; height: 40px; border: none; border-radius: 50%; background: #757575; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;">⏹️</button>
-                            <button class="record-btn ${this.recordingState.isRecording ? 'recording' : ''}" onclick="toggleRecording()" style="width: 40px; height: 40px; border: none; border-radius: 50%; background: ${this.recordingState.isRecording ? '#ff1744' : '#666'}; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;">⏺️</button>
+                            <button class="stop-btn sk-transport-btn" onclick="stopPlayback()" aria-label="Stop">⏹️</button>
+                            <button class="record-btn sk-transport-btn ${this.recordingState.isRecording ? 'is-recording' : ''}" onclick="toggleRecording()" aria-label="Record">⏺️</button>
                         </div>
-                        <div class="tempo-control" style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 12px; opacity: 0.8;">BPM:</span>
-                            <input type="number" value="${this.bpm}" min="60" max="200" onchange="updateBPM(this.value)" style="width: 60px; padding: 4px 8px; border: none; border-radius: 4px; background: rgba(255,255,255,0.1); color: white; font-size: 12px;">
+                        <div class="tempo-control ums-tempo">
+                            <span class="sk-label">BPM:</span>
+                            <input type="number" class="sk-input ums-bpm" value="${this.bpm}" min="60" max="200" onchange="updateBPM(this.value)" aria-label="Tempo in BPM">
                         </div>
                     </div>
                     
-                    <div class="header-controls" style="display: flex; gap: 8px;">
-                        <button class="view-btn ${this.currentView === 'composer' ? 'active' : ''}" onclick="switchView('composer')" style="padding: 8px 16px; background: ${this.currentView === 'composer' ? 'rgba(76, 175, 80, 0.8)' : 'rgba(255,255,255,0.1)'}; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 12px;">🎼 Composer</button>
-                        <button class="view-btn ${this.currentView === 'mixer' ? 'active' : ''}" onclick="switchView('mixer')" style="padding: 8px 16px; background: ${this.currentView === 'mixer' ? 'rgba(76, 175, 80, 0.8)' : 'rgba(255,255,255,0.1)'}; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 12px;">🎛️ Mixer</button>
-                        <button class="view-btn ${this.currentView === 'effects' ? 'active' : ''}" onclick="switchView('effects')" style="padding: 8px 16px; background: ${this.currentView === 'effects' ? 'rgba(76, 175, 80, 0.8)' : 'rgba(255,255,255,0.1)'}; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 12px;">✨ Effects</button>
-                        <button class="view-btn ${this.currentView === 'performance' ? 'active' : ''}" onclick="switchView('performance')" style="padding: 8px 16px; background: ${this.currentView === 'performance' ? 'rgba(76, 175, 80, 0.8)' : 'rgba(255,255,255,0.1)'}; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 12px;">🎭 Performance</button>
-                        <button class="ai-toggle" onclick="toggleAI()" style="padding: 8px 16px; background: ${this.showAIPanel ? 'rgba(156, 39, 176, 0.8)' : 'rgba(255,255,255,0.1)'}; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 12px;">🤖 AI</button>
+                    <div class="header-controls ums-header-controls">
+                        <button class="view-btn ums-view-btn ${this.currentView === 'composer' ? 'active' : ''}" onclick="switchView('composer')">🎼 Composer</button>
+                        <button class="view-btn ums-view-btn ${this.currentView === 'mixer' ? 'active' : ''}" onclick="switchView('mixer')">🎛️ Mixer</button>
+                        <button class="view-btn ums-view-btn ${this.currentView === 'effects' ? 'active' : ''}" onclick="switchView('effects')">✨ Effects</button>
+                        <button class="view-btn ums-view-btn ${this.currentView === 'performance' ? 'active' : ''}" onclick="switchView('performance')">🎭 Performance</button>
+                        <button class="ai-toggle ums-view-btn ${this.showAIPanel ? 'active' : ''}" onclick="toggleAI()">🤖 AI</button>
                     </div>
                 </div>
 
                 <!-- Main Content -->
-                <div class="studio-main" style="flex: 1; display: flex; overflow: hidden;">
+                <div class="studio-main ums-main">
                     ${this.renderCurrentView()}
                 </div>
 
                 <!-- Status Bar -->
-                <div class="status-bar" style="padding: 8px 16px; background: rgba(0,0,0,0.4); border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <div class="status-bar ums-statusbar">
                     <div class="status-left">
                         <span>♫ ${this.bpm} BPM • ${this.tracks.size} tracks • ${this.isPlaying ? 'Playing' : 'Stopped'}</span>
                     </div>
-                    <div class="status-center" style="display: flex; gap: 16px;">
+                    <div class="status-center ums-flexrow ums-gap16">
                         <span>🎚️ Master: ${Math.round(this.masterVolume * 100)}%</span>
                         <span>🎵 Pattern: ${this.currentPattern ? 'Active' : 'None'}</span>
                     </div>
@@ -488,49 +807,49 @@ note("c2 eb2 f2 g2").slow(4)
 
     renderComposerView() {
         return `
-            <div class="composer-view" style="display: flex; flex: 1; gap: 16px; padding: 16px;">
+            <div class="composer-view ums-view">
                 <!-- Code Editor Panel -->
-                <div class="code-panel" style="flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border-radius: 12px; overflow: hidden;">
-                    <div class="panel-header" style="padding: 12px 16px; background: rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="margin: 0; font-size: 16px; font-weight: 600;">🎼 Pattern Editor</h3>
-                        <div class="code-controls" style="display: flex; gap: 8px;">
-                            <button onclick="runPattern()" style="padding: 6px 12px; background: rgba(76, 175, 80, 0.8); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">▶️ Run</button>
-                            <button onclick="clearPattern()" style="padding: 6px 12px; background: rgba(244, 67, 54, 0.8); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">🗑️ Clear</button>
-                            <button onclick="savePattern()" style="padding: 6px 12px; background: rgba(33, 150, 243, 0.8); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">💾 Save</button>
+                <div class="code-panel sk-card ums-panel">
+                    <div class="panel-header ums-panel-header">
+                        <h3 class="sk-section-head">🎼 Pattern Editor</h3>
+                        <div class="code-controls ums-flexrow">
+                            <button class="sk-btn sk-btn-primary" onclick="runPattern()">▶️ Run</button>
+                            <button class="sk-btn sk-btn-danger" onclick="clearPattern()">🗑️ Clear</button>
+                            <button class="sk-btn" onclick="savePattern()">💾 Save</button>
                         </div>
                     </div>
-                    <div class="code-editor-container" style="flex: 1; position: relative;">
-                        <textarea class="code-editor" style="width: 100%; height: 100%; padding: 16px; border: none; background: rgba(0,0,0,0.5); color: #fff; font-family: 'Fira Code', 'Consolas', monospace; font-size: 14px; line-height: 1.6; resize: none; outline: none;" placeholder="Enter your Strudel patterns here...">${this.currentPattern}</textarea>
+                    <div class="code-editor-container ums-code-container">
+                        <textarea class="code-editor sk-textarea ums-code" placeholder="Enter your Strudel patterns here...">${this.currentPattern}</textarea>
                     </div>
-                    <div class="pattern-suggestions" style="padding: 12px 16px; background: rgba(255,255,255,0.05); border-top: 1px solid rgba(255,255,255,0.1);">
-                        <div style="font-size: 12px; margin-bottom: 8px; opacity: 0.8;">Quick patterns:</div>
-                        <div class="suggestion-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <button onclick="loadPattern('drums')" style="padding: 4px 8px; background: rgba(255,193,7,0.8); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">🥁 Drums</button>
-                            <button onclick="loadPattern('bass')" style="padding: 4px 8px; background: rgba(156,39,176,0.8); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">🎸 Bass</button>
-                            <button onclick="loadPattern('melody')" style="padding: 4px 8px; background: rgba(0,188,212,0.8); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">🎹 Melody</button>
-                            <button onclick="loadPattern('ambient')" style="padding: 4px 8px; background: rgba(76,175,80,0.8); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">🌊 Ambient</button>
+                    <div class="pattern-suggestions ums-suggestions">
+                        <div class="sk-label">Quick patterns:</div>
+                        <div class="suggestion-buttons ums-flexrow ums-wrap">
+                            <button class="ums-chip" onclick="loadPattern('drums')">🥁 Drums</button>
+                            <button class="ums-chip" onclick="loadPattern('bass')">🎸 Bass</button>
+                            <button class="ums-chip" onclick="loadPattern('melody')">🎹 Melody</button>
+                            <button class="ums-chip" onclick="loadPattern('ambient')">🌊 Ambient</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Side Panels -->
-                <div class="side-panels" style="width: 300px; display: flex; flex-direction: column; gap: 16px;">
+                <div class="side-panels ums-sidepanels">
                     <!-- Visualizer -->
-                    <div class="visualizer-panel" style="height: 200px; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px;">
-                        <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600;">📊 Visualizer</h4>
-                        <canvas class="waveform-canvas" width="268" height="120" style="width: 100%; height: 120px; border-radius: 8px; background: rgba(0,0,0,0.5);"></canvas>
-                        <div class="visualizer-controls" style="margin-top: 8px; display: flex; gap: 8px;">
-                            <button onclick="toggleVisualizer('waveform')" style="padding: 4px 8px; background: rgba(76,175,80,0.8); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">🌊 Wave</button>
-                            <button onclick="toggleVisualizer('spectrum')" style="padding: 4px 8px; background: rgba(156,39,176,0.8); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">📊 Spectrum</button>
+                    <div class="visualizer-panel sk-card ums-visualizer">
+                        <h4 class="sk-section-head">📊 Visualizer</h4>
+                        <canvas class="waveform-canvas ums-canvas-frame" width="268" height="120"></canvas>
+                        <div class="visualizer-controls ums-flexrow">
+                            <button class="ums-chip" onclick="toggleVisualizer('waveform')">🌊 Wave</button>
+                            <button class="ums-chip" onclick="toggleVisualizer('spectrum')">📊 Spectrum</button>
                         </div>
                     </div>
 
                     ${this.showAIPanel ? this.renderAIPanel() : ''}
 
                     <!-- Pattern Library -->
-                    <div class="pattern-library" style="flex: 1; min-height: 200px; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px;">
-                        <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600;">📚 Pattern Library</h4>
-                        <div class="pattern-list" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="pattern-library sk-card ums-panel ums-library">
+                        <h4 class="sk-section-head">📚 Pattern Library</h4>
+                        <div class="pattern-list ums-col">
                             ${this.renderPatternLibrary()}
                         </div>
                     </div>
@@ -541,18 +860,18 @@ note("c2 eb2 f2 g2").slow(4)
 
     renderMixerView() {
         return `
-            <div class="mixer-view" style="display: flex; flex: 1; gap: 16px; padding: 16px;">
+            <div class="mixer-view ums-view">
                 <!-- Track Mixer -->
-                <div class="track-mixer" style="flex: 1; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px;">
-                    <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">🎛️ Track Mixer</h3>
-                    <div class="mixer-channels" style="display: flex; gap: 12px; overflow-x: auto;">
+                <div class="track-mixer sk-card ums-panel">
+                    <h3 class="sk-section-head">🎛️ Track Mixer</h3>
+                    <div class="mixer-channels ums-mixer-channels">
                         ${this.renderMixerChannels()}
                     </div>
                 </div>
 
                 <!-- Master Section -->
-                <div class="master-section" style="width: 200px; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px;">
-                    <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600;">🎚️ Master</h4>
+                <div class="master-section sk-card ums-panel ums-master">
+                    <h4 class="sk-section-head">🎚️ Master</h4>
                     ${this.renderMasterControls()}
                 </div>
             </div>
@@ -561,18 +880,18 @@ note("c2 eb2 f2 g2").slow(4)
 
     renderEffectsView() {
         return `
-            <div class="effects-view" style="display: flex; flex: 1; gap: 16px; padding: 16px;">
+            <div class="effects-view ums-view">
                 <!-- Effects Rack -->
-                <div class="effects-rack" style="flex: 1; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px;">
-                    <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">✨ Effects Rack</h3>
-                    <div class="effects-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+                <div class="effects-rack sk-card ums-panel">
+                    <h3 class="sk-section-head">✨ Effects Rack</h3>
+                    <div class="effects-grid ums-effects-grid">
                         ${this.renderEffectsRack()}
                     </div>
                 </div>
 
                 <!-- Presets -->
-                <div class="presets-panel" style="width: 250px; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px;">
-                    <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600;">🎛️ Presets</h4>
+                <div class="presets-panel sk-card ums-panel ums-presets">
+                    <h4 class="sk-section-head">🎛️ Presets</h4>
                     ${this.renderPresetsPanel()}
                 </div>
             </div>
@@ -581,27 +900,27 @@ note("c2 eb2 f2 g2").slow(4)
 
     renderPerformanceView() {
         return `
-            <div class="performance-view" style="display: flex; flex: 1; gap: 16px; padding: 16px;">
+            <div class="performance-view ums-view">
                 <!-- Performance Controller -->
-                <div class="performance-controller" style="flex: 1; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px;">
-                    <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">🎭 Performance Mode</h3>
-                    <div class="performance-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px;">
+                <div class="performance-controller sk-card ums-panel">
+                    <h3 class="sk-section-head">🎭 Performance Mode</h3>
+                    <div class="performance-grid ums-pad-grid">
                         ${this.renderPerformancePads()}
                     </div>
-                    <div class="performance-controls" style="display: flex; gap: 12px; justify-content: center;">
-                        <button class="performance-btn" style="padding: 12px 24px; background: rgba(76,175,80,0.8); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">🎹 Keyboard</button>
-                        <button class="performance-btn" style="padding: 12px 24px; background: rgba(33,150,243,0.8); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">🎚️ XY Pad</button>
-                        <button class="performance-btn" style="padding: 12px 24px; background: rgba(156,39,176,0.8); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">🎛️ Knobs</button>
+                    <div class="performance-controls ums-flexrow ums-center">
+                        <button class="sk-btn sk-btn-primary performance-btn">🎹 Keyboard</button>
+                        <button class="sk-btn performance-btn">🎚️ XY Pad</button>
+                        <button class="sk-btn performance-btn">🎛️ Knobs</button>
                     </div>
                 </div>
 
                 <!-- Live Coding Panel -->
-                <div class="live-coding-panel" style="width: 400px; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px;">
-                    <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600;">💻 Live Coding</h4>
-                    <textarea class="live-code-editor" style="width: 100%; height: 200px; padding: 12px; border: none; background: rgba(0,0,0,0.5); color: #fff; font-family: 'Fira Code', monospace; font-size: 12px; border-radius: 8px; resize: none;" placeholder="Live code here..."></textarea>
-                    <div class="live-controls" style="margin-top: 12px; display: flex; gap: 8px;">
-                        <button style="flex: 1; padding: 8px; background: rgba(76,175,80,0.8); color: white; border: none; border-radius: 6px; cursor: pointer;">▶️ Execute</button>
-                        <button style="flex: 1; padding: 8px; background: rgba(244,67,54,0.8); color: white; border: none; border-radius: 6px; cursor: pointer;">🛑 Stop</button>
+                <div class="live-coding-panel sk-card ums-panel ums-live">
+                    <h4 class="sk-section-head">💻 Live Coding</h4>
+                    <textarea class="live-code-editor sk-textarea ums-live-code" placeholder="Live code here..."></textarea>
+                    <div class="live-controls ums-flexrow">
+                        <button class="sk-btn sk-btn-primary ums-flex1">▶️ Execute</button>
+                        <button class="sk-btn sk-btn-danger ums-flex1">🛑 Stop</button>
                     </div>
                 </div>
             </div>
@@ -610,17 +929,17 @@ note("c2 eb2 f2 g2").slow(4)
 
     renderAIPanel() {
         return `
-            <div class="ai-panel" style="background: rgba(156,39,176,0.2); border: 1px solid rgba(156,39,176,0.3); border-radius: 12px; padding: 16px;">
-                <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600;">🤖 AI Assistant</h4>
-                <div class="ai-controls" style="display: flex; flex-direction: column; gap: 8px;">
-                    <button onclick="generatePattern('drums')" style="width: 100%; padding: 8px; background: rgba(76,175,80,0.8); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">🥁 Generate Drums</button>
-                    <button onclick="generatePattern('bass')" style="width: 100%; padding: 8px; background: rgba(156,39,176,0.8); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">🎸 Generate Bass</button>
-                    <button onclick="generatePattern('melody')" style="width: 100%; padding: 8px; background: rgba(33,150,243,0.8); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">🎹 Generate Melody</button>
-                    <button onclick="improveCurrentPattern()" style="width: 100%; padding: 8px; background: rgba(255,152,0,0.8); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">✨ Improve Pattern</button>
+            <div class="ai-panel sk-card ums-ai-panel">
+                <h4 class="sk-section-head">🤖 AI Assistant</h4>
+                <div class="ai-controls ums-col">
+                    <button class="sk-btn ums-full" onclick="generatePattern('drums')">🥁 Generate Drums</button>
+                    <button class="sk-btn ums-full" onclick="generatePattern('bass')">🎸 Generate Bass</button>
+                    <button class="sk-btn ums-full" onclick="generatePattern('melody')">🎹 Generate Melody</button>
+                    <button class="sk-btn ums-full" onclick="improveCurrentPattern()">✨ Improve Pattern</button>
                 </div>
-                <div class="ai-settings" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <div style="font-size: 11px; margin-bottom: 6px;">Style:</div>
-                    <select class="ai-style-select" style="width: 100%; padding: 4px; background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 4px; font-size: 11px;">
+                <div class="ai-settings ums-ai-settings">
+                    <div class="sk-label ums-field-label">Style:</div>
+                    <select class="ai-style-select sk-select ums-full">
                         <option value="ambient">Ambient</option>
                         <option value="techno">Techno</option>
                         <option value="drum-and-bass">Drum & Bass</option>
@@ -641,27 +960,27 @@ note("c2 eb2 f2 g2").slow(4)
         ];
 
         return samplePatterns.map(pattern => `
-            <div class="pattern-item" onclick="loadSamplePattern('${pattern.pattern}')" style="padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; transition: background 0.2s; border-left: 3px solid ${this.getCategoryColor(pattern.category)};">
-                <div style="font-size: 12px; font-weight: 600; margin-bottom: 2px;">${pattern.name}</div>
-                <div style="font-size: 10px; opacity: 0.7; font-family: monospace;">${pattern.pattern}</div>
+            <div class="pattern-item ums-pattern-item" onclick="loadSamplePattern('${pattern.pattern}')" style="border-left: 3px solid ${this.getCategoryColor(pattern.category)};">
+                <div class="ums-pattern-name">${pattern.name}</div>
+                <div class="ums-pattern-code">${pattern.pattern}</div>
             </div>
         `).join('');
     }
 
     renderMixerChannels() {
         return Array.from(this.tracks.entries()).map(([trackId, track]) => `
-            <div class="mixer-channel" style="width: 80px; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
-                <div class="channel-header" style="text-align: center;">
-                    <div style="font-size: 11px; font-weight: 600; margin-bottom: 4px;">${track.name}</div>
-                    <div style="font-size: 9px; opacity: 0.7;">${track.type}</div>
+            <div class="mixer-channel sk-card ums-channel">
+                <div class="channel-header ums-channel-head">
+                    <div class="ums-channel-name">${track.name}</div>
+                    <div class="ums-channel-type">${track.type}</div>
                 </div>
-                <div class="channel-controls" style="display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1;">
-                    <input type="range" min="0" max="1" step="0.01" value="${track.volume}" style="writing-mode: bt-lr; -webkit-appearance: slider-vertical; width: 4px; height: 100px; background: rgba(255,255,255,0.2); outline: none;">
-                    <div style="font-size: 10px;">${Math.round(track.volume * 100)}%</div>
+                <div class="channel-controls ums-channel-controls">
+                    <input type="range" class="ums-fader" min="0" max="1" step="0.01" value="${track.volume}" aria-label="${track.name} volume">
+                    <div class="ums-readout">${Math.round(track.volume * 100)}%</div>
                 </div>
-                <div class="channel-buttons" style="display: flex; flex-direction: column; gap: 4px;">
-                    <button class="${track.solo ? 'active' : ''}" style="width: 24px; height: 20px; border: none; border-radius: 4px; background: ${track.solo ? '#FFD700' : 'rgba(255,255,255,0.2)'}; color: ${track.solo ? '#000' : '#fff'}; font-size: 9px; cursor: pointer;">S</button>
-                    <button class="${track.muted ? 'active' : ''}" style="width: 24px; height: 20px; border: none; border-radius: 4px; background: ${track.muted ? '#f44336' : 'rgba(255,255,255,0.2)'}; color: #fff; font-size: 9px; cursor: pointer;">M</button>
+                <div class="channel-buttons ums-col">
+                    <button class="ums-mini-btn solo ${track.solo ? 'active' : ''}" aria-label="Solo ${track.name}">S</button>
+                    <button class="ums-mini-btn mute ${track.muted ? 'active' : ''}" aria-label="Mute ${track.name}">M</button>
                 </div>
             </div>
         `).join('');
@@ -669,17 +988,17 @@ note("c2 eb2 f2 g2").slow(4)
 
     renderMasterControls() {
         return `
-            <div class="master-controls" style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="master-controls ums-col ums-col-gap16">
                 <div class="master-volume">
-                    <div style="font-size: 12px; margin-bottom: 8px;">Volume</div>
-                    <input type="range" min="0" max="1" step="0.01" value="${this.masterVolume}" onchange="updateMasterVolume(this.value)" style="width: 100%;">
-                    <div style="font-size: 10px; text-align: center; margin-top: 4px;">${Math.round(this.masterVolume * 100)}%</div>
+                    <div class="sk-label ums-field-label">Volume</div>
+                    <input type="range" class="sk-range" min="0" max="1" step="0.01" value="${this.masterVolume}" onchange="updateMasterVolume(this.value)" aria-label="Master volume">
+                    <div class="ums-readout">${Math.round(this.masterVolume * 100)}%</div>
                 </div>
                 <div class="master-effects">
-                    <div style="font-size: 12px; margin-bottom: 8px;">Master FX</div>
-                    <button style="width: 100%; padding: 6px; background: rgba(33,150,243,0.8); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; margin-bottom: 4px;">🌊 Reverb</button>
-                    <button style="width: 100%; padding: 6px; background: rgba(156,39,176,0.8); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; margin-bottom: 4px;">🔊 Limiter</button>
-                    <button style="width: 100%; padding: 6px; background: rgba(255,152,0,0.8); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">📊 EQ</button>
+                    <div class="sk-label ums-field-label">Master FX</div>
+                    <button class="sk-btn ums-full">🌊 Reverb</button>
+                    <button class="sk-btn ums-full">🔊 Limiter</button>
+                    <button class="sk-btn ums-full">📊 EQ</button>
                 </div>
             </div>
         `;
@@ -687,14 +1006,14 @@ note("c2 eb2 f2 g2").slow(4)
 
     renderEffectsRack() {
         return Array.from(this.effects.entries()).map(([effectId, effect]) => `
-            <div class="effect-module" style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 16px;">
-                <h5 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 600; text-transform: capitalize;">${effect.type}</h5>
-                <div class="effect-controls" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div class="effect-module sk-card ums-effect">
+                <h5 class="sk-section-head ums-caps">${effect.type}</h5>
+                <div class="effect-controls ums-effect-grid">
                     ${this.renderEffectControls(effect)}
                 </div>
-                <div class="effect-buttons" style="margin-top: 12px; display: flex; gap: 4px;">
-                    <button style="flex: 1; padding: 4px; background: rgba(76,175,80,0.8); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 10px;">ON</button>
-                    <button style="flex: 1; padding: 4px; background: rgba(244,67,54,0.8); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 10px;">OFF</button>
+                <div class="effect-buttons ums-flexrow">
+                    <button class="sk-btn sk-btn-primary ums-flex1">ON</button>
+                    <button class="sk-btn sk-btn-danger ums-flex1">OFF</button>
                 </div>
             </div>
         `).join('');
@@ -706,8 +1025,8 @@ note("c2 eb2 f2 g2").slow(4)
             if (param !== 'type' && typeof value === 'number') {
                 controls.push(`
                     <div class="control-group">
-                        <label style="font-size: 10px; opacity: 0.8;">${param}</label>
-                        <input type="range" min="0" max="1" step="0.01" value="${value}" style="width: 100%;">
+                        <label class="sk-label ums-label-sm">${param}</label>
+                        <input type="range" class="sk-range" min="0" max="1" step="0.01" value="${value}" aria-label="${param}">
                     </div>
                 `);
             }
@@ -717,12 +1036,12 @@ note("c2 eb2 f2 g2").slow(4)
 
     renderPresetsPanel() {
         return `
-            <div class="presets-list" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="presets-list ums-col">
                 ${Array.from(this.presets.keys()).map(category => `
                     <div class="preset-category">
-                        <div style="font-size: 11px; font-weight: 600; margin-bottom: 4px; text-transform: capitalize;">${category}</div>
+                        <div class="sk-label ums-field-label ums-caps">${category}</div>
                         ${Object.keys(this.presets.get(category)).map(preset => `
-                            <button onclick="loadPreset('${category}', '${preset}')" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.05); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 10px; margin-bottom: 2px; text-align: left;">${preset}</button>
+                            <button class="sk-btn ums-full ums-preset" onclick="loadPreset('${category}', '${preset}')">${preset}</button>
                         `).join('')}
                     </div>
                 `).join('')}
@@ -732,7 +1051,7 @@ note("c2 eb2 f2 g2").slow(4)
 
     renderPerformancePads() {
         return Array.from({ length: 16 }, (_, i) => `
-            <button class="performance-pad" onclick="triggerPad(${i})" style="aspect-ratio: 1; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.1s;" onmousedown="this.style.background='rgba(76,175,80,0.8)'" onmouseup="this.style.background='rgba(255,255,255,0.1)'">
+            <button class="performance-pad ums-pad" onclick="triggerPad(${i})" aria-label="Trigger pad ${i + 1}">
                 ${i + 1}
             </button>
         `).join('');
@@ -907,6 +1226,77 @@ window.toggleAI = function() {
                 mainContent.innerHTML = window.unifiedMusicStudioInstance.renderCurrentView();
             }
         }
+    }
+};
+
+// Composer-view controls referenced by inline onclick handlers. All operate
+// on the real local audio engine / localStorage; nothing claims a backend.
+function musicStudioEditor() {
+    return document.querySelector('.code-editor');
+}
+
+window.runPattern = function() {
+    const inst = window.unifiedMusicStudioInstance;
+    const editor = musicStudioEditor();
+    if (!inst || !editor) return;
+    inst.currentPattern = editor.value;
+    try {
+        if (inst.strudelEngine?.evaluate) inst.strudelEngine.evaluate(inst.currentPattern);
+        if (inst.strudelEngine?.start) inst.strudelEngine.start();
+        else { inst.isPlaying = true; }
+        console.log('▶️ Pattern running (local audio engine)');
+    } catch (error) {
+        console.warn('Pattern run failed:', error);
+    }
+};
+
+window.clearPattern = function() {
+    const inst = window.unifiedMusicStudioInstance;
+    const editor = musicStudioEditor();
+    if (editor) editor.value = '';
+    if (inst) {
+        inst.currentPattern = '';
+        inst.strudelEngine?.stop?.();
+        console.log('🗑️ Pattern cleared (local)');
+    }
+};
+
+window.savePattern = function() {
+    const inst = window.unifiedMusicStudioInstance;
+    const editor = musicStudioEditor();
+    const code = editor ? editor.value : (inst?.currentPattern || '');
+    if (!code.trim()) return;
+    try {
+        const saved = JSON.parse(localStorage.getItem('music-studio-patterns') || '[]');
+        saved.push({ name: `Pattern ${saved.length + 1}`, code, savedAt: new Date().toISOString() });
+        localStorage.setItem('music-studio-patterns', JSON.stringify(saved));
+        console.log(`💾 Pattern saved locally (${saved.length} stored)`);
+    } catch (error) {
+        console.warn('Local pattern save failed:', error);
+    }
+};
+
+window.loadPattern = function(name) {
+    const inst = window.unifiedMusicStudioInstance;
+    const editor = musicStudioEditor();
+    const quickPatterns = {
+        drums: '"bd*2 ~ sn ~".layer("hh*8".gain(0.3))',
+        bass: 'note("c2 c2 g2 a2").slow(2).gain(0.8)',
+        melody: 'note("c4 e4 g4 b4").slow(2)',
+        ambient: '"c4 e4 g4".chord().slow(8).gain(0.5).delay(0.3)'
+    };
+    const pattern = quickPatterns[name];
+    if (!pattern) return;
+    if (editor) editor.value = pattern;
+    if (inst) inst.currentPattern = pattern;
+    console.log(`📚 Loaded built-in pattern: ${name} (local)`);
+};
+
+window.toggleVisualizer = function(mode) {
+    const inst = window.unifiedMusicStudioInstance;
+    if (inst) {
+        inst.visualizerMode = mode;
+        console.log(`📊 Visualizer mode: ${mode} (local)`);
     }
 };
 

@@ -85,8 +85,8 @@ export class TaskManagerApp {
           <div class="tab-content ${this.currentView === 'processes' ? 'active' : ''}" data-view="processes">
             <div class="processes-toolbar">
               <div class="search-section">
-                <input type="text" id="process-search" placeholder="Search processes..." class="search-input">
-                <select id="process-filter" class="filter-select">
+                <input type="text" id="process-search" placeholder="Search processes..." class="search-input sk-input">
+                <select id="process-filter" class="filter-select sk-select">
                   <option value="all">All Processes</option>
                   <option value="high-cpu">High CPU</option>
                   <option value="high-memory">High Memory</option>
@@ -95,8 +95,8 @@ export class TaskManagerApp {
                 </select>
               </div>
               <div class="action-section">
-                <button class="action-btn" id="refresh-processes">🔄 Refresh</button>
-                <button class="action-btn danger" id="kill-selected" disabled>⚠️ End Task</button>
+                <button class="action-btn sk-btn" id="refresh-processes">🔄 Refresh</button>
+                <button class="action-btn danger sk-btn sk-btn-danger" id="kill-selected" disabled>⚠️ End Task</button>
               </div>
             </div>
             
@@ -123,7 +123,7 @@ export class TaskManagerApp {
           <!-- Performance View -->
           <div class="tab-content ${this.currentView === 'performance' ? 'active' : ''}" data-view="performance">
             <div class="performance-overview">
-              <div class="metric-card cpu-card">
+              <div class="metric-card cpu-card sk-card">
                 <div class="metric-header">
                   <span class="metric-icon">🔥</span>
                   <span class="metric-title">CPU Usage</span>
@@ -136,7 +136,7 @@ export class TaskManagerApp {
                 </div>
               </div>
 
-              <div class="metric-card memory-card">
+              <div class="metric-card memory-card sk-card">
                 <div class="metric-header">
                   <span class="metric-icon">🧠</span>
                   <span class="metric-title">Memory Usage</span>
@@ -149,7 +149,7 @@ export class TaskManagerApp {
                 </div>
               </div>
 
-              <div class="metric-card gpu-card">
+              <div class="metric-card gpu-card sk-card">
                 <div class="metric-header">
                   <span class="metric-icon">🎮</span>
                   <span class="metric-title">GPU Usage</span>
@@ -162,7 +162,7 @@ export class TaskManagerApp {
                 </div>
               </div>
 
-              <div class="metric-card network-card">
+              <div class="metric-card network-card sk-card">
                 <div class="metric-header">
                   <span class="metric-icon">🌐</span>
                   <span class="metric-title">Network</span>
@@ -259,16 +259,16 @@ export class TaskManagerApp {
               </div>
               
               <div class="p2p-controls">
-                <button class="p2p-btn" id="enable-task-sharing">🔄 Enable Task Sharing</button>
-                <button class="p2p-btn" id="broadcast-availability">📡 Broadcast Availability</button>
-                <button class="p2p-btn" id="optimize-network">⚡ Optimize Network</button>
+                <button class="p2p-btn sk-btn" id="enable-task-sharing">🔄 Enable Task Sharing</button>
+                <button class="p2p-btn sk-btn" id="broadcast-availability">📡 Broadcast Availability</button>
+                <button class="p2p-btn sk-btn" id="optimize-network">⚡ Optimize Network</button>
               </div>
             </div>
 
             <div class="p2p-tasks">
               <h3>🎯 Distributed Tasks</h3>
               <div class="tasks-toolbar">
-                <select id="task-filter" class="filter-select">
+                <select id="task-filter" class="filter-select sk-select">
                   <option value="all">All Tasks</option>
                   <option value="running">Running</option>
                   <option value="completed">Completed</option>
@@ -276,7 +276,7 @@ export class TaskManagerApp {
                   <option value="local">Local</option>
                   <option value="remote">Remote</option>
                 </select>
-                <button class="refresh-btn" id="refresh-p2p-tasks">🔄 Refresh</button>
+                <button class="refresh-btn sk-btn" id="refresh-p2p-tasks">🔄 Refresh</button>
               </div>
               
               <div class="tasks-list" id="p2p-tasks-list">
@@ -408,30 +408,32 @@ export class TaskManagerApp {
   }
 
   async getSystemInfo() {
-    // Gather real system information from browser APIs
+    // Gather real system information from browser APIs. Metrics the browser
+    // does not expose (CPU/GPU utilization, memory breakdown, latency) are
+    // reported as null and rendered as "n/a" — never fabricated.
     const info = {
       cpu: {
         cores: navigator.hardwareConcurrency || 4,
         speed: await this.estimateCPUSpeed(),
-        usage: Math.random() * 100 // Browser limitation: actual CPU usage not available
+        usage: null // Browser limitation: actual CPU usage not available
       },
       memory: {
         total: this.estimateDeviceMemory(),
-        used: Math.random() * 6 * 1024 * 1024 * 1024, // Browser limitation
-        available: 2 * 1024 * 1024 * 1024 // Browser limitation
+        used: this.estimateMemoryUsed(),
+        available: null // Browser limitation: not exposed
       },
       gpu: {
         type: this.getGPUInfo(),
         memory: this.estimateGPUMemory(),
-        usage: Math.random() * 100 // Browser limitation: actual GPU usage not available
+        usage: null // Browser limitation: actual GPU usage not available
       },
       network: {
         speed: this.getNetworkSpeed(),
-        latency: Math.random() * 50 + 10, // Would need external ping service
+        latency: null, // Would need an external ping service
         connections: this.estimateActiveConnections()
       }
     };
-    
+
     return info;
   }
 
@@ -451,6 +453,15 @@ export class TaskManagerApp {
       return navigator.deviceMemory * 1024 * 1024 * 1024; // Convert GB to bytes
     }
     return 8 * 1024 * 1024 * 1024; // Default 8GB estimate
+  }
+
+  estimateMemoryUsed() {
+    // Real JS heap usage when the browser exposes it (Chromium); null when
+    // not exposed — rendered as "n/a", never fabricated.
+    if (typeof performance !== 'undefined' && performance.memory && performance.memory.usedJSHeapSize) {
+      return performance.memory.usedJSHeapSize;
+    }
+    return null;
   }
 
   estimateGPUMemory() {
@@ -508,18 +519,17 @@ export class TaskManagerApp {
     
     if (cpuCores) cpuCores.textContent = info.cpu.cores;
     if (cpuSpeed) cpuSpeed.textContent = info.cpu.speed;
-    if (cpuUsage) cpuUsage.textContent = `${info.cpu.usage.toFixed(1)}%`;
+    if (cpuUsage) cpuUsage.textContent = info.cpu.usage == null ? 'n/a (not exposed by browser)' : `${info.cpu.usage.toFixed(1)}%`;
     
     // Update Memory information
     const memoryUsed = document.getElementById('memory-used');
     const memoryTotal = document.getElementById('memory-total');
     const memoryUsage = document.getElementById('memory-usage');
     
-    if (memoryUsed) memoryUsed.textContent = this.formatBytes(info.memory.used);
+    if (memoryUsed) memoryUsed.textContent = info.memory.used == null ? 'n/a (JS heap not exposed)' : this.formatBytes(info.memory.used);
     if (memoryTotal) memoryTotal.textContent = this.formatBytes(info.memory.total);
     if (memoryUsage) {
-      const percentage = (info.memory.used / info.memory.total) * 100;
-      memoryUsage.textContent = `${percentage.toFixed(1)}%`;
+      memoryUsage.textContent = info.memory.used == null ? 'n/a' : `${((info.memory.used / info.memory.total) * 100).toFixed(1)}%`;
     }
     
     // Update GPU information
@@ -529,12 +539,12 @@ export class TaskManagerApp {
     
     if (gpuType) gpuType.textContent = info.gpu.type;
     if (gpuMemory) gpuMemory.textContent = info.gpu.memory;
-    if (gpuUsage) gpuUsage.textContent = `${info.gpu.usage.toFixed(1)}%`;
+    if (gpuUsage) gpuUsage.textContent = info.gpu.usage == null ? 'n/a (not exposed by browser)' : `${info.gpu.usage.toFixed(1)}%`;
     
     // Store for monitoring
     this.systemMetrics = {
       cpu: info.cpu.usage,
-      memory: (info.memory.used / info.memory.total) * 100,
+      memory: info.memory.used == null ? null : (info.memory.used / info.memory.total) * 100,
       gpu: info.gpu.usage,
       network: info.network.speed,
       storage: 0 // Will be calculated separately
@@ -560,19 +570,29 @@ export class TaskManagerApp {
   }
 
   async getRunningProcesses() {
-    // Simulate process data (in a real implementation, this would interface with system APIs)
-    const mockProcesses = [
-      { pid: 1, name: 'SwissKnife Desktop', cpu: 2.1, memory: 45.2, status: 'running' },
-      { pid: 2, name: 'Web Browser', cpu: 8.7, memory: 156.8, status: 'running' },
-      { pid: 3, name: 'AI Model Server', cpu: 15.3, memory: 289.6, status: 'running' },
-      { pid: 4, name: 'P2P Network Manager', cpu: 3.2, memory: 67.4, status: 'running' },
-      { pid: 5, name: 'IPFS Node', cpu: 1.8, memory: 23.1, status: 'running' },
-      { pid: 6, name: 'Terminal Session', cpu: 0.5, memory: 12.3, status: 'running' },
-      { pid: 7, name: 'File System Monitor', cpu: 0.2, memory: 8.9, status: 'sleeping' },
-      { pid: 8, name: 'System Monitor', cpu: 1.1, memory: 15.7, status: 'running' }
-    ];
-    
-    return mockProcesses;
+    // Honestly local: the browser exposes no host process table. Tasks are
+    // the desktop session's real open windows — nothing fabricated.
+    const desktop = this.desktop || window.desktop;
+    const wins = desktop?.windows;
+    const processes = [];
+    let pid = 100;
+    const push = (windowId, title, minimized) => processes.push({
+      pid: pid++,
+      windowId,
+      name: title || 'Unknown App',
+      cpu: null,      // not exposed by the browser
+      memory: null,   // not exposed by the browser
+      status: minimized ? 'sleeping' : 'running'
+    });
+    if (wins instanceof Map) {
+      for (const [id, w] of wins) push(id, w?.title || w?.appId || id, !!w?.minimized);
+    } else if (wins && typeof wins === 'object') {
+      for (const id of Object.keys(wins)) {
+        const w = wins[id];
+        push(id, (w && (w.title || w.appId)) || id, false);
+      }
+    }
+    return processes;
   }
 
   displayProcesses(processes) {
@@ -584,14 +604,14 @@ export class TaskManagerApp {
         <td><input type="checkbox" class="process-checkbox" value="${process.pid}"></td>
         <td class="process-name">${process.name}</td>
         <td class="process-pid">${process.pid}</td>
-        <td class="process-cpu">${process.cpu.toFixed(1)}%</td>
-        <td class="process-memory">${process.memory.toFixed(1)} MB</td>
+        <td class="process-cpu">${process.cpu == null ? 'n/a' : process.cpu.toFixed(1) + '%'}</td>
+        <td class="process-memory">${process.memory == null ? 'n/a' : process.memory.toFixed(1) + ' MB'}</td>
         <td class="process-status">
-          <span class="status-badge status-${process.status}">${process.status}</span>
+          <span class="status-badge status-${process.status}"><span class="sk-status-dot ${process.status === 'running' ? 'is-ok' : process.status === 'sleeping' ? 'is-warn' : 'is-err'}"></span>${process.status}</span>
         </td>
         <td class="process-actions">
           <button class="action-btn small" onclick="taskManager.viewProcessDetails(${process.pid})" title="Details">🔍</button>
-          <button class="action-btn small danger" onclick="taskManager.killProcess(${process.pid})" title="End Task">❌</button>
+          <button class="action-btn small danger" onclick="taskManager.killProcess(${process.pid})" title="End Task (closes window)">❌</button>
         </td>
       </tr>
     `).join('');
@@ -605,7 +625,7 @@ export class TaskManagerApp {
     
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="error-message">
+        <td colspan="7" class="error-message sk-empty">
           ⚠️ Unable to load process information. This feature requires system-level access.
         </td>
       </tr>
@@ -653,10 +673,17 @@ export class TaskManagerApp {
   updateMiniChart(elementId, value, max) {
     const element = document.getElementById(elementId);
     if (!element) return;
-    
+
+    if (value == null) {
+      element.innerHTML = `
+        <div class="mini-chart-text">n/a</div>
+      `;
+      return;
+    }
+
     const percentage = (value / max) * 100;
     const barWidth = Math.min(percentage, 100);
-    
+
     element.innerHTML = `
       <div class="mini-chart-bar" style="width: ${barWidth}%; background: ${this.getBarColor(percentage)}"></div>
       <div class="mini-chart-text">${value.toFixed(1)}</div>
@@ -818,7 +845,7 @@ export class TaskManagerApp {
           <td>${conn.protocol}</td>
           <td>${conn.local}</td>
           <td>${conn.remote}</td>
-          <td><span class="status-badge status-${conn.state.toLowerCase()}">${conn.state}</span></td>
+          <td><span class="status-badge status-${conn.state.toLowerCase()}"><span class="sk-status-dot ${/established|connected/i.test(conn.state) ? 'is-ok' : 'is-idle'}"></span>${conn.state}</span></td>
           <td>${conn.process}</td>
           <td>${(Math.random() * 10).toFixed(1)} MB/s</td>
         </tr>
@@ -1010,31 +1037,55 @@ export class TaskManagerApp {
   }
 
   async killProcess(pid) {
-    if (!confirm(`Are you sure you want to end process ${pid}?`)) {
+    const process = this.processes.find(p => p.pid === pid);
+    if (!process) return;
+    if (!confirm(`End "${process.name}"? This closes its desktop window.`)) {
       return;
     }
-    
+
     try {
-      // In a real implementation, this would send a kill signal
-      console.log(`Killing process ${pid}`);
-      
+      // Real local action: close the desktop window backing this task.
+      // The browser cannot signal host OS processes, and this app no longer
+      // pretends it can.
+      const desktop = this.desktop || window.desktop;
+      const wins = desktop?.windows;
+      let closed = false;
+      if (wins instanceof Map && process.windowId != null) {
+        const entry = wins.get(process.windowId);
+        const element = entry?.element || (typeof entry === 'object' ? null : null);
+        const windowElement = document.getElementById(String(process.windowId));
+        if (windowElement) {
+          wins.delete(process.windowId);
+          windowElement.remove();
+          closed = true;
+        } else if (entry) {
+          wins.delete(process.windowId);
+          closed = true;
+        }
+      } else if (wins && typeof wins === 'object' && process.windowId != null) {
+        const windowElement = document.getElementById(String(process.windowId));
+        if (windowElement) windowElement.remove();
+        delete wins[process.windowId];
+        closed = true;
+      }
+
       // Remove from local list
       this.processes = this.processes.filter(p => p.pid !== pid);
       this.displayProcesses(this.processes);
-      
+
       // Show notification
-      this.showNotification(`Process ${pid} terminated`, 'success');
+      this.showNotification(closed ? `Ended "${process.name}" (window closed)` : `Removed "${process.name}" from the task list`, 'success');
     } catch (error) {
-      console.error('Error killing process:', error);
-      this.showNotification('Failed to terminate process', 'error');
+      console.error('Error ending task:', error);
+      this.showNotification(`Failed to end task: ${error.message}`, 'error');
     }
   }
 
   viewProcessDetails(pid) {
     const process = this.processes.find(p => p.pid === pid);
     if (!process) return;
-    
-    alert(`Process Details:\nPID: ${process.pid}\nName: ${process.name}\nCPU: ${process.cpu}%\nMemory: ${process.memory} MB\nStatus: ${process.status}`);
+
+    alert(`Task Details (local desktop session):\nPID: ${process.pid}\nName: ${process.name}\nCPU: ${process.cpu == null ? 'n/a (not exposed by browser)' : process.cpu + '%'}\nMemory: ${process.memory == null ? 'n/a (not exposed by browser)' : process.memory + ' MB'}\nStatus: ${process.status}`);
   }
 
   showNotification(message, type = 'info') {
@@ -1055,6 +1106,8 @@ export class TaskManagerApp {
   // Modern app framework methods
   async initialize() {
     console.log('🚀 Initializing Task Manager app...');
+    // Live instance for inline handlers (one desktop window per app).
+    if (typeof window !== 'undefined') window.taskManager = this;
     await this.initializeIntegrations();
     console.log('✅ Task Manager initialized');
   }

@@ -4360,3 +4360,90 @@ body.theme-sunset .metric-bar {
         display: none;
     }
 }
+
+/* ============================================================
+   Media + Creative apps: shared design-system bridges
+   (uses --sk-* tokens from web/css/design-system.css; fallbacks
+   keep apps styled until that sheet lands)
+   ============================================================ */
+
+/* Unified transport controls: media-player, music-studio,
+   music-studio-unified, cinema, strudel-ai-daw */
+.sk-transport {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.sk-transport-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--sk-border-strong, #315248);
+    background: var(--sk-bg-header, #12211d);
+    color: var(--sk-text, #edf7f2);
+    cursor: pointer;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, background 0.15s ease,
+                border-color 0.15s ease, color 0.15s ease;
+}
+.sk-transport-btn:hover {
+    border-color: var(--sk-accent, #8bd8bd);
+    background: var(--sk-bg-inset, #17241f);
+}
+.sk-transport-btn:active { transform: scale(0.95); }
+.sk-transport-btn:focus-visible {
+    outline: 2px solid var(--sk-accent, #8bd8bd);
+    outline-offset: 2px;
+}
+.sk-transport-btn.is-main {
+    width: 52px;
+    height: 52px;
+    font-size: 20px;
+    background: var(--sk-accent-bg, #173029);
+    border-color: var(--sk-accent, #8bd8bd);
+    color: var(--sk-accent, #8bd8bd);
+}
+.sk-transport-btn.active,
+.sk-transport-btn.is-playing {
+    border-color: var(--sk-accent, #8bd8bd);
+    color: var(--sk-accent, #8bd8bd);
+}
+.sk-transport-btn.is-recording,
+.sk-transport-btn.recording {
+    border-color: var(--sk-err, #ff6b6b);
+    color: var(--sk-err, #ff6b6b);
+}
+.sk-transport-btn:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
+/* Shared progress + range controls for media/creative apps */
+.sk-progress { width: 100%; height: 8px; }
+.sk-range {
+    width: 100%;
+    accent-color: var(--sk-accent, #8bd8bd);
+}
+
+/* PeerTube local fallback + room status */
+.pt-media-fallback-frame .pt-fallback-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+}
+.pt-media-fallback-frame .pt-fallback-transcript {
+    font-size: 0.8rem;
+    opacity: 0.75;
+}
+.pt-room-status {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+.pt-room-status .sk-status-dot {
+    margin-top: 4px;
+    flex: none;
+}

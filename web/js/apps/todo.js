@@ -29,6 +29,10 @@ TodoApp.prototype.createWindowConfig = function() {
                 box-sizing: border-box;
                 min-width: 0;
             }
+            .todo-app {
+                background: var(--sk-bg-deep, #0e1412);
+                color: var(--sk-text, #edf7f2);
+            }
             .todo-app .todo-header,
             .todo-app .header-controls,
             .todo-app .status-bar {
@@ -60,6 +64,65 @@ TodoApp.prototype.createWindowConfig = function() {
             .todo-app .todo-item-title {
                 overflow-wrap: anywhere;
             }
+            /* Dark ops-console theme tokens for todo app */
+            .todo-app .todo-item {
+                background: var(--sk-bg-panel, #101b18);
+                border: 1px solid var(--sk-border, #263a34);
+                border-radius: 6px;
+                padding: 12px;
+                margin-bottom: 8px;
+            }
+            .todo-app .todo-item.is-completed {
+                opacity: 0.7;
+            }
+            .todo-app .todo-item-meta {
+                font-size: 11px;
+                color: var(--sk-text-faint, #9eb2aa);
+            }
+            .todo-app .goal-item {
+                background: var(--sk-bg-panel, #101b18);
+                border: 1px solid var(--sk-accent, #8bd8bd);
+                border-radius: 8px;
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+            .todo-app .view-switch-btn.active-view,
+            .todo-app .voice-todo-btn.active-view {
+                background: rgba(139, 216, 189, 0.28) !important;
+                border: 1px solid var(--sk-accent, #8bd8bd) !important;
+            }
+            /* Baseline button styling (design-system .sk-btn refines this) */
+            .todo-app .view-switch-btn,
+            .todo-app .voice-todo-btn {
+                padding: 6px 12px;
+                border: 1px solid var(--sk-border, #263a34);
+                border-radius: 6px;
+                background: var(--sk-bg-header, #12211d);
+                color: var(--sk-text, #edf7f2);
+                cursor: pointer;
+            }
+            .todo-app .view-switch-btn:hover,
+            .todo-app .voice-todo-btn:hover {
+                background: var(--sk-bg-inset, #17241f);
+            }
+            .todo-app .add-todo-btn,
+            .todo-app .add-goal-btn {
+                padding: 10px 16px;
+                border: none;
+                border-radius: 6px;
+                background: var(--sk-accent, #8bd8bd);
+                color: #0e1412;
+                cursor: pointer;
+                font-weight: 600;
+            }
+            .todo-app .add-todo-btn:hover,
+            .todo-app .add-goal-btn:hover {
+                background: var(--sk-ok, #5ee3a1);
+            }
+            .todo-app .voice-hint {
+                font-size: 11px;
+                color: var(--sk-text-faint, #9eb2aa);
+            }
             @media (max-width: 640px) {
                 .todo-app .todo-header {
                     align-items: flex-start !important;
@@ -86,18 +149,18 @@ TodoApp.prototype.createWindowConfig = function() {
                 }
             }
         </style>
-        <div class="todo-app" style="height: 100%; display: flex; flex-direction: column; background: #f8f9fa;">
+        <div class="todo-app sk-app" style="height: 100%; display: flex; flex-direction: column;">
             <!-- Header -->
-            <div class="todo-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 2px solid #e9ecef; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <div class="todo-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--sk-border, #263a34); background: var(--sk-bg-panel, #101b18);">
                 <div class="header-left">
-                    <h2 style="margin: 0; font-size: 20px; font-weight: 600;">📋 Todo & Goals</h2>
-                    <span style="font-size: 12px; opacity: 0.9;">Plain Text Goal Management</span>
+                    <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: var(--sk-text, #edf7f2);">📋 Todo & Goals</h2>
+                    <span style="font-size: 12px; color: var(--sk-text-faint, #9eb2aa);">Plain Text Goal Management</span>
                 </div>
                 <div class="header-controls">
-                    <button class="voice-todo-btn" id="voice-todo-btn" style="margin-right: 8px; padding: 6px 12px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🎤 Voice</button>
-                    <button class="view-switch-btn" data-view="todos" style="margin-right: 4px; padding: 6px 12px; background: rgba(255,255,255,0.3); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">📝 Todos</button>
-                    <button class="view-switch-btn" data-view="goals" style="margin-right: 4px; padding: 6px 12px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🎯 Goals</button>
-                    <button class="view-switch-btn" data-view="graph" style="padding: 6px 12px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">📊 Graph</button>
+                    <button class="voice-todo-btn sk-btn" id="voice-todo-btn" onclick="window.todoApp.startVoiceInput()" style="margin-right: 8px; font-size: 12px;">🎤 Voice</button>
+                    <button class="view-switch-btn sk-btn active-view" data-view="todos" style="margin-right: 4px; font-size: 12px;">📝 Todos</button>
+                    <button class="view-switch-btn sk-btn" data-view="goals" style="margin-right: 4px; font-size: 12px;">🎯 Goals</button>
+                    <button class="view-switch-btn sk-btn" data-view="graph" style="font-size: 12px;">📊 Graph</button>
                 </div>
             </div>
 
@@ -106,18 +169,18 @@ TodoApp.prototype.createWindowConfig = function() {
                 <!-- Todos View -->
                 <div class="todos-view" id="todos-view" style="width: 100%; display: flex; flex-direction: column;">
                     <!-- Quick Add -->
-                    <div class="quick-add" style="padding: 16px; background: white; border-bottom: 1px solid #e9ecef;">
+                    <div class="quick-add" style="padding: 16px; background: var(--sk-bg-panel, #101b18); border-bottom: 1px solid var(--sk-border, #263a34);">
                         <div class="quick-add-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
-                            <input type="text" class="new-todo-input" placeholder="Add a new todo... (voice commands supported)" style="flex: 1; padding: 10px; border: 2px solid #e9ecef; border-radius: 6px; font-size: 14px;">
-                            <select class="todo-priority" style="padding: 10px; border: 2px solid #e9ecef; border-radius: 6px; background: white;">
+                            <input type="text" class="new-todo-input sk-input" placeholder="Add a new todo... (voice commands supported)" style="flex: 1;">
+                            <select class="todo-priority sk-select">
                                 <option value="low">💡 Low</option>
                                 <option value="medium" selected>📋 Medium</option>
                                 <option value="high">🔥 High</option>
                                 <option value="urgent">⚡ Urgent</option>
                             </select>
-                            <button class="add-todo-btn" style="padding: 10px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">Add Todo</button>
+                            <button class="add-todo-btn sk-btn sk-btn-primary">Add Todo</button>
                         </div>
-                        <div style="font-size: 11px; color: #6c757d;">
+                        <div class="voice-hint">
                             💡 Voice commands: "Add todo: [task]" | "Mark [task] complete" | "Set [task] priority high"
                         </div>
                     </div>
@@ -127,45 +190,45 @@ TodoApp.prototype.createWindowConfig = function() {
                         <div class="todo-categories">
                             <!-- Urgent Todos -->
                             <div class="todo-category" id="urgent-todos">
-                                <h3 style="color: #dc3545; margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
+                                <h3 class="sk-section-head" style="color: var(--sk-err, #ff6b6b); margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
                                     ⚡ Urgent Tasks
-                                    <span class="count-badge" style="margin-left: 8px; background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">0</span>
+                                    <span class="count-badge sk-badge" style="margin-left: 8px; background: var(--sk-err, #ff6b6b); color: #0e1412;">0</span>
                                 </h3>
                                 <div class="todos-container urgent-container"></div>
                             </div>
 
                             <!-- High Priority Todos -->
                             <div class="todo-category" id="high-todos" style="margin-top: 20px;">
-                                <h3 style="color: #fd7e14; margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
+                                <h3 class="sk-section-head" style="color: var(--sk-warn, #ffd166); margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
                                     🔥 High Priority
-                                    <span class="count-badge" style="margin-left: 8px; background: #fd7e14; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">0</span>
+                                    <span class="count-badge sk-badge" style="margin-left: 8px; background: var(--sk-warn, #ffd166); color: #0e1412;">0</span>
                                 </h3>
                                 <div class="todos-container high-container"></div>
                             </div>
 
                             <!-- Medium Priority Todos -->
                             <div class="todo-category" id="medium-todos" style="margin-top: 20px;">
-                                <h3 style="color: #0d6efd; margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
+                                <h3 class="sk-section-head" style="color: var(--sk-accent, #8bd8bd); margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
                                     📋 Medium Priority  
-                                    <span class="count-badge" style="margin-left: 8px; background: #0d6efd; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">0</span>
+                                    <span class="count-badge sk-badge" style="margin-left: 8px; background: var(--sk-accent, #8bd8bd); color: #0e1412;">0</span>
                                 </h3>
                                 <div class="todos-container medium-container"></div>
                             </div>
 
                             <!-- Low Priority Todos -->
                             <div class="todo-category" id="low-todos" style="margin-top: 20px;">
-                                <h3 style="color: #198754; margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
+                                <h3 class="sk-section-head" style="color: var(--sk-ok, #5ee3a1); margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
                                     💡 Low Priority
-                                    <span class="count-badge" style="margin-left: 8px; background: #198754; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">0</span>
+                                    <span class="count-badge sk-badge" style="margin-left: 8px; background: var(--sk-ok, #5ee3a1); color: #0e1412;">0</span>
                                 </h3>
                                 <div class="todos-container low-container"></div>
                             </div>
 
                             <!-- Completed Todos -->
                             <div class="todo-category" id="completed-todos" style="margin-top: 20px;">
-                                <h3 style="color: #6c757d; margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
+                                <h3 class="sk-section-head" style="color: var(--sk-idle, #7c8f87); margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
                                     ✅ Completed
-                                    <span class="count-badge" style="margin-left: 8px; background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">0</span>
+                                    <span class="count-badge sk-badge" style="margin-left: 8px; background: var(--sk-idle, #7c8f87); color: #0e1412;">0</span>
                                 </h3>
                                 <div class="todos-container completed-container"></div>
                             </div>
@@ -176,10 +239,10 @@ TodoApp.prototype.createWindowConfig = function() {
                 <!-- Goals View (Hidden by default) -->
                 <div class="goals-view" id="goals-view" style="width: 100%; display: none; flex-direction: column;">
                     <div class="goals-content" style="padding: 20px;">
-                        <h3>🎯 Long-term Goals & Subgoals</h3>
-                        <div class="goal-input" style="margin-bottom: 20px;">
-                            <input type="text" class="new-goal-input" placeholder="Add a long-term goal..." style="width: 70%; padding: 12px; border: 2px solid #e9ecef; border-radius: 6px; margin-bottom: 8px;">
-                            <button class="add-goal-btn" style="padding: 12px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; margin-left: 8px;">Add Goal</button>
+                        <h3 class="sk-section-head">🎯 Long-term Goals & Subgoals</h3>
+                        <div class="goal-input" style="margin-bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap;">
+                            <input type="text" class="new-goal-input sk-input" placeholder="Add a long-term goal..." style="flex: 1; min-width: 200px; margin-bottom: 8px;">
+                            <button class="add-goal-btn sk-btn sk-btn-primary" style="margin-bottom: 8px;">Add Goal</button>
                         </div>
                         <div class="goals-list" id="goals-list"></div>
                     </div>
@@ -187,23 +250,20 @@ TodoApp.prototype.createWindowConfig = function() {
 
                 <!-- Graph View (Hidden by default) -->
                 <div class="graph-view" id="graph-view" style="width: 100%; display: none; flex-direction: column;">
-                    <div class="graph-content" style="padding: 20px; text-align: center;">
-                        <h3>📊 Goal Dependency Graph</h3>
-                        <div class="graph-container" style="width: 100%; height: 400px; border: 2px solid #e9ecef; border-radius: 8px; background: white; display: flex; align-items: center; justify-content: center;">
-                            <div style="color: #6c757d; text-align: center;">
-                                📊 Interactive goal dependency graph will be displayed here
-                                <br><br>
-                                Shows relationships between goals and subgoals
-                                <br><br>
-                                <em>Future implementation will use D3.js or similar visualization library</em>
-                            </div>
+                    <div class="graph-content" style="padding: 20px;">
+                        <h3 class="sk-section-head">📊 Goal Dependency Graph</h3>
+                        <div class="sk-empty" style="min-height: 300px; border: 1px dashed var(--sk-border, #263a34); border-radius: 8px; background: var(--sk-bg-panel, #101b18);">
+                            <div style="font-size: 32px; margin-bottom: 12px;">📊</div>
+                            <div>Interactive goal dependency graph will be displayed here</div>
+                            <div style="font-size: 12px; margin-top: 8px; opacity: 0.7;">Shows relationships between goals and subgoals</div>
+                            <div class="sk-honest-note" style="margin-top: 8px;">Future implementation will use D3.js or similar visualization library</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Status Bar -->
-            <div class="status-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: #495057; color: white; font-size: 12px;">
+            <div class="status-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: var(--sk-bg-panel, #101b18); border-top: 1px solid var(--sk-border, #263a34); color: var(--sk-text-faint, #9eb2aa); font-size: 12px;">
                 <span class="status-left">📋 <span class="total-todos">0</span> todos • 🎯 <span class="total-goals">0</span> goals</span>
                 <span class="status-right">🎤 Voice: <span class="voice-status">Ready</span> • Last updated: <span class="last-updated">Never</span></span>
             </div>
@@ -380,11 +440,11 @@ TodoApp.prototype.switchView = function(view) {
     // Update button states
     var btns = document.querySelectorAll('.view-switch-btn');
     for (var i = 0; i < btns.length; i++) {
-        btns[i].style.background = 'rgba(255,255,255,0.2)';
+        btns[i].classList.remove('active-view');
     }
     var activeBtn = document.querySelector('[data-view="' + view + '"]');
     if (activeBtn) {
-        activeBtn.style.background = 'rgba(255,255,255,0.3)';
+        activeBtn.classList.add('active-view');
     }
     
     if (view === 'goals') {
@@ -448,18 +508,35 @@ TodoApp.prototype.renderTodos = function() {
             container.appendChild(todoElement);
         }
     }
+
+    // Empty states per priority bucket
+    var emptyLabels = {
+        urgent: 'No urgent todos — everything can wait.',
+        high: 'No high-priority todos.',
+        medium: 'No medium-priority todos.',
+        low: 'No low-priority todos.',
+        completed: 'Nothing completed yet.'
+    };
+    for (var key in containers) {
+        var c = containers[key];
+        if (c && c.children.length === 0) {
+            var emptyDiv = document.createElement('div');
+            emptyDiv.className = 'sk-empty todo-empty';
+            emptyDiv.textContent = emptyLabels[key] || 'Nothing here yet.';
+            c.appendChild(emptyDiv);
+        }
+    }
 };
 
 TodoApp.prototype.createTodoElement = function(todo) {
     var div = document.createElement('div');
-    div.className = 'todo-item';
-    div.style.cssText = 'background: white; border: 1px solid #e9ecef; border-radius: 6px; padding: 12px; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' + (todo.completed ? ' opacity: 0.7;' : '');
+    div.className = 'todo-item sk-card' + (todo.completed ? ' is-completed' : '');
 
     var priorityColors = {
-        urgent: '#dc3545',
-        high: '#fd7e14', 
-        medium: '#0d6efd',
-        low: '#198754'
+        urgent: 'var(--sk-err, #ff6b6b)',
+        high: 'var(--sk-warn, #ffd166)',
+        medium: 'var(--sk-accent, #8bd8bd)',
+        low: 'var(--sk-ok, #5ee3a1)'
     };
 
     var priorityIcons = {
@@ -474,20 +551,20 @@ TodoApp.prototype.createTodoElement = function(todo) {
             <input type="checkbox" ${todo.completed ? 'checked' : ''} 
                    onchange="window.todoApp.toggleTodo(${todo.id})"
                    style="margin-top: 2px;">
-            <div style="flex: 1;">
+            <div style="flex: 1; min-width: 0;">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                     <span style="color: ${priorityColors[todo.priority]}; font-size: 14px;">
                         ${priorityIcons[todo.priority]}
                     </span>
                     <span class="todo-item-title" style="font-weight: 500; ${todo.completed ? 'text-decoration: line-through;' : ''}">${todo.text}</span>
                 </div>
-                <div style="font-size: 11px; color: #6c757d;">
+                <div class="todo-item-meta">
                     Created: ${new Date(todo.createdAt).toLocaleDateString()}
                     ${todo.completedAt ? ' • Completed: ' + new Date(todo.completedAt).toLocaleDateString() : ''}
                 </div>
             </div>
-            <button onclick="window.todoApp.deleteTodo(${todo.id})" 
-                    style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 4px;">×</button>
+            <button onclick="window.todoApp.deleteTodo(${todo.id})" class="sk-btn sk-btn-danger"
+                    style="padding: 4px 10px; font-size: 14px; line-height: 1;" title="Delete todo" aria-label="Delete todo">×</button>
         </div>
     `;
 
@@ -500,6 +577,11 @@ TodoApp.prototype.renderGoals = function() {
 
     goalsList.innerHTML = '';
 
+    if (this.goals.length === 0) {
+        goalsList.innerHTML = '<div class="sk-empty">No goals yet — add your first long-term goal above.</div>';
+        return;
+    }
+
     for (var i = 0; i < this.goals.length; i++) {
         var goal = this.goals[i];
         var goalElement = this.createGoalElement(goal);
@@ -509,8 +591,7 @@ TodoApp.prototype.renderGoals = function() {
 
 TodoApp.prototype.createGoalElement = function(goal) {
     var div = document.createElement('div');
-    div.className = 'goal-item';
-    div.style.cssText = 'background: white; border: 2px solid #667eea; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);';
+    div.className = 'goal-item sk-card';
 
     var subgoalsList = '';
     for (var i = 0; i < goal.subgoals.length; i++) {
@@ -518,18 +599,18 @@ TodoApp.prototype.createGoalElement = function(goal) {
     }
 
     div.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-            <h4 style="margin: 0; color: #667eea; font-size: 16px;">${goal.title}</h4>
-            <span style="background: #667eea; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px;">${goal.status}</span>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 12px;">
+            <h4 style="margin: 0; color: var(--sk-accent, #8bd8bd); font-size: 16px; overflow-wrap: anywhere;">${goal.title}</h4>
+            <span class="sk-badge" style="background: var(--sk-bg-inset, #17241f); color: var(--sk-accent, #8bd8bd); border: 1px solid var(--sk-accent, #8bd8bd); flex-shrink: 0;">${goal.status}</span>
         </div>
-        <p style="margin: 0 0 12px 0; color: #6c757d; font-size: 14px;">${goal.description}</p>
+        <p style="margin: 0 0 12px 0; color: var(--sk-text-faint, #9eb2aa); font-size: 14px; overflow-wrap: anywhere;">${goal.description}</p>
         <div style="margin-bottom: 12px;">
-            <strong style="font-size: 13px; color: #495057;">Subgoals:</strong>
-            <ul style="margin: 8px 0; padding-left: 20px;">
+            <strong style="font-size: 13px; color: var(--sk-text, #edf7f2);">Subgoals:</strong>
+            <ul style="margin: 8px 0; padding-left: 20px; color: var(--sk-text, #edf7f2);">
                 ${subgoalsList}
             </ul>
         </div>
-        <div style="font-size: 11px; color: #6c757d;">
+        <div class="todo-item-meta">
             Created: ${new Date(goal.createdAt).toLocaleDateString()} • Priority: ${goal.priority}
         </div>
     `;
@@ -612,6 +693,37 @@ TodoApp.prototype.updateLastUpdated = function() {
     var lastUpdated = document.querySelector('.last-updated');
     if (lastUpdated) {
         lastUpdated.textContent = new Date().toLocaleTimeString();
+    }
+};
+
+// Real local voice input via the browser SpeechRecognition API. Honestly
+// local: if the browser exposes no recognizer, the user is told so.
+TodoApp.prototype.startVoiceInput = function() {
+    var self = this;
+    var Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+        alert('Voice input is not available: this browser exposes no SpeechRecognition API.');
+        return;
+    }
+    try {
+        var recognition = new Recognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.onresult = function(event) {
+            var transcript = event.results[0][0].transcript;
+            var input = document.querySelector('.new-todo-input');
+            if (input) {
+                input.value = transcript;
+                input.focus();
+            }
+        };
+        recognition.onerror = function(event) {
+            alert('Voice input failed: ' + (event.error || 'unknown error'));
+        };
+        recognition.start();
+    } catch (error) {
+        alert('Voice input failed: ' + error.message);
     }
 };
 

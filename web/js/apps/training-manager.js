@@ -205,6 +205,8 @@ export class TrainingManagerApp {
         progress: 62,
         currentEpoch: 6
       });
+      seedJob.demoSeed = true;
+      seedJob.simulated = true;
       seedJob.currentLoss = 0.3842;
       seedJob.currentAccuracy = 0.842;
       seedJob.validationLoss = 0.4218;
@@ -278,11 +280,11 @@ export class TrainingManagerApp {
       size: 47_185_920,
       type: 'ipfs',
       created: new Date('2026-07-21T09:00:00.000Z').toISOString(),
-      rootCid: deterministicCid('vda-g032-dataset-root'),
+      rootCid: localContentRef('vda-g032-dataset-root'),
       provenance: {
         source: 'ipfs_datasets_py.load_dataset',
-        datasetCid: deterministicCid('vda-g032-dataset-root'),
-        manifestCid: deterministicCid('vda-g032-dataset-manifest'),
+        datasetCid: localContentRef('vda-g032-dataset-root'),
+        manifestCid: localContentRef('vda-g032-dataset-manifest'),
         license: 'internal-eval',
         split: 'train=80 validation=20',
         rows: 12480,
@@ -325,7 +327,7 @@ export class TrainingManagerApp {
     if (resumeRecovery) return;
     resumeRecovery = {
       state: 'checkpoint_available',
-      checkpointCid: deterministicCid('vda-g032-resume-checkpoint'),
+      checkpointCid: localContentRef('vda-g032-resume-checkpoint'),
       checkpointEpoch: 6,
       recoveryToken: 'resume:g032:epoch-6',
       message: 'Resume recovery will requeue the job with checkpoint and provenance refs intact.'
@@ -395,7 +397,7 @@ export class TrainingManagerApp {
   }
 
   function createCheckpoint(job, epoch, reason) {
-    const cid = deterministicCid(`${job.id}:checkpoint:${epoch}:${reason}`);
+    const cid = localContentRef(`${job.id}:checkpoint:${epoch}:${reason}`);
     return {
       id: `${job.id}-epoch-${epoch}`,
       epoch,
@@ -416,8 +418,8 @@ export class TrainingManagerApp {
     const dataset = datasets.find(item => item.id === datasetId) || datasets[0] || {};
     return dataset.provenance || {
       source: 'ipfs_datasets_py.load_dataset',
-      datasetCid: deterministicCid('fallback-dataset'),
-      manifestCid: deterministicCid('fallback-manifest'),
+      datasetCid: localContentRef('fallback-dataset'),
+      manifestCid: localContentRef('fallback-manifest'),
       license: 'unknown',
       split: 'train=80 validation=20',
       rows: 0,
@@ -448,13 +450,16 @@ export class TrainingManagerApp {
     localStorage.setItem(TRAINING_MANAGER_STORAGE_KEYS.datasets, JSON.stringify(datasets));
   }
 
-  function deterministicCid(seed) {
+  // Honest local content reference. Deliberately NOT CID-shaped: these
+  // values identify in-browser records only. Real CIDs are minted only by
+  // persistJobArtifact() against the ipfs_kit_py artifact store.
+  function localContentRef(seed) {
     let hash = 0x811c9dc5;
     for (let index = 0; index < seed.length; index += 1) {
       hash ^= seed.charCodeAt(index);
       hash = Math.imul(hash, 0x01000193) >>> 0;
     }
-    return `bafy${hash.toString(16).padStart(8, '0')}g032`;
+    return `localref-${hash.toString(16).padStart(8, '0')}`;
   }
 
   function setText(root, selector, value) {
@@ -690,7 +695,7 @@ export class TrainingManagerApp {
         <div class="training-toolbar">
           <div class="toolbar-section">
             <button class="btn btn-primary workflow-primary" id="launch-governed-training" data-svd-workflow="${VDA_G032_WORKFLOW}" data-svd-workflow-action="launch-governed-training" data-capability-id="ipfs.accelerate.jobs">Start governed training job</button>
-            <button class="btn btn-primary" id="new-training">🎯 New Training</button>
+            <button class="btn btn-primary sk-btn sk-btn-primary" id="new-training">🎯 New Training</button>
             <button class="btn btn-secondary" id="import-dataset">📊 Import Dataset</button>
             <button class="btn btn-secondary" id="load-model">🧠 Load Model</button>
           </div>
@@ -825,7 +830,7 @@ export class TrainingManagerApp {
             <div class="form-row">
               <div class="form-group">
                 <label>Training Type:</label>
-                <select id="training-type">
+                <select id="training-type" class="sk-select">
                   ${Object.entries(trainingTemplates).map(([key, template]) => `
                     <option value="${key}">${template.icon} ${template.name}</option>
                   `).join('')}
@@ -833,14 +838,14 @@ export class TrainingManagerApp {
               </div>
               <div class="form-group">
                 <label>Job Name:</label>
-                <input type="text" id="job-name" placeholder="Enter job name" required>
+                <input type="text" id="job-name" class="sk-input" placeholder="Enter job name" required>
               </div>
             </div>
             
             <div class="form-row">
               <div class="form-group">
                 <label>Model Architecture:</label>
-                <select id="model-architecture">
+                <select id="model-architecture" class="sk-select">
                   <option value="custom">Custom Network</option>
                   <option value="resnet50">ResNet-50</option>
                   <option value="mobilenet">MobileNet</option>
@@ -850,7 +855,7 @@ export class TrainingManagerApp {
               </div>
               <div class="form-group">
                 <label>Dataset:</label>
-                <select id="dataset-select">
+                <select id="dataset-select" class="sk-select">
                   <option value="">Select dataset...</option>
                 </select>
               </div>
@@ -861,7 +866,7 @@ export class TrainingManagerApp {
               <div class="config-grid">
                 <div class="form-group">
                   <label>Optimizer:</label>
-                  <select id="optimizer">
+                  <select id="optimizer" class="sk-select">
                     <option value="adam">Adam</option>
                     <option value="sgd">SGD</option>
                     <option value="rmsprop">RMSprop</option>
@@ -870,19 +875,19 @@ export class TrainingManagerApp {
                 </div>
                 <div class="form-group">
                   <label>Learning Rate:</label>
-                  <input type="number" id="learning-rate" value="0.001" step="0.0001" min="0">
+                  <input type="number" id="learning-rate" class="sk-input" value="0.001" step="0.0001" min="0">
                 </div>
                 <div class="form-group">
                   <label>Batch Size:</label>
-                  <input type="number" id="batch-size" value="32" min="1">
+                  <input type="number" id="batch-size" class="sk-input" value="32" min="1">
                 </div>
                 <div class="form-group">
                   <label>Epochs:</label>
-                  <input type="number" id="epochs" value="10" min="1">
+                  <input type="number" id="epochs" class="sk-input" value="10" min="1">
                 </div>
                 <div class="form-group">
                   <label>Loss Function:</label>
-                  <select id="loss-function">
+                  <select id="loss-function" class="sk-select">
                     <option value="categoricalCrossentropy">Categorical Crossentropy</option>
                     <option value="sparseCategoricalCrossentropy">Sparse Categorical Crossentropy</option>
                     <option value="binaryCrossentropy">Binary Crossentropy</option>
@@ -892,7 +897,7 @@ export class TrainingManagerApp {
                 </div>
                 <div class="form-group">
                   <label>Validation Split:</label>
-                  <input type="number" id="validation-split" value="0.2" step="0.1" min="0" max="0.5">
+                  <input type="number" id="validation-split" class="sk-input" value="0.2" step="0.1" min="0" max="0.5">
                 </div>
               </div>
             </div>
@@ -923,7 +928,7 @@ export class TrainingManagerApp {
 
             <div class="form-actions">
               <button type="button" class="btn btn-secondary" id="cancel-training">Cancel</button>
-              <button type="submit" class="btn btn-primary">🚀 Start Training</button>
+              <button type="submit" class="btn btn-primary sk-btn sk-btn-primary">🚀 Start Training</button>
             </div>
           </form>
         </div>
@@ -947,7 +952,7 @@ export class TrainingManagerApp {
               <div class="option-content">
                 <h4>Load from IPFS</h4>
                 <p>Import dataset from IPFS network</p>
-                <input type="text" id="ipfs-dataset-cid" placeholder="Enter IPFS CID">
+                <input type="text" id="ipfs-dataset-cid" class="sk-input" placeholder="Enter IPFS CID">
               </div>
             </div>
             <div class="import-option" id="generate-synthetic">
@@ -965,7 +970,7 @@ export class TrainingManagerApp {
           </div>
           <div class="form-actions">
             <button type="button" class="btn btn-secondary" id="cancel-dataset">Cancel</button>
-            <button type="button" class="btn btn-primary" id="import-dataset-btn">Import Dataset</button>
+            <button type="button" class="btn btn-primary sk-btn sk-btn-primary" id="import-dataset-btn">Import Dataset</button>
           </div>
         </div>
       </div>
@@ -1089,9 +1094,9 @@ export class TrainingManagerApp {
     
     if (trainingJobs.length === 0) {
       jobsList.innerHTML = `
-        <div class="empty-state">
+        <div class="empty-state sk-empty">
           <p>No training jobs yet</p>
-          <button class="btn btn-primary" onclick="document.querySelector('#new-training').click()">
+          <button class="btn btn-primary sk-btn sk-btn-primary" onclick="document.querySelector('#new-training').click()">
             🎯 Start Your First Training
           </button>
         </div>
@@ -1107,11 +1112,14 @@ export class TrainingManagerApp {
         <div class="job-item ${job === activeJob ? 'active' : ''}" data-job-id="${job.id}">
           <div class="job-header">
             <div class="job-info">
-              <span class="job-status" style="color: ${status.color}">
-                ${status.icon}
+              <span class="job-status" style="color: ${status.color}" title="${status.label || job.status}">
+                <span class="sk-status-dot ${job.status === 'completed' ? 'is-ok' : job.status === 'failed' ? 'is-err' : job.status === 'running' ? 'is-warn' : 'is-idle'}"></span>${status.icon}
               </span>
               <div class="job-details-summary">
-                <div class="job-name">${job.name}</div>
+                <div class="job-name">${job.name}
+                  ${job.demoSeed ? '<span class="badge sk-badge" style="color:var(--sk-warn,#ffd166);border-color:var(--sk-warn,#ffd166);" title="Illustrative seed entry, not a real training run">demo seed</span>' : ''}
+                  ${job.simulated && !job.demoSeed ? '<span class="badge sk-badge" style="color:var(--sk-warn,#ffd166);border-color:var(--sk-warn,#ffd166);" title="Metrics simulated in-browser; no backend training runtime">local simulation</span>' : ''}
+                </div>
                 <div class="job-meta">
                   ${job.architecture} • ${job.dataset || 'No dataset'}
                 </div>
@@ -1119,7 +1127,7 @@ export class TrainingManagerApp {
             </div>
             <div class="job-actions">
               <span class="job-progress">${Math.round(progress)}%</span>
-              <button class="btn btn-sm" onclick="selectJob('${job.id}')">👁️</button>
+              <button class="btn btn-sm sk-btn" onclick="selectJob('${job.id}')">👁️</button>
             </div>
           </div>
           <div class="job-progress-bar">
@@ -1275,7 +1283,7 @@ export class TrainingManagerApp {
         <div class="detail-header">
           <h4>${activeJob.name}</h4>
           <span class="status-badge" style="background: ${status.color}">
-            ${status.icon} ${status.label}
+            <span class="sk-status-dot ${activeJob.status === 'completed' ? 'is-ok' : activeJob.status === 'failed' ? 'is-err' : activeJob.status === 'running' ? 'is-warn' : 'is-idle'}"></span>${status.icon} ${status.label}
           </span>
         </div>
         
@@ -1506,7 +1514,9 @@ export class TrainingManagerApp {
         <div class="version-stats">
           <span class="stat">Accuracy: ${version.metadata.accuracy || 'N/A'}</span>
           <span class="stat">Loss: ${version.metadata.loss || 'N/A'}</span>
-          <span class="stat">Size: ${formatFileSize(version.metadata.size || 0)}</span>
+          <span class="stat">Size: ${version.metadata.size ? formatFileSize(version.metadata.size) : 'n/a'}</span>
+          ${version.metadata.simulated ? '<span class="stat" title="Metrics were simulated in-browser">local simulation</span>' : ''}
+          ${version.metadata.persistedToBackend ? '<span class="stat" title="Persisted to the ipfs_kit_py artifact store">backend CID</span>' : '<span class="stat" title="Local reference only">local ref</span>'}
         </div>
       </div>
     `).join('');
@@ -1596,7 +1606,10 @@ export class TrainingManagerApp {
 
     trainingJobs.push(job);
     hideNewTrainingModal();
-    
+
+    // Backend artifact persistence is opt-in with explicit confirmation.
+    job.persistArtifacts = await confirmBackendArtifactPersistence(job);
+
     // Start the training process
     await executeTrainingJob(job);
     
@@ -1604,17 +1617,66 @@ export class TrainingManagerApp {
   scheduleRenderJobsList();
   }
 
+  // Persists a training artifact (checkpoint / final model / share record)
+  // to the REAL ipfs_kit_py artifact store with a canonical CID over the
+  // exact bytes. Governed write: only called after the user's explicit
+  // confirmation (see confirmBackendArtifactPersistence). Backend failures
+  // throw with the backend's own message, never masked.
+  async function persistJobArtifact(job, label, payload, kind) {
+    const helper = await import('./real-artifact.js');
+    const record = {
+      schema: 'swissknife.training-manager.artifact.v1',
+      job_id: job.id,
+      job_name: job.name,
+      label,
+      created_at: new Date().toISOString(),
+      simulated: job.simulated === true,
+      payload
+    };
+    const persisted = await helper.persistArtifactRecord({
+      record,
+      profile: 'training-manager-artifact',
+      kind
+    });
+    await helper.appendDagEvent({
+      event_type: 'training-manager.artifact.persisted',
+      job_id: job.id,
+      label,
+      artifact_cid: persisted.cid,
+      simulated: job.simulated === true
+    });
+    return persisted.cid;
+  }
+
+  async function confirmBackendArtifactPersistence(job) {
+    try {
+      const helper = await import('./real-artifact.js');
+      return helper.userConfirmsBackendWrite(
+        `Persist "${job.name}" checkpoints and the final model to the ipfs_kit_py artifact store with real CIDs? (Training itself remains a local simulation.)`
+      );
+    } catch (error) {
+      console.warn('Artifact helper unavailable:', error.message);
+      return false;
+    }
+  }
+
   async function executeTrainingJob(job) {
     try {
       job.status = 'running';
+      // Honest labeling: there is no backend training runtime in the browser,
+      // so the epoch loop below is a LOCAL SIMULATION. Metrics are
+      // simulated in-browser; only persisted artifacts (see
+      // persistJobArtifact) carry real backend CIDs.
+      job.simulated = true;
       addJobLog(job, `Starting training job: ${job.name}`);
-      
+      addJobLog(job, 'Local simulation: no backend training runtime is connected; loss/accuracy are simulated in-browser.');
+
       if (job.distributedTraining && p2pSystem) {
         addJobLog(job, 'Initializing distributed training across P2P network');
         // Here you would integrate with the P2P training system
       }
 
-      // Simulate training process
+      // Local training simulation (see note above)
       for (let epoch = 1; epoch <= job.config.epochs; epoch++) {
         if (job.status === 'paused') {
           await waitForResume(job);
@@ -1678,11 +1740,13 @@ export class TrainingManagerApp {
   async function saveModelCheckpoint(job, epoch) {
     try {
       const checkpoint = createCheckpoint(job, epoch, 'auto-save');
-      if (ipfsStorage) {
+      if (job.persistArtifacts === true) {
+        // Real backend persistence: canonical CID over the real checkpoint
+        // bytes in ipfs_kit_py (user confirmed at training start).
         const checkpointData = {
           jobId: job.id,
-          epoch: epoch,
-          weights: `simulated-weights-epoch-${epoch}`,
+          epoch,
+          weightsReference: `local-simulation-weights-epoch-${epoch}`,
           metrics: {
             loss: job.currentLoss,
             accuracy: job.currentAccuracy,
@@ -1690,7 +1754,28 @@ export class TrainingManagerApp {
             validationAccuracy: job.validationAccuracy
           }
         };
-        
+        try {
+          const cid = await persistJobArtifact(job, `checkpoint-epoch-${epoch}`, checkpointData, 'model-checkpoint');
+          addJobLog(job, `Checkpoint persisted to ipfs_kit_py: ${cid}`);
+          checkpoint.cid = cid;
+          checkpoint.persisted = true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          addJobLog(job, `Checkpoint backend persist failed: ${message} — kept as local reference ${checkpoint.cid}`);
+        }
+      } else if (ipfsStorage) {
+        const checkpointData = {
+          jobId: job.id,
+          epoch: epoch,
+          weightsReference: `local-simulation-weights-epoch-${epoch}`,
+          metrics: {
+            loss: job.currentLoss,
+            accuracy: job.currentAccuracy,
+            validationLoss: job.validationLoss,
+            validationAccuracy: job.validationAccuracy
+          }
+        };
+
         const cid = await ipfsStorage.storeModelOnIPFS(
           `${job.name}-checkpoint-epoch-${epoch}`,
           new TextEncoder().encode(JSON.stringify(checkpointData)),
@@ -1704,12 +1789,12 @@ export class TrainingManagerApp {
             created: new Date().toISOString()
           }
         );
-        
-        addJobLog(job, `Checkpoint saved to IPFS: ${cid}`);
+
+        addJobLog(job, `Checkpoint saved via P2P storage: ${cid}`);
         checkpoint.cid = cid;
-        checkpoint.receiptId = `receipt:training-manager:checkpoint:${epoch}:ipfs`;
+        checkpoint.receiptId = `receipt:training-manager:checkpoint:${epoch}:p2p`;
       } else {
-        addJobLog(job, `Checkpoint saved to browser receipt store: ${checkpoint.cid}`);
+        addJobLog(job, `Checkpoint kept as local reference: ${checkpoint.cid} (no backend persist confirmed)`);
       }
       if (!Array.isArray(job.checkpoints)) job.checkpoints = [];
       if (!job.checkpoints.some(item => item.epoch === epoch)) {
@@ -1731,13 +1816,36 @@ export class TrainingManagerApp {
 
   async function saveModelVersion(job) {
     try {
-      let cid = deterministicCid(`${job.id}:final-model:${job.currentEpoch}`);
-      if (ipfsStorage) {
+      let cid = localContentRef(`${job.id}:final-model:${job.currentEpoch}`);
+      let persisted = false;
+      if (job.persistArtifacts === true) {
         const modelData = {
           jobId: job.id,
           architecture: job.architecture,
           config: job.config,
-          weights: `final-weights-${job.id}`,
+          weightsReference: `local-simulation-final-${job.id}`,
+          metrics: {
+            finalLoss: job.currentLoss,
+            finalAccuracy: job.currentAccuracy,
+            bestValidationLoss: job.validationLoss,
+            bestValidationAccuracy: job.validationAccuracy
+          },
+          trainingLog: job.logs
+        };
+        try {
+          cid = await persistJobArtifact(job, 'final-model', modelData, 'trained-model');
+          persisted = true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          addJobLog(job, `Final model backend persist failed: ${message} — kept as local reference`);
+        }
+      }
+      if (!persisted && ipfsStorage) {
+        const modelData = {
+          jobId: job.id,
+          architecture: job.architecture,
+          config: job.config,
+          weightsReference: `local-simulation-final-${job.id}`,
           metrics: {
             finalLoss: job.currentLoss,
             finalAccuracy: job.currentAccuracy,
@@ -1769,7 +1877,9 @@ export class TrainingManagerApp {
           version: job.config.version || '1.0.0',
           accuracy: job.currentAccuracy,
           loss: job.currentLoss,
-          size: 18_874_368,
+          size: null,
+          simulated: job.simulated === true,
+          persistedToBackend: persisted,
           created: new Date().toISOString(),
           cid,
           provenanceCid: job.provenance?.datasetCid,
@@ -1779,7 +1889,9 @@ export class TrainingManagerApp {
       job.modelCID = cid;
       modelVersions = [versionEntry, ...modelVersions.filter(version => version.id !== versionEntry.id)];
       localStorage.setItem(TRAINING_MANAGER_STORAGE_KEYS.versions, JSON.stringify(modelVersions));
-      addJobLog(job, `Final model saved with receipt CID: ${cid}`);
+      addJobLog(job, persisted
+        ? `Final model persisted to ipfs_kit_py: ${cid}`
+        : `Final model kept as local reference ${cid} (no backend persist confirmed)`);
       renderModelVersions();
     } catch (error) {
       addJobLog(job, `Failed to save final model: ${error.message}`);
@@ -1940,11 +2052,11 @@ export class TrainingManagerApp {
         size: files.reduce((sum, f) => sum + f.size, 0),
         type: 'uploaded',
         created: new Date().toISOString(),
-        rootCid: deterministicCid(files.map(file => `${file.name}:${file.size}`).join('|')),
+        rootCid: localContentRef(files.map(file => `${file.name}:${file.size}`).join('|')),
         provenance: {
           source: 'browser.file-picker',
-          datasetCid: deterministicCid(files.map(file => `${file.name}:${file.size}`).join('|')),
-          manifestCid: deterministicCid(`manifest:${files.length}:${Date.now()}`),
+          datasetCid: localContentRef(files.map(file => `${file.name}:${file.size}`).join('|')),
+          manifestCid: localContentRef(`manifest:${files.length}:${Date.now()}`),
           license: 'user-provided',
           split: 'pending validation',
           rows: files.length,
@@ -1974,11 +2086,11 @@ export class TrainingManagerApp {
       size: cid ? 0 : 2_097_152,
       type: cid ? 'ipfs' : 'synthetic',
       created: new Date().toISOString(),
-      rootCid: cid || deterministicCid(`synthetic:${synthetic}`),
+      rootCid: cid || localContentRef(`synthetic:${synthetic}`),
       provenance: {
         source: cid ? 'ipfs_datasets_py.get_from_ipfs' : 'ipfs_datasets_py.generate_synthetic',
-        datasetCid: cid || deterministicCid(`synthetic:${synthetic}:dataset`),
-        manifestCid: deterministicCid(`manifest:${cid || synthetic}`),
+        datasetCid: cid || localContentRef(`synthetic:${synthetic}:dataset`),
+        manifestCid: localContentRef(`manifest:${cid || synthetic}`),
         license: cid ? 'from-dataset-card' : 'synthetic-eval',
         split: 'train=80 validation=20',
         rows: cid ? 'discovered' : 2048,
@@ -2125,7 +2237,7 @@ export class TrainingManagerApp {
       progress: 100,
       currentEpoch: 10
     });
-    resumeJob.modelCID = version.metadata.cid || version.metadata.checkpointCid || deterministicCid(versionId);
+    resumeJob.modelCID = version.metadata.cid || version.metadata.checkpointCid || localContentRef(versionId);
     resumeJob.resume = {
       state: 'model_loaded_for_resume',
       checkpointCid: version.metadata.checkpointCid || resumeJob.modelCID,
@@ -2141,16 +2253,51 @@ export class TrainingManagerApp {
     renderProgressMonitor();
     updateWorkflowGovernance();
   };
-  window.shareModelVersion = function(versionId) {
+  window.shareModelVersion = async function(versionId) {
     const version = modelVersions.find(item => item.id === versionId);
     if (!version) {
       alert(`Model version ${versionId} was not found.`);
       return;
     }
-    version.metadata.shared = true;
-    version.metadata.shareReceipt = `receipt:training-manager:model-share:${versionId}`;
-    localStorage.setItem(TRAINING_MANAGER_STORAGE_KEYS.versions, JSON.stringify(modelVersions));
-    renderModelVersions();
+    // Real share: persist a share record to the ipfs_kit_py artifact store
+    // with a canonical CID, after the user's explicit confirmation. The old
+    // fabricated `receipt:training-manager:model-share:*` is gone.
+    let helper;
+    try {
+      helper = await import('./real-artifact.js');
+    } catch (error) {
+      alert(`Share failed: artifact helper unavailable (${error.message})`);
+      return;
+    }
+    if (!helper.userConfirmsBackendWrite(`Share model version "${version.metadata.name}" by persisting a share record to ipfs_kit_py?`)) {
+      return;
+    }
+    try {
+      const record = {
+        schema: 'swissknife.training-manager.model-share.v1',
+        version_id: version.id,
+        metadata: version.metadata,
+        shared_at: new Date().toISOString()
+      };
+      const persisted = await helper.persistArtifactRecord({
+        record,
+        profile: 'training-manager-model-share',
+        kind: 'model-share'
+      });
+      await helper.appendDagEvent({
+        event_type: 'training-manager.model.shared',
+        version_id: version.id,
+        share_cid: persisted.cid
+      });
+      version.metadata.shared = true;
+      version.metadata.shareCid = persisted.cid;
+      localStorage.setItem(TRAINING_MANAGER_STORAGE_KEYS.versions, JSON.stringify(modelVersions));
+      renderModelVersions();
+      alert(`Model version shared. Share record CID: ${persisted.cid}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      alert(`Share failed: ${message}`);
+    }
   };
 
   function addTrainingManagerStyles() {

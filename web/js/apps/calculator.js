@@ -21,8 +21,7 @@ export class CalculatorApp {
     this.explanationVerified = false;
     this.keyboardHandler = null;
     this.keyboardHandlerAttached = false;
-    this.workflowCid = this.buildCalculationCid('calculator:vda-g033:initial');
-    this.workflowReceipt = 'receipt:calculator:vda-g033:ready';
+    this.workflowRef = this.buildCalculationRef('calculator:vda-g033:initial');
     
     this.constants = {
       pi: Math.PI,
@@ -71,19 +70,18 @@ export class CalculatorApp {
 
   renderWorkflowEvidencePanel() {
     const latest = this.getLatestHistoryItem();
-    const cid = latest?.cid || this.workflowCid;
-    const receipt = latest?.receipt || this.workflowReceipt;
+    const ref = latest?.localRef || latest?.cid || this.workflowRef;
     const explanation = latest?.explanation || 'Enter a calculation, press equals, then verify the arithmetic explanation.';
     const verification = latest?.verified || this.explanationVerified ? 'verified' : 'ready';
     const errorText = this.lastError?.message || 'Division by zero and invalid results remain visible until Clear or Escape.';
 
     return `
       <section class="calculator-workflow-panel"
-               data-svd-workflow="calculator.calculation-cid-history"
+               data-svd-workflow="calculator.calculation-history"
                aria-label="Calculator workflow evidence">
-        <div class="workflow-chip" data-svd-vda-marker="calculation-cid-history">
-          <span>History CID</span>
-          <code id="calculator-history-cid">${this.escapeHtml(cid)}</code>
+        <div class="workflow-chip" data-svd-vda-marker="calculation-history">
+          <span>Local history ref</span>
+          <code id="calculator-history-cid">${this.escapeHtml(ref)}</code>
         </div>
         <div class="workflow-chip" data-svd-vda-marker="verified-explanation">
           <span>Explanation</span>
@@ -106,8 +104,8 @@ export class CalculatorApp {
           <small>Compact tabs, wrapped evidence chips, and stable keypad cells support desktop and mobile windows.</small>
         </div>
         <div class="workflow-chip receipt-chip">
-          <span>Receipt</span>
-          <code id="calculator-receipt">${this.escapeHtml(receipt)}</code>
+          <span>Backend</span>
+          <code id="calculator-receipt">none — local only</code>
         </div>
       </section>
     `;
@@ -166,10 +164,10 @@ export class CalculatorApp {
         <div class="history-panel" id="history-panel" style="display: none;">
           <div class="history-header">
             <h3>History</h3>
-            <button class="clear-history-btn" id="clear-history-btn" data-svd-workflow-action="clear-history">Clear All</button>
+            <button class="clear-history-btn sk-btn sk-btn-danger" id="clear-history-btn" data-svd-workflow-action="clear-history">Clear All</button>
           </div>
           <div class="history-list" id="history-list">
-            ${this.history.length === 0 ? '<div class="no-history">No calculations yet</div>' : ''}
+            ${this.history.length === 0 ? '<div class="no-history sk-empty">No calculations yet</div>' : ''}
           </div>
         </div>
       </div>
@@ -177,7 +175,7 @@ export class CalculatorApp {
       <style>
         .calculator-container {
           height: 100%;
-          background: linear-gradient(135deg, #101820 0%, #243b3f 58%, #3b2f23 100%);
+          background: linear-gradient(135deg, var(--sk-bg-deep, #0e1412) 0%, var(--sk-bg-panel, #101b18) 58%, var(--sk-bg-header, #12211d) 100%);
           color: white;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', roboto, monospace;
           display: flex;
@@ -221,7 +219,8 @@ export class CalculatorApp {
         }
 
         .mode-tab.active {
-          background: rgba(255, 255, 255, 0.3);
+          background: rgba(139, 216, 189, 0.25);
+          border: 1px solid var(--sk-accent, #8bd8bd);
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
@@ -319,7 +318,7 @@ export class CalculatorApp {
         }
 
         .workflow-chip span {
-          color: #f2aa4c;
+          color: var(--sk-warn, #ffd166);
           font-size: 10px;
           font-weight: 700;
           text-transform: uppercase;
@@ -414,19 +413,19 @@ export class CalculatorApp {
         }
 
         .calc-btn.operator {
-          background: linear-gradient(135deg, #dc2626, #f97316);
-          color: white;
+          background: linear-gradient(135deg, var(--sk-err, #ff6b6b), #f97316);
+          color: #0e1412;
         }
 
         .calc-btn.function {
-          background: linear-gradient(135deg, #0f766e, #0891b2);
-          color: white;
+          background: linear-gradient(135deg, var(--sk-ok, #5ee3a1), var(--sk-accent-strong, #5fb99d));
+          color: #0e1412;
           font-size: 14px;
         }
 
         .calc-btn.special {
-          background: linear-gradient(135deg, #f2aa4c, #b45309);
-          color: white;
+          background: linear-gradient(135deg, var(--sk-warn, #ffd166), #b45309);
+          color: #0e1412;
         }
 
         .calc-btn.wide {
@@ -462,7 +461,8 @@ export class CalculatorApp {
         }
 
         .category-btn.active {
-          background: linear-gradient(135deg, #667eea, #764ba2);
+          background: var(--sk-accent, #8bd8bd);
+          color: #0e1412;
         }
 
         .conversion-inputs {
@@ -706,7 +706,7 @@ export class CalculatorApp {
 
   renderScientificCalculator() {
     return `
-      <div class="angle-selector" style="margin-bottom: 12px;">
+      <div class="angle-selector sk-row" style="margin-bottom: 12px;">
         <button class="category-btn ${this.angleUnit === 'deg' ? 'active' : ''}" data-angle="deg">DEG</button>
         <button class="category-btn ${this.angleUnit === 'rad' ? 'active' : ''}" data-angle="rad">RAD</button>
         <button class="category-btn ${this.angleUnit === 'grad' ? 'active' : ''}" data-angle="grad">GRAD</button>
@@ -763,7 +763,7 @@ export class CalculatorApp {
 
   renderProgrammerCalculator() {
     return `
-      <div class="base-selector" style="margin-bottom: 12px;">
+      <div class="base-selector sk-row" style="margin-bottom: 12px;">
         <button class="category-btn ${this.programmingBase === 'dec' ? 'active' : ''}" data-base="dec">DEC</button>
         <button class="category-btn ${this.programmingBase === 'hex' ? 'active' : ''}" data-base="hex">HEX</button>
         <button class="category-btn ${this.programmingBase === 'oct' ? 'active' : ''}" data-base="oct">OCT</button>
@@ -1492,14 +1492,12 @@ export class CalculatorApp {
   addToHistory(calculation, metadata = {}) {
     const expression = metadata.expression || calculation.split(' = ')[0] || calculation;
     const result = metadata.result ?? calculation.split(' = ')[1] ?? this.currentDisplay;
-    const cid = this.buildCalculationCid(`${expression}=${result}`);
-    const receipt = `receipt:calculator:vda-g033:${this.stableHash(`${cid}:${Date.now()}`).slice(0, 12)}`;
+    const ref = this.buildCalculationRef(`${expression}=${result}`);
     const item = {
       calculation,
       expression,
       result,
-      cid,
-      receipt,
+      localRef: ref,
       explanation: metadata.explanation || `${expression} evaluates to ${result} with local calculator arithmetic.`,
       verified: false,
       timestamp: Date.now()
@@ -1507,8 +1505,7 @@ export class CalculatorApp {
 
     this.history.unshift(item);
     this.lastCalculation = item;
-    this.workflowCid = cid;
-    this.workflowReceipt = receipt;
+    this.workflowRef = ref;
     this.explanationVerified = false;
     
     // Limit history to 50 entries
@@ -1525,19 +1522,18 @@ export class CalculatorApp {
     if (!historyList) return;
 
     if (this.history.length === 0) {
-      historyList.innerHTML = '<div class="no-history">No calculations yet</div>';
+      historyList.innerHTML = '<div class="no-history sk-empty">No calculations yet</div>';
       return;
     }
 
     historyList.innerHTML = this.history.map(rawItem => {
       const item = this.normalizeHistoryItem(rawItem);
       return `
-      <div class="history-item" data-calculation="${this.escapeHtml(item.calculation)}" data-cid="${this.escapeHtml(item.cid)}">
+      <div class="history-item" data-calculation="${this.escapeHtml(item.calculation)}" data-local-ref="${this.escapeHtml(item.localRef)}">
         <div>${this.escapeHtml(item.calculation)}</div>
         <div class="history-meta">
           <span>${new Date(item.timestamp).toLocaleTimeString()}</span>
-          <code>${this.escapeHtml(item.cid)}</code>
-          <code>${this.escapeHtml(item.receipt)}</code>
+          <code>${this.escapeHtml(item.localRef)}</code>
         </div>
       </div>
     `;
@@ -1574,10 +1570,9 @@ export class CalculatorApp {
     const latest = this.getLatestHistoryItem();
     if (latest) {
       latest.verified = true;
-      latest.receipt = latest.receipt || `receipt:calculator:vda-g033:${this.stableHash(latest.cid).slice(0, 12)}`;
+      latest.localRef = latest.localRef || latest.cid || this.buildCalculationRef(`${latest.expression}=${latest.result}`);
       this.lastCalculation = latest;
-      this.workflowCid = latest.cid;
-      this.workflowReceipt = latest.receipt;
+      this.workflowRef = latest.localRef;
     }
     this.explanationVerified = true;
     this.updateHistoryDisplay();
@@ -1588,8 +1583,7 @@ export class CalculatorApp {
     this.lastError = {
       message,
       expression,
-      cid: this.buildCalculationCid(`error:${expression}:${message}`),
-      receipt: `receipt:calculator:vda-g033:error:${this.stableHash(`${expression}:${message}`).slice(0, 10)}`
+      localRef: this.buildCalculationRef(`error:${expression}:${message}`)
     };
     this.currentDisplay = '0';
     this.previousValue = null;
@@ -1605,16 +1599,12 @@ export class CalculatorApp {
 
   updateWorkflowEvidence() {
     const latest = this.getLatestHistoryItem();
-    const cid = latest?.cid || this.lastError?.cid || this.workflowCid;
-    const receipt = latest?.receipt || this.lastError?.receipt || this.workflowReceipt;
+    const ref = latest?.localRef || latest?.cid || this.lastError?.localRef || this.lastError?.cid || this.workflowRef;
     const explanation = latest?.explanation || 'Enter a calculation, press equals, then verify the arithmetic explanation.';
     const verified = latest?.verified || this.explanationVerified;
 
     const cidNode = document.querySelector('#calculator-history-cid');
-    if (cidNode) cidNode.textContent = cid;
-
-    const receiptNode = document.querySelector('#calculator-receipt');
-    if (receiptNode) receiptNode.textContent = receipt;
+    if (cidNode) cidNode.textContent = ref;
 
     const explanationNode = document.querySelector('#calculator-explanation');
     if (explanationNode) explanationNode.textContent = verified ? `Verified: ${explanation}` : explanation;
@@ -1628,7 +1618,7 @@ export class CalculatorApp {
     const errorPolicy = document.querySelector('#calculator-error-policy');
     if (errorPolicy) {
       errorPolicy.textContent = this.lastError
-        ? `${this.lastError.message}; ${this.lastError.receipt}`
+        ? this.lastError.message
         : 'Division by zero and invalid results remain visible until Clear or Escape.';
     }
   }
@@ -1643,14 +1633,12 @@ export class CalculatorApp {
       const calculation = item.calculation || `${item.expression || 'calculation'} = ${item.result ?? this.currentDisplay}`;
       const expression = item.expression || calculation.split(' = ')[0] || calculation;
       const result = item.result ?? calculation.split(' = ')[1] ?? this.currentDisplay;
-      const cid = item.cid || this.buildCalculationCid(`${expression}=${result}`);
-      const receipt = item.receipt || `receipt:calculator:vda-g033:${this.stableHash(cid).slice(0, 12)}`;
+      const localRef = item.localRef || item.cid || this.buildCalculationRef(`${expression}=${result}`);
       Object.assign(item, {
         calculation,
         expression,
         result,
-        cid,
-        receipt,
+        localRef,
         explanation: item.explanation || `${expression} evaluates to ${result} with local calculator arithmetic.`,
         verified: Boolean(item.verified),
         timestamp: item.timestamp || Date.now()
@@ -1665,16 +1653,19 @@ export class CalculatorApp {
       calculation,
       expression,
       result,
-      cid: this.buildCalculationCid(`${expression}=${result}`),
-      receipt: `receipt:calculator:vda-g033:${this.stableHash(calculation).slice(0, 12)}`,
+      localRef: this.buildCalculationRef(`${expression}=${result}`),
       explanation: `${expression} evaluates to ${result} with local calculator arithmetic.`,
       verified: false,
       timestamp: Date.now()
     };
   }
 
-  buildCalculationCid(input) {
-    return `bafybeig033calculator${this.stableHash(input).slice(0, 18)}g033`;
+  // Honestly-local history reference. Deliberately NOT CID-shaped: the
+  // calculator has no backend, so history entries carry a local content hash
+  // only. (The old buildCalculationCid emitted fabricated CID-looking
+  // strings; removed in the no-mocks pass.)
+  buildCalculationRef(input) {
+    return `localcalc-${this.stableHash(input).slice(0, 16)}`;
   }
 
   stableHash(input) {
@@ -1719,7 +1710,7 @@ export class CalculatorApp {
       local_state: {
         mode: this.mode,
         history_count: this.history.length,
-        latest_cid: this.getLatestHistoryItem()?.cid || this.workflowCid,
+        latest_local_ref: this.getLatestHistoryItem()?.localRef || this.workflowRef,
         explanation_verified: this.explanationVerified,
       },
       capabilities: {
@@ -1799,10 +1790,10 @@ export class CalculatorApp {
         <div class="history-panel" id="history-panel" style="display: none;">
           <div class="history-header">
             <h3>History</h3>
-            <button class="clear-history-btn" id="clear-history-btn" data-svd-workflow-action="clear-history">Clear All</button>
+            <button class="clear-history-btn sk-btn sk-btn-danger" id="clear-history-btn" data-svd-workflow-action="clear-history">Clear All</button>
           </div>
           <div class="history-list" id="history-list">
-            ${this.history.length === 0 ? '<div class="no-history">No calculations yet</div>' : ''}
+            ${this.history.length === 0 ? '<div class="no-history sk-empty">No calculations yet</div>' : ''}
           </div>
         </div>
       </div>
@@ -1810,7 +1801,7 @@ export class CalculatorApp {
       <style>
         .calculator-container {
           height: 100%;
-          background: linear-gradient(135deg, #101820 0%, #243b3f 58%, #3b2f23 100%);
+          background: linear-gradient(135deg, var(--sk-bg-deep, #0e1412) 0%, var(--sk-bg-panel, #101b18) 58%, var(--sk-bg-header, #12211d) 100%);
           color: white;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', roboto, monospace;
           display: flex;
@@ -1854,7 +1845,8 @@ export class CalculatorApp {
         }
 
         .mode-tab.active {
-          background: rgba(255, 255, 255, 0.3);
+          background: rgba(139, 216, 189, 0.25);
+          border: 1px solid var(--sk-accent, #8bd8bd);
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
@@ -1952,7 +1944,7 @@ export class CalculatorApp {
         }
 
         .workflow-chip span {
-          color: #f2aa4c;
+          color: var(--sk-warn, #ffd166);
           font-size: 10px;
           font-weight: 700;
           text-transform: uppercase;
@@ -2047,19 +2039,19 @@ export class CalculatorApp {
         }
 
         .calc-btn.operator {
-          background: linear-gradient(135deg, #dc2626, #f97316);
-          color: white;
+          background: linear-gradient(135deg, var(--sk-err, #ff6b6b), #f97316);
+          color: #0e1412;
         }
 
         .calc-btn.function {
-          background: linear-gradient(135deg, #0f766e, #0891b2);
-          color: white;
+          background: linear-gradient(135deg, var(--sk-ok, #5ee3a1), var(--sk-accent-strong, #5fb99d));
+          color: #0e1412;
           font-size: 14px;
         }
 
         .calc-btn.special {
-          background: linear-gradient(135deg, #f2aa4c, #b45309);
-          color: white;
+          background: linear-gradient(135deg, var(--sk-warn, #ffd166), #b45309);
+          color: #0e1412;
         }
 
         .calc-btn.wide {
@@ -2095,7 +2087,8 @@ export class CalculatorApp {
         }
 
         .category-btn.active {
-          background: linear-gradient(135deg, #667eea, #764ba2);
+          background: var(--sk-accent, #8bd8bd);
+          color: #0e1412;
         }
 
         .conversion-inputs {

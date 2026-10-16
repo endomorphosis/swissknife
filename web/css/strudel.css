@@ -263,7 +263,7 @@
 }
 
 /* Pulsing animations for active elements */
-.transport-btn.active {
+.strudel-ai-daw .sk-transport-btn.active {
     animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -515,7 +515,7 @@
         gap: 6px;
     }
     
-    .transport-btn {
+    .sk-transport-btn {
         padding: 8px 12px;
         font-size: 14px;
         min-width: 50px;
@@ -679,7 +679,7 @@
         color: #ffffff;
     }
     
-    .transport-btn, .demo-btn, .clear-btn, .eval-btn, .save-btn {
+    .sk-transport-btn, .demo-btn, .clear-btn, .eval-btn, .save-btn {
         border: 2px solid #ffffff;
     }
 }

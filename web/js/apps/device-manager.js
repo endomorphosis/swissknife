@@ -122,28 +122,28 @@ export class DeviceManagerApp {
           <div class="tab-content ${this.currentView === 'network' ? 'active' : ''}" data-view="network">
             <div class="network-overview">
               <div class="network-stats">
-                <div class="stat-card">
+                <div class="stat-card sk-card">
                   <div class="stat-icon">🌐</div>
                   <div class="stat-content">
                     <div class="stat-value" id="network-interfaces-count">0</div>
                     <div class="stat-label">Network Interfaces</div>
                   </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card sk-card">
                   <div class="stat-icon">📶</div>
                   <div class="stat-content">
                     <div class="stat-value" id="wifi-networks-count">0</div>
                     <div class="stat-label">WiFi Networks</div>
                   </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card sk-card">
                   <div class="stat-icon">🔗</div>
                   <div class="stat-content">
                     <div class="stat-value" id="p2p-peers-count">0</div>
                     <div class="stat-label">P2P Peers</div>
                   </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card sk-card">
                   <div class="stat-icon">🔊</div>
                   <div class="stat-content">
                     <div class="stat-value" id="bluetooth-devices-count">0</div>
@@ -153,10 +153,10 @@ export class DeviceManagerApp {
               </div>
               
               <div class="network-controls">
-                <button class="network-btn" id="scan-wifi">📶 Scan WiFi</button>
-                <button class="network-btn" id="discover-p2p">🔗 Discover P2P</button>
-                <button class="network-btn" id="scan-bluetooth">🔊 Scan Bluetooth</button>
-                <button class="network-btn" id="network-diagnostics">🔧 Diagnostics</button>
+                <button class="network-btn sk-btn" id="scan-wifi">📶 Scan WiFi</button>
+                <button class="network-btn sk-btn" id="discover-p2p">🔗 Discover P2P</button>
+                <button class="network-btn sk-btn" id="scan-bluetooth">🔊 Scan Bluetooth</button>
+                <button class="network-btn sk-btn" id="network-diagnostics">🔧 Diagnostics</button>
               </div>
             </div>
 
@@ -197,12 +197,12 @@ export class DeviceManagerApp {
               <h3>⚡ Hardware Performance</h3>
               
               <div class="benchmark-controls">
-                <button class="benchmark-btn" id="cpu-benchmark">🔥 CPU Benchmark</button>
-                <button class="benchmark-btn" id="memory-benchmark">🧠 Memory Test</button>
-                <button class="benchmark-btn" id="gpu-benchmark">🎮 GPU Test</button>
-                <button class="benchmark-btn" id="storage-benchmark">💾 Storage Test</button>
-                <button class="benchmark-btn" id="network-benchmark">🌐 Network Test</button>
-                <button class="benchmark-btn full" id="full-benchmark">🚀 Full System Test</button>
+                <button class="benchmark-btn sk-btn" id="cpu-benchmark">🔥 CPU Benchmark</button>
+                <button class="benchmark-btn sk-btn" id="memory-benchmark">🧠 Memory Test</button>
+                <button class="benchmark-btn sk-btn" id="gpu-benchmark">🎮 GPU Test</button>
+                <button class="benchmark-btn sk-btn" id="storage-benchmark">💾 Storage Test</button>
+                <button class="benchmark-btn sk-btn" id="network-benchmark">🌐 Network Test</button>
+                <button class="benchmark-btn full sk-btn sk-btn-primary" id="full-benchmark">🚀 Full System Test</button>
               </div>
 
               <div class="benchmark-results">
@@ -225,7 +225,7 @@ export class DeviceManagerApp {
             <div class="performance-monitoring">
               <h3>📊 Real-Time Monitoring</h3>
               <div class="monitoring-grid">
-                <div class="monitor-card">
+                <div class="monitor-card sk-card">
                   <div class="monitor-header">
                     <span class="monitor-icon">🔥</span>
                     <span class="monitor-title">CPU Performance</span>
@@ -237,7 +237,7 @@ export class DeviceManagerApp {
                   </div>
                 </div>
 
-                <div class="monitor-card">
+                <div class="monitor-card sk-card">
                   <div class="monitor-header">
                     <span class="monitor-icon">🧠</span>
                     <span class="monitor-title">Memory Usage</span>
@@ -249,7 +249,7 @@ export class DeviceManagerApp {
                   </div>
                 </div>
 
-                <div class="monitor-card">
+                <div class="monitor-card sk-card">
                   <div class="monitor-header">
                     <span class="monitor-icon">🎮</span>
                     <span class="monitor-title">GPU Performance</span>
@@ -261,7 +261,7 @@ export class DeviceManagerApp {
                   </div>
                 </div>
 
-                <div class="monitor-card">
+                <div class="monitor-card sk-card">
                   <div class="monitor-header">
                     <span class="monitor-icon">🌐</span>
                     <span class="monitor-title">Network Activity</span>
@@ -301,10 +301,10 @@ export class DeviceManagerApp {
               </div>
 
               <div class="drivers-controls">
-                <button class="driver-btn" id="scan-drivers">🔍 Scan Drivers</button>
-                <button class="driver-btn" id="update-all-drivers">⬆️ Update All</button>
-                <button class="driver-btn" id="backup-drivers">💾 Backup Drivers</button>
-                <button class="driver-btn" id="restore-drivers">♻️ Restore Drivers</button>
+                <button class="driver-btn sk-btn" id="scan-drivers">🔍 Scan Drivers</button>
+                <button class="driver-btn sk-btn" id="update-all-drivers">⬆️ Update All</button>
+                <button class="driver-btn sk-btn" id="backup-drivers">💾 Backup Drivers</button>
+                <button class="driver-btn sk-btn" id="restore-drivers">♻️ Restore Drivers</button>
               </div>
             </div>
 
@@ -330,6 +330,8 @@ export class DeviceManagerApp {
   }
 
   async initialize() {
+    // Live instance for inline handlers (one desktop window per app).
+    if (typeof window !== 'undefined') window.deviceManager = this;
     await this.initializeIntegrations();
     this.setupEventListeners();
     await this.loadInitialData();
@@ -655,7 +657,7 @@ export class DeviceManagerApp {
     
     if (categoriesContainer) {
       categoriesContainer.innerHTML = Object.entries(this.deviceCategories).map(([key, category]) => `
-        <div class="category-card" data-category="${key}" style="border-left: 4px solid ${category.color}">
+        <div class="category-card sk-card" data-category="${key}" style="border-left: 4px solid ${category.color}">
           <div class="category-icon">${category.icon}</div>
           <div class="category-name">${category.name}</div>
           <div class="category-count">${this.getDeviceCount(key)}</div>
@@ -682,34 +684,32 @@ export class DeviceManagerApp {
   }
 
   generateHardwareDeviceList() {
+    // Only real, browser-exposed device facts are shown. Metrics the browser
+    // does not expose (temperature, utilization) are omitted, not invented.
     const devices = [
       {
         category: 'processor',
         name: 'CPU',
         details: `${this.hardwareInfo.cpu.cores} cores, ${this.hardwareInfo.cpu.architecture}`,
-        status: 'working',
-        temperature: `${Math.floor(Math.random() * 30) + 40}°C`
+        status: 'working'
       },
       {
         category: 'memory',
         name: 'System Memory',
         details: `Total: ${this.hardwareInfo.memory.total}, Available: ${this.hardwareInfo.memory.available}`,
-        status: 'working',
-        usage: `${Math.floor(Math.random() * 40) + 40}%`
+        status: 'working'
       },
       {
         category: 'graphics',
         name: 'Graphics Card',
         details: `${this.hardwareInfo.gpu.vendor} ${this.hardwareInfo.gpu.renderer}`,
-        status: 'working',
-        usage: `${Math.floor(Math.random() * 30) + 20}%`
+        status: 'working'
       },
       {
         category: 'storage',
         name: 'Storage',
         details: `Total: ${this.hardwareInfo.storage.total}, Used: ${this.hardwareInfo.storage.used}`,
-        status: 'working',
-        usage: `${Math.floor(Math.random() * 60) + 20}%`
+        status: 'working'
       },
       {
         category: 'network',
@@ -735,7 +735,7 @@ export class DeviceManagerApp {
           <div class="device-details">${device.details}</div>
         </div>
         <div class="device-status">
-          <span class="status-badge status-${device.status}">${device.status}</span>
+          <span class="status-badge status-${device.status}"><span class="sk-status-dot ${device.status === 'working' ? 'is-ok' : 'is-idle'}"></span>${device.status}</span>
           ${device.temperature ? `<span class="device-metric">🌡️ ${device.temperature}</span>` : ''}
           ${device.usage ? `<span class="device-metric">📊 ${device.usage}</span>` : ''}
           ${device.speed ? `<span class="device-metric">⚡ ${device.speed}</span>` : ''}
@@ -794,7 +794,7 @@ export class DeviceManagerApp {
             <tr>
               <td>${iface.name}</td>
               <td>${iface.type}</td>
-              <td><span class="status-badge status-connected">${iface.status}</span></td>
+              <td><span class="status-badge status-connected"><span class="sk-status-dot is-ok"></span>${iface.status}</span></td>
               <td>${iface.ipAddress}</td>
               <td>${iface.speed}</td>
               <td>${iface.mac}</td>
@@ -836,12 +836,12 @@ export class DeviceManagerApp {
           ${peers.map(peer => `
             <tr>
               <td>${peer.id.slice(0, 16)}...</td>
-              <td><span class="status-badge status-connected">Connected</span></td>
-              <td>${Math.floor(Math.random() * 100) + 10}ms</td>
+              <td><span class="status-badge status-connected"><span class="sk-status-dot is-ok"></span>Connected</span></td>
+              <td>n/a</td>
               <td>${peer.capabilities?.join(', ') || 'Unknown'}</td>
               <td>
-                <button class="device-btn small" onclick="deviceManager.pingPeer('${peer.id}')">📡</button>
-                <button class="device-btn small" onclick="deviceManager.viewPeerDetails('${peer.id}')">🔍</button>
+                <button class="device-btn small sk-btn" onclick="deviceManager.pingPeer('${peer.id}')">📡</button>
+                <button class="device-btn small sk-btn" onclick="deviceManager.viewPeerDetails('${peer.id}')">🔍</button>
               </td>
             </tr>
           `).join('')}
@@ -930,10 +930,10 @@ export class DeviceManagerApp {
                 <td>${driver.name}</td>
                 <td>${driver.version}</td>
                 <td>${driver.vendor}</td>
-                <td><span class="status-badge status-${driver.status}">${driver.status}</span></td>
+                <td><span class="status-badge status-${driver.status}"><span class="sk-status-dot ${driver.status === 'updated' ? 'is-ok' : driver.status === 'outdated' ? 'is-warn' : driver.status === 'missing' ? 'is-err' : 'is-idle'}"></span>${driver.status}</span></td>
                 <td>
-                  <button class="device-btn small" onclick="deviceManager.updateDriver('${driver.name}')">⬆️</button>
-                  <button class="device-btn small" onclick="deviceManager.viewDriverDetails('${driver.name}')">🔍</button>
+                  <button class="device-btn small sk-btn" onclick="deviceManager.updateDriver('${driver.name}')">⬆️</button>
+                  <button class="device-btn small sk-btn" onclick="deviceManager.viewDriverDetails('${driver.name}')">🔍</button>
                 </td>
               </tr>
             `).join('')}
@@ -957,11 +957,24 @@ export class DeviceManagerApp {
     });
     
     if (recommendations) {
-      const recs = [
-        { type: 'info', message: 'Consider updating Network Driver to improve performance' },
-        { type: 'success', message: 'All critical drivers are up to date' }
-      ];
-      
+      // Recommendations are derived from the actually-detected devices
+      // above — never canned. Driver updates themselves are OS/browser
+      // managed and cannot be performed from this surface.
+      const recs = [];
+      const names = drivers.map(d => d.name);
+      if (!names.some(n => n.toLowerCase().includes('graphics') || n.toLowerCase().includes('webgl'))) {
+        recs.push({ type: 'info', message: 'No WebGL graphics device was detected — enable hardware acceleration in your browser for GPU-backed features.' });
+      }
+      if (!names.some(n => n.toLowerCase().includes('audio'))) {
+        recs.push({ type: 'info', message: 'No Web Audio device was detected — audio features may be unavailable.' });
+      }
+      if (!navigator.onLine) {
+        recs.push({ type: 'info', message: 'This browser reports it is offline — network-dependent features will fail until connectivity returns.' });
+      }
+      if (recs.length === 0) {
+        recs.push({ type: 'success', message: `All ${drivers.length} detected device(s) are reporting normally.` });
+      }
+
       recommendations.innerHTML = recs.map(rec => `
         <div class="recommendation recommendation-${rec.type}">
           ${rec.message}
@@ -981,14 +994,129 @@ export class DeviceManagerApp {
   // Device operations
   async scanDevices() {
     this.showNotification('Scanning for devices...', 'info');
-    
-    // Simulate device scanning
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+
+    // Real detection runs immediately; no theatrical delay is inserted.
     await this.detectSystemInfo();
     await this.loadViewData(this.currentView);
-    
+
     this.showNotification('Device scan completed', 'success');
+  }
+
+  // --- Device detail / test actions (all real local operations) ---
+
+  viewDeviceDetails(category) {
+    const info = this.hardwareInfo?.[category];
+    if (!info) {
+      this.showNotification(`No details available for "${category}".`, 'info');
+      return;
+    }
+    const lines = Object.entries(info).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
+    alert(`Device details — ${category} (live browser data):\n\n${lines.join('\n')}`);
+  }
+
+  async testDevice(category) {
+    this.showNotification(`Testing ${category}...`, 'info');
+    try {
+      let result;
+      switch (category) {
+        case 'audio': {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (!Ctx) throw new Error('Web Audio is not available in this browser.');
+          const ctx = new Ctx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          gain.gain.value = 0.1;
+          osc.connect(gain).connect(ctx.destination);
+          osc.start();
+          await new Promise(r => setTimeout(r, 400));
+          osc.stop();
+          await ctx.close();
+          result = 'Audio output test tone played successfully.';
+          break;
+        }
+        case 'display':
+          result = `Display reports ${window.screen.width}x${window.screen.height}, ${window.screen.colorDepth}-bit color.`;
+          break;
+        case 'network':
+          result = navigator.onLine
+            ? `Browser reports online${navigator.connection ? ` (${navigator.connection.effectiveType}, ~${navigator.connection.downlink} Mbps)` : ''}.`
+            : 'Browser reports OFFLINE.';
+          break;
+        case 'storage': {
+          if (!('storage' in navigator) || !('estimate' in navigator.storage)) throw new Error('Storage estimate API not available.');
+          const est = await navigator.storage.estimate();
+          result = `Storage estimate: ${this.formatBytes(est.usage || 0)} used of ${this.formatBytes(est.quota || 0)} quota.`;
+          break;
+        }
+        case 'memory':
+          result = navigator.deviceMemory
+            ? `Device reports ~${navigator.deviceMemory} GB RAM.`
+            : 'Exact RAM is not exposed by this browser.';
+          break;
+        case 'graphics': {
+          const canvas = document.createElement('canvas');
+          const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+          result = gl ? 'WebGL context created successfully.' : 'WebGL is not available.';
+          break;
+        }
+        case 'processor':
+          result = `${navigator.hardwareConcurrency || 'unknown'} logical CPU cores visible to this browser.`;
+          break;
+        default:
+          result = `No automated test for "${category}".`;
+      }
+      this.showNotification(`Test passed: ${result}`, 'success');
+    } catch (error) {
+      this.showNotification(`Test failed: ${error.message}`, 'error');
+    }
+  }
+
+  viewDriverDetails(name) {
+    const drivers = this.getFallbackDriverInfo ? this.getFallbackDriverInfo() : [];
+    const driver = drivers.find(d => d.name === name);
+    if (!driver) {
+      this.showNotification(`No driver record for "${name}".`, 'info');
+      return;
+    }
+    alert(`Driver details (live browser capabilities):\n\nName: ${driver.name}\nVersion: ${driver.version}\nVendor: ${driver.vendor}\nStatus: ${driver.status}`);
+  }
+
+  updateDriver(name) {
+    // Honest: drivers are managed by the OS/browser — this surface cannot
+    // update them, and no longer pretends a click did.
+    this.showNotification(`"${name}" is managed by your OS/browser — driver updates cannot be performed from this app.`, 'info');
+  }
+
+  async pingPeer(peerId) {
+    const peers = Array.from(this.p2pSystem?.peers?.values() || []);
+    const peer = peers.find(p => p.id === peerId);
+    if (!peer) {
+      this.showNotification(`Peer ${peerId} is not in the connected set.`, 'error');
+      return;
+    }
+    try {
+      if (typeof this.p2pSystem.ping === 'function') {
+        const start = performance.now();
+        await this.p2pSystem.ping(peerId);
+        const ms = Math.round(performance.now() - start);
+        this.showNotification(`Ping to ${peerId.slice(0, 16)}…: ${ms} ms (real round-trip)`, 'success');
+      } else {
+        this.showNotification(`Peer ${peerId.slice(0, 16)}… is connected, but this P2P layer exposes no ping operation.`, 'info');
+      }
+    } catch (error) {
+      this.showNotification(`Ping failed: ${error.message}`, 'error');
+    }
+  }
+
+  viewPeerDetails(peerId) {
+    const peers = Array.from(this.p2pSystem?.peers?.values() || []);
+    const peer = peers.find(p => p.id === peerId);
+    if (!peer) {
+      this.showNotification(`Peer ${peerId} is not in the connected set.`, 'info');
+      return;
+    }
+    const caps = peer.capabilities?.join(', ') || 'Unknown';
+    alert(`Peer details (live P2P state):\n\nID: ${peer.id}\nStatus: connected\nCapabilities: ${caps}`);
   }
 
   async runBenchmark() {

@@ -4,6 +4,116 @@
  * Links accounts across GitHub, libp2p, Hugging Face, and other platforms
  */
 
+// Base58-btc encoder (for did:key multicodec bytes).
+function friendsBase58Btc(bytes) {
+  const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  let zeros = 0;
+  while (zeros < bytes.length && bytes[zeros] === 0) zeros++;
+  const digits = [0];
+  for (let i = zeros; i < bytes.length; i++) {
+    let carry = bytes[i];
+    for (let j = 0; j < digits.length; j++) {
+      carry += digits[j] << 8;
+      digits[j] = carry % 58;
+      carry = (carry / 58) | 0;
+    }
+    while (carry > 0) {
+      digits.push(carry % 58);
+      carry = (carry / 58) | 0;
+    }
+  }
+  let result = '1'.repeat(zeros);
+  for (let i = digits.length - 1; i >= 0; i--) result += alphabet[digits[i]];
+  return result;
+}
+
+// Generate a real Ed25519 did:key in the browser (WebCrypto). The keypair
+// is genuinely local; the DID is not registered anywhere.
+async function friendsGenerateLocalDidKey() {
+  if (!globalThis.crypto?.subtle) throw new Error('WebCrypto subtle is unavailable.');
+  let keypair;
+  try {
+    keypair = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+  } catch (error) {
+    throw new Error(`Ed25519 key generation unavailable: ${error.message}`);
+  }
+  const raw = new Uint8Array(await crypto.subtle.exportKey('raw', keypair.publicKey));
+  const prefixed = new Uint8Array(2 + raw.length);
+  prefixed[0] = 0xed; // multicodec ed25519-pub
+  prefixed[1] = 0x01;
+  prefixed.set(raw, 2);
+  const privateJwk = await crypto.subtle.exportKey('jwk', keypair.privateKey);
+  return { did: 'did:key:z' + friendsBase58Btc(prefixed), privateJwk };
+}
+
+// --- Real backend wiring (ipfs_kit_py over the MCP++ desktop client).
+// No fixture CIDs or receipt strings are kept anywhere in this app: every
+// CID shown is computed from real record bytes (canonical
+// CIDv1-raw+sha2-256, same semantics as the supervisor gateway) or returned
+// by a live backend call. Backend-mutating calls are always
+// confirmation-gated and surface failures verbatim. Sample contacts are
+// plainly labeled local demo data with no backend claims.
+
+async function friendsKitClient() {
+  const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
+  const client = clientModule.getMCPPlusPlusDesktopClient();
+  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
+  return client;
+}
+
+async function friendsCanonicalCid(record) {
+  const { contentCidForBytes, stableStringifyValue } = await import('../core/mcp-plus-plus-desktop-client.js');
+  return contentCidForBytes(new TextEncoder().encode(stableStringifyValue(record)));
+}
+
+async function friendsCanonicalBytesBase64(record) {
+  const { base64ForBytes, stableStringifyValue } = await import('../core/mcp-plus-plus-desktop-client.js');
+  return base64ForBytes(new TextEncoder().encode(stableStringifyValue(record)));
+}
+
+async function friendsPersistArtifact(client, record, { kind, profile }) {
+  const cid = await friendsCanonicalCid(record);
+  const bytesBase64 = await friendsCanonicalBytesBase64(record);
+  const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+    cid,
+    bytes_base64: bytesBase64,
+    profile,
+    kind,
+    service: 'ipfs_kit_py',
+    pin: true
+  });
+  if (!result || result.persisted !== true || result.cid !== cid) {
+    throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted artifact.');
+  }
+  return { cid, result };
+}
+
+async function friendsAppendDagEvent(client, event) {
+  const appended = await client.post('ipfs_kit_py', '/mcp/dag/append', { event });
+  if (!appended?.event_cid) {
+    throw new Error(appended?.error || 'ipfs_kit_py event DAG did not return an event CID.');
+  }
+  return appended.event_cid;
+}
+
+function friendsConfirmBackendWrite(message) {
+  if (typeof window === 'undefined') return false;
+  return window.confirm(message);
+}
+
+// The stable, content-addressed form of a contact record.
+function friendsCanonicalContactRecord(friend) {
+  return {
+    schema: 'swissknife.friends.contact.v1',
+    id: friend.id,
+    name: friend.name || '',
+    identities: friend.identities || {},
+    tags: [...(friend.tags || [])].sort(),
+    relationship: friend.relationship || null,
+    added_at: friend.addedDate instanceof Date ? friend.addedDate.toISOString() : (friend.addedDate || null)
+  };
+}
+
 export class FriendsListApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -23,8 +133,9 @@ export class FriendsListApp {
       blocked_contact_behavior: 'suppress-presence-and-messages',
       provenance_required: true,
       redaction: 'public handles only until accepted',
-      receipt: 'receipt:friends-list:g037:relationship-policy',
-      cid: 'bafyfriendsg037relationshippolicy',
+      // Real artifact CID once "Apply policy" persists it; null until then.
+      receipt: null,
+      cid: null,
     };
     this.vdaG037 = this.createVdaG037State();
     
@@ -95,23 +206,27 @@ export class FriendsListApp {
   }
   
   initializeSampleData() {
-    // Sample friends data
+    // Sample contacts are LOCAL DEMO DATA so the app renders something on
+    // first run. They carry no backend claims: no CIDs, no receipts, no
+    // platform verifications (verified flags are false). Real contacts you
+    // add get confirmation-gated artifact persistence with real CIDs.
     this.friends.set('alice-did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK', {
       id: 'alice-did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
       name: 'Alice Cooper',
       avatar: null,
       status: 'online',
       lastSeen: new Date(),
+      sample: true,
       identities: {
-        github: { username: 'alice-dev', verified: true, provenance_cid: 'bafyfriendsg037alicegithub' },
-        huggingface: { username: 'alice-ml', verified: true, provenance_cid: 'bafyfriendsg037alicehuggingface' },
-        libp2p: { peer_id: '12D3KooWGRUVh1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ', connected: true, provenance_cid: 'bafyfriendsg037alicelibp2p' }
+        github: { username: 'alice-dev', verified: false, provenance_cid: null },
+        huggingface: { username: 'alice-ml', verified: false, provenance_cid: null },
+        libp2p: { peer_id: '12D3KooWGRUVh1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ', connected: false, provenance_cid: null }
       },
       provenance: {
-        source: 'ipfs_datasets_py.record_provenance',
-        cid: 'bafyfriendsg037aliceprovenance',
-        receipt: 'receipt:friends-list:g037:contact-provenance:alice',
-        event_dag: 'event:friends-list:g037:alice-contact-link',
+        source: 'local.sample',
+        cid: null,
+        receipt: null,
+        event_dag: null,
       },
       relationship: {
         state: 'accepted',
@@ -130,16 +245,17 @@ export class FriendsListApp {
       avatar: null,
       status: 'away',
       lastSeen: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+      sample: true,
       identities: {
-        github: { username: 'bob-blockchain', verified: true, provenance_cid: 'bafyfriendsg037bobgithub' },
-        twitter: { username: 'bob_crypto', verified: false, provenance_cid: 'bafyfriendsg037bobtwitter' },
-        ipfs: { peer_id: 'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG', online: true, provenance_cid: 'bafyfriendsg037bobipfs' }
+        github: { username: 'bob-blockchain', verified: false, provenance_cid: null },
+        twitter: { username: 'bob_crypto', verified: false, provenance_cid: null },
+        ipfs: { peer_id: 'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG', online: false, provenance_cid: null }
       },
       provenance: {
-        source: 'ipfs_datasets_py.record_provenance',
-        cid: 'bafyfriendsg037bobprovenance',
-        receipt: 'receipt:friends-list:g037:contact-provenance:bob',
-        event_dag: 'event:friends-list:g037:bob-contact-link',
+        source: 'local.sample',
+        cid: null,
+        receipt: null,
+        event_dag: null,
       },
       relationship: {
         state: 'accepted',
@@ -158,16 +274,17 @@ export class FriendsListApp {
       avatar: null,
       status: 'offline',
       lastSeen: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+      sample: true,
       identities: {
-        huggingface: { username: 'charlie-transformers', verified: true, provenance_cid: 'bafyfriendsg037charliehuggingface' },
-        discord: { username: 'CharlieAI#1234', verified: true, provenance_cid: 'bafyfriendsg037charliediscord' },
-        github: { username: 'charlie-ml', verified: false, provenance_cid: 'bafyfriendsg037charliegithub' }
+        huggingface: { username: 'charlie-transformers', verified: false, provenance_cid: null },
+        discord: { username: 'CharlieAI#1234', verified: false, provenance_cid: null },
+        github: { username: 'charlie-ml', verified: false, provenance_cid: null }
       },
       provenance: {
-        source: 'ipfs_datasets_py.record_provenance',
-        cid: 'bafyfriendsg037charlieprovenance',
-        receipt: 'receipt:friends-list:g037:contact-provenance:charlie',
-        event_dag: 'event:friends-list:g037:charlie-contact-link',
+        source: 'local.sample',
+        cid: null,
+        receipt: null,
+        event_dag: null,
       },
       relationship: {
         state: 'accepted',
@@ -180,7 +297,7 @@ export class FriendsListApp {
       addedDate: new Date('2025-07-22')
     });
     
-    // Sample pending invites
+    // Sample pending invite (local demo data — no backend claims).
     this.pendingInvites.set('invite-1', {
       id: 'invite-1',
       from: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
@@ -191,20 +308,20 @@ export class FriendsListApp {
       timestamp: new Date(Date.now() - 10 * 60 * 1000),
       mutualFriends: 2,
       state: 'pending-inbound',
-      provenance_cid: 'bafyfriendsg037evainvite',
-      receipt: 'receipt:friends-list:g037:invitation-state:eva',
+      provenance_cid: null,
+      receipt: null,
       policy: this.relationshipPolicy.policy_id,
     });
 
     this.blockedContacts.set('blocked-1', {
       id: 'blocked-1',
-      did: 'did:key:z6MblockedContactPolicyFixtureG037',
+      did: 'did:key:z6MblockedContactPolicySampleG037',
       name: 'Spam Relay',
       state: 'blocked',
       blockedAt: new Date(Date.now() - 45 * 60 * 1000),
       reason: 'Unsolicited invite bursts',
-      cid: 'bafyfriendsg037blockedstate',
-      receipt: 'receipt:friends-list:g037:blocking-state:spam-relay',
+      cid: null,
+      receipt: null,
     });
   }
 
@@ -214,31 +331,18 @@ export class FriendsListApp {
       workflowId: 'friends-list.contact-provenance-policy-state',
       vdaId: 'VDA-G037',
       generatedAt,
-      freshnessState: 'fresh',
+      freshnessState: 'not-synced',
+      freshnessNote: 'No backend sync yet — "Refresh freshness" reads the ipfs_kit_py event DAG.',
       emptyStateVisible: false,
       selectedAction: 'ready',
-      checkpointRefs: [
-        'bafyfriendsg037contactprovenance',
-        'bafyfriendsg037relationshippolicy',
-        'bafyfriendsg037invitationstate',
-        'bafyfriendsg037blockingstate',
-        'bafyfriendsg037freshnesscursor',
-        'bafyfriendsg037accessibleempty',
-        'bafyfriendsg037eventdag',
-      ],
-      receiptRefs: [
-        'receipt:friends-list:g037:contact-provenance',
-        'receipt:friends-list:g037:relationship-policy',
-        'receipt:friends-list:g037:invitation-state',
-        'receipt:friends-list:g037:blocking-state',
-        'receipt:friends-list:g037:freshness',
-        'receipt:friends-list:g037:accessible-empty-state',
-      ],
-      eventRefs: [
-        'event:friends-list:g037:alice-contact-link',
-        'event:friends-list:g037:bob-contact-link',
-        'event:friends-list:g037:charlie-contact-link',
-      ],
+      // Real backend CIDs collected as actions complete; empty means none
+      // have completed yet — never fixture strings.
+      checkpointRefs: [],
+      receiptRefs: [],
+      eventRefs: [],
+      actionLog: [
+        'workflow ready — contacts are local until persisted; each backend write asks for confirmation first'
+      ]
     };
   }
   
@@ -294,17 +398,21 @@ export class FriendsListApp {
           }
         };
       } else {
-        // Fallback implementation for when IPFS not available
+        // No live transport: explicit fallback object that reports
+        // offline and refuses to fabricate identifiers or storage
+        // results. Anything that needs a real node surfaces an honest
+        // error instead of a fake CID/peer ID.
         this.ipfsNode = {
-          id: () => ({ id: 'fallback-QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG' }),
+          fallback: true,
+          id: async () => ({ id: 'local-fallback (no live IPFS transport)' }),
           isOnline: () => false,
           swarm: {
-            peers: () => [],
-            connect: (addr) => Promise.resolve()
+            peers: async () => [],
+            connect: async () => { throw new Error('No live IPFS transport is available in this runtime.'); }
           },
           dag: {
-            put: (obj) => Promise.resolve({ toString: () => 'fallback-bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi' }),
-            get: (cid) => Promise.resolve({ value: {} })
+            put: async () => { throw new Error('No live IPFS transport is available; nothing was stored.'); },
+            get: async () => { throw new Error('No live IPFS transport is available; nothing was retrieved.'); }
           }
         };
       }
@@ -323,34 +431,59 @@ export class FriendsListApp {
           dial: (addr) => window.p2pMLSystem.connect(addr)
         };
       } else {
-        // Fallback implementation
+        // No live libp2p: explicit fallback that reports stopped and
+        // refuses to fabricate a peer identity.
         this.libp2pNode = {
-          peerId: { toString: () => 'fallback-12D3KooWGRUVh1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ2h1fJ' },
-          multiaddrs: ['/ip4/127.0.0.1/tcp/4001'],
+          fallback: true,
+          peerId: { toString: () => 'local-fallback (no live libp2p transport)' },
+          multiaddrs: [],
           isStarted: () => false,
           getConnections: () => [],
-          dial: (addr) => Promise.resolve()
+          dial: async () => { throw new Error('No live libp2p transport is available in this runtime.'); }
         };
       }
       
       console.log('✅ P2P nodes initialized');
     } catch (error) {
-      console.warn('⚠️ P2P initialization failed, using mock mode:', error);
+      console.warn('⚠️ P2P initialization failed; explicit offline fallbacks in use (no fabricated peers):', error);
     }
   }
   
   async initializeIdentity() {
     try {
-      // Generate or load DID identity
-      this.identityDID = 'did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp';
-      
+      // Local browser identity: a real Ed25519 did:key generated in this
+      // browser and persisted locally. It is NOT registered on any
+      // network — the identity manager labels it as a local demo identity.
+      this.identityDID = null;
+      this.identityKeyJwk = null;
+      try {
+        const savedDid = localStorage.getItem('swissknife_identity_did');
+        const savedJwk = localStorage.getItem('swissknife_identity_key_jwk');
+        if (savedDid && savedJwk) {
+          this.identityDID = savedDid;
+          this.identityKeyJwk = JSON.parse(savedJwk);
+          this.identityDidOrigin = 'local-generated';
+        } else {
+          const generated = await friendsGenerateLocalDidKey();
+          this.identityDID = generated.did;
+          this.identityKeyJwk = generated.privateJwk;
+          this.identityDidOrigin = 'local-generated';
+          localStorage.setItem('swissknife_identity_did', generated.did);
+          localStorage.setItem('swissknife_identity_key_jwk', JSON.stringify(generated.privateJwk));
+        }
+      } catch (keyError) {
+        console.warn('Local Ed25519 key generation unavailable; using a labeled placeholder DID:', keyError);
+        this.identityDID = 'did:key:z6MkPLACEHOLDER local-demo-identity (no keypair — WebCrypto Ed25519 unavailable)';
+        this.identityDidOrigin = 'placeholder';
+      }
+
       // Load existing identity links
       const savedLinks = localStorage.getItem('swissknife_identity_links');
       if (savedLinks) {
         const links = JSON.parse(savedLinks);
         this.identityLinks = new Map(Object.entries(links));
       }
-      
+
       console.log('🆔 Identity initialized:', this.identityDID);
     } catch (error) {
       console.error('Failed to initialize identity:', error);
@@ -385,7 +518,7 @@ export class FriendsListApp {
             <h2>Friends & Network</h2>
           </div>
           <div class="header-actions">
-            <button id="add-friend-btn" class="action-btn primary" type="button" aria-label="Add friend and review contact provenance">
+            <button id="add-friend-btn" class="action-btn primary sk-btn sk-btn-primary" type="button" aria-label="Add friend and review contact provenance">
               <span aria-hidden="true">➕</span> Add Friend
             </button>
             <button id="identity-manager-btn" class="action-btn" type="button" aria-label="Manage identity and relationship policy">
@@ -423,9 +556,10 @@ export class FriendsListApp {
           <div id="friends-panel" class="content-panel active">
             <div class="panel-header">
               <div class="search-bar">
-                <input type="text" id="friends-search" placeholder="Search friends...">
+                <input type="text" id="friends-search" placeholder="Search friends (local)...">
                 <button class="search-btn">🔍</button>
               </div>
+              <p class="friends-demo-note sk-honest-note" style="margin:4px 0 0;">Sample contacts are local demo data — no CIDs, receipts, or verifications. Contacts you add can be persisted to the ipfs_kit_py backend (confirmation-gated).</p>
               <div class="filter-controls">
                 <select id="status-filter">
                   <option value="all">All Status</option>
@@ -445,11 +579,11 @@ export class FriendsListApp {
             <div class="friends-list" id="friends-list">
               <!-- Friends will be populated by JavaScript -->
             </div>
-            <div id="friends-empty-state" class="friends-empty-state hidden" role="status" aria-live="polite" data-svd-vda-marker="accessible-empty-state" data-empty-state="available" tabindex="0">
+            <div id="friends-empty-state" class="friends-empty-state sk-empty hidden" role="status" aria-live="polite" data-svd-vda-marker="accessible-empty-state" data-empty-state="available" tabindex="0">
               <div class="placeholder-icon" aria-hidden="true">∅</div>
               <h4>No matching contacts</h4>
               <p>No results match the current filters. Clear search or import contacts to rebuild the list.</p>
-              <button type="button" id="clear-empty-filter-btn" class="btn-secondary" data-svd-workflow-action="restore-accessible-empty-state">Clear filters</button>
+              <button type="button" id="clear-empty-filter-btn" class="btn-secondary sk-btn" data-svd-workflow-action="restore-accessible-empty-state">Clear filters</button>
             </div>
           </div>
           
@@ -561,7 +695,7 @@ export class FriendsListApp {
                   <textarea id="friend-message" placeholder="Hi! I'd like to connect with you on SwissKnife..."></textarea>
                 </div>
                 <div class="form-actions">
-                  <button id="cancel-add-friend" class="btn-secondary">Cancel</button>
+                  <button id="cancel-add-friend" class="btn-secondary sk-btn">Cancel</button>
                   <button id="send-friend-request" class="btn-primary">Send Request</button>
                 </div>
               </div>
@@ -579,8 +713,9 @@ export class FriendsListApp {
             <div class="modal-body">
               <div class="identity-section">
                 <h4>Your Decentralized Identity</h4>
+                <p class="sk-honest-note" style="margin:0 0 6px;">Local browser identity (demo) — a real Ed25519 did:key generated in your browser, not registered on any network.</p>
                 <div class="did-display">
-                  <code>${this.identityDID}</code>
+                  <code>${this.escapeHtml(this.identityDID || 'initializing…')}</code>
                   <button class="copy-btn">📋</button>
                 </div>
                 <div class="qr-code-section">
@@ -588,7 +723,7 @@ export class FriendsListApp {
                     <div class="qr-icon">📱</div>
                     <p>QR Code for sharing</p>
                   </div>
-                  <button id="generate-qr-btn" class="btn-secondary">Generate QR Code</button>
+                  <button id="generate-qr-btn" class="btn-secondary sk-btn">Generate QR Code</button>
                 </div>
               </div>
               
@@ -604,7 +739,7 @@ export class FriendsListApp {
                 <div class="ipld-tree" id="ipld-tree">
                   <!-- IPLD structure will be shown here -->
                 </div>
-                <button id="export-identity-btn" class="btn-secondary">Export Identity</button>
+                <button id="export-identity-btn" class="btn-secondary sk-btn">Export Identity</button>
               </div>
             </div>
           </div>
@@ -633,47 +768,45 @@ export class FriendsListApp {
     const contactCount = this.friends.size;
     const provenanceCount = Array.from(this.friends.values()).filter(friend => friend.provenance?.cid).length;
     const refs = [...this.vdaG037.checkpointRefs, ...this.vdaG037.receiptRefs, ...this.vdaG037.eventRefs];
+    const refList = refs.length > 0
+      ? refs.map(ref => `<code>${this.escapeHtml(ref)}</code>`).join(' ')
+      : '<span>none yet — run the actions above</span>';
+    const policyCid = this.relationshipPolicy.cid || 'not published yet';
+    const inviteCid = invitation?.provenance_cid || 'not persisted yet';
+    const blockedCid = blocked?.cid || 'not persisted yet';
 
     return `
-      <section class="friends-workflow-panel" aria-label="VDA-G037 Friends List workflow evidence">
+      <section class="friends-workflow-panel" aria-label="VDA-G037 Friends List workflow">
         <div class="workflow-panel-header">
           <div>
             <h3>VDA-G037 workflow</h3>
             <p>${this.escapeHtml(this.vdaG037.workflowId)}</p>
-            <p class="workflow-evidence-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
+            <p>Contacts are stored locally in your browser (local UI) until persisted. Backend writes — contact provenance, relationship policy, invitation and blocking records — are confirmation-gated and surface backend failures verbatim. Sample contacts are local demo data with no backend claims. Search, filtering, and the accessible empty state are local UI.</p>
           </div>
           <span id="friends-workflow-action-state" class="workflow-state" role="status" aria-live="polite">${this.escapeHtml(this.vdaG037.selectedAction)}</span>
         </div>
         <div class="workflow-marker-grid">
-          <article class="workflow-card" data-svd-vda-marker="contact-provenance" data-provenance-state="recorded">
+          <article class="workflow-card" data-svd-vda-marker="contact-provenance" data-provenance-state="${provenanceCount > 0 ? 'recorded' : 'not-recorded'}">
             <h4>Contact provenance</h4>
-            <p>${provenanceCount}/${contactCount} contacts have dataset provenance and platform proof records.</p>
-            <code>bafyfriendsg037contactprovenance</code>
-            <code>receipt:friends-list:g037:contact-provenance</code>
+            <p>${provenanceCount}/${contactCount} contacts have persisted provenance artifacts.</p>
+            ${Array.from(this.friends.values()).filter(friend => friend.provenance?.cid).map(friend => `<code>${this.escapeHtml(friend.provenance.cid)}</code>`).join(' ') || '<small>No provenance persisted yet.</small>'}
           </article>
-          <article class="workflow-card" data-svd-vda-marker="relationship-policy" data-relationship-policy-state="active">
+          <article class="workflow-card" data-svd-vda-marker="relationship-policy" data-relationship-policy-state="${this.relationshipPolicy.cid ? 'active' : 'local'}">
             <h4>Relationship policy</h4>
             <p>${this.escapeHtml(this.relationshipPolicy.visibility)}; ${this.escapeHtml(this.relationshipPolicy.invitation)}; ${this.escapeHtml(this.relationshipPolicy.blocked_contact_behavior)}.</p>
-            <code>${this.escapeHtml(this.relationshipPolicy.cid)}</code>
-            <code>${this.escapeHtml(this.relationshipPolicy.receipt)}</code>
+            <code>${this.escapeHtml(policyCid)}</code>
           </article>
           <article class="workflow-card" data-svd-vda-marker="invitation-blocking-state" data-invitation-state="${this.escapeHtml(invitation?.state || 'none')}" data-blocking-state="${this.escapeHtml(blocked?.state || 'none')}">
             <h4>Invite and block state</h4>
-            <p>Invitation ${this.escapeHtml(invitation?.state || 'none')} from ${this.escapeHtml(invitation?.name || 'none')}; blocked contact ${this.escapeHtml(blocked?.name || 'none')} is ${this.escapeHtml(blocked?.state || 'none')}.</p>
-            <code>bafyfriendsg037invitationstate</code>
-            <code>bafyfriendsg037blockingstate</code>
+            <p>Invitation ${this.escapeHtml(invitation?.state || 'none')} from ${this.escapeHtml(invitation?.name || 'none')} (${this.escapeHtml(inviteCid)}); blocked contact ${this.escapeHtml(blocked?.name || 'none')} is ${this.escapeHtml(blocked?.state || 'none')} (${this.escapeHtml(blockedCid)}).</p>
           </article>
           <article class="workflow-card" data-svd-vda-marker="freshness" data-freshness-state="${this.escapeHtml(this.vdaG037.freshnessState)}" data-freshness-epoch-ms="${freshnessEpoch}">
             <h4>Freshness</h4>
-            <p>Last network sync ${this.formatTimeAgo(this.vdaG037.generatedAt)}; gateway cursor within 120 seconds.</p>
-            <code>bafyfriendsg037freshnesscursor</code>
-            <code>receipt:friends-list:g037:freshness</code>
+            <p>${this.escapeHtml(this.vdaG037.freshnessNote || 'No backend sync yet.')}</p>
           </article>
           <article class="workflow-card" data-svd-vda-marker="accessible-empty-state" data-empty-state="${this.vdaG037.emptyStateVisible ? 'visible' : 'available'}">
             <h4>Accessible empty state</h4>
-            <p>Search results expose role=status, aria-live, keyboard focus, and clear-filter recovery.</p>
-            <code>bafyfriendsg037accessibleempty</code>
-            <code>receipt:friends-list:g037:accessible-empty-state</code>
+            <p>Search results expose role=status, aria-live, keyboard focus, and clear-filter recovery. (local UI)</p>
           </article>
         </div>
         <div class="workflow-actions" aria-label="Friends List VDA-G037 workflow actions">
@@ -684,9 +817,36 @@ export class FriendsListApp {
           <button type="button" data-svd-workflow-action="refresh-freshness">Refresh freshness</button>
           <button type="button" data-svd-workflow-action="show-accessible-empty-state">Show empty state</button>
         </div>
-        <p class="workflow-refs">${refs.map(ref => `<code>${this.escapeHtml(ref)}</code>`).join(' ')}</p>
+        <p class="workflow-refs">${refList}</p>
       </section>
     `;
+  }
+
+  // Re-render just the workflow panel after backend state changes.
+  refreshVdaG037WorkflowPanel() {
+    const container = document.querySelector('.friends-container');
+    if (!container) return;
+    const existing = container.querySelector('.friends-workflow-panel');
+    if (!existing) return;
+    const template = document.createElement('template');
+    template.innerHTML = this.renderVdaG037WorkflowPanel().trim();
+    const replacement = template.content.firstChild;
+    existing.replaceWith(replacement);
+    // replaceWith drops listeners: re-bind the panel's action buttons.
+    replacement.querySelectorAll('[data-svd-workflow-action]').forEach(control => {
+      control.addEventListener('click', () => {
+        const action = control.dataset.svdWorkflowAction;
+        if (action) this.handleVdaG037Action(action);
+      });
+    });
+    const actionState = document.querySelector('#friends-workflow-action-state');
+    if (actionState) actionState.textContent = this.vdaG037.selectedAction;
+  }
+
+  setVdaG037ActionState(state) {
+    this.vdaG037.selectedAction = state;
+    const actionState = document.querySelector('#friends-workflow-action-state');
+    if (actionState) actionState.textContent = state;
   }
   
   getCSS() {
@@ -695,8 +855,8 @@ export class FriendsListApp {
         display: flex;
         flex-direction: column;
         height: 100%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #ffffff;
+        background: var(--sk-bg-deep, #0e1412);
+        color: var(--sk-text, #edf7f2);
         font-family: system-ui, -apple-system, sans-serif;
         overflow: auto;
         min-width: 0;
@@ -760,8 +920,9 @@ export class FriendsListApp {
       }
       
       .action-btn.primary {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-        border-color: rgba(59, 130, 246, 0.5);
+        background: var(--sk-accent, #8bd8bd);
+        border-color: var(--sk-accent, #8bd8bd);
+        color: #0e1412;
       }
       
       .action-btn.status-online {
@@ -801,7 +962,7 @@ export class FriendsListApp {
       .nav-tab:hover, .nav-tab.active {
         color: white;
         background: rgba(255, 255, 255, 0.1);
-        border-bottom-color: #3b82f6;
+        border-bottom-color: var(--sk-accent, #8bd8bd);
       }
       
       .tab-icon {
@@ -914,8 +1075,8 @@ export class FriendsListApp {
       }
       
       .filter-controls select option {
-        background: #4c1d95;
-        color: white;
+        background: var(--sk-bg-panel, #101b18);
+        color: var(--sk-text, #edf7f2);
       }
       
       /* Friends List */
@@ -952,7 +1113,8 @@ export class FriendsListApp {
         width: 50px;
         height: 50px;
         border-radius: 50%;
-        background: linear-gradient(45deg, #667eea, #764ba2);
+        background: var(--sk-bg-inset, #17241f);
+        border: 1px solid var(--sk-border, #263a34);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -973,15 +1135,15 @@ export class FriendsListApp {
       }
       
       .friend-avatar.online::after {
-        background: #10b981;
+        background: var(--sk-ok, #5ee3a1);
       }
       
       .friend-avatar.away::after {
-        background: #f59e0b;
+        background: var(--sk-warn, #ffd166);
       }
       
       .friend-avatar.offline::after {
-        background: #6b7280;
+        background: var(--sk-idle, #7e8d87);
       }
       
       .friend-info h4 {
@@ -1120,7 +1282,7 @@ export class FriendsListApp {
         border-radius: 8px;
         font-style: italic;
         margin-bottom: 1rem;
-        border-left: 3px solid #3b82f6;
+        border-left: 3px solid var(--sk-accent, #8bd8bd);
       }
       
       .invite-actions {
@@ -1140,8 +1302,8 @@ export class FriendsListApp {
       }
       
       .invite-btn.accept {
-        background: linear-gradient(135deg, #10b981, #047857);
-        color: white;
+        background: var(--sk-ok, #5ee3a1);
+        color: #0e1412;
       }
       
       .invite-btn.decline {
@@ -1302,22 +1464,22 @@ export class FriendsListApp {
         margin-top: 1rem;
         text-align: center;
         padding: 2rem 1rem;
-        background: rgba(15, 23, 42, 0.58);
-        border: 1px dashed rgba(125, 211, 252, 0.55);
+        background: var(--sk-bg-panel, #101b18);
+        border: 1px dashed var(--sk-border, #263a34);
         border-radius: 8px;
-        color: rgba(255, 255, 255, 0.86);
+        color: var(--sk-text-faint, #9eb2aa);
       }
 
       .friends-empty-state:focus {
-        outline: 2px solid #7dd3fc;
+        outline: 2px solid var(--sk-accent, #8bd8bd);
         outline-offset: 2px;
       }
 
       .friends-workflow-panel {
         margin: 0 1.5rem 1.5rem;
         padding: 1rem;
-        background: rgba(8, 47, 73, 0.68);
-        border: 1px solid rgba(125, 211, 252, 0.24);
+        background: var(--sk-bg-panel, #101b18);
+        border: 1px solid var(--sk-border, #263a34);
         border-radius: 8px;
         flex-shrink: 0;
       }
@@ -1430,7 +1592,8 @@ export class FriendsListApp {
       }
       
       .modal-content {
-        background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+        background: var(--sk-bg-panel, #101b18);
+        border: 1px solid var(--sk-border, #263a34);
         border-radius: 16px;
         width: 90%;
         max-width: 600px;
@@ -1551,7 +1714,7 @@ export class FriendsListApp {
       .form-group input:focus,
       .form-group select:focus,
       .form-group textarea:focus {
-        border-color: #3b82f6;
+        border-color: var(--sk-accent, #8bd8bd);
         background: rgba(255, 255, 255, 0.15);
       }
       
@@ -1583,23 +1746,23 @@ export class FriendsListApp {
       }
       
       .btn-secondary {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: var(--sk-bg-header, #12211d);
+        color: var(--sk-text, #edf7f2);
+        border: 1px solid var(--sk-border, #263a34);
       }
       
       .btn-secondary:hover {
-        background: rgba(255, 255, 255, 0.2);
+        background: var(--sk-bg-inset, #17241f);
       }
       
       .btn-primary {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-        color: white;
+        background: var(--sk-accent, #8bd8bd);
+        color: #0e1412;
       }
       
       .btn-primary:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        box-shadow: 0 4px 12px rgba(139, 216, 189, 0.4);
       }
       
       /* Utility Classes */
@@ -1701,12 +1864,24 @@ export class FriendsListApp {
     // Add friend options
     const addOptions = container.querySelectorAll('.add-option');
     const addFriendForm = container.querySelector('#add-friend-form');
-    
+
     addOptions.forEach(option => {
       option.addEventListener('click', () => {
         const method = option.dataset.method;
         this.showAddFriendForm(method);
       });
+    });
+
+    // Send friend request: creates the contact locally, then offers a
+    // confirmation-gated backend persist of the contact artifact. The
+    // artifact CID is the shareable reference for the new contact.
+    const sendFriendRequestBtn = container.querySelector('#send-friend-request');
+    sendFriendRequestBtn?.addEventListener('click', () => {
+      this.submitFriendRequest();
+    });
+    const cancelAddFriendBtn = container.querySelector('#cancel-add-friend');
+    cancelAddFriendBtn?.addEventListener('click', () => {
+      container.querySelector('#add-friend-form')?.classList.add('hidden');
     });
     
     // Identity Manager modal
@@ -1773,6 +1948,13 @@ export class FriendsListApp {
       this.toggleNetworkStatus();
     });
 
+    // Export identity (was a dead button): real local download plus an
+    // optional confirmation-gated backend persist.
+    const exportIdentityBtn = container.querySelector('#export-identity-btn');
+    exportIdentityBtn?.addEventListener('click', () => {
+      this.exportIdentity();
+    });
+
     const clearEmptyFilterBtn = container.querySelector('#clear-empty-filter-btn');
     clearEmptyFilterBtn?.addEventListener('click', () => {
       this.restoreAccessibleEmptyState();
@@ -1786,57 +1968,265 @@ export class FriendsListApp {
     });
   }
 
-  handleVdaG037Action(action) {
-    this.vdaG037.selectedAction = action;
-    const actionState = document.querySelector('#friends-workflow-action-state');
-    if (actionState) actionState.textContent = action;
+  async handleVdaG037Action(action) {
+    this.setVdaG037ActionState(action);
 
     if (action === 'review-contact-provenance') {
-      document.querySelectorAll('[data-svd-vda-marker="contact-provenance"]').forEach(node => {
-        node.dataset.provenanceState = 'reviewed';
-      });
+      await this.reviewContactProvenance();
+      return;
     }
 
     if (action === 'apply-relationship-policy') {
-      document.querySelectorAll('[data-svd-vda-marker="relationship-policy"]').forEach(node => {
-        node.dataset.relationshipPolicyState = 'active';
-      });
+      await this.applyRelationshipPolicy();
+      return;
     }
 
     if (action === 'process-invitation-state') {
-      const invite = Array.from(this.pendingInvites.values())[0];
-      if (invite) invite.state = 'reviewed-pending-confirmation';
-      document.querySelectorAll('[data-svd-vda-marker="invitation-blocking-state"]').forEach(node => {
-        node.dataset.invitationState = invite?.state || 'none';
-      });
+      await this.processInvitationState();
+      return;
     }
 
     if (action === 'toggle-blocking-state') {
-      const blocked = Array.from(this.blockedContacts.values())[0];
-      if (blocked) {
-        blocked.state = blocked.state === 'blocked' ? 'blocked-reviewed' : 'blocked';
-      }
-      document.querySelectorAll('[data-svd-vda-marker="invitation-blocking-state"]').forEach(node => {
-        node.dataset.blockingState = blocked?.state || 'none';
-      });
+      await this.toggleBlockingState();
+      return;
     }
 
     if (action === 'refresh-freshness') {
-      this.vdaG037.generatedAt = new Date();
-      this.vdaG037.freshnessState = 'fresh';
-      document.querySelectorAll('[data-svd-vda-marker="freshness"]').forEach(node => {
-        node.dataset.freshnessState = 'fresh';
-        node.dataset.freshnessEpochMs = String(this.vdaG037.generatedAt.getTime());
-      });
+      await this.refreshFreshness();
+      return;
     }
 
     if (action === 'show-accessible-empty-state') {
       this.showAccessibleEmptyState();
+      return;
     }
 
     if (action === 'restore-accessible-empty-state') {
       this.restoreAccessibleEmptyState();
+      return;
     }
+  }
+
+  // Confirmation-gated: persists one provenance artifact per contact and a
+  // provenance batch event on the event DAG. Real CIDs only; failures
+  // surface verbatim and leave local contacts untouched.
+  async reviewContactProvenance() {
+    const contacts = Array.from(this.friends.values());
+    if (contacts.length === 0) {
+      this.setVdaG037ActionState('review-contact-provenance: no contacts');
+      return;
+    }
+    if (!friendsConfirmBackendWrite(
+      `Persist provenance artifacts for ${contacts.length} contact(s)?\n\nWrites one provenance artifact per contact and a provenance batch event to the ipfs_kit_py backend.`
+    )) {
+      this.setVdaG037ActionState('review-contact-provenance: cancelled');
+      return;
+    }
+    this.setVdaG037ActionState('review-contact-provenance: persisting…');
+    try {
+      const client = await friendsKitClient();
+      const persistedCids = [];
+      for (const friend of contacts) {
+        const contactRecord = friendsCanonicalContactRecord(friend);
+        const contactPersisted = await friendsPersistArtifact(client, contactRecord, { kind: 'contact', profile: 'friends-artifact' });
+        const provenanceRecord = {
+          schema: 'swissknife.friends.contact-provenance.v1',
+          subject_cid: contactPersisted.cid,
+          contact_id: friend.id,
+          source: 'friends.provenance.record',
+          policy: this.relationshipPolicy.policy_id,
+          recorded_at: new Date().toISOString()
+        };
+        const provenancePersisted = await friendsPersistArtifact(client, provenanceRecord, { kind: 'contact-provenance', profile: 'friends-artifact' });
+        friend.provenance = {
+          source: 'ipfs_kit_py.artifact.put',
+          cid: provenancePersisted.cid,
+          receipt: provenancePersisted.cid,
+          event_dag: null,
+          contact_cid: contactPersisted.cid
+        };
+        persistedCids.push(provenancePersisted.cid);
+      }
+      const eventCid = await friendsAppendDagEvent(client, {
+        event_type: 'friends.provenance.batch-recorded',
+        provenance_cids: persistedCids,
+        contact_count: contacts.length,
+        parents: []
+      });
+      this.vdaG037.receiptRefs = [...new Set([...this.vdaG037.receiptRefs, ...persistedCids, eventCid])];
+      this.vdaG037.checkpointRefs = [...new Set([...this.vdaG037.checkpointRefs, eventCid])];
+      this.vdaG037.eventRefs = [...new Set([...this.vdaG037.eventRefs, 'friends.provenance.batch-recorded'])];
+      this.vdaG037.actionLog.push(`review-contact-provenance:${persistedCids.length}:${eventCid}`);
+      this.setVdaG037ActionState(`review-contact-provenance: ${persistedCids.length} persisted`);
+      document.querySelectorAll('[data-svd-vda-marker="contact-provenance"]').forEach(node => {
+        node.dataset.provenanceState = 'recorded';
+      });
+    } catch (error) {
+      this.vdaG037.actionLog.push(`review-contact-provenance:failed:${error.message}`);
+      this.setVdaG037ActionState(`review-contact-provenance failed: ${error.message}`);
+    }
+    this.refreshVdaG037WorkflowPanel();
+    this.renderFriendsList();
+  }
+
+  // Confirmation-gated: persists the relationship policy artifact.
+  async applyRelationshipPolicy() {
+    if (!friendsConfirmBackendWrite(
+      `Persist the relationship policy?\n\nWrites the policy artifact (${this.relationshipPolicy.policy_id}) to the ipfs_kit_py backend.`
+    )) {
+      this.setVdaG037ActionState('apply-relationship-policy: cancelled');
+      return;
+    }
+    this.setVdaG037ActionState('apply-relationship-policy: persisting…');
+    try {
+      const client = await friendsKitClient();
+      const policyRecord = {
+        schema: 'swissknife.friends.relationship-policy.v1',
+        policy_id: this.relationshipPolicy.policy_id,
+        visibility: this.relationshipPolicy.visibility,
+        invitation: this.relationshipPolicy.invitation,
+        blocked_contact_behavior: this.relationshipPolicy.blocked_contact_behavior,
+        provenance_required: this.relationshipPolicy.provenance_required,
+        redaction: this.relationshipPolicy.redaction,
+        applied_at: new Date().toISOString()
+      };
+      const persisted = await friendsPersistArtifact(client, policyRecord, { kind: 'relationship-policy', profile: 'friends-artifact' });
+      this.relationshipPolicy.cid = persisted.cid;
+      this.relationshipPolicy.receipt = persisted.cid;
+      this.vdaG037.receiptRefs = [...new Set([...this.vdaG037.receiptRefs, persisted.cid])];
+      this.vdaG037.checkpointRefs = [...new Set([...this.vdaG037.checkpointRefs, persisted.cid])];
+      this.vdaG037.actionLog.push(`apply-relationship-policy:${persisted.cid}`);
+      this.setVdaG037ActionState(`apply-relationship-policy: ${persisted.cid}`);
+      document.querySelectorAll('[data-svd-vda-marker="relationship-policy"]').forEach(node => {
+        node.dataset.relationshipPolicyState = 'active';
+      });
+    } catch (error) {
+      this.vdaG037.actionLog.push(`apply-relationship-policy:failed:${error.message}`);
+      this.setVdaG037ActionState(`apply-relationship-policy failed: ${error.message}`);
+    }
+    this.refreshVdaG037WorkflowPanel();
+  }
+
+  // The invite state change is local; persisting the invitation record is
+  // confirmation-gated and yields a real CID.
+  async processInvitationState() {
+    const invite = Array.from(this.pendingInvites.values())[0];
+    if (!invite) {
+      this.setVdaG037ActionState('process-invitation-state: no pending invite');
+      return;
+    }
+    invite.state = 'reviewed-pending-confirmation';
+    if (!friendsConfirmBackendWrite(
+      `Persist the invitation record for "${invite.name}"?\n\nWrites an invitation-state artifact to the ipfs_kit_py backend.`
+    )) {
+      this.setVdaG037ActionState('process-invitation-state: reviewed locally — not persisted');
+      this.vdaG037.actionLog.push('process-invitation-state:local-only');
+      this.refreshVdaG037WorkflowPanel();
+      return;
+    }
+    this.setVdaG037ActionState('process-invitation-state: persisting…');
+    try {
+      const client = await friendsKitClient();
+      const inviteRecord = {
+        schema: 'swissknife.friends.invitation-state.v1',
+        invite_id: invite.id,
+        from: invite.from,
+        name: invite.name,
+        message: invite.message || '',
+        platforms: invite.platforms || [],
+        state: invite.state,
+        recorded_at: new Date().toISOString()
+      };
+      const persisted = await friendsPersistArtifact(client, inviteRecord, { kind: 'invitation-state', profile: 'friends-artifact' });
+      invite.provenance_cid = persisted.cid;
+      invite.receipt = persisted.cid;
+      this.vdaG037.receiptRefs = [...new Set([...this.vdaG037.receiptRefs, persisted.cid])];
+      this.vdaG037.checkpointRefs = [...new Set([...this.vdaG037.checkpointRefs, persisted.cid])];
+      this.vdaG037.actionLog.push(`process-invitation-state:${persisted.cid}`);
+      this.setVdaG037ActionState(`process-invitation-state: ${persisted.cid}`);
+      document.querySelectorAll('[data-svd-vda-marker="invitation-blocking-state"]').forEach(node => {
+        node.dataset.invitationState = invite.state;
+      });
+    } catch (error) {
+      this.vdaG037.actionLog.push(`process-invitation-state:failed:${error.message}`);
+      this.setVdaG037ActionState(`process-invitation-state failed: ${error.message}`);
+    }
+    this.refreshVdaG037WorkflowPanel();
+  }
+
+  // The block toggle is local; persisting the blocking record is
+  // confirmation-gated and yields a real CID.
+  async toggleBlockingState() {
+    const blocked = Array.from(this.blockedContacts.values())[0];
+    if (!blocked) {
+      this.setVdaG037ActionState('toggle-blocking-state: no blocked contact');
+      return;
+    }
+    blocked.state = blocked.state === 'blocked' ? 'blocked-reviewed' : 'blocked';
+    if (!friendsConfirmBackendWrite(
+      `Persist the blocking record for "${blocked.name}" (state: ${blocked.state})?\n\nWrites a blocking-state artifact to the ipfs_kit_py backend.`
+    )) {
+      this.setVdaG037ActionState(`toggle-blocking-state: ${blocked.state} locally — not persisted`);
+      this.vdaG037.actionLog.push('toggle-blocking-state:local-only');
+      this.refreshVdaG037WorkflowPanel();
+      return;
+    }
+    this.setVdaG037ActionState('toggle-blocking-state: persisting…');
+    try {
+      const client = await friendsKitClient();
+      const blockRecord = {
+        schema: 'swissknife.friends.blocking-state.v1',
+        contact_id: blocked.id,
+        did: blocked.did,
+        name: blocked.name,
+        state: blocked.state,
+        reason: blocked.reason || '',
+        recorded_at: new Date().toISOString()
+      };
+      const persisted = await friendsPersistArtifact(client, blockRecord, { kind: 'blocking-state', profile: 'friends-artifact' });
+      blocked.cid = persisted.cid;
+      blocked.receipt = persisted.cid;
+      this.vdaG037.receiptRefs = [...new Set([...this.vdaG037.receiptRefs, persisted.cid])];
+      this.vdaG037.checkpointRefs = [...new Set([...this.vdaG037.checkpointRefs, persisted.cid])];
+      this.vdaG037.actionLog.push(`toggle-blocking-state:${persisted.cid}`);
+      this.setVdaG037ActionState(`toggle-blocking-state: ${persisted.cid}`);
+      document.querySelectorAll('[data-svd-vda-marker="invitation-blocking-state"]').forEach(node => {
+        node.dataset.blockingState = blocked.state;
+      });
+    } catch (error) {
+      this.vdaG037.actionLog.push(`toggle-blocking-state:failed:${error.message}`);
+      this.setVdaG037ActionState(`toggle-blocking-state failed: ${error.message}`);
+    }
+    this.refreshVdaG037WorkflowPanel();
+  }
+
+  // Freshness is a REAL backend read: it fetches the recent ipfs_kit_py
+  // event-DAG history and reports what it found. Failures surface verbatim
+  // and leave the previous freshness state untouched.
+  async refreshFreshness() {
+    this.setVdaG037ActionState('refresh-freshness: reading event DAG…');
+    try {
+      const client = await friendsKitClient();
+      const history = await client.getDagHistory('ipfs_kit_py', 10);
+      const events = Array.isArray(history) ? history : (history?.events || history?.items || []);
+      this.vdaG037.generatedAt = new Date();
+      this.vdaG037.freshnessState = 'fresh';
+      const count = Array.isArray(events) ? events.length : 0;
+      const latest = Array.isArray(events) && events.length > 0
+        ? (events[0].event_cid || events[0].cid || events[0].event_type || 'event')
+        : 'none';
+      this.vdaG037.freshnessNote = `Event DAG read at ${this.vdaG037.generatedAt.toLocaleTimeString()}: ${count} recent event(s); latest ${latest}.`;
+      this.vdaG037.actionLog.push(`refresh-freshness:${count}`);
+      this.setVdaG037ActionState('refresh-freshness: fresh');
+      document.querySelectorAll('[data-svd-vda-marker="freshness"]').forEach(node => {
+        node.dataset.freshnessState = 'fresh';
+        node.dataset.freshnessEpochMs = String(this.vdaG037.generatedAt.getTime());
+      });
+    } catch (error) {
+      this.vdaG037.actionLog.push(`refresh-freshness:failed:${error.message}`);
+      this.setVdaG037ActionState(`refresh-freshness failed: ${error.message}`);
+    }
+    this.refreshVdaG037WorkflowPanel();
   }
 
   showAccessibleEmptyState() {
@@ -2146,6 +2536,80 @@ export class FriendsListApp {
     }
   }
   
+  async submitFriendRequest() {
+    const friendInput = document.querySelector('#friend-input');
+    const platformSelect = document.querySelector('#platform-select');
+    const friendMessage = document.querySelector('#friend-message');
+    const handle = String(friendInput?.value || '').trim();
+    if (!handle) {
+      alert('Enter a DID or username first.');
+      return;
+    }
+    const platform = platformSelect?.value || '';
+    const isDid = handle.startsWith('did:');
+    const id = isDid ? `contact-${handle}` : `contact-${platform || 'user'}:${handle}`;
+    if (this.friends.has(id)) {
+      alert('That contact is already in your list.');
+      return;
+    }
+    const friend = {
+      id,
+      name: isDid ? handle.slice(0, 24) + '…' : handle,
+      avatar: null,
+      status: 'offline',
+      lastSeen: new Date(),
+      sample: false,
+      identities: isDid
+        ? { did: { identifier: handle, verified: false, provenance_cid: null } }
+        : { [platform || 'username']: { username: handle, verified: false, provenance_cid: null } },
+      provenance: { source: 'local.add', cid: null, receipt: null, event_dag: null },
+      relationship: {
+        state: 'invite-sent',
+        policy: this.relationshipPolicy.policy_id,
+        since: new Date().toISOString(),
+        visibility: 'profile-only-until-accepted',
+      },
+      tags: [],
+      mutualFriends: 0,
+      addedDate: new Date(),
+      inviteMessage: String(friendMessage?.value || '')
+    };
+    this.friends.set(id, friend);
+    document.querySelector('#add-friend-form')?.classList.add('hidden');
+    if (friendInput) friendInput.value = '';
+    this.renderFriendsList();
+    // Confirmation-gated backend persist of the new contact artifact; the
+    // returned CID is the shareable reference for this contact.
+    if (friendsConfirmBackendWrite(
+      `Persist the new contact "${friend.name}" as a pinned IPFS artifact?\n\nWrites a contact artifact to the ipfs_kit_py backend.`
+    )) {
+      try {
+        const client = await friendsKitClient();
+        const persisted = await friendsPersistArtifact(client, friendsCanonicalContactRecord(friend), { kind: 'contact', profile: 'friends-artifact' });
+        friend.provenance = {
+          source: 'ipfs_kit_py.artifact.put',
+          cid: persisted.cid,
+          receipt: persisted.cid,
+          event_dag: null,
+          contact_cid: persisted.cid
+        };
+        friend.relationship.state = 'invite-sent-persisted';
+        this.vdaG037.receiptRefs = [...new Set([...this.vdaG037.receiptRefs, persisted.cid])];
+        this.vdaG037.checkpointRefs = [...new Set([...this.vdaG037.checkpointRefs, persisted.cid])];
+        this.vdaG037.actionLog.push(`add-contact:${persisted.cid}`);
+        this.setVdaG037ActionState(`add-contact: ${persisted.cid}`);
+      } catch (error) {
+        this.vdaG037.actionLog.push(`add-contact:failed:${error.message}`);
+        this.setVdaG037ActionState(`add-contact failed: ${error.message} (contact kept local-only)`);
+      }
+      this.refreshVdaG037WorkflowPanel();
+      this.renderFriendsList();
+    } else {
+      this.setVdaG037ActionState('add-contact: local-only');
+      this.refreshVdaG037WorkflowPanel();
+    }
+  }
+
   showAddFriendForm(method) {
     const addFriendForm = document.querySelector('#add-friend-form');
     const friendInput = document.querySelector('#friend-input');
@@ -2264,105 +2728,70 @@ export class FriendsListApp {
     console.log(`🔗 Connecting to ${platform.name}...`);
     
     try {
-      // Simulate OAuth flow or API connection
+      // Platform connections require a real OAuth/API flow; performPlatformConnection refuses to fabricate one.
       const connectionData = await this.performPlatformConnection(platform);
-      
+
       // Store the connection
       this.identityLinks.set(platformId, connectionData);
-      
+
       // Save to localStorage
       const linksObject = Object.fromEntries(this.identityLinks);
       localStorage.setItem('swissknife_identity_links', JSON.stringify(linksObject));
-      
-      // Create IPLD record
-      await this.updateIPLDRecord();
-      
+
+      // Identity-record persistence is confirmation-gated and lives in
+      // exportIdentity(); it is intentionally not auto-run here.
+      this.vdaG037.actionLog.push(`connect-platform:${platformId}:local-links-saved`);
+
       // Re-render
       this.renderIdentityLinks();
-      
+
       console.log(`✅ Connected to ${platform.name}`);
-      
+
     } catch (error) {
       console.error(`❌ Failed to connect to ${platform.name}:`, error);
+      alert(`Could not connect to ${platform.name}.\n\n${error.message}`);
     }
   }
   
   async performPlatformConnection(platform) {
-    // Simulate platform-specific connection logic
-    switch (platform.id) {
-      case 'github':
-        return {
-          username: 'user_' + Math.random().toString(36).substr(2, 9),
-          profile_url: 'https://github.com/user_' + Math.random().toString(36).substr(2, 9),
-          avatar_url: '/assets/avatars/github.png',
-          bio: 'Software developer passionate about decentralized tech',
-          public_repos: Math.floor(Math.random() * 50) + 5,
-          verified: true,
-          connected_at: new Date().toISOString()
-        };
-        
-      case 'huggingface':
-        return {
-          username: 'ml_' + Math.random().toString(36).substr(2, 9),
-          profile_url: 'https://huggingface.co/ml_' + Math.random().toString(36).substr(2, 9),
-          avatar_url: '/assets/avatars/huggingface.png',
-          models: Math.floor(Math.random() * 10) + 1,
-          datasets: Math.floor(Math.random() * 5) + 1,
-          verified: true,
-          connected_at: new Date().toISOString()
-        };
-        
-      case 'libp2p':
-        return {
-          peer_id: '12D3KooW' + Math.random().toString(36).substr(2, 40),
-          multiaddrs: ['/ip4/127.0.0.1/tcp/4001', '/ip6/::1/tcp/4001'],
-          protocols: ['/ipfs/id/1.0.0', '/ipfs/ping/1.0.0', '/swissknife/friends/1.0.0'],
-          connected_peers: Math.floor(Math.random() * 20) + 5,
-          verified: true,
-          connected_at: new Date().toISOString()
-        };
-        
-      case 'ipfs':
-        return {
-          peer_id: 'Qm' + Math.random().toString(36).substr(2, 44),
-          node_id: 'ipfs-node-' + Math.random().toString(36).substr(2, 8),
-          pinned_content: Math.floor(Math.random() * 100) + 10,
-          bandwidth_stats: {
-            total_in: Math.floor(Math.random() * 1000) + 'MB',
-            total_out: Math.floor(Math.random() * 1000) + 'MB'
-          },
-          verified: true,
-          connected_at: new Date().toISOString()
-        };
-        
-      default:
-        return {
-          username: 'user_' + Math.random().toString(36).substr(2, 9),
-          connected_at: new Date().toISOString(),
-          verified: false
-        };
-    }
+    // No fabricated connections: completing a real platform link requires
+    // that platform's OAuth/API flow with real credentials, which this
+    // runtime does not have. Returning invented usernames, peer IDs, or
+    // metrics would present canned results as real, so the connection is
+    // honestly refused instead.
+    throw new Error(
+      `Platform connection for ${platform.name} is unavailable: a real ${platform.name} OAuth/API link is not configured in this runtime. ` +
+      'No connection was made and no data was fabricated. Your identity links stay exactly as they were.'
+    );
   }
   
   async updateIPLDRecord() {
+    // Identity record persistence goes through the real ipfs_kit_py
+    // artifact store (canonical CID over the record bytes). Callers that
+    // are user-facing confirmation-gate this themselves.
     try {
       const identityRecord = {
+        schema: 'swissknife.friends.identity-record.v1',
         did: this.identityDID,
+        did_origin: this.identityDidOrigin || 'unknown',
         platforms: Object.fromEntries(this.identityLinks),
         friends: Array.from(this.friends.keys()),
         updated: new Date().toISOString(),
         version: '1.0.0'
       };
-      
-      // In a real implementation, this would create an IPLD DAG
-      if (this.ipfsNode && this.ipfsNode.dag) {
-        const cid = await this.ipfsNode.dag.put(identityRecord);
-        console.log('✅ IPLD record updated:', cid.toString());
-        return cid;
-      }
-      
+
+      const client = await friendsKitClient();
+      const persisted = await friendsPersistArtifact(client, identityRecord, { kind: 'identity-record', profile: 'friends-artifact' });
+      console.log('✅ Identity record persisted:', persisted.cid);
+      this.vdaG037.receiptRefs = [...new Set([...this.vdaG037.receiptRefs, persisted.cid])];
+      this.vdaG037.checkpointRefs = [...new Set([...this.vdaG037.checkpointRefs, persisted.cid])];
+      this.vdaG037.actionLog.push(`update-identity-record:${persisted.cid}`);
+      this.setVdaG037ActionState(`update-identity-record: ${persisted.cid}`);
+      this.refreshVdaG037WorkflowPanel();
+      return persisted.cid;
     } catch (error) {
-      console.error('Failed to update IPLD record:', error);
+      console.error('Failed to update identity record:', error);
+      throw error;
     }
   }
   
@@ -2447,92 +2876,89 @@ export class FriendsListApp {
   async scanP2PNetwork() {
     const discoveryResults = document.querySelector('#discovery-results');
     if (!discoveryResults) return;
-    
+
     discoveryResults.innerHTML = `
       <div class="scanning-indicator">
-        <div class="spinner">🔄</div>
+        <div class="spinner">\u0001F504</div>
         <h4>Scanning P2P Network...</h4>
-        <p>Looking for SwissKnife users in your network...</p>
+        <p>Querying the live swarm peer list...</p>
       </div>
     `;
-    
-    // Simulate network scan
-    setTimeout(() => {
-      const mockDiscoveries = [
-        {
-          id: 'discovered-1',
-          name: 'Dev Network User',
-          did: 'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH',
-          platforms: ['github', 'libp2p'],
-          mutualFriends: 1,
-          distance: '2 hops away'
-        },
-        {
-          id: 'discovered-2', 
-          name: 'ML Researcher',
-          did: 'did:key:z6MkfrQqJ9r8u2PyR5qDgJ9r8u2PyR5qDgJ9r8u2PyR5qDgJ9',
-          platforms: ['huggingface', 'ipfs'],
-          mutualFriends: 0,
-          distance: '1 hop away'
-        }
-      ];
-      
+
+    // Real discovery only: ask the live IPFS/libp2p transport for its
+    // swarm peers. With no live transport the scan honestly reports zero
+    // results instead of inventing users.
+    try {
+      const node = this.ipfsNode;
+      const online = !!(node && !node.fallback && (typeof node.isOnline === 'function' ? node.isOnline() : node.isOnline));
+      let peers = [];
+      if (online && node?.swarm?.peers) {
+        const raw = await node.swarm.peers();
+        peers = Array.isArray(raw) ? raw : [];
+      }
+      if (!online) {
+        discoveryResults.innerHTML = `
+          <h4>No peers discovered</h4>
+          <p>No live IPFS/libp2p transport is available in this runtime, so discovery returned no results. Nothing was fabricated.</p>
+        `;
+        return;
+      }
+      if (peers.length === 0) {
+        discoveryResults.innerHTML = `
+          <h4>No peers discovered</h4>
+          <p>The live transport is online but the swarm peer list is empty.</p>
+        `;
+        return;
+      }
       discoveryResults.innerHTML = `
-        <h4>Found ${mockDiscoveries.length} users</h4>
+        <h4>Found ${peers.length} peer(s) on the live swarm</h4>
         <div class="discovery-list">
-          ${mockDiscoveries.map(user => `
+          ${peers.map((peer, index) => {
+            const peerId = typeof peer === 'string' ? peer : (peer.peer || peer.id || `peer-${index}`);
+            return `
             <div class="discovery-card">
               <div class="discovery-header">
-                <div class="discovery-avatar">${user.name.charAt(0)}</div>
+                <div class="discovery-avatar">\u0001F517</div>
                 <div class="discovery-info">
-                  <h5>${user.name}</h5>
-                  <p>${user.distance} • ${user.mutualFriends} mutual friends</p>
+                  <h5>${this.escapeHtml(String(peerId)).slice(0, 24)}...</h5>
+                  <p>live swarm peer</p>
                 </div>
               </div>
-              <div class="discovery-platforms">
-                ${user.platforms.map(platform => `
-                  <span class="platform-badge">
-                    ${this.getPlatformIcon(platform)} ${platform}
-                  </span>
-                `).join('')}
-              </div>
-              <button class="discovery-add-btn" data-user-id="${user.id}">
-                ➕ Add Friend
+              <button class="discovery-add-btn" data-peer-id="${this.escapeHtml(String(peerId))}">
+                \u2795 Add Friend
               </button>
-            </div>
-          `).join('')}
+            </div>`;
+          }).join('')}
         </div>
       `;
-      
-      // Add click handlers
-      const addBtns = discoveryResults.querySelectorAll('.discovery-add-btn');
-      addBtns.forEach(btn => {
+
+      discoveryResults.querySelectorAll('.discovery-add-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          const userId = btn.dataset.userId;
-          const user = mockDiscoveries.find(u => u.id === userId);
-          if (user) {
-            this.sendFriendRequest(user);
-          }
+          this.sendFriendRequest({ id: btn.dataset.peerId, name: btn.dataset.peerId });
         });
       });
-      
-    }, 2000);
-  }
-  
-  sendFriendRequest(user) {
-    console.log(`📤 Sending friend request to ${user.name}`);
-    
-    // In a real implementation, this would send via libp2p/IPFS
-    // For now, just show success message
-    const btn = document.querySelector(`[data-user-id="${user.id}"]`);
-    if (btn) {
-      btn.textContent = '✅ Request Sent';
-      btn.disabled = true;
+    } catch (error) {
+      discoveryResults.innerHTML = `
+        <h4>Discovery failed</h4>
+        <p>${this.escapeHtml(error.message)}</p>
+      `;
     }
   }
-  
+
+  sendFriendRequest(user) {
+    // Friend requests are created through the Add Friend flow so the
+    // contact gets a real local record and an optional confirmation-gated
+    // backend persist. This pre-fills that flow honestly.
+    console.log(`\u0001F4E4 Preparing friend request for ${user.name}`);
+    const addFriendModal = document.querySelector('#add-friend-modal');
+    addFriendModal?.classList.remove('hidden');
+    this.showAddFriendForm('did');
+    const friendInput = document.querySelector('#friend-input');
+    if (friendInput && user.id && String(user.id).startsWith('did:')) friendInput.value = user.id;
+    alert('The Add Friend form is open. Confirming there creates a real contact record (backend persist is confirmation-gated).');
+  }
   importContacts() {
-    // Simulate contact import from connected platforms
+    // Contact import needs a real platform OAuth link; the UI says so honestly.
     console.log('📤 Importing contacts from connected platforms...');
     
     const discoveryResults = document.querySelector('#discovery-results');
@@ -2575,17 +3001,49 @@ export class FriendsListApp {
   }
 
   toggleNetworkStatus() {
+    // Honest network badge: reflects the actual transport state instead
+    // of toggling a pretend online/offline status.
     const statusBtn = document.querySelector('#network-status-btn');
-    const isOnline = statusBtn?.classList.contains('status-online');
-    
-    if (isOnline) {
-      statusBtn.classList.remove('status-online');
-      statusBtn.classList.add('status-offline');
-      statusBtn.innerHTML = '<span>🔴</span> Offline';
-    } else {
-      statusBtn.classList.remove('status-offline');
-      statusBtn.classList.add('status-online');
-      statusBtn.innerHTML = '<span>🔗</span> Online';
+    if (!statusBtn) return;
+    const ipfsOnline = !!(this.ipfsNode && !this.ipfsNode.fallback
+      && (typeof this.ipfsNode.isOnline === 'function' ? this.ipfsNode.isOnline() : this.ipfsNode.isOnline));
+    const p2pStarted = !!(this.libp2pNode && !this.libp2pNode.fallback
+      && (typeof this.libp2pNode.isStarted === 'function' ? this.libp2pNode.isStarted() : this.libp2pNode.isStarted));
+    const online = ipfsOnline || p2pStarted;
+    statusBtn.classList.toggle('status-online', online);
+    statusBtn.classList.toggle('status-offline', !online);
+    statusBtn.innerHTML = online ? '<span>🔗</span> Online' : '<span>🔴</span> Offline';
+    statusBtn.title = online ? 'Live transport detected' : 'No live transport — local mode';
+  }
+
+  // Export Identity: downloads the identity record as JSON (real local
+  // functionality) and offers a confirmation-gated persist to the
+  // ipfs_kit_py artifact store.
+  async exportIdentity() {
+    const record = {
+      schema: 'swissknife.friends.identity-record.v1',
+      did: this.identityDID,
+      did_origin: this.identityDidOrigin || 'unknown',
+      platforms: Object.fromEntries(this.identityLinks),
+      friends: Array.from(this.friends.keys()),
+      exported_at: new Date().toISOString(),
+      version: '1.0.0'
+    };
+    const blob = new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'swissknife-identity.json';
+    anchor.click();
+    URL.revokeObjectURL(url);
+    if (friendsConfirmBackendWrite(
+      'Also persist the identity record as a pinned IPFS artifact?\n\nWrites an identity-record artifact to the ipfs_kit_py backend.'
+    )) {
+      try {
+        await this.updateIPLDRecord();
+      } catch (error) {
+        alert(`Identity persist failed: ${error.message}\n(The JSON download above still succeeded.)`);
+      }
     }
   }
   

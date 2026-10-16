@@ -149,6 +149,7 @@ const REQUIRED_ACCELERATE_TOOLS = [
   'HardwareDetector.get_available_hardware',
   'HealthChecker.check_detailed',
   'job_status',
+  'list_models',
   'PrometheusMetrics.generate_metrics',
   'ProvenanceLogger.log_inference',
   'run_inference_job',
@@ -163,6 +164,8 @@ const ACCELERATE_ALIASES = {
   'HardwareDetector.get_available_hardware': ['HardwareDetector.get_available_hardware', 'get_hardware_info', 'hardware_get_info', 'detect_hardware'],
   'HealthChecker.check_detailed': ['HealthChecker.check_detailed', 'get_server_status', 'get_dashboard_system_metrics'],
   job_status: ['job_status', 'get_task', 'p2p_taskqueue_get_task', 'p2p_taskqueue_status', 'runner_get_status'],
+  list_models: ['list_models', 'api_models_list_models', 'get_models_for_backend'],
+  list_models: ['list_models', 'api_models_list_models', 'get_models_for_backend'],
   'PrometheusMetrics.generate_metrics': ['PrometheusMetrics.generate_metrics', 'get_performance_metrics', 'get_dashboard_system_metrics'],
   'ProvenanceLogger.log_inference': ['ProvenanceLogger.log_inference', 'log_operation', 'log_request'],
   run_inference_job: ['run_inference_job', 'run_inference', 'run_distributed_inference', 'execute_with_payload', 'p2p_taskqueue_submit'],
@@ -2393,6 +2396,216 @@ function resolveAccelerateUpstreamTool(name, realNames) {
   return aliases.find(alias => realNames.has(alias)) ?? null;
 }
 
+// ---------------------------------------------------------------------------
+// Contract-operation direct execution.
+//
+// The GUI descriptor contract (web/js/core/app-capability-gateway.js
+// CAPABILITY_DEFINITIONS) promises 5 ipfs.accelerate.operation.* operations.
+// The upstream fastapi server does not expose the legacy /mcp/tools REST
+// surface the catalog builder expects, so upstream resolution fails for
+// list_models, job_status, telemetry (and run_inference_job). These map to
+// genuine ipfs_accelerate_py implementations executed directly via a
+// persistent Python worker — the same local-mapping precedent as the
+// hardware_profile -> localHardwareInfo() branch below.
+// ---------------------------------------------------------------------------
+const ACCELERATE_CONTRACT_OPS = {
+  list_models: {
+    module: 'ipfs_accelerate_py.api_backends.api_models_registry',
+    cls: 'api_models',
+    method: 'list_models',
+    kind: 'read',
+    argMap: {},
+    note: 'lists backend model names from the real API model registry',
+  },
+  job_status: {
+    module: 'ipfs_accelerate_py.mcp_server.tools.background_task_tools.native_background_task_tools',
+    func: 'get_task_status',
+    kind: 'read',
+    argMap: { job_id: 'task_id' },
+    note: 'background task / job status from the real task tools',
+  },
+  telemetry: {
+    module: 'ipfs_accelerate_py.mcp_server.tools.monitoring_tools.native_monitoring_tools',
+    func: 'get_performance_metrics',
+    kind: 'read',
+    argMap: {},
+    note: 'aggregated performance metrics from the real monitoring tools',
+  },
+  run_inference_job: {
+    module: 'ipfs_accelerate_py.mcp_server.tools.inference_tools.native_inference_tools',
+    func: 'inference_run',
+    kind: 'write',
+    argMap: { input: 'input_data', job_id: 'task_id' },
+    note: 'real inference entrypoint; confirmation-gated in the UI',
+  },
+};
+
+const ACCELERATE_CONTRACT_OP_TIMEOUT_MS = 120000;
+
+let accelerateContractWorkerState = null;
+
+function accelerateContractWorkerPython() {
+  if (process.env.PYTHON) return process.env.PYTHON;
+  const venvPython = path.join(WORKSPACE_ROOT, '.venv', 'bin', 'python');
+  try {
+    fs.accessSync(venvPython, fs.constants.X_OK);
+    return venvPython;
+  } catch (_error) {
+    return 'python3';
+  }
+}
+
+const ACCELERATE_CONTRACT_WORKER_CODE = `
+import asyncio
+import importlib
+import inspect
+import json
+import sys
+import traceback
+
+_modules = {}
+
+def execute(spec, args):
+    module_path = spec["module"]
+    if module_path not in _modules:
+        _modules[module_path] = importlib.import_module(module_path)
+    module = _modules[module_path]
+    target = module
+    if spec.get("cls"):
+        target = getattr(module, spec["cls"])()
+    func = getattr(target, spec["method"] if spec.get("method") else spec["func"])
+    params = dict(args or {})
+    try:
+        sig = inspect.signature(func)
+        accepted = sig.parameters
+        has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in accepted.values())
+        if not has_var_kw:
+            params = {k: v for k, v in params.items() if k in accepted}
+    except (TypeError, ValueError):
+        pass
+    result = func(**params)
+    if inspect.isawaitable(result):
+        result = asyncio.run(result)
+    return result
+
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        request = json.loads(line)
+    except Exception as exc:
+        sys.stdout.write(json.dumps({"id": None, "ok": False, "error": "bad request: " + str(exc)}) + "\\n")
+        sys.stdout.flush()
+        continue
+    try:
+        result = execute(request["spec"], request.get("args") or {})
+        sys.stdout.write(json.dumps({"id": request.get("id"), "ok": True, "result": result}, default=str) + "\\n")
+    except Exception as exc:
+        sys.stdout.write(json.dumps({
+            "id": request.get("id"),
+            "ok": False,
+            "error": type(exc).__name__ + ": " + str(exc),
+            "traceback": traceback.format_exc(limit=8),
+        }, default=str) + "\\n")
+    sys.stdout.flush()
+`;
+
+function ensureAccelerateContractWorker() {
+  if (accelerateContractWorkerState?.child && !accelerateContractWorkerState.child.killed) {
+    return accelerateContractWorkerState;
+  }
+  const accelerateRoot = path.join(WORKSPACE_ROOT, 'external', 'ipfs_accelerate');
+  const child = childProcess.spawn(accelerateContractWorkerPython(), ['-u', '-c', ACCELERATE_CONTRACT_WORKER_CODE], {
+    cwd: WORKSPACE_ROOT,
+    env: {
+      ...process.env,
+      PYTHONPATH: [accelerateRoot, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter),
+    },
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  const state = { child, nextId: 1, pending: new Map(), buffer: '' };
+  child.stdout.on('data', (chunk) => {
+    state.buffer += chunk.toString('utf8');
+    let idx;
+    while ((idx = state.buffer.indexOf('\n')) >= 0) {
+      const line = state.buffer.slice(0, idx).trim();
+      state.buffer = state.buffer.slice(idx + 1);
+      if (!line) continue;
+      let msg;
+      try { msg = JSON.parse(line); } catch (_error) { continue; }
+      const waiter = state.pending.get(msg.id);
+      if (waiter) {
+        state.pending.delete(msg.id);
+        clearTimeout(waiter.timer);
+        waiter.resolve(msg);
+      }
+    }
+  });
+  child.stderr.on('data', (chunk) => {
+    console.error(`[accelerate-contract-worker] ${chunk.toString('utf8').trim()}`);
+  });
+  child.on('exit', (code) => {
+    for (const waiter of state.pending.values()) {
+      clearTimeout(waiter.timer);
+      waiter.resolve({ id: waiter.id, ok: false, error: `contract worker exited (code ${code})` });
+    }
+    state.pending.clear();
+    if (accelerateContractWorkerState === state) accelerateContractWorkerState = null;
+  });
+  accelerateContractWorkerState = state;
+  return state;
+}
+
+function callAccelerateContractPython(spec, args) {
+  const state = ensureAccelerateContractWorker();
+  const id = state.nextId++;
+  const renamed = { ...(args || {}) };
+  for (const [from, to] of Object.entries(spec.argMap || {})) {
+    if (renamed[from] !== undefined && renamed[to] === undefined) {
+      renamed[to] = renamed[from];
+    }
+    if (from !== to) delete renamed[from];
+  }
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      state.pending.delete(id);
+      resolve({ id, ok: false, error: `contract worker timed out after ${ACCELERATE_CONTRACT_OP_TIMEOUT_MS}ms` });
+    }, ACCELERATE_CONTRACT_OP_TIMEOUT_MS);
+    state.pending.set(id, { id, resolve, timer });
+    try {
+      state.child.stdin.write(JSON.stringify({ id, spec: { module: spec.module, cls: spec.cls, func: spec.func, method: spec.method }, args: renamed }) + '\n');
+    } catch (error) {
+      clearTimeout(timer);
+      state.pending.delete(id);
+      resolve({ id, ok: false, error: `contract worker write failed: ${error.message}` });
+    }
+  });
+}
+
+async function callAccelerateContractOp(upstream, name, args) {
+  const spec = ACCELERATE_CONTRACT_OPS[name];
+  const baseReceipt = { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: `local:${name}` };
+  if (args?.dry_run === true) {
+    return {
+      content: [{ type: 'json', json: { ok: true, dry_run: true, tool: name, policy: 'adapter-enforced-no-side-effects' } }],
+      receipt: { ...baseReceipt, dry_run: true },
+    };
+  }
+  const outcome = await callAccelerateContractPython(spec, args || {});
+  if (!outcome.ok) {
+    return {
+      isError: true,
+      content: [{ type: 'text', text: outcome.error }],
+      receipt: { ...baseReceipt, status: 'backend_error', module: spec.module, ...(outcome.traceback ? { traceback: outcome.traceback } : {}) },
+    };
+  }
+  return {
+    content: [{ type: 'json', json: outcome.result }],
+    receipt: { ...baseReceipt, status: 'ok', module: spec.module, note: spec.note },
+  };
+}
+
 async function callAccelerateCompatTool(upstream, name, args) {
   const catalog = await accelerateCompatCatalog(upstream);
   if (args?.dry_run === true) {
@@ -2469,6 +2682,12 @@ async function callAccelerateCompatTool(upstream, name, args) {
       content: [{ type: 'json', json: { recommendation: 'cpu', hardware: localHardwareInfo(), request: args } }],
       receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: 'local_hardware_recommend' },
     };
+  }
+  // Contract operations with genuine local ipfs_accelerate_py implementations.
+  // These run before upstream resolution: the upstream fastapi server does not
+  // expose the legacy /mcp/tools surface, so upstream mapping always fails.
+  if (ACCELERATE_CONTRACT_OPS[name]) {
+    return callAccelerateContractOp(upstream, name, args);
   }
   const mapped = resolveAccelerateUpstreamTool(name, new Set(catalog.real_tool_names)) ?? (catalog.real_tool_names.includes(name) ? name : null);
   if (!mapped && (name === 'hardware_profile' || name === 'HardwareDetector.get_available_hardware' || name === 'detect_hardware')) {

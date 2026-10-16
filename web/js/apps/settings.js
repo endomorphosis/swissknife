@@ -124,8 +124,8 @@ export class SettingsApp {
           <div class="settings-header">
             <h2 id="section-title">General Settings</h2>
             <div class="settings-actions">
-              <button class="btn btn-secondary" id="reset-btn">Reset to Defaults</button>
-              <button class="btn btn-primary" id="save-btn" disabled>Save Changes</button>
+              <button class="btn btn-secondary sk-btn" id="reset-btn">Reset to Defaults</button>
+              <button class="btn btn-primary sk-btn sk-btn-primary" id="save-btn" disabled>Save Changes</button>
             </div>
           </div>
           
@@ -262,13 +262,13 @@ export class SettingsApp {
         <div class="settings-grid">
           <div class="setting-group">
             <label for="username">Username</label>
-            <input type="text" id="username" value="${this.settings.general.username}" />
+            <input type="text" id="username" class="sk-input" value="${this.settings.general.username}" />
             <span class="setting-description">Your display name in the application</span>
           </div>
           
           <div class="setting-group">
             <label for="language">Language</label>
-            <select id="language">
+            <select id="language" class="sk-select">
               <option value="en" ${this.settings.general.language === 'en' ? 'selected' : ''}>English</option>
               <option value="es" ${this.settings.general.language === 'es' ? 'selected' : ''}>Español</option>
               <option value="fr" ${this.settings.general.language === 'fr' ? 'selected' : ''}>Français</option>
@@ -314,7 +314,7 @@ export class SettingsApp {
         <div class="settings-grid">
           <div class="setting-group">
             <label for="default-provider">Default AI Provider</label>
-            <select id="default-provider">
+            <select id="default-provider" class="sk-select">
               <option value="openai" ${this.settings.ai.defaultProvider === 'openai' ? 'selected' : ''}>OpenAI</option>
               <option value="anthropic" ${this.settings.ai.defaultProvider === 'anthropic' ? 'selected' : ''}>Anthropic</option>
               <option value="google" ${this.settings.ai.defaultProvider === 'google' ? 'selected' : ''}>Google</option>
@@ -325,7 +325,7 @@ export class SettingsApp {
           
           <div class="setting-group">
             <label for="max-tasks">Max Concurrent Tasks</label>
-            <select id="max-tasks">
+            <select id="max-tasks" class="sk-select">
               <option value="2" ${this.settings.ai.maxConcurrentTasks === 2 ? 'selected' : ''}>2</option>
               <option value="4" ${this.settings.ai.maxConcurrentTasks === 4 ? 'selected' : ''}>4</option>
               <option value="8" ${this.settings.ai.maxConcurrentTasks === 8 ? 'selected' : ''}>8</option>
@@ -366,7 +366,7 @@ export class SettingsApp {
           
           <div class="setting-group">
             <label for="max-peers">Maximum Peers</label>
-            <select id="max-peers">
+            <select id="max-peers" class="sk-select">
               <option value="10" ${this.settings.p2p.maxPeers === 10 ? 'selected' : ''}>10</option>
               <option value="25" ${this.settings.p2p.maxPeers === 25 ? 'selected' : ''}>25</option>
               <option value="50" ${this.settings.p2p.maxPeers === 50 ? 'selected' : ''}>50</option>
@@ -399,7 +399,7 @@ export class SettingsApp {
         <div class="settings-grid">
           <div class="setting-group">
             <label for="theme">Theme</label>
-            <select id="theme">
+            <select id="theme" class="sk-select">
               <option value="system" ${this.settings.appearance.theme === 'system' ? 'selected' : ''}>System Default</option>
               <option value="light" ${this.settings.appearance.theme === 'light' ? 'selected' : ''}>Light</option>
               <option value="dark" ${this.settings.appearance.theme === 'dark' ? 'selected' : ''}>Dark</option>
@@ -415,7 +415,7 @@ export class SettingsApp {
           
           <div class="setting-group">
             <label for="font-size">Font Size</label>
-            <select id="font-size">
+            <select id="font-size" class="sk-select">
               <option value="12" ${this.settings.appearance.fontSize === 12 ? 'selected' : ''}>Small (12px)</option>
               <option value="14" ${this.settings.appearance.fontSize === 14 ? 'selected' : ''}>Medium (14px)</option>
               <option value="16" ${this.settings.appearance.fontSize === 16 ? 'selected' : ''}>Large (16px)</option>
@@ -456,7 +456,7 @@ export class SettingsApp {
           
           <div class="setting-group">
             <label for="auto-lock">Auto-lock Timeout</label>
-            <select id="auto-lock">
+            <select id="auto-lock" class="sk-select">
               <option value="5" ${this.settings.security.autoLockTimeout === 5 ? 'selected' : ''}>5 minutes</option>
               <option value="15" ${this.settings.security.autoLockTimeout === 15 ? 'selected' : ''}>15 minutes</option>
               <option value="30" ${this.settings.security.autoLockTimeout === 30 ? 'selected' : ''}>30 minutes</option>
@@ -467,7 +467,7 @@ export class SettingsApp {
           
           <div class="setting-group">
             <label for="security-level">Security Level</label>
-            <select id="security-level">
+            <select id="security-level" class="sk-select">
               <option value="standard" ${this.settings.security.securityLevel === 'standard' ? 'selected' : ''}>Standard</option>
               <option value="high" ${this.settings.security.securityLevel === 'high' ? 'selected' : ''}>High</option>
               <option value="maximum" ${this.settings.security.securityLevel === 'maximum' ? 'selected' : ''}>Maximum</option>
@@ -513,19 +513,19 @@ export class SettingsApp {
             <div class="detail-item">
               <span>WebAssembly:</span>
               <span class="${typeof WebAssembly !== 'undefined' ? 'supported' : 'not-supported'}">
-                ${typeof WebAssembly !== 'undefined' ? 'Supported' : 'Not Supported'}
+                <span class="sk-status-dot ${typeof WebAssembly !== 'undefined' ? 'is-ok' : 'is-err'}"></span>${typeof WebAssembly !== 'undefined' ? 'Supported' : 'Not Supported'}
               </span>
             </div>
             <div class="detail-item">
               <span>WebGPU:</span>
               <span class="${'gpu' in navigator ? 'supported' : 'not-supported'}">
-                ${'gpu' in navigator ? 'Supported' : 'Not Supported'}
+                <span class="sk-status-dot ${'gpu' in navigator ? 'is-ok' : 'is-err'}"></span>${'gpu' in navigator ? 'Supported' : 'Not Supported'}
               </span>
             </div>
             <div class="detail-item">
               <span>IndexedDB:</span>
               <span class="${'indexedDB' in window ? 'supported' : 'not-supported'}">
-                ${'indexedDB' in window ? 'Supported' : 'Not Supported'}
+                <span class="sk-status-dot ${'indexedDB' in window ? 'is-ok' : 'is-err'}"></span>${'indexedDB' in window ? 'Supported' : 'Not Supported'}
               </span>
             </div>
           </div>
@@ -533,13 +533,13 @@ export class SettingsApp {
           <div class="detail-group">
             <h3>Links</h3>
             <div class="link-buttons">
-              <button class="btn btn-secondary" onclick="window.open('https://github.com/hallucinate-llc/swissknife', '_blank')">
+              <button class="btn btn-secondary sk-btn" onclick="window.open('https://github.com/hallucinate-llc/swissknife', '_blank')">
                 GitHub Repository
               </button>
-              <button class="btn btn-secondary" onclick="window.open('https://swissknife.ai/docs', '_blank')">
+              <button class="btn btn-secondary sk-btn" onclick="window.open('https://swissknife.ai/docs', '_blank')">
                 Documentation
               </button>
-              <button class="btn btn-secondary" onclick="window.open('https://swissknife.ai/support', '_blank')">
+              <button class="btn btn-secondary sk-btn" onclick="window.open('https://swissknife.ai/support', '_blank')">
                 Support
               </button>
             </div>

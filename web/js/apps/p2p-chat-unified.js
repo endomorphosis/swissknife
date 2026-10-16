@@ -1,4 +1,10 @@
 import { runSystemNetworkLocalWorkflow } from './system-network-local-capabilities.js';
+import {
+  getMCPPlusPlusDesktopClient,
+  contentCidForBytes,
+  stableStringifyValue,
+  base64ForBytes,
+} from '../core/mcp-plus-plus-desktop-client.js';
 
 const APP_ID = 'p2p-chat-unified';
 const WORKFLOW_ID = 'p2p-chat-unified.pubsub-offline-recovery';
@@ -35,8 +41,10 @@ export class UnifiedP2PChatApp {
       mode: 'text-transcript',
       reason: 'Microphone capture is optional; text transcript fallback is available before recording.',
       transcript: 'Voice message fallback transcript for the unified P2P chat workflow.',
-      cid: 'bafyp2pchatg030audiofallback',
-      receipt: 'receipt:p2p-chat-unified:g030:audio:fallback-ready',
+      // Local-only fallback: CIDs are computed from the real transcript
+      // record only when the fallback is activated, never prefabricated.
+      cid: null,
+      receipt: null,
     };
     this.moderationContext = {
       policy: 'p2p-chat.moderated-topic.v1',
@@ -45,17 +53,23 @@ export class UnifiedP2PChatApp {
       risk: 'low',
       labels: ['direct-message', 'pubsub-topic', 'offline-store-and-forward'],
       redactions: [],
-      cid: 'bafyp2pchatg030moderationcontext',
-      receipt: 'receipt:p2p-chat-unified:g030:moderation:baseline',
+      // Local heuristic: the context CID is computed from the real record
+      // when it is reviewed, never prefabricated.
+      cid: null,
+      receipt: null,
     };
     this.draft = 'VDA-G030 pubsub hello with offline recovery receipt';
     this.isInitialized = false;
+    // Backend persistence state: no backend writes happen until the user
+    // explicitly confirms them, and no receipts exist until real delivery
+    // events produce them.
+    this.mcpClient = null;
+    this.persistedChannelCid = null;
+    this.persistedReceiptLedgerCid = null;
+    this.pendingConfirm = null;
+    this.backendStatus = 'Backend persistence has not been attempted yet.';
 
     this.seedConversations();
-    this.recordReceipt('catalog', 'ready', 'bafyp2pchatg030receiptcatalog');
-    this.recordReceipt('pubsub', 'ready', 'bafyp2pchatg030pubsubdelivery');
-    this.recordReceipt('offline', 'ready', 'bafyp2pchatg030offlinequeue');
-    this.recordReceipt('recovery', 'ready', 'bafyp2pchatg030offlinerecovery');
   }
 
   async initialize() {
@@ -98,12 +112,16 @@ export class UnifiedP2PChatApp {
       };
     }
 
+    // No browser P2P API is registered: publish honestly reports that there
+    // is no transport instead of fabricating a delivery acknowledgment.
     return {
       peerId: this.peerId,
       start: async () => {
-        this.connectionStatus = 'connected';
+        this.connectionStatus = 'degraded';
       },
-      publish: async () => ({ delivered: true, transport: 'browser-fallback-pubsub' }),
+      publish: async () => {
+        throw new Error('No browser pubsub publish method is registered.');
+      },
     };
   }
 
@@ -114,14 +132,16 @@ export class UnifiedP2PChatApp {
       return {
         add: async content => {
           const result = await callOptional(ipfsApi, ['add', 'addContent', 'addFile'], [content]);
-          return { cid: result?.cid?.toString?.() || result?.cid || result?.hash || contentAddress(content, 'ipfsadd') };
+          return { cid: result?.cid?.toString?.() || result?.cid || result?.hash || await this.realContentCid({ content: String(content) }) };
         },
         pin: async cid => callOptional(ipfsApi, ['pin', 'pinAdd', 'pin.add'], [cid]).catch(() => ({ pinned: false })),
       };
     }
     return {
-      add: async content => ({ cid: contentAddress(content, 'offlinepayload') }),
-      pin: async cid => ({ cid, pinned: true }),
+      // Local-only fallback: real content CIDs over the exact bytes, kept
+      // in browser memory; nothing is pinned to a real IPFS node here.
+      add: async content => ({ cid: await this.realContentCid({ content: String(content) }) }),
+      pin: async cid => ({ cid, pinned: 'local-only' }),
     };
   }
 
@@ -132,13 +152,13 @@ export class UnifiedP2PChatApp {
       return {
         store: async data => {
           const result = await callOptional(storageApi, ['store', 'put', 'save'], [data]);
-          return { stored: true, id: result?.id || result?.cid || contentAddress(data, 'stored') };
+          return { stored: true, id: result?.id || result?.cid || await this.realContentCid(data) };
         },
       };
     }
     return {
       store: async data => {
-        const id = contentAddress(data, 'stored');
+        const id = await this.realContentCid(data);
         try {
           localStorage.setItem(`p2p-chat-offline-${id}`, JSON.stringify(data));
         } catch {
@@ -152,18 +172,67 @@ export class UnifiedP2PChatApp {
   initializeFallbackNetworking() {
     this.libp2p = {
       peerId: this.peerId,
-      publish: async () => ({ delivered: true, transport: 'browser-fallback-pubsub' }),
+      // Honest failure: with no transport, sends queue offline through the
+      // publishPubsubDelivery catch path instead of claiming delivery.
+      publish: async () => {
+        throw new Error('No browser pubsub publish method is registered.');
+      },
     };
+    // Local-only fallbacks: content identifiers are real CIDv1-raw+sha2-256
+    // values computed over the exact stored bytes.
     this.ipfs = this.ipfs || {
-      add: async content => ({ cid: contentAddress(content, 'offlinepayload') }),
-      pin: async cid => ({ cid, pinned: true }),
+      add: async content => ({ cid: await this.realContentCid({ content: String(content) }) }),
+      pin: async cid => ({ cid, pinned: 'local-only' }),
     };
     this.storacha = this.storacha || {
-      store: async data => ({ stored: true, id: contentAddress(data, 'stored') }),
+      store: async data => {
+        const id = await this.realContentCid(data);
+        try {
+          localStorage.setItem(`p2p-chat-offline-${id}`, JSON.stringify(data));
+        } catch {
+          this.notifications.push('Local storage quota unavailable; offline payload kept in memory for this session.');
+        }
+        return { stored: true, id };
+      },
     };
   }
 
+  mcp() {
+    if (!this.mcpClient) this.mcpClient = getMCPPlusPlusDesktopClient();
+    return this.mcpClient;
+  }
+
+  // Real content addressing: CIDv1-raw+sha2-256 over the canonical bytes,
+  // the same semantics the kit artifact store verifies on ingest.
+  async realContentCid(record) {
+    const bytes = new TextEncoder().encode(stableStringifyValue(record));
+    return contentCidForBytes(bytes);
+  }
+
+  // Backend-mutating write. Callers must have collected an explicit user
+  // confirmation first; backend failures surface verbatim and are never
+  // replaced with fixture success.
+  async persistArtifact(record, kind) {
+    const bytes = new TextEncoder().encode(stableStringifyValue(record));
+    const cid = await contentCidForBytes(bytes);
+    const res = await this.mcp().post('ipfs_kit_py', '/mcp/artifacts/put', {
+      cid,
+      bytes_base64: base64ForBytes(bytes),
+      profile: 'p2p-chat-artifact',
+      kind,
+      service: 'ipfs_kit_py',
+      pin: true,
+    });
+    if (!res || res.persisted !== true || res.cid !== cid) {
+      throw new Error(res?.error || 'ipfs_kit_py did not verify the persisted artifact.');
+    }
+    return { cid, response: res };
+  }
+
   seedConversations() {
+    // Local sample conversation content so the layout has something to
+    // render. Seeded messages carry no CIDs and no receipts: those only
+    // exist once real send/store operations produce them.
     const now = Date.now();
     this.conversations.set('peer-alice-g030', [
       {
@@ -174,8 +243,8 @@ export class UnifiedP2PChatApp {
         timestamp: now - 300000,
         type: 'text',
         encrypted: true,
-        delivered: true,
-        receipt: 'receipt:p2p-chat-unified:g030:pubsub:received',
+        delivered: false,
+        sample: true,
       },
     ]);
     this.conversations.set('peer-bob-g030', [
@@ -189,11 +258,12 @@ export class UnifiedP2PChatApp {
         encrypted: true,
         offline: true,
         delivered: false,
-        cid: 'bafyp2pchatg030offlinequeue',
-        receipt: 'receipt:p2p-chat-unified:g030:offline:queued',
+        sample: true,
       },
     ]);
-    this.offlineMessages.set('peer-bob-g030', [this.conversations.get('peer-bob-g030')[0]]);
+    // The sample Bob message stays in the conversation view only; the
+    // offline queue itself starts empty and fills only from real user
+    // "Queue offline" actions.
   }
 
   async loadMessageHistory() {
@@ -237,6 +307,7 @@ export class UnifiedP2PChatApp {
           <aside class="conversation-panel">
             <label class="search-label" for="${this.instanceId}-search">Search conversations</label>
             <input id="${this.instanceId}-search" class="conversation-search" type="search" placeholder="Search peers" value="">
+            <div class="peer-meta sk-honest-note" style="padding: 0 12px 8px;">Local sample peers — this roster is not discovered from the network.</div>
             <div class="mode-tabs" role="tablist" aria-label="Delivery mode">
               <button type="button" class="${this.chatMode === 'online' ? 'active' : ''}" data-chat-action="switch-mode" data-mode="online">Online</button>
               <button type="button" class="${this.chatMode === 'offline' ? 'active' : ''}" data-chat-action="switch-mode" data-mode="offline">Offline</button>
@@ -601,7 +672,7 @@ export class UnifiedP2PChatApp {
         <button type="button" class="secondary-action" data-chat-action="activate-audio-fallback" data-svd-workflow-action="activate-audio-fallback" aria-label="Activate audio fallback">Audio fallback</button>
       </div>
       <div class="messages-container">
-        ${messages.map(message => this.renderMessage(message)).join('')}
+        ${messages.length ? messages.map(message => this.renderMessage(message)).join('') : '<div class="sk-empty">No messages yet — send the first pubsub message below.</div>'}
       </div>
       <div class="message-input-area">
         <div class="message-input-row">
@@ -609,23 +680,26 @@ export class UnifiedP2PChatApp {
           <button type="button" class="send-button primary-action" data-chat-action="send-pubsub" data-svd-workflow-action="publish-pubsub-message">Send pubsub message</button>
           <button type="button" class="secondary-action" data-chat-action="queue-offline" data-svd-workflow-action="queue-offline-delivery">Queue offline</button>
         </div>
-        <div class="peer-meta">Messages include moderation context, delivery receipts, and offline replay metadata before persistence.</div>
+        <div class="peer-meta sk-honest-note">Published messages carry the transport's real acknowledgment; the local moderation heuristic and offline queue stay in this browser until you persist them to the backend.</div>
       </div>
     `;
   }
 
   renderMessage(message) {
     const outbound = message.from === this.peerId;
+    const ackNote = message.ack ? ` ack: ${escapeHtml(typeof message.ack === 'string' ? message.ack : JSON.stringify(message.ack))}` : '';
     return `
       <div class="message ${outbound ? 'outbound' : 'inbound'}" data-message-id="${escapeHtml(String(message.id))}" data-message-receipt="${escapeHtml(message.receipt || '')}">
         <div class="message-bubble">
           <div class="message-text">${escapeHtml(message.content)}</div>
           <div class="message-meta">
             ${escapeHtml(new Date(message.timestamp).toLocaleTimeString())}
+            ${message.sample ? ' local sample' : ''}
             ${message.offline ? ' offline' : ' pubsub'}
             ${message.delivered ? ' delivered' : ' queued'}
-            ${message.cid ? ` ${escapeHtml(message.cid)}` : ''}
-            ${message.receipt ? ` ${escapeHtml(message.receipt)}` : ''}
+            ${message.cid ? ` <code class="sk-code">${escapeHtml(message.cid)}</code>` : ''}
+            ${message.receipt ? ` <code class="sk-code">${escapeHtml(message.receipt)}</code>` : ''}
+            ${ackNote}
           </div>
         </div>
       </div>
@@ -635,54 +709,80 @@ export class UnifiedP2PChatApp {
   renderWorkflowPanel() {
     const checkpointRefs = this.getWorkflowCheckpointRefs();
     const receiptRefs = this.getWorkflowReceiptRefs();
+    const localPeer = this.peerId === 'peer-local-g030';
     return `
+      ${this.renderConfirmCard()}
       <section class="workflow-card">
         <h3>${VDA_ID} unified chat workflow</h3>
-        <p class="workflow-summary">Pubsub delivery, offline queue replay, moderation context, receipt visibility, audio fallback, and clear offline recovery are active. Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
+        <p class="workflow-summary">Pubsub delivery runs over the browser P2P transport with real acknowledgments. The peer roster, offline queue, moderation review, and audio fallback are browser-local and labeled as such. Channel archives and the receipt ledger persist to the kit backend only behind your explicit confirmation.</p>
         <div class="workflow-actions">
           <button type="button" class="primary-action" data-chat-action="send-pubsub" data-svd-workflow-action="publish-pubsub-message">Publish pubsub delivery</button>
           <button type="button" data-chat-action="queue-offline" data-svd-workflow-action="queue-offline-delivery">Queue offline delivery</button>
           <button type="button" data-chat-action="review-moderation" data-svd-workflow-action="review-moderation-context">Review moderation context</button>
-          <button type="button" data-chat-action="emit-receipt" data-svd-workflow-action="emit-delivery-receipt">Emit receipt</button>
+          <button type="button" data-chat-action="persist-receipts" data-svd-workflow-action="emit-delivery-receipt">Persist receipt ledger</button>
           <button type="button" data-chat-action="activate-audio-fallback" data-svd-workflow-action="activate-audio-fallback">Activate audio fallback</button>
           <button type="button" data-chat-action="recover-offline" data-svd-workflow-action="recover-offline-delivery">Recover offline delivery</button>
+          <button type="button" data-chat-action="persist-channel" data-svd-workflow-action="persist-channel-archive">Persist channel archive</button>
+          <button type="button" data-chat-action="load-channel" data-svd-workflow-action="load-channel-archive" ${this.persistedChannelCid ? '' : 'disabled'}>Load channel archive</button>
         </div>
+        <p class="workflow-summary" role="status">${escapeHtml(this.backendStatus)}</p>
       </section>
 
       <section class="workflow-card marker-list">
         <div class="marker" data-svd-vda-marker="pubsub-offline-delivery">
           <strong>Pubsub/offline delivery</strong>
-          <span class="marker-copy">Topic ${escapeHtml(PUBSUB_TOPIC)} publishes via libp2p pubsub when online and stores offline payloads at bafyp2pchatg030pubsubdelivery and bafyp2pchatg030offlinequeue for store-and-forward replay.</span>
+          <span class="marker-copy">Topic ${escapeHtml(PUBSUB_TOPIC)} publishes through the registered browser P2P transport; the acknowledgment shown on each message is the transport's real return value. With no transport registered, sends fail over to the local offline queue instead of claiming delivery.</span>
         </div>
         <div class="marker" data-svd-vda-marker="moderation-context">
-          <strong>Moderation context</strong>
-          <span class="marker-copy">${escapeHtml(this.moderationContext.policy)} decision ${escapeHtml(this.moderationContext.decision)} risk ${escapeHtml(this.moderationContext.risk)} CID ${escapeHtml(this.moderationContext.cid)} receipt ${escapeHtml(this.moderationContext.receipt)}.</span>
+          <strong>Moderation context (local heuristic)</strong>
+          <span class="marker-copy">${escapeHtml(this.moderationContext.policy)} decision ${escapeHtml(this.moderationContext.decision)} risk ${escapeHtml(this.moderationContext.risk)}${this.moderationContext.cid ? ` CID ${escapeHtml(this.moderationContext.cid)}` : ' — not reviewed yet, no CID assigned'}.</span>
         </div>
         <div class="marker" data-svd-vda-marker="receipts">
-          <strong>Receipt</strong>
-          <span class="marker-copy">Delivery ack receipt:p2p-chat-unified:g030:delivery:ack, offline receipt:p2p-chat-unified:g030:offline:queued, moderation receipt:p2p-chat-unified:g030:moderation:reviewed, and recovery receipt:p2p-chat-unified:g030:recovery:replayed are visible.</span>
+          <strong>Receipts (real delivery events only)</strong>
+          <span class="marker-copy">${this.receipts.length ? `${this.receipts.length} recorded from actual publish, queue, review, and recovery events${this.persistedReceiptLedgerCid ? `; ledger persisted at ${escapeHtml(this.persistedReceiptLedgerCid)}` : '; ledger not persisted yet'}.` : 'None yet — receipts are recorded only when real delivery events happen.'}</span>
         </div>
         <div class="marker" data-svd-vda-marker="audio-fallback" data-audio-fallback-mode="${escapeHtml(this.audioFallbackState.mode)}">
-          <strong>Audio fallback</strong>
-          <span class="marker-copy">${escapeHtml(this.audioFallbackState.reason)} CID ${escapeHtml(this.audioFallbackState.cid)} receipt ${escapeHtml(this.audioFallbackState.receipt)} transcript "${escapeHtml(this.audioFallbackState.transcript)}".</span>
+          <strong>Audio fallback (local transcript)</strong>
+          <span class="marker-copy">${escapeHtml(this.audioFallbackState.reason)}${this.audioFallbackState.cid ? ` Transcript CID ${escapeHtml(this.audioFallbackState.cid)}` : ' No transcript recorded yet.'} No audio is captured or sent.</span>
         </div>
         <div class="marker" data-svd-vda-marker="offline-recovery" data-recovery-state="${escapeHtml(this.recoveryState)}">
           <strong>Clear offline recovery</strong>
-          <span class="marker-copy">Queued messages show retry state, reconnect action, replay receipt receipt:p2p-chat-unified:g030:recovery:replayed, and recovery CID bafyp2pchatg030offlinerecovery.</span>
+          <span class="marker-copy">${escapeHtml(this.describeRecovery())} Recovery re-publishes each queued message through the live transport; messages that fail stay queued with the transport's error.</span>
+        </div>
+        <div class="marker" data-svd-vda-marker="channel-archive">
+          <strong>Channel archive (backend)</strong>
+          <span class="marker-copy">${this.persistedChannelCid ? `Persisted to the kit artifact store at CID ${escapeHtml(this.persistedChannelCid)}.` : 'Not persisted yet. "Persist channel archive" writes the real channel record behind your confirmation.'} Local peer id ${escapeHtml(this.peerId)}${localPeer ? ' (browser-local fallback)' : ' (from the P2P transport)'}.</span>
         </div>
       </section>
 
       <section class="workflow-card">
-        <h4>Checkpoint refs</h4>
-        <div class="receipt-list">${checkpointRefs.map(ref => `<span>${escapeHtml(ref)}</span>`).join(' ')}</div>
+        <h4>Checkpoint refs (backend CIDs only)</h4>
+        <div class="receipt-list">${checkpointRefs.length ? checkpointRefs.map(ref => `<span>${escapeHtml(ref)}</span>`).join(' ') : '<span>None yet — nothing has been persisted to the backend.</span>'}</div>
       </section>
       <section class="workflow-card">
-        <h4>Receipts</h4>
-        <div class="receipt-list">${receiptRefs.map(ref => `<span>${escapeHtml(ref)}</span>`).join(' ')}</div>
+        <h4>Receipts (real events only)</h4>
+        <div class="receipt-list">${receiptRefs.length ? receiptRefs.map(ref => `<span>${escapeHtml(ref)}</span>`).join(' ') : '<span>None yet.</span>'}</div>
       </section>
       <section class="workflow-card">
         <h4>Recovery state</h4>
         <p class="workflow-summary">${escapeHtml(this.describeRecovery())}</p>
+      </section>
+    `;
+  }
+
+  renderConfirmCard() {
+    if (!this.pendingConfirm) return '';
+    const detail = this.pendingConfirm.action === 'persist-channel'
+      ? `This will POST the channel archive (${this.pendingConfirm.bytes} bytes, ${this.pendingConfirm.messages} messages) to ipfs_kit_py /mcp/artifacts/put with pin=true.`
+      : `This will POST the receipt ledger (${this.pendingConfirm.bytes} bytes, ${this.pendingConfirm.count} receipts) to ipfs_kit_py /mcp/artifacts/put with pin=true.`;
+    return `
+      <section class="workflow-card" aria-label="Confirm backend write">
+        <h4>Confirm backend write</h4>
+        <p class="workflow-summary">${escapeHtml(detail)} The store verifies the CID over the exact bytes sent; a mismatch fails the write and is reported verbatim.</p>
+        <div class="workflow-actions">
+          <button type="button" class="primary-action" data-chat-action="confirm-backend-write">Confirm persist</button>
+          <button type="button" data-chat-action="cancel-backend-write">Cancel</button>
+        </div>
       </section>
     `;
   }
@@ -718,13 +818,22 @@ export class UnifiedP2PChatApp {
     } else if (action === 'queue-offline') {
       await this.queueOfflineDelivery(this.draft || 'VDA-G030 offline delivery probe');
     } else if (action === 'review-moderation') {
-      this.reviewModerationContext();
-    } else if (action === 'emit-receipt') {
-      this.emitDeliveryReceipt();
+      await this.reviewModerationContext();
+    } else if (action === 'persist-receipts') {
+      await this.requestReceiptLedgerPersist();
     } else if (action === 'activate-audio-fallback') {
-      this.activateAudioFallback();
+      await this.activateAudioFallback();
     } else if (action === 'recover-offline') {
-      this.recoverOfflineDelivery();
+      await this.recoverOfflineDelivery();
+    } else if (action === 'persist-channel') {
+      await this.requestChannelPersist();
+    } else if (action === 'load-channel') {
+      await this.loadChannelArchive();
+    } else if (action === 'confirm-backend-write') {
+      await this.confirmBackendWrite();
+    } else if (action === 'cancel-backend-write') {
+      this.pendingConfirm = null;
+      this.backendStatus = 'Backend write cancelled; nothing was sent.';
     }
   }
 
@@ -760,27 +869,51 @@ export class UnifiedP2PChatApp {
       peerId: peer.id,
       offline: false,
       delivered: false,
-      cid: 'bafyp2pchatg030pubsubdelivery',
-      receipt: 'receipt:p2p-chat-unified:g030:pubsub:published',
       moderation,
+    });
+    // The envelope CID is real content addressing over the exact message
+    // bytes, computed before the publish attempt.
+    message.cid = await this.realContentCid({
+      schema: 'swissknife.p2p-chat.message.v1',
+      id: message.id,
+      from: message.from,
+      to: message.to,
+      topic: PUBSUB_TOPIC,
+      content: message.content,
+      timestamp: message.timestamp,
+      moderation_context: moderation,
     });
 
     try {
-      await this.libp2p?.publish?.(PUBSUB_TOPIC, {
+      // Real transport acknowledgment: whatever the registered P2P API
+      // returns is recorded verbatim. A resolved-but-empty return means
+      // "sent, no acknowledgment payload" — never an invented delivery.
+      const ack = await this.libp2p?.publish?.(PUBSUB_TOPIC, {
         ...message,
         topic: PUBSUB_TOPIC,
         moderation_context: moderation,
       });
-      message.delivered = true;
-      message.receipt = 'receipt:p2p-chat-unified:g030:delivery:ack';
-      this.recordReceipt('pubsub', 'delivered', message.cid, message.receipt);
-      this.deliveryLog.push({ type: 'pubsub', status: 'delivered', peer_id: peer.id, cid: message.cid, receipt: message.receipt });
+      message.ack = ack === undefined
+        ? { acknowledged: 'none', note: 'Transport resolved without an acknowledgment payload.' }
+        : ack;
+      message.delivery = ack !== undefined && ack !== null && ack.delivered === false ? 'failed' : 'sent';
+      message.delivered = message.delivery !== 'failed';
+      if (!message.delivered) {
+        message.offline = true;
+        await this.storeOfflineMessage(message);
+        this.notifications.push(`Transport reported delivery failure; queued offline: ${JSON.stringify(message.ack)}`);
+      }
+      this.recordReceipt('pubsub', message.delivery, message.cid, `p2pchat-pubsub-${message.id}`);
+      message.receipt = `p2pchat-pubsub-${message.id}`;
+      this.deliveryLog.push({ type: 'pubsub', status: message.delivery, peer_id: peer.id, cid: message.cid, ack: message.ack });
     } catch (error) {
       message.delivered = false;
       message.offline = true;
-      message.receipt = 'receipt:p2p-chat-unified:g030:pubsub:fallback-to-offline';
+      message.delivery = 'transport-error';
+      message.ack = { acknowledged: 'error', error: messageFromError(error) };
       await this.storeOfflineMessage(message);
-      this.recordReceipt('pubsub', 'fallback', message.cid, message.receipt);
+      this.recordReceipt('pubsub', 'fallback-to-offline', message.cid, `p2pchat-pubsub-${message.id}`);
+      message.receipt = `p2pchat-pubsub-${message.id}`;
       this.notifications.push(`Pubsub unavailable; queued offline delivery: ${messageFromError(error)}`);
     }
 
@@ -797,16 +930,26 @@ export class UnifiedP2PChatApp {
       peerId: peer.id,
       offline: true,
       delivered: false,
-      cid: 'bafyp2pchatg030offlinequeue',
-      receipt: 'receipt:p2p-chat-unified:g030:offline:queued',
       moderation,
+    });
+    message.cid = await this.realContentCid({
+      schema: 'swissknife.p2p-chat.message.v1',
+      id: message.id,
+      from: message.from,
+      to: message.to,
+      topic: PUBSUB_TOPIC,
+      content: message.content,
+      timestamp: message.timestamp,
+      offline: true,
+      moderation_context: moderation,
     });
     await this.storeOfflineMessage(message);
     this.appendMessage(peer.id, message);
     this.selectedConversation = peer.id;
     this.recoveryState = 'queued-for-reconnect';
-    this.recordReceipt('offline', 'queued', message.cid, message.receipt);
-    this.deliveryLog.push({ type: 'offline', status: 'queued', peer_id: peer.id, cid: message.cid, receipt: message.receipt });
+    this.recordReceipt('offline', 'queued', message.cid, `p2pchat-offline-${message.id}`);
+    message.receipt = `p2pchat-offline-${message.id}`;
+    this.deliveryLog.push({ type: 'offline', status: 'queued', peer_id: peer.id, cid: message.cid });
     await this.saveMessageHistory();
     return message;
   }
@@ -815,67 +958,219 @@ export class UnifiedP2PChatApp {
     const stored = await this.storacha?.store?.(message);
     if (this.ipfs?.add) {
       const added = await this.ipfs.add(JSON.stringify(message));
-      message.cid = added.cid || message.cid;
+      // The real content CID is assigned by the caller before this point;
+      // an add() that returns a different CID is reported, not trusted.
+      if (added?.cid && added.cid !== message.cid) {
+        this.notifications.push(`Content store returned ${added.cid}; keeping the canonical envelope CID ${message.cid}.`);
+      }
       await this.ipfs.pin?.(message.cid);
     }
-    message.storageId = stored?.id || contentAddress(message, 'stored');
+    message.storageId = stored?.id || await this.realContentCid({ storage: 'offline-queue', message_id: message.id });
     if (!this.offlineMessages.has(message.to)) this.offlineMessages.set(message.to, []);
     this.offlineMessages.get(message.to).push(message);
     return message;
   }
 
-  recoverOfflineDelivery(peerId = 'peer-bob-g030') {
+  // Recovery replays each queued message through the LIVE transport. Only
+  // messages the transport actually accepts are marked delivered; failures
+  // stay queued and the transport's error is surfaced verbatim.
+  async recoverOfflineDelivery(peerId = 'peer-bob-g030') {
     const queued = this.offlineMessages.get(peerId) || [];
     if (queued.length === 0) {
       this.recoveryState = 'nothing-pending';
-      this.recordReceipt('recovery', 'no-pending', 'bafyp2pchatg030offlinerecovery', 'receipt:p2p-chat-unified:g030:recovery:no-pending');
       return [];
     }
-    const peer = this.peers.get(peerId);
-    if (peer) peer.status = 'online';
-    queued.forEach(message => {
-      message.delivered = true;
-      message.offline = false;
-      message.receipt = 'receipt:p2p-chat-unified:g030:recovery:replayed';
-      message.recoveredAt = Date.now();
-    });
-    this.offlineMessages.set(peerId, []);
-    this.recoveryState = 'recovered-after-reconnect';
-    this.recordReceipt('recovery', 'replayed', 'bafyp2pchatg030offlinerecovery', 'receipt:p2p-chat-unified:g030:recovery:replayed');
-    this.deliveryLog.push({ type: 'recovery', status: 'replayed', peer_id: peerId, cid: 'bafyp2pchatg030offlinerecovery', receipt: 'receipt:p2p-chat-unified:g030:recovery:replayed' });
-    return queued;
+    const replayed = [];
+    const stillQueued = [];
+    for (const message of queued) {
+      try {
+        const ack = await this.libp2p?.publish?.(PUBSUB_TOPIC, {
+          ...message,
+          topic: PUBSUB_TOPIC,
+          recovered_at: Date.now(),
+        });
+        message.delivered = true;
+        message.offline = false;
+        message.delivery = 'recovered';
+        message.ack = ack === undefined
+          ? { acknowledged: 'none', note: 'Transport resolved without an acknowledgment payload.' }
+          : ack;
+        message.recoveredAt = Date.now();
+        this.recordReceipt('recovery', 'replayed', message.cid, `p2pchat-recovery-${message.id}`);
+        message.receipt = `p2pchat-recovery-${message.id}`;
+        replayed.push(message);
+      } catch (error) {
+        message.delivery = 'recovery-failed';
+        message.ack = { acknowledged: 'error', error: messageFromError(error) };
+        this.recordReceipt('recovery', 'failed', message.cid, `p2pchat-recovery-${message.id}`);
+        this.notifications.push(`Recovery publish failed for ${message.id}; still queued: ${messageFromError(error)}`);
+        stillQueued.push(message);
+      }
+    }
+    this.offlineMessages.set(peerId, stillQueued);
+    if (replayed.length > 0) {
+      const peer = this.peers.get(peerId);
+      if (peer) peer.status = 'online';
+    }
+    this.recoveryState = stillQueued.length === 0
+      ? 'recovered-after-reconnect'
+      : `partially-recovered:${stillQueued.length}-still-queued`;
+    this.deliveryLog.push({ type: 'recovery', status: this.recoveryState, peer_id: peerId, replayed: replayed.length, failed: stillQueued.length });
+    await this.saveMessageHistory();
+    return replayed;
   }
 
-  reviewModerationContext() {
+  // Local moderation review: a real local heuristic decision plus a real
+  // content CID over the reviewed record. No backend call is made here.
+  async reviewModerationContext() {
     this.moderationContext = {
       ...this.moderationContext,
       decision: 'allow',
       risk: 'low',
       labels: Array.from(new Set([...this.moderationContext.labels, 'reviewed-before-delivery'])),
-      receipt: 'receipt:p2p-chat-unified:g030:moderation:reviewed',
+      reviewed_at: new Date().toISOString(),
     };
-    this.recordReceipt('moderation', 'reviewed', this.moderationContext.cid, this.moderationContext.receipt);
+    this.moderationContext.cid = await this.realContentCid({
+      schema: 'swissknife.p2p-chat.moderation.v1',
+      ...this.moderationContext,
+    });
+    this.recordReceipt('moderation', 'reviewed', this.moderationContext.cid, `p2pchat-moderation-${Date.now()}`);
+    this.backendStatus = 'Moderation context reviewed locally; nothing was sent to the backend.';
   }
 
-  emitDeliveryReceipt() {
-    this.recordReceipt('delivery', 'ack', 'bafyp2pchatg030receiptbundle', 'receipt:p2p-chat-unified:g030:delivery:ack');
+  // Reframes "emit receipt" honestly: the ledger is built from real
+  // recorded delivery events and persisted to the kit backend behind an
+  // explicit confirmation. With no real events there is nothing to emit.
+  async requestReceiptLedgerPersist() {
+    if (this.receipts.length === 0) {
+      this.backendStatus = 'No delivery events recorded yet — nothing to persist. Send or queue a message first.';
+      return;
+    }
+    const record = this.buildReceiptLedgerRecord();
+    const bytes = new TextEncoder().encode(stableStringifyValue(record));
+    const cid = await contentCidForBytes(bytes);
+    this.pendingConfirm = {
+      action: 'persist-receipts',
+      record,
+      bytes: bytes.length,
+      count: this.receipts.length,
+      expectedCid: cid,
+    };
+    this.backendStatus = `Receipt ledger ready (${this.receipts.length} receipts, CID ${cid}). Confirm to persist it to the kit backend.`;
   }
 
-  activateAudioFallback() {
+  buildReceiptLedgerRecord() {
+    return {
+      schema: 'swissknife.p2p-chat.receipt-ledger.v1',
+      app_id: APP_ID,
+      topic: PUBSUB_TOPIC,
+      peer_id: this.peerId,
+      exported_at: new Date().toISOString(),
+      receipts: this.receipts,
+    };
+  }
+
+  buildChannelRecord() {
+    return {
+      schema: 'swissknife.p2p-chat.channel.v1',
+      app_id: APP_ID,
+      topic: PUBSUB_TOPIC,
+      peer_id: this.peerId,
+      exported_at: new Date().toISOString(),
+      conversations: Object.fromEntries(this.conversations),
+      delivery_log: this.deliveryLog,
+      receipts: this.receipts,
+      moderation_policy: this.moderationContext.policy,
+    };
+  }
+
+  async requestChannelPersist() {
+    const record = this.buildChannelRecord();
+    const bytes = new TextEncoder().encode(stableStringifyValue(record));
+    const cid = await contentCidForBytes(bytes);
+    const messageCount = Array.from(this.conversations.values()).reduce((total, messages) => total + messages.length, 0);
+    this.pendingConfirm = {
+      action: 'persist-channel',
+      record,
+      bytes: bytes.length,
+      messages: messageCount,
+      expectedCid: cid,
+    };
+    this.backendStatus = `Channel archive ready (${messageCount} messages, CID ${cid}). Confirm to persist it to the kit backend.`;
+  }
+
+  async loadChannelArchive() {
+    if (!this.persistedChannelCid) {
+      this.backendStatus = 'No channel archive has been persisted in this session.';
+      return;
+    }
+    try {
+      const artifact = await this.mcp().get('ipfs_kit_py', `/mcp/artifacts/${encodeURIComponent(this.persistedChannelCid)}`);
+      if (!artifact || artifact.found !== true) {
+        throw new Error(artifact?.error || `Artifact ${this.persistedChannelCid} was not found in ipfs_kit_py.`);
+      }
+      const bytes = Uint8Array.from(atob(artifact.bytes_base64), character => character.charCodeAt(0));
+      const record = JSON.parse(new TextDecoder().decode(bytes));
+      this.conversations = new Map(Object.entries(record.conversations || {}));
+      this.deliveryLog = Array.isArray(record.delivery_log) ? record.delivery_log : [];
+      this.backendStatus = `Channel archive ${this.persistedChannelCid} retrieved from ipfs_kit_py (verified: ${artifact.verified === true}).`;
+      await this.saveMessageHistory();
+    } catch (error) {
+      this.backendStatus = `Channel archive retrieval failed: ${messageFromError(error)}`;
+      this.notifications.push(`Channel archive retrieval failed: ${messageFromError(error)}`);
+    }
+  }
+
+  // The explicit user confirmation step every backend-mutating POST sits
+  // behind. The confirmation card renders the exact write first; only the
+  // "Confirm persist" click reaches this method.
+  async confirmBackendWrite() {
+    const pending = this.pendingConfirm;
+    this.pendingConfirm = null;
+    if (!pending) {
+      this.backendStatus = 'Nothing was pending confirmation.';
+      return;
+    }
+    try {
+      const kind = pending.action === 'persist-channel' ? 'channel-archive' : 'receipt-ledger';
+      const { cid, response } = await this.persistArtifact(pending.record, kind);
+      if (pending.action === 'persist-channel') {
+        this.persistedChannelCid = cid;
+        this.recordReceipt('channel', 'persisted', cid, `p2pchat-channel-${Date.now()}`);
+        this.backendStatus = `Channel archive persisted to ipfs_kit_py at CID ${cid} (verified: ${response.verified === true}).`;
+      } else {
+        this.persistedReceiptLedgerCid = cid;
+        this.recordReceipt('ledger', 'persisted', cid, `p2pchat-ledger-${Date.now()}`);
+        this.backendStatus = `Receipt ledger persisted to ipfs_kit_py at CID ${cid} (verified: ${response.verified === true}).`;
+      }
+    } catch (error) {
+      this.backendStatus = `Backend persist failed: ${messageFromError(error)}`;
+      this.notifications.push(`Backend persist failed: ${messageFromError(error)}`);
+    }
+  }
+
+  async activateAudioFallback() {
     this.audioFallbackState = {
       active: true,
       mode: 'text-transcript',
       reason: 'Audio capture is unavailable or declined; message is delivered as a transcript with the same moderation and receipt context.',
       transcript: this.draft || 'Voice fallback transcript for offline P2P delivery.',
-      cid: 'bafyp2pchatg030audiofallback',
-      receipt: 'receipt:p2p-chat-unified:g030:audio:fallback',
+      cid: null,
+      receipt: null,
     };
-    this.recordReceipt('audio', 'fallback', this.audioFallbackState.cid, this.audioFallbackState.receipt);
+    this.audioFallbackState.cid = await this.realContentCid({
+      schema: 'swissknife.p2p-chat.audio-fallback.v1',
+      mode: this.audioFallbackState.mode,
+      reason: this.audioFallbackState.reason,
+      transcript: this.audioFallbackState.transcript,
+      recorded_at: new Date().toISOString(),
+    });
+    this.recordReceipt('audio', 'fallback', this.audioFallbackState.cid, `p2pchat-audio-${Date.now()}`);
   }
 
-  createMessage({ content, peerId, offline, delivered, cid, receipt, moderation }) {
+  createMessage({ content, peerId, offline, delivered, moderation }) {
     return {
-      id: `msg-${stableHash(`${Date.now()}:${content}:${peerId}:${receipt}`)}`,
+      id: `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
       from: this.peerId,
       to: peerId,
       content,
@@ -884,8 +1179,12 @@ export class UnifiedP2PChatApp {
       encrypted: true,
       offline,
       delivered,
-      cid,
-      receipt,
+      // cid, delivery, ack, and receipt are assigned by the send/store path
+      // from real transport outcomes — never here.
+      cid: null,
+      delivery: 'pending',
+      ack: null,
+      receipt: null,
       topic: PUBSUB_TOPIC,
       moderation_context: moderation,
     };
@@ -906,13 +1205,18 @@ export class UnifiedP2PChatApp {
       labels: containsUnsafeLink
         ? ['direct-message', 'link-review', 'manual-moderation']
         : ['direct-message', 'pubsub-topic', 'offline-store-and-forward'],
-      receipt: 'receipt:p2p-chat-unified:g030:moderation:reviewed',
+      // Local heuristic outcome; no receipt exists until a real review or
+      // delivery event records one.
+      receipt: null,
     };
     this.moderationContext = context;
     return context;
   }
 
-  recordReceipt(kind, status, cid, receiptId = `receipt:p2p-chat-unified:g030:${kind}:${status}`) {
+  // Receipts record REAL events only: transport acknowledgments, queue
+  // stores, local reviews, recovery outcomes, and backend persists. The
+  // ledger starts empty — nothing is pre-seeded.
+  recordReceipt(kind, status, cid, receiptId = `p2pchat-${kind}-${Date.now().toString(36)}`) {
     const receipt = {
       receipt_id: receiptId,
       kind,
@@ -931,26 +1235,19 @@ export class UnifiedP2PChatApp {
     return receipt;
   }
 
+  // Checkpoint refs name only backend CIDs that were really persisted in
+  // this session — no fixture references.
   getWorkflowCheckpointRefs() {
     return Array.from(new Set([
-      'bafyp2pchatg030pubsubdelivery',
-      'bafyp2pchatg030offlinequeue',
-      this.moderationContext.cid,
-      'bafyp2pchatg030receiptbundle',
-      this.audioFallbackState.cid,
-      'bafyp2pchatg030offlinerecovery',
+      this.persistedChannelCid,
+      this.persistedReceiptLedgerCid,
       ...this.deliveryLog.map(entry => entry.cid).filter(Boolean),
-    ]));
+    ].filter(Boolean)));
   }
 
+  // Receipt refs list only receipts recorded from real events.
   getWorkflowReceiptRefs() {
     return Array.from(new Set([
-      'receipt:p2p-chat-unified:g030:pubsub:published',
-      'receipt:p2p-chat-unified:g030:offline:queued',
-      'receipt:p2p-chat-unified:g030:moderation:reviewed',
-      'receipt:p2p-chat-unified:g030:delivery:ack',
-      'receipt:p2p-chat-unified:g030:audio:fallback',
-      'receipt:p2p-chat-unified:g030:recovery:replayed',
       ...this.receipts.map(receipt => receipt.receipt_id),
       ...Array.from(this.conversations.values()).flat().map(message => message.receipt).filter(Boolean),
     ]));
@@ -962,7 +1259,8 @@ export class UnifiedP2PChatApp {
 
   describeRecovery() {
     const queued = this.countOfflineMessages();
-    if (this.recoveryState === 'recovered-after-reconnect') return 'Offline peer reconnected; queued messages replayed and receipt:p2p-chat-unified:g030:recovery:replayed was emitted.';
+    if (this.recoveryState === 'recovered-after-reconnect') return 'Offline peer reconnected; queued messages were re-published through the live transport and each carries its real acknowledgment.';
+    if (this.recoveryState.startsWith('partially-recovered')) return `${queued} message(s) still queued after a recovery attempt; failed publishes keep their transport errors.`;
     if (queued > 0) return `${queued} offline message(s) queued with visible reconnect and recover controls.`;
     return 'No pending offline messages; recovery remains ready for the next disconnected peer.';
   }
@@ -1043,19 +1341,6 @@ async function callOptional(target, methodNames, args) {
     if (typeof method === 'function') return method.apply(target, args);
   }
   throw new Error(`No supported method found: ${methodNames.join(', ')}`);
-}
-
-function contentAddress(value, suffix) {
-  return `bafyp2pchatg030${suffix}${stableHash(JSON.stringify(value)).slice(0, 8)}`;
-}
-
-function stableHash(value) {
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
 function escapeHtml(value) {

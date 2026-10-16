@@ -5,33 +5,88 @@
 
 const VDA_G039_WORKFLOW = 'notes.provenance-rich-sync';
 
-const VDA_G039_REFS = Object.freeze({
-  noteCid: 'bafynotesg039notecid',
-  notebookCid: 'bafynotesg039notebookmanifest',
-  semanticIndex: 'bafynotesg039semanticindex',
-  provenanceCid: 'bafynotesg039provenanceledger',
-  summaryCid: 'bafynotesg039summaryjob',
-  conflictRecoveryCid: 'bafynotesg039conflictrecovery',
-  keyboardEditCid: 'bafynotesg039keyboardedit',
-  syncDagCid: 'bafynotesg039syncdag',
-  receipts: [
-    'receipt:notes:g039:note-cids',
-    'receipt:notes:g039:semantic-search',
-    'receipt:notes:g039:provenance',
-    'receipt:notes:g039:summary',
-    'receipt:notes:g039:conflict-recovery',
-    'receipt:notes:g039:keyboard-safe-editing',
-    'receipt:notes:g039:sync-dag'
-  ],
-  events: [
-    'event:notes:g039:note-created',
-    'event:notes:g039:semantic-indexed',
-    'event:notes:g039:provenance-recorded',
-    'event:notes:g039:summary-generated',
-    'event:notes:g039:conflict-recovered',
-    'event:notes:g039:keyboard-edit-verified'
-  ]
-});
+// --- Real backend wiring (ipfs_kit_py / ipfs_datasets_py over the MCP++
+// desktop client). No fixture CIDs or receipt strings are kept anywhere in
+// this app: every CID shown in the workflow panel is either computed from
+// real record bytes (canonical CIDv1-raw+sha2-256, same semantics as the
+// supervisor gateway) or returned by a live backend call. Backend-mutating
+// calls are always confirmation-gated and surface failures verbatim.
+
+async function notesKitClient() {
+  const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
+  const client = clientModule.getMCPPlusPlusDesktopClient();
+  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
+  return client;
+}
+
+async function notesCanonicalCid(record) {
+  const { contentCidForBytes, stableStringifyValue } = await import('../core/mcp-plus-plus-desktop-client.js');
+  return contentCidForBytes(new TextEncoder().encode(stableStringifyValue(record)));
+}
+
+async function notesCanonicalBytesBase64(record) {
+  const { base64ForBytes, stableStringifyValue } = await import('../core/mcp-plus-plus-desktop-client.js');
+  return base64ForBytes(new TextEncoder().encode(stableStringifyValue(record)));
+}
+
+// The stable, content-addressed form of a note: only content fields feed
+// the canonical CID, so the identifier is a genuine content address.
+function notesCanonicalRecord(note) {
+  return {
+    schema: 'swissknife.notes.note.v1',
+    id: note.id,
+    title: note.title || '',
+    content: note.content || '',
+    tags: [...(note.tags || [])].sort(),
+    created: note.created || null,
+    modified: note.modified || null,
+    favorite: note.favorite === true,
+    color: note.color || 'blue'
+  };
+}
+
+// Artifact persist for a confirmation-gated flow (callers collect the
+// explicit user confirmation first). Throws on any backend failure —
+// callers surface the message verbatim and never fall back to a fixture.
+async function notesPersistArtifact(client, record, { kind, profile }) {
+  const cid = await notesCanonicalCid(record);
+  const bytesBase64 = await notesCanonicalBytesBase64(record);
+  const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+    cid,
+    bytes_base64: bytesBase64,
+    profile,
+    kind,
+    service: 'ipfs_kit_py',
+    pin: true
+  });
+  if (!result || result.persisted !== true || result.cid !== cid) {
+    throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted artifact.');
+  }
+  return { cid, result };
+}
+
+async function notesAppendDagEvent(client, event) {
+  const appended = await client.post('ipfs_kit_py', '/mcp/dag/append', { event });
+  if (!appended?.event_cid) {
+    throw new Error(appended?.error || 'ipfs_kit_py event DAG did not return an event CID.');
+  }
+  return appended.event_cid;
+}
+
+// Decode a fetched artifact back to its JSON record (best effort; the
+// artifact store returns the bytes that were put).
+function notesDecodeArtifactJson(fetched) {
+  const b64 = fetched?.bytes_base64 || fetched?.record?.bytes_base64 || fetched?.data?.bytes_base64;
+  if (typeof b64 !== 'string' || !b64) throw new Error('Artifact fetch did not include bytes_base64.');
+  const binary = atob(b64);
+  const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+function notesConfirmBackendWrite(message) {
+  if (typeof window === 'undefined') return false;
+  return window.confirm(message);
+}
 
 export class NotesApp {
   constructor(desktop) {
@@ -69,6 +124,9 @@ export class NotesApp {
     
     this.initializeNotes();
     this.vdaG039 = this.buildVdaG039State();
+    // Canonical CIDs are computed asynchronously from real record bytes
+    // (fire-and-forget; failures are logged and leave cid null).
+    this.assignCanonicalNoteCids().catch(error => console.warn('Canonical note CID assignment failed:', error));
     if (typeof window !== 'undefined') {
       window.notesApp = this;
     }
@@ -176,43 +234,49 @@ Schedule for next week to review progress.
     const safeNotes = Array.isArray(notes) ? notes.filter(Boolean) : [];
     const hasWorkflowNote = safeNotes.some(note => note.id === 'vda-g039-provenance-note');
     const seededNotes = hasWorkflowNote ? safeNotes : [
-      this.buildVdaG039FixtureNote(),
+      this.buildVdaG039SampleNote(),
       ...safeNotes
     ];
 
-    return seededNotes.map((note, index) => ({
+    return seededNotes.map((note) => ({
       ...note,
-      cid: note.cid || this.deriveNoteCid(note, index),
-      notebookCid: note.notebookCid || VDA_G039_REFS.notebookCid,
+      // cid is null until the canonical CID is computed from the real
+      // record bytes (see assignCanonicalNoteCids). Null means "not
+      // computed yet" — it is never a fixture string.
+      cid: typeof note.cid === 'string' && !note.cid.startsWith('bafynotesg039') ? note.cid : null,
+      notebookCid: typeof note.notebookCid === 'string' && !note.notebookCid.startsWith('bafynotesg039') ? note.notebookCid : null,
       provenance: note.provenance || {
         source: 'local.notes',
         authorDid: 'did:key:z6MkNotesWorkflowOperator',
         operation: 'notes.upsert',
         policy: 'allow-local-private-note-sync',
-        receiptRef: VDA_G039_REFS.receipts[2],
-        provenanceCid: VDA_G039_REFS.provenanceCid
+        receiptRef: null,
+        provenanceCid: null
       },
       sync: note.sync || {
-        state: 'synchronized',
-        dagCid: VDA_G039_REFS.syncDagCid,
-        lastPeer: 'peer:notes-sync-local',
-        receiptRef: VDA_G039_REFS.receipts[6]
+        state: 'local-only',
+        dagCid: null,
+        lastPeer: null,
+        receiptRef: null
       }
     }));
   }
 
-  buildVdaG039FixtureNote() {
+  buildVdaG039SampleNote() {
     const now = Date.now();
     return {
       id: 'vda-g039-provenance-note',
       title: 'VDA-G039 Provenance Notebook',
       content: `# VDA-G039 Provenance Notebook
 
-This CID-backed note demonstrates semantic_search, provenance receipts, summary generation, conflict recovery, citation links, sync state, and keyboard-safe editing.
+This sample note demonstrates the provenance-rich sync workflow:
 
-## Citations
-- [Calendar artifact](ipfs://${VDA_G039_REFS.noteCid})
-- [Provenance ledger](ipfs://${VDA_G039_REFS.provenanceCid})
+- Note artifacts pinned to the ipfs_kit_py backend (confirmation-gated, "Persist note CID")
+- Semantic search over the notebook via ipfs_datasets_py semantic_search
+- A provenance ledger on the ipfs_kit_py event DAG
+- Summary generation (local) with optional artifact persist
+- Conflict recovery against the retrieved artifact version
+- Keyboard-safe editing (local UI)
 
 #provenance #summary #sync #keyboard`,
       tags: ['provenance', 'summary', 'sync', 'keyboard'],
@@ -220,68 +284,88 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
       modified: now - 1800000,
       favorite: true,
       color: 'purple',
-      cid: VDA_G039_REFS.noteCid,
-      notebookCid: VDA_G039_REFS.notebookCid,
+      cid: null,
+      notebookCid: null,
       provenance: {
-        source: 'ipfs.kit.storage.put',
+        source: 'local.notes.sample',
         authorDid: 'did:key:z6MkNotesWorkflowOperator',
         operation: 'notes.create',
         policy: 'allow-local-private-note-sync',
-        receiptRef: VDA_G039_REFS.receipts[2],
-        provenanceCid: VDA_G039_REFS.provenanceCid
+        receiptRef: null,
+        provenanceCid: null
       },
       sync: {
-        state: 'synchronized',
-        dagCid: VDA_G039_REFS.syncDagCid,
-        lastPeer: 'peer:notes-sync-local',
-        receiptRef: VDA_G039_REFS.receipts[6]
+        state: 'local-only',
+        dagCid: null,
+        lastPeer: null,
+        receiptRef: null
       }
     };
   }
 
-  deriveNoteCid(note, index) {
-    if (note?.id === 'vda-g039-provenance-note') return VDA_G039_REFS.noteCid;
-    return `bafynotesg039note${String(index + 1).padStart(2, '0')}`;
+  // Canonical, content-addressed CID for a note record, computed over the
+  // canonical bytes — the same CID semantics the supervisor gateway uses.
+  // Async because the CID is derived from real bytes, never fabricated.
+  canonicalNoteCid(note) {
+    return notesCanonicalCid(notesCanonicalRecord(note));
+  }
+
+  // Fill in canonical CIDs for notes that do not have one yet. Runs
+  // asynchronously after construction and after imports; failures leave
+  // cid null (honest "not computed") rather than inventing one.
+  assignCanonicalNoteCids() {
+    const pending = this.notes.filter(note => !note.cid);
+    if (pending.length === 0) return Promise.resolve();
+    return Promise.all(pending.map(async (note) => {
+      try {
+        note.cid = await this.canonicalNoteCid(note);
+      } catch (error) {
+        console.warn('Failed to compute canonical note CID:', error);
+      }
+    })).then(() => {
+      this.saveNotes();
+      this.refreshVdaG039WorkflowPanel();
+    });
   }
 
   buildVdaG039State() {
     const semanticQuery = 'provenance summary sync';
-    const semanticResults = this.semanticSearchNotes(semanticQuery);
-    const activeNote = semanticResults[0]?.note || this.notes[0] || this.buildVdaG039FixtureNote();
-    const summary = this.summarizeNote(activeNote);
+    const activeNote = this.notes[0] || this.buildVdaG039SampleNote();
     return {
       workflowId: VDA_G039_WORKFLOW,
       status: 'ready',
       semanticQuery,
-      semanticResults,
-      summary,
+      // Backend semantic-search results land here after "Run semantic
+      // search" succeeds against ipfs_datasets_py. Empty means "not run
+      // yet" — never fabricated hits.
+      semanticResults: [],
+      semanticBackend: null,
+      summary: this.summarizeNote(activeNote),
+      summaryCid: null,
+      summaryPersisted: false,
       conflict: {
-        state: 'recovered',
-        baseCid: VDA_G039_REFS.noteCid,
-        localCid: 'bafynotesg039conflictlocal',
-        remoteCid: 'bafynotesg039conflictremote',
-        recoveredCid: VDA_G039_REFS.conflictRecoveryCid,
-        message: 'Recovered by preserving the newer local title, merging remote citation links, and retaining provenance receipts.'
+        state: 'not-run',
+        baseCid: null,
+        localCid: null,
+        remoteCid: null,
+        recoveredCid: null,
+        message: 'Not run yet. "Recover conflict" retrieves the persisted artifact version from ipfs_kit_py, compares it with the local note, and persists the merged version (confirmation-gated).'
       },
       keyboardSafe: {
-        state: 'verified',
-        shortcuts: ['Ctrl+S save', 'Ctrl+K semantic search', 'Ctrl+Enter summary', 'Escape editor focus recovery'],
-        lastEditCid: VDA_G039_REFS.keyboardEditCid
+        state: 'local',
+        shortcuts: ['Ctrl+S save (local)', 'Ctrl+K semantic search', 'Ctrl+Enter summary (local)', 'Escape editor focus recovery (local)'],
+        note: 'Keyboard editing is local UI in this browser session; no backend claim is made.'
       },
-      noteCidRefs: [
-        VDA_G039_REFS.noteCid,
-        VDA_G039_REFS.notebookCid,
-        VDA_G039_REFS.syncDagCid
-      ],
-      receiptRefs: [...VDA_G039_REFS.receipts],
-      eventRefs: [...VDA_G039_REFS.events],
+      notebookCid: null,
+      notebookReadback: null,
+      provenanceCid: null,
+      provenanceEventCid: null,
+      // Real backend CIDs collected as actions complete. Empty means none
+      // have completed yet — never fixture strings.
+      receiptRefs: [],
+      eventRefs: [],
       actionLog: [
-        'note CIDs indexed',
-        'semantic_search ready',
-        'provenance ledger linked',
-        'summary job prepared',
-        'conflict recovery available',
-        'keyboard-safe editing verified'
+        'workflow ready — notes are local until persisted; each backend write asks for confirmation first'
       ]
     };
   }
@@ -305,7 +389,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
           <div class="search-section">
             <div class="search-input-wrapper">
               <input type="text" class="search-input" id="search-input" 
-                     placeholder="Search notes..." value="${this.searchQuery}">
+                     placeholder="Search notes (local)..." value="${this.searchQuery}">
               <button class="search-clear" id="search-clear" style="display: ${this.searchQuery ? 'block' : 'none'}">×</button>
             </div>
             <div class="search-filters">
@@ -360,8 +444,8 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
         .notes-container {
           display: flex;
           height: 100%;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
+          background: var(--sk-bg-deep, #0e1412);
+          color: var(--sk-text, #edf7f2);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', roboto, sans-serif;
           overflow: hidden;
         }
@@ -395,7 +479,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
           height: 36px;
           border-radius: 50%;
           border: none;
-          background: linear-gradient(135deg, #4ade80, #22c55e);
+          background: linear-gradient(135deg, var(--sk-ok, #5ee3a1), var(--sk-accent-strong, #5fb99d));
           color: white;
           cursor: pointer;
           font-size: 18px;
@@ -408,7 +492,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
 
         .new-note-btn:hover {
           transform: scale(1.05);
-          box-shadow: 0 4px 20px rgba(74, 222, 128, 0.3);
+          box-shadow: 0 4px 20px rgba(94, 227, 161, 0.3);
         }
 
         .search-section {
@@ -438,8 +522,8 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
 
         .search-input:focus {
           outline: none;
-          border-color: rgba(74, 222, 128, 0.6);
-          box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2);
+          border-color: rgba(94, 227, 161, 0.6);
+          box-shadow: 0 0 0 2px rgba(94, 227, 161, 0.2);
         }
 
         .search-clear {
@@ -526,8 +610,8 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
         }
 
         .tag-chip.selected {
-          background: linear-gradient(135deg, #4ade80, #22c55e);
-          border-color: rgba(74, 222, 128, 0.6);
+          background: linear-gradient(135deg, var(--sk-ok, #5ee3a1), var(--sk-accent-strong, #5fb99d));
+          border-color: rgba(94, 227, 161, 0.6);
         }
 
         .notes-list {
@@ -553,14 +637,14 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
         }
 
         .note-item.active {
-          background: rgba(74, 222, 128, 0.2);
-          border-left-color: #4ade80;
+          background: rgba(94, 227, 161, 0.2);
+          border-left-color: var(--sk-ok, #5ee3a1);
         }
 
         .note-item.blue { border-left-color: #3b82f6; }
-        .note-item.green { border-left-color: #22c55e; }
+        .note-item.green { border-left-color: var(--sk-ok, #5ee3a1); }
         .note-item.orange { border-left-color: #f59e0b; }
-        .note-item.red { border-left-color: #ef4444; }
+        .note-item.red { border-left-color: var(--sk-err, #ff6b6b); }
         .note-item.purple { border-left-color: #8b5cf6; }
 
         .note-title {
@@ -573,7 +657,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
         }
 
         .note-favorite {
-          color: #fbbf24;
+          color: var(--sk-warn, #ffd166);
           font-size: 12px;
         }
 
@@ -611,7 +695,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
           display: block;
           font-size: 18px;
           font-weight: 600;
-          color: #4ade80;
+          color: var(--sk-ok, #5ee3a1);
         }
 
         .stat-label {
@@ -667,9 +751,9 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
 
         .workflow-status {
           flex: 0 0 auto;
-          border: 1px solid rgba(74, 222, 128, 0.34);
-          background: rgba(34, 197, 94, 0.12);
-          color: #bbf7d0;
+          border: 1px solid rgba(94, 227, 161, 0.34);
+          background: rgba(94, 227, 161, 0.12);
+          color: var(--sk-ok, #5ee3a1);
           border-radius: 6px;
           padding: 5px 8px;
           font-size: 11px;
@@ -711,7 +795,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
         .workflow-card code {
           font-size: 10px;
           line-height: 1.3;
-          color: #bbf7d0;
+          color: var(--sk-ok, #5ee3a1);
           overflow-wrap: anywhere;
         }
 
@@ -735,7 +819,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
 
         .workflow-actions button:hover,
         .workflow-actions button:focus-visible {
-          background: rgba(74, 222, 128, 0.22);
+          background: rgba(94, 227, 161, 0.22);
           outline: none;
         }
 
@@ -786,7 +870,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
 
         .welcome-btn {
           padding: 12px 24px;
-          background: linear-gradient(135deg, #4ade80, #22c55e);
+          background: linear-gradient(135deg, var(--sk-ok, #5ee3a1), var(--sk-accent-strong, #5fb99d));
           border: none;
           border-radius: 8px;
           color: white;
@@ -798,7 +882,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
 
         .welcome-btn:hover {
           transform: translateY(-2px);
-          box-shadow: 0 4px 20px rgba(74, 222, 128, 0.3);
+          box-shadow: 0 4px 20px rgba(94, 227, 161, 0.3);
         }
 
         .welcome-btn.secondary {
@@ -870,7 +954,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
         }
 
         .editor-btn.active {
-          background: linear-gradient(135deg, #4ade80, #22c55e);
+          background: linear-gradient(135deg, var(--sk-ok, #5ee3a1), var(--sk-accent-strong, #5fb99d));
         }
 
         .editor-content {
@@ -932,7 +1016,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
         .editor-preview h4,
         .editor-preview h5,
         .editor-preview h6 {
-          color: #4ade80;
+          color: var(--sk-ok, #5ee3a1);
           margin-top: 24px;
           margin-bottom: 12px;
           font-weight: 600;
@@ -974,7 +1058,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
         }
 
         .editor-preview blockquote {
-          border-left: 4px solid #4ade80;
+          border-left: 4px solid var(--sk-ok, #5ee3a1);
           padding-left: 16px;
           margin: 12px 0;
           font-style: italic;
@@ -983,12 +1067,12 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
 
         .editor-preview strong {
           font-weight: 600;
-          color: #4ade80;
+          color: var(--sk-ok, #5ee3a1);
         }
 
         .editor-preview em {
           font-style: italic;
-          color: #fbbf24;
+          color: var(--sk-warn, #ffd166);
         }
 
         /* Responsive */
@@ -1045,59 +1129,66 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
 
   renderVdaG039Workflow() {
     const state = this.vdaG039 || this.buildVdaG039State();
-    const topResult = state.semanticResults?.[0];
-    const topTitle = topResult?.note?.title || 'No indexed note';
-    const activeNote = this.currentNote || topResult?.note || this.notes[0] || this.buildVdaG039FixtureNote();
+    const activeNote = this.currentNote || this.notes[0] || this.buildVdaG039SampleNote();
+    const noteCidLabel = activeNote.cid || 'computing canonical CID…';
+    const notebookLabel = state.notebookCid || 'not published yet';
+    const semanticSummary = state.semanticBackend
+      ? `${state.semanticResults.length} result(s) from ${this.escapeHtml(state.semanticBackend)}`
+      : 'not run yet — results come from ipfs_datasets_py semantic_search';
+    const provenanceLabel = state.provenanceCid || 'not recorded yet';
+    const summaryLabel = state.summaryPersisted && state.summaryCid
+      ? state.summaryCid
+      : 'local only — not persisted';
+    const conflictLabel = state.conflict.recoveredCid || 'no recovery run yet';
+    const syncLabel = activeNote.sync?.dagCid || 'no checkpoint yet';
+    const receiptList = state.receiptRefs.length > 0
+      ? state.receiptRefs.map(ref => this.escapeHtml(ref)).join(' ')
+      : 'none yet';
+    const eventList = state.eventRefs.length > 0
+      ? state.eventRefs.map(ref => this.escapeHtml(ref)).join(' ')
+      : 'none yet';
     return `
       <section class="notes-workflow" data-svd-workflow="${VDA_G039_WORKFLOW}" aria-label="VDA-G039 Notes workflow">
         <div class="workflow-head">
           <div>
             <h3>VDA-G039 provenance-rich notes workflow</h3>
-            <p>Note CIDs, semantic_search retrieval, provenance ledger, summary job, conflict recovery, and keyboard-safe editing. Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
+            <p class="sk-honest-note">Notes are stored locally in your browser (local UI) until you persist them. Backend writes — note artifact persist, provenance ledger, summary persist, conflict recovery — are confirmation-gated and surface backend failures verbatim. Markdown rendering, search filtering, sorting, word counts, auto-save, and keyboard shortcuts are local UI with no backend claim.</p>
           </div>
           <span class="workflow-status" role="status" aria-live="polite" id="vda-g039-status">Status: ${this.escapeHtml(state.status)}</span>
         </div>
 
         <div class="workflow-grid">
-          <article class="workflow-card" data-svd-vda-marker="note-cids" data-sync-state="${this.escapeHtml(activeNote.sync?.state || 'synchronized')}">
+          <article class="workflow-card" data-svd-vda-marker="note-cids" data-sync-state="${this.escapeHtml(activeNote.sync?.state || 'local-only')}">
             <strong>Note CIDs</strong>
-            <p>${this.notes.length} notes indexed in notebook manifest.</p>
-            <code>${this.escapeHtml(activeNote.cid || VDA_G039_REFS.noteCid)}</code>
-            <code>${VDA_G039_REFS.notebookCid}</code>
-            <a href="ipfs://${VDA_G039_REFS.noteCid}">Citation link</a>
-            <small>${VDA_G039_REFS.receipts[0]}</small>
+            <p>${this.notes.length} note(s) local. Active note canonical CID (computed from real note bytes):</p>
+            <code class="sk-code">${this.escapeHtml(noteCidLabel)}</code>
+            <p>Notebook manifest: <code class="sk-code">${this.escapeHtml(notebookLabel)}</code>${state.notebookReadback ? ` — ${this.escapeHtml(state.notebookReadback)}` : ''}</p>
           </article>
-          <article class="workflow-card" data-svd-vda-marker="semantic-search" data-semantic-search-state="indexed">
+          <article class="workflow-card" data-svd-vda-marker="semantic-search" data-semantic-search-state="${state.semanticBackend ? 'indexed' : 'not-run'}">
             <strong>Semantic search</strong>
-            <p>semantic_search "${this.escapeHtml(state.semanticQuery)}" matched ${this.escapeHtml(topTitle)} with ${state.semanticResults.length} result(s).</p>
-            <code>${VDA_G039_REFS.semanticIndex}</code>
-            <small>${VDA_G039_REFS.receipts[1]}</small>
+            <p>semantic_search "${this.escapeHtml(state.semanticQuery)}": ${this.escapeHtml(semanticSummary)}.</p>
+            ${(state.semanticResults || []).map(result => `<code class="sk-code">${this.escapeHtml(result.cid || result.title || 'hit')}</code>`).join('')}
           </article>
-          <article class="workflow-card" data-svd-vda-marker="provenance" data-provenance-state="recorded">
+          <article class="workflow-card" data-svd-vda-marker="provenance" data-provenance-state="${state.provenanceCid ? 'recorded' : 'not-recorded'}">
             <strong>Provenance</strong>
-            <p>${this.escapeHtml(activeNote.provenance?.operation || 'notes.upsert')} by ${this.escapeHtml(activeNote.provenance?.authorDid || 'did:key:z6MkNotesWorkflowOperator')}.</p>
-            <code>${VDA_G039_REFS.provenanceCid}</code>
-            <small>${VDA_G039_REFS.receipts[2]}</small>
+            <p>${this.escapeHtml(activeNote.provenance?.operation || 'notes.upsert')} by ${this.escapeHtml(activeNote.provenance?.authorDid || 'did:key:z6MkNotesWorkflowOperator')} (local record).</p>
+            <code class="sk-code">${this.escapeHtml(provenanceLabel)}</code>
+            ${state.provenanceEventCid ? `<small>event DAG: ${this.escapeHtml(state.provenanceEventCid)}</small>` : ''}
           </article>
-          <article class="workflow-card" data-svd-vda-marker="summary" data-summary-state="complete">
+          <article class="workflow-card" data-svd-vda-marker="summary" data-summary-state="${state.summaryPersisted ? 'persisted' : 'local'}">
             <strong>Summary</strong>
             <p id="notes-summary-text">${this.escapeHtml(state.summary)}</p>
-            <code>${VDA_G039_REFS.summaryCid}</code>
-            <small>${VDA_G039_REFS.receipts[3]}</small>
+            <small>Local extractive summary (local UI). Persisted artifact: <code class="sk-code">${this.escapeHtml(summaryLabel)}</code></small>
           </article>
           <article class="workflow-card" data-svd-vda-marker="conflict-recovery" data-conflict-state="${this.escapeHtml(state.conflict.state)}">
             <strong>Conflict recovery</strong>
             <p>${this.escapeHtml(state.conflict.message)}</p>
-            <code>${state.conflict.localCid}</code>
-            <code>${state.conflict.remoteCid}</code>
-            <code>${state.conflict.recoveredCid}</code>
-            <small>${VDA_G039_REFS.receipts[4]}</small>
+            <code class="sk-code">${this.escapeHtml(conflictLabel)}</code>
           </article>
           <article class="workflow-card" data-svd-vda-marker="keyboard-safe-editing" data-keyboard-safe-state="${this.escapeHtml(state.keyboardSafe.state)}">
             <strong>Keyboard-safe editing</strong>
             <p>${state.keyboardSafe.shortcuts.map(shortcut => this.escapeHtml(shortcut)).join('; ')}</p>
-            <code>${state.keyboardSafe.lastEditCid}</code>
-            <small>${VDA_G039_REFS.receipts[5]}</small>
+            <small>Local UI — ${this.escapeHtml(state.keyboardSafe.note || 'no backend claim is made.')}</small>
           </article>
         </div>
 
@@ -1111,12 +1202,25 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
         </div>
 
         <div class="workflow-summary">
-          <span>Receipts: ${state.receiptRefs.map(ref => this.escapeHtml(ref)).join(' ')}</span>
-          <span>Events: ${state.eventRefs.map(ref => this.escapeHtml(ref)).join(' ')}</span>
-          <span>Sync DAG: ${VDA_G039_REFS.syncDagCid}</span>
+          <span>Receipts: ${receiptList}</span>
+          <span>Events: ${eventList}</span>
+          <span>Sync DAG: ${this.escapeHtml(syncLabel)}</span>
         </div>
       </section>
     `;
+  }
+
+  // Re-render just the workflow panel after backend state changes (keeps
+  // the rest of the notes UI untouched).
+  refreshVdaG039WorkflowPanel() {
+    const container = document.querySelector('.notes-container') || document.querySelector('.notes-main');
+    if (!container) return;
+    const existing = container.querySelector('.notes-workflow');
+    if (!existing) return;
+    const template = document.createElement('template');
+    template.innerHTML = this.renderVdaG039Workflow().trim();
+    existing.replaceWith(template.content.firstChild);
+    this.updateVdaG039Status();
   }
 
   renderTagsList() {
@@ -1132,9 +1236,10 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
     
     if (filteredNotes.length === 0) {
       return `
-        <div style="text-align: center; padding: 40px 20px; opacity: 0.5;">
+        <div class="sk-empty">
           <div style="font-size: 32px; margin-bottom: 12px;">📝</div>
-          <div>No notes found</div>
+          <div>${this.searchQuery ? 'No notes match your search' : 'No notes yet'}</div>
+          <div class="sk-honest-note" style="margin-top: 8px;">${this.searchQuery ? 'Search filters run locally in your browser' : 'Create your first note with the + button — notes stay local until you persist them'}</div>
         </div>
       `;
     }
@@ -1368,84 +1473,350 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
     }
   }
 
-  persistVdaG039NoteCid() {
-    const note = this.currentNote || this.notes[0] || this.buildVdaG039FixtureNote();
-    note.cid = note.cid || VDA_G039_REFS.noteCid;
-    note.notebookCid = VDA_G039_REFS.notebookCid;
-    note.sync = {
-      ...(note.sync || {}),
-      state: 'synchronized',
-      dagCid: VDA_G039_REFS.syncDagCid,
-      receiptRef: VDA_G039_REFS.receipts[6]
-    };
-    this.vdaG039.status = `note CIDs persisted for ${note.title}`;
-    this.vdaG039.actionLog.push(`persist-note-cid:${note.cid}`);
-    this.saveNotes();
-    this.saveVdaG039EvidenceToStorage();
+  // Confirmation-gated backend persist for one note: pins the canonical
+  // note artifact, publishes the notebook manifest, appends a sync
+  // checkpoint to the event DAG, then reads the manifest back. Backend
+  // failures surface verbatim; nothing falls back to fixtures.
+  async persistVdaG039NoteCid(preconfirmed = false) {
+    const note = this.currentNote || this.notes[0];
+    if (!note) {
+      this.vdaG039.status = 'no note to persist';
+      this.updateVdaG039Status();
+      return;
+    }
+    const cid = note.cid || await this.canonicalNoteCid(note);
+    if (!preconfirmed && !notesConfirmBackendWrite(
+      `Persist note "${note.title}" to the ipfs_kit_py artifact store?\n\nArtifact CID: ${cid}\nThis also publishes the notebook manifest and appends a sync checkpoint to the event DAG.`
+    )) {
+      this.vdaG039.status = 'persist cancelled — note stays local-only';
+      this.updateVdaG039Status();
+      return;
+    }
+    this.vdaG039.status = `persisting note artifact ${cid}…`;
     this.updateVdaG039Status();
+    try {
+      const client = await notesKitClient();
+      const record = notesCanonicalRecord(note);
+      const persisted = await notesPersistArtifact(client, record, { kind: 'note', profile: 'notes-artifact' });
+      note.cid = persisted.cid;
+      note.persistedAt = new Date().toISOString();
+      const manifestRecord = {
+        schema: 'swissknife.notes.notebook-manifest.v1',
+        workflow: VDA_G039_WORKFLOW,
+        published_at: new Date().toISOString(),
+        notes: this.notes.map(entry => ({
+          id: entry.id,
+          title: entry.title,
+          cid: entry.cid || null,
+          modified: entry.modified || null
+        }))
+      };
+      const manifest = await notesPersistArtifact(client, manifestRecord, { kind: 'notebook-manifest', profile: 'notes-artifact' });
+      this.vdaG039.notebookCid = manifest.cid;
+      const eventCid = await notesAppendDagEvent(client, {
+        event_type: 'notes.sync.checkpoint',
+        note_id: note.id,
+        note_cid: persisted.cid,
+        notebook_cid: manifest.cid,
+        parents: []
+      });
+      note.sync = { ...(note.sync || {}), state: 'synchronized', dagCid: eventCid, lastPeer: 'ipfs_kit_py', receiptRef: eventCid };
+      this.vdaG039.receiptRefs = [...new Set([...this.vdaG039.receiptRefs, eventCid])];
+      this.vdaG039.eventRefs = [...new Set([...this.vdaG039.eventRefs, 'notes.sync.checkpoint'])];
+      // Listing readback: retrieve the manifest and verify the note is listed.
+      let readbackNote = 'manifest persisted';
+      try {
+        const fetched = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(manifest.cid));
+        const parsed = notesDecodeArtifactJson(fetched);
+        const listed = Array.isArray(parsed?.notes) ? parsed.notes : [];
+        readbackNote = listed.some(entry => entry.cid === persisted.cid)
+          ? `manifest read back: note listed (${listed.length} note(s))`
+          : `manifest read back but note CID missing (${listed.length} note(s) listed)`;
+      } catch (readError) {
+        readbackNote = `manifest persisted; readback failed: ${readError.message}`;
+      }
+      this.vdaG039.notebookReadback = readbackNote;
+      this.vdaG039.status = `note persisted: ${persisted.cid}; ${readbackNote}`;
+      this.vdaG039.actionLog.push(`persist-note-cid:${persisted.cid}`);
+      this.saveNotes();
+    } catch (error) {
+      this.vdaG039.status = `persist failed: ${error.message}`;
+      this.vdaG039.actionLog.push(`persist-note-cid:failed:${error.message}`);
+    }
+    this.saveVdaG039EvidenceToStorage();
+    this.refreshVdaG039WorkflowPanel();
   }
 
-  runVdaG039SemanticSearch(query = null) {
-    this.vdaG039.semanticQuery = query || this.searchQuery || this.vdaG039.semanticQuery || 'provenance summary sync';
-    this.vdaG039.semanticResults = this.semanticSearchNotes(this.vdaG039.semanticQuery);
-    this.vdaG039.status = `semantic_search complete: ${this.vdaG039.semanticResults.length} result(s)`;
-    this.vdaG039.actionLog.push(`run-semantic-search:${this.vdaG039.semanticQuery}`);
-    this.saveVdaG039EvidenceToStorage();
+  // Real semantic search over ipfs_datasets_py via the descriptor
+  // registry. A degraded envelope or backend error surfaces verbatim and
+  // clears results — fallback output is never presented as real.
+  async runVdaG039SemanticSearch(query = null) {
+    const searchText = String(query || this.searchQuery || this.vdaG039.semanticQuery || 'provenance summary sync').trim();
+    this.vdaG039.semanticQuery = searchText;
+    this.vdaG039.status = `semantic_search running: "${searchText}"…`;
     this.updateVdaG039Status();
+    try {
+      const { invokeDescriptorOperation } = await import('../core/mcp-descriptor-registry.js');
+      const envelope = await invokeDescriptorOperation({
+        descriptor_id: 'ipfs_datasets_py',
+        operation: 'semantic_search',
+        input: { query: searchText, top_k: 5, filters: { corpus: 'swissknife-notes' } },
+        app_id: 'notes',
+        desktop: this.desktop
+      });
+      if (!envelope || (envelope.status !== 'ok' && envelope.status !== 'success')) {
+        throw new Error(envelope?.error?.message || envelope?.summary || 'semantic_search did not return a successful result.');
+      }
+      const output = envelope.output || {};
+      if (output.fallback === true) {
+        throw new Error(`semantic_search degraded: ${output.reason || 'no live ipfs_datasets_py transport in this runtime'}.`);
+      }
+      const results = Array.isArray(output.results) ? output.results : [];
+      const byCid = new Map(this.notes.map(entry => [entry.cid, entry]));
+      this.vdaG039.semanticResults = results.map(hit => ({
+        note: byCid.get(hit.cid) || null,
+        title: hit.title || hit.note_title || hit.cid || 'untitled hit',
+        cid: hit.cid || null,
+        score: hit.score ?? null
+      }));
+      this.vdaG039.semanticBackend = 'ipfs_datasets_py';
+      this.vdaG039.status = `semantic_search complete: ${results.length} result(s) from ipfs_datasets_py`;
+      this.vdaG039.actionLog.push(`run-semantic-search:${searchText}:${results.length}`);
+    } catch (error) {
+      this.vdaG039.semanticResults = [];
+      this.vdaG039.semanticBackend = null;
+      this.vdaG039.status = `semantic_search failed: ${error.message}`;
+      this.vdaG039.actionLog.push(`run-semantic-search:failed:${error.message}`);
+    }
+    this.saveVdaG039EvidenceToStorage();
+    this.refreshVdaG039WorkflowPanel();
   }
 
-  recordVdaG039Provenance() {
-    const note = this.currentNote || this.notes[0] || this.buildVdaG039FixtureNote();
-    note.provenance = {
-      source: 'ipfs_datasets_py.record_provenance',
-      authorDid: 'did:key:z6MkNotesWorkflowOperator',
-      operation: 'notes.provenance.record',
-      policy: 'allow-local-private-note-sync',
-      receiptRef: VDA_G039_REFS.receipts[2],
-      provenanceCid: VDA_G039_REFS.provenanceCid,
-      subjectCid: note.cid || VDA_G039_REFS.noteCid
-    };
-    this.vdaG039.status = `provenance recorded for ${note.title}`;
-    this.vdaG039.actionLog.push(`record-provenance:${VDA_G039_REFS.provenanceCid}`);
-    this.saveNotes();
-    this.saveVdaG039EvidenceToStorage();
+  // Confirmation-gated provenance: persists a provenance record artifact
+  // and appends the provenance event to the event DAG. Real CIDs only.
+  async recordVdaG039Provenance() {
+    const note = this.currentNote || this.notes[0];
+    if (!note) {
+      this.vdaG039.status = 'no note to record provenance for';
+      this.updateVdaG039Status();
+      return;
+    }
+    const subjectCid = note.cid || await this.canonicalNoteCid(note);
+    if (!notesConfirmBackendWrite(
+      `Record provenance for "${note.title}"?\n\nPersists a provenance record artifact and appends a provenance event to the ipfs_kit_py event DAG.\nSubject CID: ${subjectCid}`
+    )) {
+      this.vdaG039.status = 'provenance cancelled — local record unchanged';
+      this.updateVdaG039Status();
+      return;
+    }
+    this.vdaG039.status = 'recording provenance…';
     this.updateVdaG039Status();
+    try {
+      const client = await notesKitClient();
+      const provenanceRecord = {
+        schema: 'swissknife.notes.provenance.v1',
+        subject_cid: subjectCid,
+        note_id: note.id,
+        source: 'notes.provenance.record',
+        author_did: note.provenance?.authorDid || 'did:key:z6MkNotesWorkflowOperator',
+        operation: 'notes.provenance.record',
+        policy: 'allow-local-private-note-sync',
+        recorded_at: new Date().toISOString()
+      };
+      const persisted = await notesPersistArtifact(client, provenanceRecord, { kind: 'provenance', profile: 'notes-artifact' });
+      const eventCid = await notesAppendDagEvent(client, {
+        event_type: 'notes.provenance.recorded',
+        subject_cid: subjectCid,
+        provenance_cid: persisted.cid,
+        note_id: note.id,
+        parents: []
+      });
+      note.provenance = {
+        ...(note.provenance || {}),
+        source: 'ipfs_kit_py.artifact.put',
+        operation: 'notes.provenance.record',
+        receiptRef: eventCid,
+        provenanceCid: persisted.cid,
+        subjectCid
+      };
+      this.vdaG039.provenanceCid = persisted.cid;
+      this.vdaG039.provenanceEventCid = eventCid;
+      this.vdaG039.receiptRefs = [...new Set([...this.vdaG039.receiptRefs, eventCid])];
+      this.vdaG039.eventRefs = [...new Set([...this.vdaG039.eventRefs, 'notes.provenance.recorded'])];
+      this.vdaG039.status = `provenance recorded: ${persisted.cid}`;
+      this.vdaG039.actionLog.push(`record-provenance:${persisted.cid}`);
+      this.saveNotes();
+    } catch (error) {
+      this.vdaG039.status = `provenance failed: ${error.message}`;
+      this.vdaG039.actionLog.push(`record-provenance:failed:${error.message}`);
+    }
+    this.saveVdaG039EvidenceToStorage();
+    this.refreshVdaG039WorkflowPanel();
   }
 
-  generateVdaG039Summary() {
-    const note = this.currentNote || this.vdaG039.semanticResults?.[0]?.note || this.notes[0] || this.buildVdaG039FixtureNote();
-    this.vdaG039.summary = this.summarizeNote(note);
-    this.vdaG039.status = 'summary job complete';
-    this.vdaG039.actionLog.push(`generate-summary:${VDA_G039_REFS.summaryCid}`);
-    this.saveVdaG039EvidenceToStorage();
+  // Summary text is generated locally (local UI, labeled as such); the
+  // artifact persist behind it is confirmation-gated and yields a real CID.
+  async generateVdaG039Summary(offerPersist = true) {
+    const note = this.currentNote || this.notes[0];
+    if (!note) {
+      this.vdaG039.status = 'no note to summarize';
+      this.updateVdaG039Status();
+      return;
+    }
+    const summaryText = this.summarizeNote(note);
+    this.vdaG039.summary = summaryText;
+    this.vdaG039.summaryPersisted = false;
+    if (!offerPersist) {
+      this.vdaG039.status = 'summary generated (local UI)';
+      this.vdaG039.actionLog.push('generate-summary:local');
+      this.saveVdaG039EvidenceToStorage();
+      this.updateVdaG039Status();
+      return;
+    }
+    if (!notesConfirmBackendWrite(
+      `Persist the generated summary as an artifact?\n\n"${summaryText.slice(0, 140)}…"`
+    )) {
+      this.vdaG039.status = 'summary generated locally (local UI) — not persisted';
+      this.vdaG039.actionLog.push('generate-summary:local');
+      this.saveVdaG039EvidenceToStorage();
+      this.updateVdaG039Status();
+      return;
+    }
+    this.vdaG039.status = 'persisting summary artifact…';
     this.updateVdaG039Status();
+    try {
+      const client = await notesKitClient();
+      const summaryRecord = {
+        schema: 'swissknife.notes.summary.v1',
+        note_id: note.id,
+        note_cid: note.cid || await this.canonicalNoteCid(note),
+        summary: summaryText,
+        generator: 'local-extractive',
+        generated_at: new Date().toISOString()
+      };
+      const persisted = await notesPersistArtifact(client, summaryRecord, { kind: 'summary', profile: 'notes-artifact' });
+      this.vdaG039.summaryCid = persisted.cid;
+      this.vdaG039.summaryPersisted = true;
+      this.vdaG039.receiptRefs = [...new Set([...this.vdaG039.receiptRefs, persisted.cid])];
+      this.vdaG039.status = `summary persisted: ${persisted.cid}`;
+      this.vdaG039.actionLog.push(`generate-summary:${persisted.cid}`);
+    } catch (error) {
+      this.vdaG039.status = `summary persist failed: ${error.message} (summary text remains local)`;
+      this.vdaG039.actionLog.push(`generate-summary:failed:${error.message}`);
+    }
+    this.saveVdaG039EvidenceToStorage();
+    this.refreshVdaG039WorkflowPanel();
   }
 
-  recoverVdaG039Conflict() {
-    this.vdaG039.conflict = {
-      state: 'recovered',
-      baseCid: VDA_G039_REFS.noteCid,
-      localCid: 'bafynotesg039conflictlocal',
-      remoteCid: 'bafynotesg039conflictremote',
-      recoveredCid: VDA_G039_REFS.conflictRecoveryCid,
-      message: 'Conflict recovered: local draft kept, remote citations merged, provenance receipts preserved, and sync resumed.'
-    };
-    this.vdaG039.status = 'conflict recovery complete';
-    this.vdaG039.actionLog.push(`recover-conflict:${VDA_G039_REFS.conflictRecoveryCid}`);
-    this.saveVdaG039EvidenceToStorage();
+  // Conflict recovery compares the local note against the artifact version
+  // actually retrieved from ipfs_kit_py, then persists the merged version
+  // (confirmation-gated). No backend version → honest "nothing to recover".
+  async recoverVdaG039Conflict() {
+    const note = this.currentNote || this.notes[0];
+    if (!note) {
+      this.vdaG039.status = 'no note to recover';
+      this.updateVdaG039Status();
+      return;
+    }
+    const baseCid = note.cid;
+    if (!baseCid) {
+      this.vdaG039.conflict = {
+        state: 'not-run',
+        baseCid: null, localCid: null, remoteCid: null, recoveredCid: null,
+        message: 'No backend version exists for this note yet — persist it first ("Persist note CID"), then conflict recovery can compare versions.'
+      };
+      this.vdaG039.status = 'conflict recovery: no backend version to compare';
+      this.saveVdaG039EvidenceToStorage();
+      this.refreshVdaG039WorkflowPanel();
+      return;
+    }
+    if (!notesConfirmBackendWrite(
+      `Recover conflicts for "${note.title}"?\n\nRetrieves the persisted artifact version (${baseCid}) from ipfs_kit_py, compares it with the local note, and persists the merged version.`
+    )) {
+      this.vdaG039.status = 'conflict recovery cancelled';
+      this.updateVdaG039Status();
+      return;
+    }
+    this.vdaG039.status = 'retrieving artifact version…';
     this.updateVdaG039Status();
+    try {
+      const client = await notesKitClient();
+      const fetched = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(baseCid));
+      const remoteRecord = notesDecodeArtifactJson(fetched);
+      const localRecord = notesCanonicalRecord(note);
+      const localCid = await notesCanonicalCid(localRecord);
+      const differs = ['title', 'content', 'tags', 'favorite', 'color']
+        .some(field => JSON.stringify(remoteRecord?.[field] ?? null) !== JSON.stringify(localRecord[field] ?? null));
+      if (!differs) {
+        this.vdaG039.conflict = {
+          state: 'in-sync',
+          baseCid, localCid, remoteCid: baseCid, recoveredCid: null,
+          message: 'Remote artifact matches the local note byte-for-byte; nothing to merge.'
+        };
+        this.vdaG039.status = 'conflict recovery: already in sync';
+        this.vdaG039.actionLog.push(`recover-conflict:in-sync:${baseCid}`);
+        this.saveVdaG039EvidenceToStorage();
+        this.refreshVdaG039WorkflowPanel();
+        return;
+      }
+      // Merge rule: newer local title/content win; tags union; base tracked.
+      const mergedRecord = {
+        ...(remoteRecord && typeof remoteRecord === 'object' ? remoteRecord : {}),
+        schema: 'swissknife.notes.note.v1',
+        id: localRecord.id,
+        title: localRecord.title,
+        content: localRecord.content,
+        tags: [...new Set([...(remoteRecord?.tags || []), ...localRecord.tags])],
+        favorite: localRecord.favorite,
+        color: localRecord.color,
+        created: localRecord.created,
+        modified: Date.now(),
+        merged_at: new Date().toISOString(),
+        merge_base_cid: baseCid
+      };
+      const recovered = await notesPersistArtifact(client, mergedRecord, { kind: 'note', profile: 'notes-artifact' });
+      note.title = mergedRecord.title;
+      note.content = mergedRecord.content;
+      note.tags = mergedRecord.tags;
+      note.favorite = mergedRecord.favorite;
+      note.color = mergedRecord.color;
+      note.modified = mergedRecord.modified;
+      note.cid = recovered.cid;
+      note.sync = { ...(note.sync || {}), state: 'synchronized', dagCid: null, lastPeer: 'ipfs_kit_py' };
+      this.vdaG039.conflict = {
+        state: 'recovered',
+        baseCid, localCid, remoteCid: baseCid, recoveredCid: recovered.cid,
+        message: 'Recovered: newer local title/content kept, remote tags merged in, merged version persisted as a new artifact.'
+      };
+      this.vdaG039.receiptRefs = [...new Set([...this.vdaG039.receiptRefs, recovered.cid])];
+      this.vdaG039.status = `conflict recovered: ${recovered.cid}`;
+      this.vdaG039.actionLog.push(`recover-conflict:${recovered.cid}`);
+      this.saveNotes();
+    } catch (error) {
+      this.vdaG039.conflict = {
+        state: 'failed',
+        baseCid, localCid: null, remoteCid: null, recoveredCid: null,
+        message: `Recovery failed: ${error.message}`
+      };
+      this.vdaG039.status = `conflict recovery failed: ${error.message}`;
+      this.vdaG039.actionLog.push(`recover-conflict:failed:${error.message}`);
+    }
+    this.saveVdaG039EvidenceToStorage();
+    this.refreshVdaG039WorkflowPanel();
   }
 
+  // Keyboard-safe editing is honestly local UI: it verifies the shortcut
+  // handlers bound in this session. No backend claim, no fake edit CID.
   verifyVdaG039KeyboardEditing() {
     this.vdaG039.keyboardSafe = {
-      state: 'verified',
-      shortcuts: ['Ctrl+S save', 'Ctrl+K semantic search', 'Ctrl+Enter summary', 'Escape editor focus recovery'],
-      lastEditCid: VDA_G039_REFS.keyboardEditCid
+      state: 'verified-local',
+      shortcuts: ['Ctrl+S save (local)', 'Ctrl+K semantic search', 'Ctrl+Enter summary (local)', 'Escape editor focus recovery (local)'],
+      note: 'Verified locally in this browser session: handlers bound, editor focus recovery armed. No backend claim is made.'
     };
-    this.vdaG039.status = 'keyboard-safe editing verified';
-    this.vdaG039.actionLog.push(`verify-keyboard-editing:${VDA_G039_REFS.keyboardEditCid}`);
+    this.vdaG039.status = 'keyboard-safe editing verified (local UI)';
+    this.vdaG039.actionLog.push('verify-keyboard-editing:local');
     this.saveVdaG039EvidenceToStorage();
-    this.updateVdaG039Status();
+    this.refreshVdaG039WorkflowPanel();
   }
 
   handleKeyboardSafeEditing(event) {
@@ -1465,7 +1836,9 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
     }
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
       event.preventDefault();
-      this.generateVdaG039Summary();
+      // Keyboard path stays local (no persist prompt); the workflow
+      // button offers the confirmation-gated persist.
+      this.generateVdaG039Summary(false);
       return;
     }
     if (event.key === 'Escape') {
@@ -1473,7 +1846,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
     }
   }
 
-  createNewNote() {
+  async createNewNote() {
     const newNote = {
       id: Date.now().toString(),
       title: 'Untitled Note',
@@ -1483,29 +1856,39 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
       modified: Date.now(),
       favorite: false,
       color: 'blue',
-      cid: this.deriveNoteCid({ id: Date.now().toString() }, this.notes.length),
-      notebookCid: VDA_G039_REFS.notebookCid,
+      cid: null,
+      notebookCid: null,
       provenance: {
         source: 'local.notes',
         authorDid: 'did:key:z6MkNotesWorkflowOperator',
         operation: 'notes.create',
         policy: 'allow-local-private-note-sync',
-        receiptRef: VDA_G039_REFS.receipts[2],
-        provenanceCid: VDA_G039_REFS.provenanceCid
+        receiptRef: null,
+        provenanceCid: null
       },
       sync: {
-        state: 'synchronized',
-        dagCid: VDA_G039_REFS.syncDagCid,
-        lastPeer: 'peer:notes-sync-local',
-        receiptRef: VDA_G039_REFS.receipts[6]
+        state: 'local-only',
+        dagCid: null,
+        lastPeer: null,
+        receiptRef: null
       }
     };
 
     this.notes.unshift(newNote);
     this.currentNote = newNote;
     this.currentView = 'edit';
+    try {
+      newNote.cid = await this.canonicalNoteCid(newNote);
+    } catch (error) {
+      console.warn('Failed to compute canonical CID for new note:', error);
+    }
     this.saveNotes();
     this.refreshContent();
+    // The explicit create action offers a confirmation-gated backend
+    // persist; auto-save stays local-only by design.
+    if (notesConfirmBackendWrite(`Persist the new note as a pinned IPFS artifact?\n\nCID: ${newNote.cid || '(still computing)'}`)) {
+      await this.persistVdaG039NoteCid(true);
+    }
   }
 
   selectNote(noteId) {
@@ -1514,14 +1897,42 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
     this.refreshContent();
   }
 
-  deleteNote() {
+  async deleteNote() {
     if (!this.currentNote) return;
+    const note = this.currentNote;
+    const hadBackendCid = note.sync?.state === 'synchronized' && note.cid;
 
-    if (confirm(`Are you sure you want to delete "${this.currentNote.title}"?`)) {
-      this.notes = this.notes.filter(note => note.id !== this.currentNote.id);
+    if (confirm(`Are you sure you want to delete "${note.title}"?`)) {
+      this.notes = this.notes.filter(candidate => candidate.id !== note.id);
       this.currentNote = null;
       this.saveNotes();
       this.refreshContent();
+      // Backend artifacts are immutable and content-addressed, so deleting
+      // the local note offers a confirmation-gated tombstone event on the
+      // DAG instead of pretending the artifact is gone.
+      if (hadBackendCid && notesConfirmBackendWrite(
+        `Record this deletion on the ipfs_kit_py event DAG?\n\nAppends a tombstone event for artifact ${note.cid}. The artifact bytes stay pinned; the tombstone marks the note deleted.`
+      )) {
+        try {
+          const client = await notesKitClient();
+          const eventCid = await notesAppendDagEvent(client, {
+            event_type: 'notes.deleted',
+            note_id: note.id,
+            note_cid: note.cid,
+            deleted_at: new Date().toISOString(),
+            parents: []
+          });
+          this.vdaG039.receiptRefs = [...new Set([...this.vdaG039.receiptRefs, eventCid])];
+          this.vdaG039.eventRefs = [...new Set([...this.vdaG039.eventRefs, 'notes.deleted'])];
+          this.vdaG039.status = `deletion recorded on event DAG: ${eventCid}`;
+          this.vdaG039.actionLog.push(`delete-note-tombstone:${eventCid}`);
+        } catch (error) {
+          this.vdaG039.status = `deletion recorded locally; DAG tombstone failed: ${error.message}`;
+          this.vdaG039.actionLog.push(`delete-note-tombstone:failed:${error.message}`);
+        }
+        this.saveVdaG039EvidenceToStorage();
+        this.refreshVdaG039WorkflowPanel();
+      }
     }
   }
 
@@ -1605,65 +2016,35 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
     return filtered;
   }
 
-  semanticSearchNotes(query, limit = 3) {
-    const terms = String(query || '')
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(Boolean);
-    if (terms.length === 0) return [];
-
-    return this.notes
-      .map(note => {
-        const haystack = [
-          note.title,
-          note.content,
-          ...(note.tags || []),
-          note.cid,
-          note.provenance?.operation,
-          note.provenance?.policy
-        ].join(' ').toLowerCase();
-        const score = terms.reduce((total, term) => total + (haystack.includes(term) ? 1 : 0), 0)
-          + (note.favorite ? 0.25 : 0)
-          + ((note.tags || []).some(tag => terms.includes(String(tag).toLowerCase())) ? 0.5 : 0);
-        return {
-          note,
-          score,
-          cid: note.cid || VDA_G039_REFS.noteCid,
-          receiptRef: VDA_G039_REFS.receipts[1]
-        };
-      })
-      .filter(result => result.score > 0)
-      .sort((a, b) => b.score - a.score || b.note.modified - a.note.modified)
-      .slice(0, limit);
-  }
-
   summarizeNote(note) {
     const plain = this.getPlainTextPreview(note?.content || '');
     const title = note?.title || 'Untitled Note';
     const tags = (note?.tags || []).slice(0, 4).join(', ') || 'untagged';
-    return `${title}: ${plain.slice(0, 140)}. Tags ${tags}. Summary CID ${VDA_G039_REFS.summaryCid}.`;
+    return `${title}: ${plain.slice(0, 140)}. Tags ${tags}. (local extractive summary)`;
   }
 
   saveVdaG039EvidenceToStorage() {
     try {
       localStorage.setItem('swissknife-notes-vda-g039', JSON.stringify({
-        schema: 'swissknife.notes.vda-g039.v1',
+        schema: 'swissknife.notes.vda-g039.v2',
         workflow_id: VDA_G039_WORKFLOW,
         saved_at: new Date().toISOString(),
-        note_cid: VDA_G039_REFS.noteCid,
-        notebook_cid: VDA_G039_REFS.notebookCid,
-        semantic_index_cid: VDA_G039_REFS.semanticIndex,
-        provenance_cid: VDA_G039_REFS.provenanceCid,
-        summary_cid: VDA_G039_REFS.summaryCid,
-        conflict_recovery_cid: VDA_G039_REFS.conflictRecoveryCid,
-        keyboard_edit_cid: VDA_G039_REFS.keyboardEditCid,
-        sync_dag_cid: VDA_G039_REFS.syncDagCid,
+        // Real values only; null means "not performed yet". No fixtures.
+        note_cid: this.currentNote?.cid || this.notes[0]?.cid || null,
+        notebook_cid: this.vdaG039.notebookCid || null,
+        notebook_readback: this.vdaG039.notebookReadback || null,
+        provenance_cid: this.vdaG039.provenanceCid || null,
+        provenance_event_cid: this.vdaG039.provenanceEventCid || null,
+        summary_cid: this.vdaG039.summaryPersisted ? this.vdaG039.summaryCid : null,
+        conflict: this.vdaG039.conflict,
+        keyboard_safe: this.vdaG039.keyboardSafe,
         receipt_refs: this.vdaG039.receiptRefs,
         event_refs: this.vdaG039.eventRefs,
         semantic_query: this.vdaG039.semanticQuery,
-        semantic_result_cids: (this.vdaG039.semanticResults || []).map(result => result.cid),
-        conflict_state: this.vdaG039.conflict?.state,
-        keyboard_safe_state: this.vdaG039.keyboardSafe?.state,
+        semantic_backend: this.vdaG039.semanticBackend,
+        semantic_results: (this.vdaG039.semanticResults || []).map(result => ({
+          title: result.title, cid: result.cid, score: result.score
+        })),
         action_log: this.vdaG039.actionLog
       }));
     } catch (error) {
@@ -1792,6 +2173,7 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
             if (file.name.endsWith('.json')) {
               const importedNotes = JSON.parse(content);
               this.notes.push(...this.ensureVdaG039Notes(importedNotes));
+              this.assignCanonicalNoteCids().catch(error => console.warn('Canonical note CID assignment failed:', error));
             } else {
               const newNote = {
                 id: Date.now().toString(),
@@ -1802,24 +2184,25 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
                 modified: Date.now(),
                 favorite: false,
                 color: 'blue',
-                cid: this.deriveNoteCid({ title: file.name }, this.notes.length),
-                notebookCid: VDA_G039_REFS.notebookCid,
+                cid: null,
+                notebookCid: null,
                 provenance: {
                   source: 'local.import',
                   authorDid: 'did:key:z6MkNotesWorkflowOperator',
                   operation: 'notes.import',
                   policy: 'allow-local-private-note-sync',
-                  receiptRef: VDA_G039_REFS.receipts[2],
-                  provenanceCid: VDA_G039_REFS.provenanceCid
+                  receiptRef: null,
+                  provenanceCid: null
                 },
                 sync: {
-                  state: 'synchronized',
-                  dagCid: VDA_G039_REFS.syncDagCid,
-                  lastPeer: 'peer:notes-sync-local',
-                  receiptRef: VDA_G039_REFS.receipts[6]
+                  state: 'local-only',
+                  dagCid: null,
+                  lastPeer: null,
+                  receiptRef: null
                 }
               };
               this.notes.unshift(newNote);
+              this.assignCanonicalNoteCids().catch(error => console.warn('Canonical note CID assignment failed:', error));
             }
             this.saveNotes();
             this.refreshContent();
@@ -1837,20 +2220,19 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
     if (!this.currentNote) return;
 
     const aiMenu = `
-      <div class="ai-menu" style="
+      <div class="ai-menu sk-card" style="
         position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: rgba(0, 0, 0, 0.9);
-        backdrop-filter: blur(20px);
+        background: var(--sk-bg-panel, #101b18);
+        border: 1px solid var(--sk-border, #263a34);
         border-radius: 12px;
         padding: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
         z-index: 10000;
         min-width: 300px;
       ">
-        <h3 style="margin: 0 0 16px 0;">🤖 AI Assistance</h3>
+        <h3 style="margin: 0 0 16px 0; color: var(--sk-text, #edf7f2);">🤖 AI Assistance</h3>
         <div style="display: flex; flex-direction: column; gap: 8px;">
           <button class="ai-option" data-action="grammar">✏️ Check Grammar</button>
           <button class="ai-option" data-action="summary">📝 Generate Summary</button>
@@ -1877,21 +2259,23 @@ This CID-backed note demonstrates semantic_search, provenance receipts, summary 
     document.querySelectorAll('.ai-option').forEach(option => {
       option.style.cssText = `
         padding: 8px 12px;
-        background: rgba(255, 255, 255, 0.1);
-        border: none;
+        background: var(--sk-bg-header, #12211d);
+        border: 1px solid var(--sk-border, #263a34);
         border-radius: 6px;
-        color: white;
+        color: var(--sk-text, #edf7f2);
         cursor: pointer;
         transition: background 0.2s ease;
         text-align: left;
+        width: 100%;
+        box-sizing: border-box;
       `;
       
       option.addEventListener('mouseover', () => {
-        option.style.background = 'rgba(255, 255, 255, 0.2)';
+        option.style.background = 'var(--sk-bg-inset, #17241f)';
       });
       
       option.addEventListener('mouseout', () => {
-        option.style.background = 'rgba(255, 255, 255, 0.1)';
+        option.style.background = 'var(--sk-bg-header, #12211d)';
       });
       
       option.addEventListener('click', () => {

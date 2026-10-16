@@ -10,6 +10,7 @@ Service implementations have exactly one owning family. Cross-family consumers m
 | --- | --- | --- | --- | --- |
 | `service-apps` | app-surface-runtime | `universal` | `src/services/apps/app-manifest.ts` | 15 |
 | `service-glasses` | glasses-surface-runtime | `split` | none | 7 |
+| `service-gui-optimizer` | verified-gui-optimizer-runtime | `host-only` | none | 17 |
 | `service-integrations` | external-integration-service-runtime | `split` | none | 4 |
 | `service-ipfs` | ipfs-descriptor-runtime | `split` | `src/services/ipfs/ipfs-browser.ts` | 9 |
 | `service-logic` | logic-service-runtime | `split` | `src/services/logic/api/reasoning-normalization-pipeline.ts` | 72 |
@@ -67,6 +68,34 @@ Public entrypoints:
 Private implementation patterns (declared public entrypoints are excluded):
 
 - `src/services/glasses/**/*`
+
+### service-gui-optimizer
+
+Owner: verified-gui-optimizer-runtime. Runtime: `host-only`.
+
+Public entrypoints:
+
+- `src/services/gui-optimizer/accessibility.ts`
+- `src/services/gui-optimizer/baseline.ts`
+- `src/services/gui-optimizer/cli.ts`
+- `src/services/gui-optimizer/component-graph.ts`
+- `src/services/gui-optimizer/context-pack.ts`
+- `src/services/gui-optimizer/evaluator.ts`
+- `src/services/gui-optimizer/identity.ts`
+- `src/services/gui-optimizer/interaction-runner.ts`
+- `src/services/gui-optimizer/invalidation.ts`
+- `src/services/gui-optimizer/models.ts`
+- `src/services/gui-optimizer/policy-validator.ts`
+- `src/services/gui-optimizer/scanner.ts`
+- `src/services/gui-optimizer/scenario-catalog.ts`
+- `src/services/gui-optimizer/state-machine.ts`
+- `src/services/gui-optimizer/targets/agent-supervisor.ts`
+- `src/services/gui-optimizer/ui-capsule.ts`
+- `src/services/gui-optimizer/visual-regression.ts`
+
+Private implementation patterns (declared public entrypoints are excluded):
+
+- `src/services/gui-optimizer/**/*`
 
 ### service-integrations
 

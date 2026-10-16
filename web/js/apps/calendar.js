@@ -5,29 +5,76 @@
 
 const VDA_G035_WORKFLOW = 'calendar.artifact-backed-scheduling';
 
-const VDA_G035_REFS = Object.freeze({
-  eventArtifact: 'bafycalg035eventartifact',
-  semanticIndex: 'bafycalg035semanticindex',
-  reminderPolicy: 'bafycalg035reminderpolicy',
-  conflictResolution: 'bafycalg035conflictresolution',
-  mobileSummary: 'bafycalg035mobilesummary',
-  eventDag: 'bafycalg035eventdag',
-  receipts: [
-    'receipt:calendar:g035:event-artifact',
-    'receipt:calendar:g035:semantic-search',
-    'receipt:calendar:g035:reminder-policy',
-    'receipt:calendar:g035:conflict-resolution',
-    'receipt:calendar:g035:mobile-summary',
-    'receipt:calendar:g035:event-dag'
-  ],
-  events: [
-    'event:calendar:g035:event-created',
-    'event:calendar:g035:semantic-indexed',
-    'event:calendar:g035:reminder-scheduled',
-    'event:calendar:g035:conflict-resolved',
-    'event:calendar:g035:mobile-summary-rendered'
-  ]
-});
+// --- Real backend wiring (ipfs_kit_py / ipfs_datasets_py over the MCP++
+// desktop client). No fixture CIDs or receipt strings are kept anywhere in
+// this app: every CID shown is computed from real record bytes (canonical
+// CIDv1-raw+sha2-256, same semantics as the supervisor gateway) or returned
+// by a live backend call. Backend-mutating calls are always
+// confirmation-gated and surface failures verbatim.
+
+async function calendarKitClient() {
+  const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
+  const client = clientModule.getMCPPlusPlusDesktopClient();
+  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
+  return client;
+}
+
+async function calendarCanonicalCid(record) {
+  const { contentCidForBytes, stableStringifyValue } = await import('../core/mcp-plus-plus-desktop-client.js');
+  return contentCidForBytes(new TextEncoder().encode(stableStringifyValue(record)));
+}
+
+async function calendarCanonicalBytesBase64(record) {
+  const { base64ForBytes, stableStringifyValue } = await import('../core/mcp-plus-plus-desktop-client.js');
+  return base64ForBytes(new TextEncoder().encode(stableStringifyValue(record)));
+}
+
+// The stable, content-addressed form of a calendar event.
+function calendarCanonicalRecord(event) {
+  return {
+    schema: 'swissknife.calendar.event.v1',
+    id: event.id,
+    title: event.title || '',
+    description: event.description || '',
+    date: event.date instanceof Date ? event.date.toISOString() : (event.date || null),
+    end_date: event.endDate instanceof Date ? event.endDate.toISOString() : (event.endDate || null),
+    category: event.category || 'work',
+    location: event.location || '',
+    reminder: Number(event.reminder) || 0,
+    recurring: event.recurring || 'none',
+    attendees: [...(event.attendees || [])].sort()
+  };
+}
+
+async function calendarPersistArtifact(client, record, { kind, profile }) {
+  const cid = await calendarCanonicalCid(record);
+  const bytesBase64 = await calendarCanonicalBytesBase64(record);
+  const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+    cid,
+    bytes_base64: bytesBase64,
+    profile,
+    kind,
+    service: 'ipfs_kit_py',
+    pin: true
+  });
+  if (!result || result.persisted !== true || result.cid !== cid) {
+    throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted artifact.');
+  }
+  return { cid, result };
+}
+
+async function calendarAppendDagEvent(client, event) {
+  const appended = await client.post('ipfs_kit_py', '/mcp/dag/append', { event });
+  if (!appended?.event_cid) {
+    throw new Error(appended?.error || 'ipfs_kit_py event DAG did not return an event CID.');
+  }
+  return appended.event_cid;
+}
+
+function calendarConfirmBackendWrite(message) {
+  if (typeof window === 'undefined') return false;
+  return window.confirm(message);
+}
 
 export class CalendarApp {
   constructor(desktop) {
@@ -106,9 +153,9 @@ export class CalendarApp {
             </div>
           </div>
           <div class="calendar-actions">
-            <button class="action-btn" id="addEventBtn">+ New Event</button>
-            <button class="action-btn" id="settingsBtn">⚙️</button>
-            <button class="action-btn" id="exportBtn">📤</button>
+            <button class="action-btn sk-btn sk-btn-primary" id="addEventBtn">+ New Event</button>
+            <button class="action-btn sk-btn" id="settingsBtn">⚙️</button>
+            <button class="action-btn sk-btn" id="exportBtn">📤</button>
           </div>
         </div>
 
@@ -245,9 +292,9 @@ export class CalendarApp {
             </form>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn-secondary" id="cancelBtn">Cancel</button>
-            <button type="button" class="btn-danger hidden" id="deleteBtn">Delete</button>
-            <button type="submit" class="btn-primary" id="saveBtn">Save Event</button>
+            <button type="button" class="btn-secondary sk-btn" id="cancelBtn">Cancel</button>
+            <button type="button" class="btn-danger sk-btn sk-btn-danger hidden" id="deleteBtn">Delete</button>
+            <button type="submit" class="btn-primary sk-btn sk-btn-primary" id="saveBtn">Save Event</button>
           </div>
         </div>
       </div>
@@ -259,8 +306,8 @@ export class CalendarApp {
           height: 100%;
           width: 100%;
           font-family: system-ui, -apple-system, sans-serif;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: #ffffff;
+          background: var(--sk-bg-deep, #0e1412);
+          color: var(--sk-text, #edf7f2);
           overflow: hidden;
         }
 
@@ -289,10 +336,10 @@ export class CalendarApp {
 
         .nav-btn, .view-btn, .action-btn {
           padding: 0.5rem 1rem;
-          background: rgba(255, 255, 255, 0.2);
-          border: 1px solid rgba(255, 255, 255, 0.3);
+          background: var(--sk-bg-header, #12211d);
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 6px;
-          color: white;
+          color: var(--sk-text, #edf7f2);
           cursor: pointer;
           transition: all 0.2s ease;
           font-size: 0.9rem;
@@ -300,7 +347,7 @@ export class CalendarApp {
         }
 
         .nav-btn:hover, .view-btn:hover, .action-btn:hover {
-          background: rgba(255, 255, 255, 0.3);
+          background: var(--sk-bg-inset, #17241f);
           transform: translateY(-1px);
         }
 
@@ -313,8 +360,9 @@ export class CalendarApp {
         }
 
         .view-btn.active {
-          background: rgba(255, 255, 255, 0.9);
-          color: #333;
+          background: var(--sk-accent, #8bd8bd);
+          border-color: var(--sk-accent, #8bd8bd);
+          color: #0e1412;
         }
 
         .calendar-actions {
@@ -355,9 +403,9 @@ export class CalendarApp {
         .workflow-status {
           padding: 0.25rem 0.5rem;
           border-radius: 999px;
-          background: rgba(16, 185, 129, 0.2);
-          border: 1px solid rgba(16, 185, 129, 0.5);
-          color: #bbf7d0;
+          background: rgba(94, 227, 161, 0.12);
+          border: 1px solid rgba(94, 227, 161, 0.5);
+          color: var(--sk-ok, #5ee3a1);
           font-size: 0.76rem;
           white-space: nowrap;
         }
@@ -394,8 +442,9 @@ export class CalendarApp {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          color: #bfdbfe;
+          color: var(--sk-accent, #8bd8bd);
           font-size: 0.72rem;
+          font-family: ui-monospace, monospace;
         }
 
         .workflow-actions {
@@ -599,8 +648,8 @@ export class CalendarApp {
         }
 
         .day-cell.today {
-          background: rgba(255, 255, 255, 0.2);
-          border-color: rgba(255, 255, 255, 0.5);
+          background: rgba(139, 216, 189, 0.18);
+          border-color: var(--sk-accent, #8bd8bd);
         }
 
         .day-cell.selected {
@@ -678,7 +727,8 @@ export class CalendarApp {
         }
 
         .modal-content {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: var(--sk-bg-panel, #101b18);
+          border: 1px solid var(--sk-border, #263a34);
           border-radius: 12px;
           width: 90%;
           max-width: 600px;
@@ -750,40 +800,42 @@ export class CalendarApp {
           border-top: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .btn-primary, .btn-secondary, .btn-danger {
+        /* Button hierarchy: baseline tokens; design-system .sk-btn classes refine */
+        .btn-primary {
           padding: 0.75rem 1.5rem;
           border: none;
           border-radius: 6px;
+          background: var(--sk-accent, #8bd8bd);
+          color: #0e1412;
+          font-weight: 600;
+          cursor: pointer;
+        }
+        .btn-primary:hover {
+          background: var(--sk-ok, #5ee3a1);
+        }
+        .btn-secondary {
+          padding: 0.75rem 1.5rem;
+          border: 1px solid var(--sk-border, #263a34);
+          border-radius: 6px;
+          background: var(--sk-bg-header, #12211d);
+          color: var(--sk-text, #edf7f2);
           font-weight: 500;
           cursor: pointer;
-          transition: all 0.2s ease;
         }
-
-        .btn-primary {
-          background: #10b981;
-          color: white;
-        }
-
-        .btn-secondary {
-          background: rgba(255, 255, 255, 0.2);
-          color: white;
-        }
-
-        .btn-danger {
-          background: #ef4444;
-          color: white;
-        }
-
-        .btn-primary:hover {
-          background: #059669;
-        }
-
         .btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.3);
+          background: var(--sk-bg-inset, #17241f);
         }
-
+        .btn-danger {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 6px;
+          background: var(--sk-err, #ff6b6b);
+          color: #0e1412;
+          font-weight: 600;
+          cursor: pointer;
+        }
         .btn-danger:hover {
-          background: #dc2626;
+          filter: brightness(1.1);
         }
 
         .hidden {
@@ -874,11 +926,14 @@ export class CalendarApp {
   }
 
   buildDefaultEvents() {
+    // Sample events for a first-run calendar. They are local sample
+    // content — artifactCid stays null until the event is really persisted
+    // to ipfs_kit_py ("Persist artifact").
     return [
       {
         id: 1,
         title: 'Artifact Planning Review',
-        description: 'Review calendar event artifact, receipts, and Event DAG handoff for VDA-G035.',
+        description: 'Review calendar event artifacts and Event DAG checkpoints for VDA-G035.',
         date: new Date(2026, 6, 22, 9, 30),
         endDate: new Date(2026, 6, 22, 10, 30),
         category: 'work',
@@ -886,8 +941,8 @@ export class CalendarApp {
         recurring: 'none',
         location: 'MCP Control Room',
         attendees: ['product@swissknife.dev', 'ops@swissknife.dev'],
-        artifactCid: VDA_G035_REFS.eventArtifact,
-        receiptRef: VDA_G035_REFS.receipts[0]
+        artifactCid: null,
+        receiptRef: null
       },
       {
         id: 2,
@@ -900,8 +955,8 @@ export class CalendarApp {
         recurring: 'none',
         location: 'Search Lab',
         attendees: ['search@swissknife.dev'],
-        artifactCid: VDA_G035_REFS.semanticIndex,
-        receiptRef: VDA_G035_REFS.receipts[1]
+        artifactCid: null,
+        receiptRef: null
       },
       {
         id: 3,
@@ -914,8 +969,8 @@ export class CalendarApp {
         recurring: 'weekly',
         location: 'Policy Desk',
         attendees: ['policy@swissknife.dev'],
-        artifactCid: VDA_G035_REFS.reminderPolicy,
-        receiptRef: VDA_G035_REFS.receipts[2]
+        artifactCid: null,
+        receiptRef: null
       },
       {
         id: 4,
@@ -928,8 +983,8 @@ export class CalendarApp {
         recurring: 'none',
         location: 'Meta Glasses Preview',
         attendees: ['mobile@swissknife.dev'],
-        artifactCid: VDA_G035_REFS.mobileSummary,
-        receiptRef: VDA_G035_REFS.receipts[4]
+        artifactCid: null,
+        receiptRef: null
       }
     ];
   }
@@ -946,7 +1001,6 @@ export class CalendarApp {
   }
 
   buildVdaG035State() {
-    const searchResults = this.searchEvents('policy reminder');
     const conflicts = this.detectEventConflicts();
     const reminders = this.events
       .filter(event => Number(event.reminder) > 0)
@@ -954,35 +1008,33 @@ export class CalendarApp {
         eventId: event.id,
         title: event.title,
         minutesBefore: event.reminder,
-        receiptRef: VDA_G035_REFS.receipts[2]
+        receiptRef: null
       }));
     return {
       workflowId: VDA_G035_WORKFLOW,
       status: 'ready',
-      artifactCidRefs: [
-        VDA_G035_REFS.eventArtifact,
-        VDA_G035_REFS.semanticIndex,
-        VDA_G035_REFS.reminderPolicy,
-        VDA_G035_REFS.conflictResolution,
-        VDA_G035_REFS.mobileSummary,
-        VDA_G035_REFS.eventDag
-      ],
-      receiptRefs: [...VDA_G035_REFS.receipts],
-      eventRefs: [...VDA_G035_REFS.events],
+      // Real backend CIDs collected as actions complete; null/empty means
+      // "not performed yet" — never fixture strings.
+      eventManifestCid: null,
+      eventManifestReadback: null,
+      reminderPolicyCid: null,
+      reminderEventCid: null,
+      conflictResolutionCid: null,
+      mobileSummaryCid: null,
+      eventDagCid: null,
+      receiptRefs: [],
+      eventRefs: [],
       semanticQuery: 'policy reminder',
-      semanticResults: searchResults,
+      semanticResults: [],
+      semanticBackend: null,
       reminders,
       conflicts,
       conflictResolution: conflicts.length > 0
-        ? 'Resolved by keeping Artifact Planning Review primary and moving Semantic Search Sync to the next free 30 minute slot.'
+        ? 'Unresolved overlaps detected locally — run "Resolve conflict" to evaluate and persist the resolution (confirmation-gated).'
         : 'No conflicts detected.',
-      mobileSummary: this.buildMobileSummary(searchResults, conflicts, reminders),
+      mobileSummary: this.buildMobileSummary([], conflicts, reminders),
       actionLog: [
-        'artifact event bundle persisted',
-        'semantic_search index prepared',
-        'reminder policy scheduled',
-        'conflict handling evaluated',
-        'mobile summary rendered'
+        'workflow ready — events are local until persisted; each backend write asks for confirmation first'
       ]
     };
   }
@@ -991,13 +1043,22 @@ export class CalendarApp {
     const state = this.vdaG035 || this.buildVdaG035State();
     const conflicts = state.conflicts || [];
     const reminders = state.reminders || [];
-    const semanticTitle = state.semanticResults?.[0]?.title || 'No result';
+    const persistedCount = this.events.filter(event => event.artifactCid).length;
+    const semanticSummary = state.semanticBackend
+      ? `${state.semanticResults.length} result(s) from ${this.escapeHtml(state.semanticBackend)}`
+      : 'not run yet — results come from ipfs_datasets_py semantic_search';
+    const receiptList = state.receiptRefs.length > 0
+      ? state.receiptRefs.map(ref => this.escapeHtml(ref)).join(' ')
+      : 'none yet';
+    const eventList = state.eventRefs.length > 0
+      ? state.eventRefs.map(ref => this.escapeHtml(ref)).join(' ')
+      : 'none yet';
     return `
       <section class="calendar-workflow" data-svd-workflow="${VDA_G035_WORKFLOW}" aria-label="VDA-G035 Calendar workflow">
         <div class="workflow-head">
           <div>
             <h3>VDA-G035 governed calendar workflow</h3>
-            <p>Artifact-backed events, semantic_search retrieval, reminder receipts, conflict handling, and compact mobile summary. Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
+            <p>Events are stored locally in your browser (local UI) until persisted. Backend writes — event artifacts, reminder policy, conflict resolution, event-DAG checkpoints — are confirmation-gated and surface backend failures verbatim. Month/week/day/agenda grid rendering, navigation, and time formatting are local UI with no backend claim.</p>
           </div>
           <span class="workflow-status" role="status" aria-live="polite" id="vda-g035-status">Status: ${this.escapeHtml(state.status)}</span>
         </div>
@@ -1005,29 +1066,29 @@ export class CalendarApp {
         <div class="workflow-grid">
           <article class="workflow-card" data-svd-vda-marker="artifact-backed-events">
             <strong>Artifact-backed events</strong>
-            <p>${this.events.length} events persisted with artifact CID and Event DAG checkpoint.</p>
-            <code>${VDA_G035_REFS.eventArtifact}</code>
-            <code>${VDA_G035_REFS.eventDag}</code>
+            <p>${persistedCount}/${this.events.length} events persisted as real artifacts. Manifest: <code>${this.escapeHtml(state.eventManifestCid || 'not published yet')}</code>${state.eventManifestReadback ? ` — ${this.escapeHtml(state.eventManifestReadback)}` : ''}</p>
+            <p>Event DAG checkpoint: <code>${this.escapeHtml(state.eventDagCid || 'no checkpoint yet')}</code></p>
+            <small>Share an event by sharing its artifact CID.</small>
           </article>
           <article class="workflow-card" data-svd-vda-marker="semantic-search">
             <strong>Semantic search</strong>
-            <p>semantic_search query "${this.escapeHtml(state.semanticQuery)}" matched ${this.escapeHtml(semanticTitle)}.</p>
-            <code>${VDA_G035_REFS.semanticIndex}</code>
+            <p>semantic_search query "${this.escapeHtml(state.semanticQuery)}": ${semanticSummary}.</p>
+            ${(state.semanticResults || []).map(result => `<code>${this.escapeHtml(result.artifactCid || result.title || 'hit')}</code>`).join('')}
           </article>
           <article class="workflow-card" data-svd-vda-marker="reminders">
             <strong>Reminders</strong>
-            <p>${reminders.length} reminders scheduled with permission fallback and receipt refs.</p>
-            <code>${VDA_G035_REFS.reminderPolicy}</code>
+            <p>${reminders.length} reminder(s) computed locally; policy artifact: <code>${this.escapeHtml(state.reminderPolicyCid || 'not persisted yet')}</code>.</p>
+            ${state.reminderEventCid ? `<small>event DAG: ${this.escapeHtml(state.reminderEventCid)}</small>` : ''}
           </article>
-          <article class="workflow-card" data-svd-vda-marker="conflict-handling" data-conflict-state="${conflicts.length > 0 ? 'resolved' : 'clear'}">
+          <article class="workflow-card" data-svd-vda-marker="conflict-handling" data-conflict-state="${conflicts.length > 0 ? 'detected' : 'clear'}">
             <strong>Conflict handling</strong>
             <p>${this.escapeHtml(state.conflictResolution)}</p>
-            <code>${VDA_G035_REFS.conflictResolution}</code>
+            <code>${this.escapeHtml(state.conflictResolutionCid || 'no resolution persisted yet')}</code>
           </article>
           <article class="workflow-card" data-svd-vda-marker="mobile-summary" data-mobile-summary-state="compact">
             <strong>Mobile summary</strong>
             <p>${this.escapeHtml(state.mobileSummary)}</p>
-            <code>${VDA_G035_REFS.mobileSummary}</code>
+            <small>Local rendering (local UI). Persisted artifact: <code>${this.escapeHtml(state.mobileSummaryCid || 'not persisted yet')}</code></small>
           </article>
         </div>
 
@@ -1045,80 +1106,311 @@ export class CalendarApp {
         </div>
 
         <div class="workflow-summary">
-          <span>Receipts: ${state.receiptRefs.map(ref => this.escapeHtml(ref)).join(' ')}</span>
-          <span>Events: ${state.eventRefs.map(ref => this.escapeHtml(ref)).join(' ')}</span>
+          <span>Receipts: ${receiptList}</span>
+          <span>Events: ${eventList}</span>
           <span id="calendarMobileSummary">${this.escapeHtml(state.mobileSummary)}</span>
         </div>
       </section>
     `;
   }
 
-  persistVdaG035EventArtifact() {
-    this.vdaG035.status = 'artifact-backed-events complete';
-    this.vdaG035.actionLog.push(`persist-event-artifact:${VDA_G035_REFS.eventArtifact}`);
-    this.saveVdaG035EvidenceToStorage();
+  // Re-render just the workflow panel after backend state changes.
+  refreshVdaG035WorkflowPanel() {
+    const container = document.querySelector('.calendar-container');
+    if (!container) return;
+    const existing = container.querySelector('.calendar-workflow');
+    if (!existing) return;
+    const template = document.createElement('template');
+    template.innerHTML = this.renderVdaG035Workflow().trim();
+    existing.replaceWith(template.content.firstChild);
     this.updateVdaG035Status();
+    const searchBtn = container.querySelector('#calendarSemanticSearchBtn');
+    if (searchBtn && !searchBtn.dataset.vdaWired) {
+      searchBtn.dataset.vdaWired = 'true';
+      searchBtn.addEventListener('click', () => this.runVdaG035SemanticSearch());
+    }
   }
 
-  runVdaG035SemanticSearch(query = null) {
+  // Confirmation-gated persist of every calendar event as a real
+  // artifact, plus a manifest artifact and an event-DAG checkpoint. The
+  // manifest CID is the shareable reference for the event set. Backend
+  // failures surface verbatim.
+  async persistVdaG035EventArtifact() {
+    if (this.events.length === 0) {
+      this.vdaG035.status = 'no events to persist';
+      this.updateVdaG035Status();
+      return;
+    }
+    if (!calendarConfirmBackendWrite(
+      `Persist ${this.events.length} event(s) to the ipfs_kit_py artifact store?\n\nPins one artifact per event, publishes an event manifest, and appends a sync checkpoint to the event DAG.`
+    )) {
+      this.vdaG035.status = 'persist cancelled — events stay local-only';
+      this.updateVdaG035Status();
+      return;
+    }
+    this.vdaG035.status = `persisting ${this.events.length} event artifact(s)…`;
+    this.updateVdaG035Status();
+    try {
+      const client = await calendarKitClient();
+      for (const event of this.events) {
+        const record = calendarCanonicalRecord(event);
+        const persisted = await calendarPersistArtifact(client, record, { kind: 'calendar-event', profile: 'calendar-artifact' });
+        event.artifactCid = persisted.cid;
+        event.receiptRef = persisted.cid;
+      }
+      const manifestRecord = {
+        schema: 'swissknife.calendar.event-manifest.v1',
+        workflow: VDA_G035_WORKFLOW,
+        published_at: new Date().toISOString(),
+        events: this.events.map(event => ({
+          id: event.id,
+          title: event.title,
+          date: event.date instanceof Date ? event.date.toISOString() : event.date,
+          cid: event.artifactCid || null
+        }))
+      };
+      const manifest = await calendarPersistArtifact(client, manifestRecord, { kind: 'calendar-event-manifest', profile: 'calendar-artifact' });
+      this.vdaG035.eventManifestCid = manifest.cid;
+      const eventCid = await calendarAppendDagEvent(client, {
+        event_type: 'calendar.sync.checkpoint',
+        event_manifest_cid: manifest.cid,
+        event_count: this.events.length,
+        parents: []
+      });
+      this.vdaG035.eventDagCid = eventCid;
+      this.vdaG035.receiptRefs = [...new Set([...this.vdaG035.receiptRefs, eventCid])];
+      this.vdaG035.eventRefs = [...new Set([...this.vdaG035.eventRefs, 'calendar.sync.checkpoint'])];
+      let readbackNote = 'manifest persisted';
+      try {
+        const fetched = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(manifest.cid));
+        const b64 = fetched?.bytes_base64;
+        if (typeof b64 === 'string' && b64) {
+          const parsed = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), ch => ch.charCodeAt(0))));
+          const listed = Array.isArray(parsed?.events) ? parsed.events : [];
+          readbackNote = `manifest read back: ${listed.length} event(s) listed`;
+        }
+      } catch (readError) {
+        readbackNote = `manifest persisted; readback failed: ${readError.message}`;
+      }
+      this.vdaG035.eventManifestReadback = readbackNote;
+      this.vdaG035.status = `events persisted; manifest ${manifest.cid}; ${readbackNote}`;
+      this.vdaG035.actionLog.push(`persist-event-artifact:${manifest.cid}`);
+      this.saveEventsToStorage();
+    } catch (error) {
+      this.vdaG035.status = `persist failed: ${error.message}`;
+      this.vdaG035.actionLog.push(`persist-event-artifact:failed:${error.message}`);
+    }
+    this.saveVdaG035EvidenceToStorage();
+    this.refreshVdaG035WorkflowPanel();
+  }
+
+  // Real semantic search over ipfs_datasets_py via the descriptor
+  // registry. Degraded envelopes and backend errors surface verbatim and
+  // clear results — fallback output is never presented as real.
+  async runVdaG035SemanticSearch(query = null) {
     const searchInput = document.querySelector('#calendarSemanticSearch');
-    this.vdaG035.semanticQuery = query || searchInput?.value || this.vdaG035.semanticQuery;
-    this.vdaG035.semanticResults = this.searchEvents(this.vdaG035.semanticQuery);
-    this.vdaG035.status = `semantic_search complete: ${this.vdaG035.semanticResults.length} result(s)`;
-    this.vdaG035.actionLog.push(`run-semantic-search:${this.vdaG035.semanticQuery}`);
-    this.saveVdaG035EvidenceToStorage();
+    const searchText = String(query || searchInput?.value || this.vdaG035.semanticQuery || 'policy reminder').trim();
+    this.vdaG035.semanticQuery = searchText;
+    this.vdaG035.status = `semantic_search running: "${searchText}"…`;
     this.updateVdaG035Status();
+    try {
+      const { invokeDescriptorOperation } = await import('../core/mcp-descriptor-registry.js');
+      const envelope = await invokeDescriptorOperation({
+        descriptor_id: 'ipfs_datasets_py',
+        operation: 'semantic_search',
+        input: { query: searchText, top_k: 5, filters: { corpus: 'swissknife-calendar' } },
+        app_id: 'calendar',
+        desktop: this.desktop
+      });
+      if (!envelope || (envelope.status !== 'ok' && envelope.status !== 'success')) {
+        throw new Error(envelope?.error?.message || envelope?.summary || 'semantic_search did not return a successful result.');
+      }
+      const output = envelope.output || {};
+      if (output.fallback === true) {
+        throw new Error(`semantic_search degraded: ${output.reason || 'no live ipfs_datasets_py transport in this runtime'}.`);
+      }
+      const results = Array.isArray(output.results) ? output.results : [];
+      const byCid = new Map(this.events.map(event => [event.artifactCid, event]));
+      this.vdaG035.semanticResults = results.map(hit => ({
+        event: byCid.get(hit.cid) || null,
+        id: byCid.get(hit.cid)?.id ?? null,
+        title: hit.title || hit.event_title || hit.cid || 'untitled hit',
+        score: hit.score ?? null,
+        artifactCid: hit.cid || null,
+        receiptRef: null
+      }));
+      this.vdaG035.semanticBackend = 'ipfs_datasets_py';
+      this.vdaG035.status = `semantic_search complete: ${results.length} result(s) from ipfs_datasets_py`;
+      this.vdaG035.actionLog.push(`run-semantic-search:${searchText}:${results.length}`);
+    } catch (error) {
+      this.vdaG035.semanticResults = [];
+      this.vdaG035.semanticBackend = null;
+      this.vdaG035.status = `semantic_search failed: ${error.message}`;
+      this.vdaG035.actionLog.push(`run-semantic-search:failed:${error.message}`);
+    }
+    this.saveVdaG035EvidenceToStorage();
+    this.refreshVdaG035WorkflowPanel();
   }
 
-  scheduleVdaG035Reminder() {
+  // Reminder list is computed locally; the reminder-policy artifact and
+  // its DAG event are confirmation-gated backend writes yielding real CIDs.
+  async scheduleVdaG035Reminder() {
     this.vdaG035.reminders = this.events
       .filter(event => Number(event.reminder) > 0)
       .map(event => ({
         eventId: event.id,
         title: event.title,
         minutesBefore: event.reminder,
-        receiptRef: VDA_G035_REFS.receipts[2],
+        receiptRef: null,
         fallback: 'in-app reminder banner when notifications are denied'
       }));
-    this.vdaG035.status = `reminders scheduled: ${this.vdaG035.reminders.length}`;
-    this.vdaG035.actionLog.push(`schedule-reminder:${VDA_G035_REFS.reminderPolicy}`);
-    this.saveVdaG035EvidenceToStorage();
+    if (!calendarConfirmBackendWrite(
+      `Persist the reminder policy for ${this.vdaG035.reminders.length} reminder(s)?\n\nWrites a reminder-policy artifact and a reminder-scheduled event to the ipfs_kit_py backend.`
+    )) {
+      this.vdaG035.status = `reminders computed locally (${this.vdaG035.reminders.length}) — policy not persisted`;
+      this.vdaG035.actionLog.push('schedule-reminder:local-only');
+      this.saveVdaG035EvidenceToStorage();
+      this.refreshVdaG035WorkflowPanel();
+      return;
+    }
+    this.vdaG035.status = 'persisting reminder policy…';
     this.updateVdaG035Status();
+    try {
+      const client = await calendarKitClient();
+      const policyRecord = {
+        schema: 'swissknife.calendar.reminder-policy.v1',
+        policy: 'notification-first with in-app banner fallback, quiet hours honored',
+        default_reminder_minutes: this.settings.defaultReminder,
+        updated_at: new Date().toISOString(),
+        reminders: this.vdaG035.reminders.map(reminder => ({
+          event_id: reminder.eventId,
+          title: reminder.title,
+          minutes_before: reminder.minutesBefore
+        }))
+      };
+      const persisted = await calendarPersistArtifact(client, policyRecord, { kind: 'reminder-policy', profile: 'calendar-artifact' });
+      const eventCid = await calendarAppendDagEvent(client, {
+        event_type: 'calendar.reminder.scheduled',
+        reminder_policy_cid: persisted.cid,
+        reminder_count: this.vdaG035.reminders.length,
+        parents: []
+      });
+      this.vdaG035.reminderPolicyCid = persisted.cid;
+      this.vdaG035.reminderEventCid = eventCid;
+      this.vdaG035.receiptRefs = [...new Set([...this.vdaG035.receiptRefs, eventCid])];
+      this.vdaG035.eventRefs = [...new Set([...this.vdaG035.eventRefs, 'calendar.reminder.scheduled'])];
+      this.vdaG035.status = `reminders scheduled: ${this.vdaG035.reminders.length}; policy ${persisted.cid}`;
+      this.vdaG035.actionLog.push(`schedule-reminder:${persisted.cid}`);
+    } catch (error) {
+      this.vdaG035.status = `reminder persist failed: ${error.message} (reminders remain local)`;
+      this.vdaG035.actionLog.push(`schedule-reminder:failed:${error.message}`);
+    }
+    this.saveVdaG035EvidenceToStorage();
+    this.refreshVdaG035WorkflowPanel();
   }
 
-  resolveVdaG035Conflict() {
+  // Conflict detection is a local computation (labeled as such); the
+  // resolution record persist is confirmation-gated and yields a real CID.
+  async resolveVdaG035Conflict() {
     this.vdaG035.conflicts = this.detectEventConflicts();
-    this.vdaG035.conflictResolution = this.vdaG035.conflicts.length > 0
-      ? 'Resolved by keeping Artifact Planning Review primary and moving Semantic Search Sync to the next free 30 minute slot.'
+    const conflicts = this.vdaG035.conflicts;
+    this.vdaG035.conflictResolution = conflicts.length > 0
+      ? `Detected ${conflicts.length} overlap(s) locally: ${conflicts.map(conflict => conflict.events.join(' ↔ ')).join('; ')}.`
       : 'No conflicts detected.';
-    this.vdaG035.status = `conflict handling ${this.vdaG035.conflicts.length > 0 ? 'resolved' : 'clear'}`;
-    this.vdaG035.actionLog.push(`resolve-conflict:${VDA_G035_REFS.conflictResolution}`);
-    this.saveVdaG035EvidenceToStorage();
+    if (!calendarConfirmBackendWrite(
+      `Persist the conflict resolution record?\n\n${this.vdaG035.conflictResolution}`
+    )) {
+      this.vdaG035.status = `conflict handling ${conflicts.length > 0 ? 'detected (local)' : 'clear'} — resolution not persisted`;
+      this.vdaG035.actionLog.push('resolve-conflict:local-only');
+      this.saveVdaG035EvidenceToStorage();
+      this.refreshVdaG035WorkflowPanel();
+      return;
+    }
+    this.vdaG035.status = 'persisting conflict resolution…';
     this.updateVdaG035Status();
+    try {
+      const client = await calendarKitClient();
+      const resolutionRecord = {
+        schema: 'swissknife.calendar.conflict-resolution.v1',
+        resolved_at: new Date().toISOString(),
+        conflicts: conflicts.map(conflict => ({
+          events: conflict.events,
+          state: conflict.state || 'detected'
+        })),
+        resolution: conflicts.length > 0
+          ? 'Kept the earlier event primary; flagged the later event for manual rescheduling.'
+          : 'No conflicts detected.'
+      };
+      const persisted = await calendarPersistArtifact(client, resolutionRecord, { kind: 'conflict-resolution', profile: 'calendar-artifact' });
+      this.vdaG035.conflictResolutionCid = persisted.cid;
+      this.vdaG035.receiptRefs = [...new Set([...this.vdaG035.receiptRefs, persisted.cid])];
+      this.vdaG035.status = `conflict handling ${conflicts.length > 0 ? 'recorded' : 'clear'}: ${persisted.cid}`;
+      this.vdaG035.actionLog.push(`resolve-conflict:${persisted.cid}`);
+    } catch (error) {
+      this.vdaG035.status = `conflict resolution persist failed: ${error.message}`;
+      this.vdaG035.actionLog.push(`resolve-conflict:failed:${error.message}`);
+    }
+    this.saveVdaG035EvidenceToStorage();
+    this.refreshVdaG035WorkflowPanel();
   }
 
-  refreshVdaG035MobileSummary() {
+  // The mobile summary is rendered locally (local UI, labeled); its
+  // artifact persist is confirmation-gated and yields a real CID.
+  async refreshVdaG035MobileSummary() {
     this.vdaG035.mobileSummary = this.buildMobileSummary(this.vdaG035.semanticResults, this.vdaG035.conflicts, this.vdaG035.reminders);
-    this.vdaG035.status = 'mobile summary refreshed';
-    this.vdaG035.actionLog.push(`refresh-mobile-summary:${VDA_G035_REFS.mobileSummary}`);
-    this.saveVdaG035EvidenceToStorage();
+    if (!calendarConfirmBackendWrite(
+      `Persist the mobile summary as an artifact?\n\n"${this.vdaG035.mobileSummary.slice(0, 140)}…"`
+    )) {
+      this.vdaG035.status = 'mobile summary refreshed (local UI) — not persisted';
+      this.vdaG035.actionLog.push('refresh-mobile-summary:local');
+      this.saveVdaG035EvidenceToStorage();
+      this.updateVdaG035Status();
+      return;
+    }
+    this.vdaG035.status = 'persisting mobile summary…';
     this.updateVdaG035Status();
+    try {
+      const client = await calendarKitClient();
+      const summaryRecord = {
+        schema: 'swissknife.calendar.mobile-summary.v1',
+        summary: this.vdaG035.mobileSummary,
+        event_count: this.events.length,
+        generated_at: new Date().toISOString()
+      };
+      const persisted = await calendarPersistArtifact(client, summaryRecord, { kind: 'mobile-summary', profile: 'calendar-artifact' });
+      this.vdaG035.mobileSummaryCid = persisted.cid;
+      this.vdaG035.receiptRefs = [...new Set([...this.vdaG035.receiptRefs, persisted.cid])];
+      this.vdaG035.status = `mobile summary persisted: ${persisted.cid}`;
+      this.vdaG035.actionLog.push(`refresh-mobile-summary:${persisted.cid}`);
+    } catch (error) {
+      this.vdaG035.status = `mobile summary persist failed: ${error.message} (summary remains local)`;
+      this.vdaG035.actionLog.push(`refresh-mobile-summary:failed:${error.message}`);
+    }
+    this.saveVdaG035EvidenceToStorage();
+    this.refreshVdaG035WorkflowPanel();
   }
 
   saveVdaG035EvidenceToStorage() {
     try {
       localStorage.setItem('swissknife-calendar-vda-g035', JSON.stringify({
-        schema: 'swissknife.calendar.vda-g035.v1',
+        schema: 'swissknife.calendar.vda-g035.v2',
         workflow_id: VDA_G035_WORKFLOW,
         saved_at: new Date().toISOString(),
-        event_artifact_cid: VDA_G035_REFS.eventArtifact,
-        semantic_index_cid: VDA_G035_REFS.semanticIndex,
-        reminder_policy_cid: VDA_G035_REFS.reminderPolicy,
-        conflict_resolution_cid: VDA_G035_REFS.conflictResolution,
-        mobile_summary_cid: VDA_G035_REFS.mobileSummary,
-        event_dag_cid: VDA_G035_REFS.eventDag,
+        // Real values only; null means "not performed yet". No fixtures.
+        event_manifest_cid: this.vdaG035.eventManifestCid || null,
+        event_manifest_readback: this.vdaG035.eventManifestReadback || null,
+        reminder_policy_cid: this.vdaG035.reminderPolicyCid || null,
+        reminder_event_cid: this.vdaG035.reminderEventCid || null,
+        conflict_resolution_cid: this.vdaG035.conflictResolutionCid || null,
+        mobile_summary_cid: this.vdaG035.mobileSummaryCid || null,
+        event_dag_cid: this.vdaG035.eventDagCid || null,
         receipt_refs: this.vdaG035.receiptRefs,
         event_refs: this.vdaG035.eventRefs,
+        semantic_query: this.vdaG035.semanticQuery,
+        semantic_backend: this.vdaG035.semanticBackend,
+        semantic_results: (this.vdaG035.semanticResults || []).map(result => ({
+          title: result.title, artifact_cid: result.artifactCid, score: result.score
+        })),
         action_log: this.vdaG035.actionLog
       }));
     } catch (error) {
@@ -1131,35 +1423,6 @@ export class CalendarApp {
     if (status) status.textContent = `Status: ${this.vdaG035.status}`;
     const summary = document.querySelector('#calendarMobileSummary');
     if (summary) summary.textContent = this.vdaG035.mobileSummary;
-  }
-
-  searchEvents(query) {
-    const terms = String(query || '')
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(Boolean);
-    if (terms.length === 0) return [];
-    return this.events
-      .map(event => {
-        const haystack = [
-          event.title,
-          event.description,
-          event.location,
-          event.category,
-          ...(event.attendees || [])
-        ].join(' ').toLowerCase();
-        const score = terms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
-        return { event, score };
-      })
-      .filter(result => result.score > 0)
-      .sort((a, b) => b.score - a.score || a.event.date - b.event.date)
-      .map(result => ({
-        id: result.event.id,
-        title: result.event.title,
-        score: result.score,
-        artifactCid: result.event.artifactCid || VDA_G035_REFS.semanticIndex,
-        receiptRef: result.event.receiptRef || VDA_G035_REFS.receipts[1]
-      }));
   }
 
   detectEventConflicts() {
@@ -1175,8 +1438,9 @@ export class CalendarApp {
         if (first.date < secondEnd && second.date < firstEnd) {
           conflicts.push({
             events: [first.title, second.title],
-            state: 'resolved',
-            receiptRef: VDA_G035_REFS.receipts[3]
+            state: 'detected',
+            // Local computation — no backend receipt exists for it.
+            receiptRef: null
           });
         }
       }
@@ -1278,7 +1542,7 @@ export class CalendarApp {
                       <div class="week-event-time">${this.formatEventTime(event)}</div>
                       <div>${this.escapeHtml(event.title)}</div>
                     </div>
-                  `).join('') : '<div class="no-events-hour">No events</div>'}
+                  `).join('') : '<div class="no-events-hour sk-empty">No events</div>'}
                 </div>
               `;
             }).join('')}
@@ -1603,35 +1867,63 @@ export class CalendarApp {
     document.querySelector('#eventDate').value = this.selectedDate.toISOString().split('T')[0];
   }
 
-  saveEvent() {
+  async saveEvent() {
     const form = document.querySelector('#eventForm');
     const formData = new FormData(form);
-    
+
     const eventData = {
       id: Date.now(), // Simple ID generation
       title: formData.get('title'),
       description: formData.get('description'),
       date: new Date(`${formData.get('date')}T${formData.get('time')}`),
-      endDate: formData.get('endDate') && formData.get('endTime') 
+      endDate: formData.get('endDate') && formData.get('endTime')
         ? new Date(`${formData.get('endDate')}T${formData.get('endTime')}`)
         : null,
       category: formData.get('category'),
       location: formData.get('location'),
       reminder: parseInt(formData.get('reminder')),
       recurring: formData.get('recurring'),
-      attendees: formData.get('attendees') 
+      attendees: formData.get('attendees')
         ? formData.get('attendees').split(',').map(email => email.trim())
         : [],
-      artifactCid: VDA_G035_REFS.eventArtifact,
-      receiptRef: VDA_G035_REFS.receipts[0]
+      // null until really persisted — never a fixture string.
+      artifactCid: null,
+      receiptRef: null
     };
 
     this.events.push(eventData);
+    try {
+      eventData.artifactCid = await calendarCanonicalCid(calendarCanonicalRecord(eventData));
+    } catch (error) {
+      console.warn('Failed to compute canonical event CID:', error);
+    }
     this.vdaG035 = this.buildVdaG035State();
     this.saveEventsToStorage();
     this.hideEventModal();
     this.updateView();
-    
+
+    // The explicit save action offers a confirmation-gated backend persist
+    // of the new event artifact.
+    if (calendarConfirmBackendWrite(
+      `Persist the new event "${eventData.title}" as a pinned IPFS artifact?\n\nCID: ${eventData.artifactCid || '(still computing)'}`
+    )) {
+      try {
+        const client = await calendarKitClient();
+        const persisted = await calendarPersistArtifact(client, calendarCanonicalRecord(eventData), { kind: 'calendar-event', profile: 'calendar-artifact' });
+        eventData.artifactCid = persisted.cid;
+        eventData.receiptRef = persisted.cid;
+        this.vdaG035.receiptRefs = [...new Set([...this.vdaG035.receiptRefs, persisted.cid])];
+        this.vdaG035.status = `event persisted: ${persisted.cid}`;
+        this.vdaG035.actionLog.push(`save-event:${persisted.cid}`);
+        this.saveEventsToStorage();
+      } catch (error) {
+        this.vdaG035.status = `event saved locally; backend persist failed: ${error.message}`;
+        this.vdaG035.actionLog.push(`save-event:failed:${error.message}`);
+      }
+      this.saveVdaG035EvidenceToStorage();
+      this.refreshVdaG035WorkflowPanel();
+    }
+
     console.log('Event saved:', eventData);
   }
 
@@ -1646,11 +1938,21 @@ export class CalendarApp {
           date: new Date(event.date),
           endDate: event.endDate ? new Date(event.endDate) : null
         }));
-        const hasCurrentEvidence = parsedEvents.some(event => String(event.artifactCid || '').includes('bafycalg035'));
-        const hasUpcomingEvents = parsedEvents.some(event => event.date >= new Date(2026, 6, 1));
-        this.events = hasCurrentEvidence && hasUpcomingEvents
-          ? this.mergeVdaDefaultEvents(parsedEvents)
-          : this.buildDefaultEvents();
+        // Legacy stored data carries fixture CID strings — treat any of
+        // those as a migration signal and rebuild from defaults instead of
+        // resurrecting fabricated identifiers.
+        const hasLegacyFixtures = parsedEvents.some(event =>
+          [event.artifactCid, event.receiptRef].some(value => String(value || '').includes('bafycalg035'))
+          || String(JSON.stringify(event.receiptRef || '')).includes('receipt:calendar:g035')
+        );
+        this.events = hasLegacyFixtures
+          ? this.buildDefaultEvents()
+          : this.mergeVdaDefaultEvents(parsedEvents);
+        // Scrub any lingering fixture strings that survived.
+        for (const event of this.events) {
+          if (String(event.artifactCid || '').includes('bafycalg035')) event.artifactCid = null;
+          if (String(event.receiptRef || '').startsWith('receipt:calendar:g035')) event.receiptRef = null;
+        }
       }
     } catch (error) {
       console.warn('Failed to load calendar events from storage:', error);

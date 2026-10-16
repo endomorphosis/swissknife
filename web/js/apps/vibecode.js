@@ -211,6 +211,17 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             color: #888;
           }
           
+          .vibecode-container #send-ai-btn {
+            width: 100%;
+            margin-top: 0.5rem;
+          }
+          .vibecode-container #close-ai-btn {
+            float: right;
+          }
+          .vibecode-container .ai-messages .spinner {
+            display: inline-block;
+            margin-right: 0.5rem;
+          }
           .spinner {
             width: 20px;
             height: 20px;
@@ -283,10 +294,10 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
           <div class="ai-panel" id="ai-panel" style="display: none;">
             <div class="ai-header">
               🤖 AI Assistant
-              <button class="vibe-btn" id="close-ai-btn" style="float: right; padding: 0.25rem 0.5rem;">×</button>
+              <button class="vibe-btn sk-btn" id="close-ai-btn">×</button>
             </div>
             <div class="ai-messages" id="ai-messages">
-              <div style="padding: 1rem; text-align: center; color: #888;">
+              <div class="sk-empty">
                 Ask me anything about Streamlit development!
               </div>
             </div>
@@ -297,7 +308,7 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
                 placeholder="Ask AI for help with your code..."
                 rows="3"
               ></textarea>
-              <button class="vibe-btn ai" id="send-ai-btn" style="margin-top: 0.5rem; width: 100%;">Send</button>
+              <button class="vibe-btn ai sk-btn sk-btn-primary" id="send-ai-btn">Send</button>
             </div>
           </div>
         </div>
@@ -388,9 +399,16 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
       const content = codeEditor.value;
       const filename = prompt('Enter filename:', 'streamlit_app.py');
       if (filename) {
-        // In a real implementation, this would save to a file system
-        console.log('Saving file:', filename, content);
-        this.updateStatus(window, `Saved: ${filename}`);
+        // Real local persistence (browser localStorage); honestly local —
+        // this surface has no backend filesystem to write to.
+        try {
+          const saved = JSON.parse(localStorage.getItem('vibecode-files') || '{}');
+          saved[filename] = { content, savedAt: new Date().toISOString() };
+          localStorage.setItem('vibecode-files', JSON.stringify(saved));
+        } catch (storageError) {
+          console.warn('Local save failed:', storageError);
+        }
+        this.updateStatus(window, `Saved: ${filename} (local)`);
         
         // Add to recent files
         this.currentFile = { name: filename, content: content };
@@ -404,35 +422,68 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     
     if (!codeEditor || !previewSection) return;
     
-    this.updateStatus(window, 'Running Streamlit app...');
+    this.updateStatus(window, 'Saving code to IPFS artifact store...');
     
-    // Show loading indicator
-    previewSection.innerHTML = `
-      <div class="loading-indicator">
-        <div class="spinner"></div>
-        <span>Running your Streamlit app...</span>
-      </div>
-    `;
-    
-    // Simulate running the app (in a real implementation, this would execute the code)
-    setTimeout(() => {
+    // Real backend op: persist the code as a kit artifact so the Run action
+    // produces a genuine content CID. Governed write: explicit user
+    // confirmation before the POST, failures surfaced verbatim.
+    try {
+      if (!confirm('Save this Streamlit code as an IPFS artifact via ipfs_kit_py?')) {
+        this.updateStatus(window, 'Ready');
+        return;
+      }
+      const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
+      const client = clientModule.getMCPPlusPlusDesktopClient();
+      const { contentCidForBytes, stableStringifyValue, base64ForBytes } = clientModule;
+      const record = {
+        app: 'vibecode',
+        kind: 'streamlit-code',
+        language: 'python',
+        code: codeEditor.value,
+        saved_at: new Date().toISOString()
+      };
+      const bytes = new TextEncoder().encode(stableStringifyValue(record));
+      const cid = await contentCidForBytes(bytes);
+      const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+        cid,
+        bytes_base64: base64ForBytes(bytes),
+        profile: 'vibecode-artifact',
+        kind: 'streamlit-code',
+        service: 'ipfs_kit_py',
+        pin: true
+      });
+      if (!result || result.persisted !== true || result.cid !== cid) {
+        throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted artifact.');
+      }
       previewSection.innerHTML = `
         <div style="padding: 2rem; background: white; color: black;">
-          <div style="border-left: 4px solid #ff6b6b; padding-left: 1rem; margin-bottom: 1rem;">
-            <h3>🎯 VibeCode Preview</h3>
-            <p>Your Streamlit app would run here in a real implementation.</p>
+          <div style="border-left: 4px solid #4caf50; padding-left: 1rem; margin-bottom: 1rem;">
+            <h3>🎯 VibeCode Run Artifact</h3>
+            <p>Code persisted to the IPFS artifact store.</p>
+            <p><strong>CID:</strong> <code>${cid}</code>${result.verified === true ? ' (verified)' : ''}</p>
           </div>
           <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px; font-family: monospace;">
             <strong>Code Preview:</strong><br>
             <pre style="margin: 0; white-space: pre-wrap;">${codeEditor.value.slice(0, 200)}${codeEditor.value.length > 200 ? '...' : ''}</pre>
           </div>
-          <div style="margin-top: 1rem; padding: 1rem; background: #e3f2fd; border-radius: 4px;">
-            <strong>📝 Note:</strong> This is a preview. In the full implementation, your Streamlit app would be executed and displayed here.
+          <div style="margin-top: 1rem; padding: 1rem; background: #fff3e0; border-radius: 4px;">
+            <strong>📝 Note:</strong> executing Streamlit requires a Python backend, which this browser
+            surface does not provide — nothing here was executed. The artifact above is real and
+            retrievable by its CID from the ipfs_kit_py store.
           </div>
         </div>
       `;
       this.updateStatus(window, 'Ready');
-    }, 2000);
+    } catch (error) {
+      previewSection.innerHTML = `
+        <div style="padding: 2rem; background: white; color: black;">
+          <h3>⚠️ Run failed</h3>
+          <p style="font-family: monospace;">${String(error.message || error)}</p>
+          <p>The code was not persisted. The error above is the verbatim backend response.</p>
+        </div>
+      `;
+      this.updateStatus(window, 'Run failed');
+    }
   }
 
   toggleAI(window) {
@@ -467,27 +518,24 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     
     // Add loading message
     this.addAIMessage(window, 'Thinking...', 'assistant', true);
-    
-    // Simulate AI response
-    setTimeout(() => {
-      // Remove loading message
-      const loadingMessage = aiMessages.querySelector('.ai-loading');
-      if (loadingMessage) {
-        loadingMessage.remove();
+
+    // Ask the real AI backend when one is wired up; never invent a reply.
+    const chat = this.swissknife?.chat || this.desktop?.swissknife?.chat || window.swissknife?.chat;
+    // Remove loading message
+    const loadingMessage = aiMessages.querySelector('.ai-loading');
+    if (loadingMessage) {
+      loadingMessage.remove();
+    }
+    if (typeof chat === 'function') {
+      try {
+        const response = await chat({ message, model: 'gpt-4' });
+        this.addAIMessage(window, response?.message || response?.content || String(response), 'assistant');
+      } catch (error) {
+        this.addAIMessage(window, `AI request failed: ${error.message}`, 'assistant');
       }
-      
-      // Add AI response
-      const responses = [
-        "I'd be happy to help you with your Streamlit code! What specific functionality are you looking to implement?",
-        "For better Streamlit apps, consider using st.cache_data for performance optimization.",
-        "You can create interactive widgets with st.button(), st.slider(), st.selectbox() and many more!",
-        "To add charts, use st.line_chart(), st.bar_chart(), or st.plotly_chart() for more advanced visualizations.",
-        "Don't forget to add st.title() and st.markdown() to make your app look professional!"
-      ];
-      
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      this.addAIMessage(window, randomResponse, 'assistant');
-    }, 1500);
+    } else {
+      this.addAIMessage(window, 'AI is not configured: no chat backend is available. Configure an AI provider (Settings → API Keys) to enable the assistant.', 'assistant');
+    }
   }
 
   addAIMessage(window, message, role, isLoading = false) {
@@ -512,7 +560,7 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
         ${role === 'user' ? '👤 You' : '🤖 AI Assistant'}
       </div>
       <div style="line-height: 1.4;">
-        ${isLoading ? '<div class="spinner" style="display: inline-block; margin-right: 0.5rem;"></div>' : ''}
+        ${isLoading ? '<div class="spinner"></div>' : ''}
         ${message}
       </div>
     `;

@@ -84,6 +84,302 @@ export class NAVIApp {
   createWindow() {
     const content = `
       <div class="navi-container">
+      <style>
+        .navi-container {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          position: relative;
+          background: var(--sk-bg-deep, #0e1412);
+          color: var(--sk-text, #edf7f2);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', roboto, sans-serif;
+          overflow: hidden;
+        }
+        .navi-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          background: var(--sk-bg-panel, #101b18);
+          border-bottom: 1px solid var(--sk-border, #263a34);
+          flex-shrink: 0;
+        }
+        .navi-avatar { position: relative; flex-shrink: 0; }
+        .avatar-image {
+          width: 40px; height: 40px;
+          border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 22px;
+          background: var(--sk-bg-inset, #17241f);
+          border: 1px solid var(--sk-border, #263a34);
+        }
+        .avatar-status {
+          position: absolute; right: 0; bottom: 0;
+          width: 12px; height: 12px;
+          border-radius: 50%;
+          background: var(--sk-idle, #7c8f87);
+          border: 2px solid var(--sk-bg-panel, #101b18);
+        }
+        .avatar-status.voice-enabled { background: var(--sk-ok, #5ee3a1); }
+        .navi-info { flex: 1; min-width: 0; }
+        .navi-name { font-weight: 700; font-size: 16px; }
+        .navi-status { font-size: 12px; color: var(--sk-text-faint, #9eb2aa); }
+        .navi-controls { display: flex; gap: 8px; }
+        .navi-btn {
+          width: 36px; height: 36px;
+          border-radius: 8px;
+          border: 1px solid var(--sk-border, #263a34);
+          background: var(--sk-bg-header, #12211d);
+          color: var(--sk-text, #edf7f2);
+          cursor: pointer; font-size: 16px;
+          display: flex; align-items: center; justify-content: center;
+          transition: background 0.2s ease;
+        }
+        .navi-btn:hover { background: var(--sk-bg-inset, #17241f); }
+        .navi-btn.active {
+          background: rgba(139, 216, 189, 0.22);
+          border-color: var(--sk-accent, #8bd8bd);
+          color: var(--sk-accent, #8bd8bd);
+        }
+        .navi-content {
+          flex: 1; display: flex;
+          min-height: 0; overflow: hidden;
+        }
+        .conversation-area {
+          flex: 1; display: flex; flex-direction: column;
+          min-width: 0;
+        }
+        .conversation-header {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 8px; padding: 10px 16px;
+          border-bottom: 1px solid var(--sk-border, #263a34);
+          flex-wrap: wrap;
+        }
+        .conversation-header h3 { margin: 0; font-size: 14px; }
+        .conversation-controls { display: flex; gap: 8px; }
+        .conversation-controls select {
+          padding: 6px 8px;
+          background: var(--sk-bg-header, #12211d);
+          border: 1px solid var(--sk-border, #263a34);
+          border-radius: 6px;
+          color: var(--sk-text, #edf7f2);
+          font-size: 12px;
+        }
+        .conversation-messages {
+          flex: 1; overflow-y: auto;
+          padding: 16px;
+          display: flex; flex-direction: column; gap: 12px;
+        }
+        .navi-container .message { display: flex; gap: 10px; max-width: 88%; }
+        .navi-container .message.user-message { align-self: flex-end; flex-direction: row-reverse; }
+        .navi-container .message-avatar {
+          width: 32px; height: 32px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 16px; flex-shrink: 0;
+          background: var(--sk-bg-inset, #17241f);
+          border: 1px solid var(--sk-border, #263a34);
+        }
+        .navi-container .message-content {
+          background: var(--sk-bg-panel, #101b18);
+          border: 1px solid var(--sk-border, #263a34);
+          border-radius: 12px;
+          padding: 10px 14px;
+          font-size: 14px; line-height: 1.5;
+          overflow-wrap: anywhere;
+        }
+        .navi-container .message.user-message .message-content {
+          background: rgba(139, 216, 189, 0.14);
+          border-color: var(--sk-accent, #8bd8bd);
+        }
+        .navi-container .message-text ul { margin: 8px 0; padding-left: 20px; }
+        .navi-container .message-text li { margin-bottom: 4px; }
+        .navi-container .message-text code {
+          background: rgba(0, 0, 0, 0.35);
+          padding: 1px 5px; border-radius: 4px;
+          font-family: ui-monospace, monospace; font-size: 13px;
+          color: var(--sk-accent, #8bd8bd);
+        }
+        .navi-container .message-time {
+          font-size: 11px; color: var(--sk-text-faint, #9eb2aa);
+          margin-top: 6px; opacity: 0.8;
+        }
+        .navi-container .message-actions {
+          display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+        }
+        .navi-container .action-btn {
+          padding: 6px 10px;
+          background: var(--sk-bg-header, #12211d);
+          border: 1px solid var(--sk-border, #263a34);
+          border-radius: 6px;
+          color: var(--sk-accent, #8bd8bd);
+          cursor: pointer; font-size: 12px;
+        }
+        .navi-container .action-btn:hover { background: var(--sk-bg-inset, #17241f); }
+        .navi-container .typing-dots { display: flex; gap: 4px; padding: 6px 0; }
+        .navi-container .typing-dots span {
+          width: 6px; height: 6px; border-radius: 50%;
+          background: var(--sk-text-faint, #9eb2aa);
+          animation: navi-typing 1.4s infinite ease-in-out;
+        }
+        .navi-container .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .navi-container .typing-dots span:nth-child(3) { animation-delay: -0.32s; }
+        @keyframes navi-typing {
+          0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+          40% { transform: scale(1); opacity: 1; }
+        }
+        .conversation-input {
+          padding: 12px 16px;
+          border-top: 1px solid var(--sk-border, #263a34);
+          background: var(--sk-bg-panel, #101b18);
+        }
+        .navi-container .input-container {
+          display: flex; gap: 8px; align-items: center;
+        }
+        .navi-container .message-input {
+          flex: 1; min-width: 0;
+          padding: 10px 12px;
+          background: var(--sk-bg-header, #12211d);
+          border: 1px solid var(--sk-border, #263a34);
+          border-radius: 8px;
+          color: var(--sk-text, #edf7f2);
+          font-size: 14px; font-family: inherit;
+        }
+        .navi-container .message-input::placeholder { color: var(--sk-text-faint, #9eb2aa); }
+        .navi-container .message-input:focus {
+          outline: none; border-color: var(--sk-accent, #8bd8bd);
+        }
+        .navi-container .voice-btn,
+        .navi-container .send-btn {
+          width: 38px; height: 38px; flex-shrink: 0;
+          border-radius: 8px;
+          border: 1px solid var(--sk-border, #263a34);
+          background: var(--sk-bg-header, #12211d);
+          color: var(--sk-text, #edf7f2);
+          cursor: pointer; font-size: 16px;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .navi-container .send-btn {
+          background: var(--sk-accent, #8bd8bd);
+          border-color: var(--sk-accent, #8bd8bd);
+          color: #0e1412;
+        }
+        .navi-container .voice-btn.listening {
+          background: rgba(255, 107, 107, 0.2);
+          border-color: var(--sk-err, #ff6b6b);
+          animation: navi-pulse 1s infinite;
+        }
+        @keyframes navi-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+        .navi-container .quick-actions {
+          display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+        }
+        .navi-container .quick-btn {
+          padding: 6px 12px;
+          background: var(--sk-bg-header, #12211d);
+          border: 1px solid var(--sk-border, #263a34);
+          border-radius: 16px;
+          color: var(--sk-text-faint, #9eb2aa);
+          cursor: pointer; font-size: 12px;
+        }
+        .navi-container .quick-btn:hover {
+          color: var(--sk-accent, #8bd8bd);
+          border-color: var(--sk-accent, #8bd8bd);
+        }
+        .context-panel {
+          width: 260px; flex-shrink: 0;
+          border-left: 1px solid var(--sk-border, #263a34);
+          background: var(--sk-bg-panel, #101b18);
+          display: flex; flex-direction: column;
+          overflow: hidden;
+        }
+        .context-header {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 10px 14px;
+          border-bottom: 1px solid var(--sk-border, #263a34);
+        }
+        .context-header h3 { margin: 0; font-size: 13px; }
+        .context-toggle {
+          background: none; border: none; cursor: pointer; font-size: 16px;
+          color: var(--sk-text-faint, #9eb2aa);
+        }
+        .context-content { flex: 1; overflow-y: auto; padding: 10px 14px; }
+        .context-section { margin-bottom: 16px; }
+        .context-section h4 { margin: 0 0 8px; font-size: 12px; color: var(--sk-text-faint, #9eb2aa); }
+        .context-list { display: flex; flex-direction: column; gap: 6px; }
+        .context-item {
+          display: flex; align-items: center; gap: 8px;
+          padding: 6px 8px; border-radius: 6px;
+          font-size: 12px;
+          background: var(--sk-bg-header, #12211d);
+          border: 1px solid var(--sk-border, #263a34);
+        }
+        .context-item.clickable { cursor: pointer; }
+        .context-item.clickable:hover { border-color: var(--sk-accent, #8bd8bd); }
+        .item-text { overflow-wrap: anywhere; min-width: 0; }
+        .context-empty {
+          font-size: 12px; color: var(--sk-text-faint, #9eb2aa);
+          font-style: italic; padding: 4px 8px;
+        }
+        .voice-visualization {
+          display: none;
+          align-items: center; justify-content: center; gap: 6px;
+          padding: 10px;
+          background: rgba(255, 107, 107, 0.08);
+          border-top: 1px solid var(--sk-border, #263a34);
+        }
+        .voice-visualization.active { display: flex; }
+        .voice-wave {
+          width: 6px; border-radius: 3px;
+          background: var(--sk-err, #ff6b6b);
+          animation: navi-wave 1s infinite ease-in-out;
+        }
+        .voice-wave:nth-child(1) { height: 18px; }
+        .voice-wave:nth-child(2) { height: 30px; animation-delay: -0.2s; }
+        .voice-wave:nth-child(3) { height: 22px; animation-delay: -0.4s; }
+        @keyframes navi-wave {
+          0%, 100% { transform: scaleY(0.6); }
+          50% { transform: scaleY(1.2); }
+        }
+        .listening-text { font-size: 12px; color: var(--sk-err, #ff6b6b); margin-left: 8px; }
+        .learning-panel {
+          position: absolute; right: 12px; bottom: 12px;
+          width: 320px; max-height: 70%;
+          overflow-y: auto;
+          background: var(--sk-bg-panel, #101b18);
+          border: 1px solid var(--sk-border, #263a34);
+          border-radius: 12px;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+          z-index: 50;
+        }
+        .learning-header {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 12px 14px;
+          border-bottom: 1px solid var(--sk-border, #263a34);
+        }
+        .learning-header h3 { margin: 0; font-size: 14px; }
+        .close-learning {
+          background: none; border: none; cursor: pointer; font-size: 14px;
+          color: var(--sk-text-faint, #9eb2aa);
+        }
+        .learning-content { padding: 12px 14px; }
+        .learning-stats { display: flex; gap: 12px; margin-bottom: 14px; }
+        .learning-stats .stat-item {
+          flex: 1; text-align: center;
+          background: var(--sk-bg-header, #12211d);
+          border: 1px solid var(--sk-border, #263a34);
+          border-radius: 8px; padding: 8px 4px;
+        }
+        .learning-stats .stat-label { display: block; font-size: 10px; color: var(--sk-text-faint, #9eb2aa); margin-bottom: 4px; }
+        .learning-stats .stat-value { display: block; font-size: 16px; font-weight: 700; color: var(--sk-accent, #8bd8bd); }
+        .learned-preferences h4 { margin: 0 0 8px; font-size: 12px; color: var(--sk-text-faint, #9eb2aa); }
+        .preferences-list { display: flex; flex-direction: column; gap: 6px; }
+        @media (max-width: 760px) {
+          .context-panel { display: none; }
+          .navi-content { flex-direction: column; }
+        }
+      </style>
         <div class="navi-header">
           <div class="navi-avatar">
             <div class="avatar-image">🤖</div>
@@ -505,97 +801,103 @@ export class NAVIApp {
   }
 
   async generateAIResponse(message) {
-    // Simulate AI response generation
-    // In production, this would call the actual AI service
-    
     const contextualInfo = this.buildContextualPrompt();
     const personality = this.getPersonalityPrompt();
-    
+
     let response;
-    
-    // Use real AI if available
+    let source = 'local';
+
+    // 1) Real AI backend when the desktop exposes one.
     if (this.swissknife && typeof this.swissknife.chat === 'function') {
       try {
-        const fullPrompt = `${personality}\n\nContext: ${contextualInfo}\n\nUser message: ${message}`;
-        
+        const fullPrompt = `${personality}\n\nContext: ${JSON.stringify(contextualInfo)}\n\nUser message: ${message}`;
         const aiResponse = await this.swissknife.chat({
           message: fullPrompt,
           model: this.aiModel || 'gpt-4'
         });
-        
         response = aiResponse.message || aiResponse.content || aiResponse;
+        source = 'swissknife-chat';
       } catch (error) {
-        console.error('AI response failed, using fallback:', error);
-        response = this.generateFallbackResponse(message);
+        console.error('AI response failed:', error);
       }
-    } else {
-      // Fallback when AI not configured
-      response = this.generateFallbackResponse(message);
     }
-    
+
+    // 2) Real MCP++ backend: ipfs_accelerate_py inference through the app
+    // capability gateway. The envelope reports honestly; a degraded envelope
+    // carries the backend's verbatim reason and is never masked.
+    if (response === undefined) {
+      try {
+        const { invokeDescriptorOperation } = await import('../core/mcp-descriptor-registry.js');
+        const envelope = await invokeDescriptorOperation({
+          descriptor_id: 'ipfs_accelerate_py',
+          operation: 'run_inference_job',
+          input: {
+            model: this.aiModel || 'gpt-4',
+            input: `${personality}\n\nUser message: ${message}`,
+            max_tokens: 256
+          },
+          app_id: 'navi',
+          desktop: this.desktop,
+          execution_mode: 'confirmed'
+        });
+        if (envelope && envelope.status === 'ok' && envelope.output) {
+          const output = envelope.output;
+          response = output.text || output.result || output.response
+            || (typeof output === 'string' ? output : JSON.stringify(output));
+          source = `accelerate:${output.job_id || 'inference'}`;
+          const jobId = output.job_id;
+          if (jobId) {
+            try {
+              const statusEnvelope = await invokeDescriptorOperation({
+                descriptor_id: 'ipfs_accelerate_py',
+                operation: 'job_status',
+                input: { job_id: jobId },
+                app_id: 'navi',
+                desktop: this.desktop
+              });
+              const jobOutput = statusEnvelope?.output;
+              if (jobOutput && (jobOutput.text || jobOutput.result)) {
+                response = jobOutput.text || jobOutput.result;
+              }
+            } catch (pollError) {
+              console.warn('Inference job status poll failed:', pollError.message);
+            }
+          }
+        } else {
+          const reason = envelope?.error?.message || envelope?.summary || 'inference backend unavailable';
+          console.warn('Accelerate inference unavailable:', reason);
+        }
+      } catch (error) {
+        console.warn('Accelerate inference call failed:', error.message);
+      }
+    }
+
+    // 3) No backend reachable: say so plainly. Local slash-commands below
+    // still work; nothing canned is presented as an AI answer.
+    if (response === undefined) {
+      response = 'No AI backend is reachable in this session (desktop chat and the ipfs_accelerate_py inference gateway are both unavailable), so I cannot generate an AI answer right now. My local commands still work — try "help", "open <app>", "search <query>" or "monitor".';
+      source = 'unavailable';
+    }
+
     // Add contextual actions based on message content
     const actions = this.suggestContextualActions(message);
-    
+
     return {
-      content: response,
+      content: typeof response === 'string' ? response : String(response),
       speak: true,
       actions: actions.length > 0 ? actions : null,
       metadata: {
         model: this.aiModel,
         personality: this.personality,
-        context: contextualInfo
+        context: contextualInfo,
+        source
       }
     };
   }
 
-  generateFallbackResponse(message) {
-    const lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.includes('open') || lowerMessage.includes('launch')) {
-      return "I can help you open applications. Which app would you like me to launch? Available apps include Terminal, File Manager, AI Chat, Settings, and more.";
-    }
-    
-    if (lowerMessage.includes('system') || lowerMessage.includes('status') || lowerMessage.includes('performance')) {
-      return `System status looks good! CPU usage is at ${Math.floor(Math.random() * 30 + 20)}%, memory usage is ${Math.floor(Math.random() * 40 + 30)}%, and all services are running normally. Would you like me to run a detailed system analysis?`;
-    }
-    
-    if (lowerMessage.includes('file') || lowerMessage.includes('document') || lowerMessage.includes('folder')) {
-      return "I can help you manage files and folders. I can search for files, organize directories, backup important data, or help you find specific documents. What would you like me to do?";
-    }
-    
-    if (lowerMessage.includes('p2p') || lowerMessage.includes('network') || lowerMessage.includes('peer')) {
-      const peerCount = this.p2pSystem?.peers?.size || 0;
-      return `Your P2P network has ${peerCount} connected peers. I can help coordinate tasks across the network, share models or data, or discover new peers. What would you like me to do with the P2P network?`;
-    }
-    
-    if (lowerMessage.includes('learn') || lowerMessage.includes('remember') || lowerMessage.includes('preference')) {
-      return "I'm constantly learning from our interactions to better assist you. I can remember your preferences, automate repetitive tasks, and adapt to your workflow. Is there something specific you'd like me to learn or remember?";
-    }
-    
-    if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
-      return `I'm your AI assistant with many capabilities:
-
-**System Control**: Open/close apps, manage settings, monitor performance
-**File Management**: Search, organize, backup files and folders  
-**AI Assistance**: Analysis, research, content generation
-**Voice Interaction**: Voice commands and responses
-**Learning**: Adapt to your preferences and automate tasks
-**P2P Coordination**: Manage distributed computing tasks
-
-Try asking me to "open terminal", "monitor system", or "automate task". I'm here to help!`;
-    }
-    
-    // Default helpful response
-    const responses = [
-      "I understand you'd like help with that. Let me assist you with the best approach.",
-      "That's an interesting request. I can help you accomplish that goal.",
-      "I'm here to help! Let me provide some guidance on that topic.",
-      "Great question! I can offer several ways to approach this.",
-      "I'd be happy to assist you with that. Here's what I suggest:"
-    ];
-    
-    return responses[Math.floor(Math.random() * responses.length)];
-  }
+  // NOTE: the old generateFallbackResponse() (canned replies with fabricated
+  // CPU/memory figures) was removed in the no-mocks pass. When no AI backend
+  // is reachable, generateAIResponse() says so plainly instead.
 
   suggestContextualActions(message) {
     const actions = [];
@@ -732,22 +1034,35 @@ Try asking me to "open terminal", "monitor system", or "automate task". I'm here
     };
   }
 
-  async showSystemStatus(args) {
-    const status = {
-      cpu: Math.floor(Math.random() * 30 + 20),
-      memory: Math.floor(Math.random() * 40 + 30),
-      network: this.p2pSystem?.peers?.size || 0,
-      uptime: '2h 15m'
-    };
-    
+  // Real browser-side signals only. CPU/network percentages are not
+  // measurable from a browser; they are reported as n/a, never fabricated.
+  readLocalSystemSignals() {
+    const heap = (typeof performance !== 'undefined' && performance.memory) ? performance.memory : null;
     return {
-      content: `**System Status:**
-🔥 CPU: ${status.cpu}%
-🧠 Memory: ${status.memory}%
-🌐 P2P Peers: ${status.network}
-⏱️ Uptime: ${status.uptime}
+      cpuCores: (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 'n/a',
+      jsHeapUsedMB: heap ? Number((heap.usedJSHeapSize / 1048576).toFixed(1)) : 'n/a',
+      jsHeapTotalMB: heap ? Number((heap.totalJSHeapSize / 1048576).toFixed(1)) : 'n/a',
+      p2pPeers: this.p2pSystem?.peers?.size ?? 0,
+      sessionUptimeMin: (typeof performance !== 'undefined')
+        ? Math.floor(performance.now() / 60000)
+        : 'n/a'
+    };
+  }
 
-System is running normally!`,
+  async showSystemStatus(args) {
+    const signals = this.readLocalSystemSignals();
+    const uptime = typeof signals.sessionUptimeMin === 'number'
+      ? `${Math.floor(signals.sessionUptimeMin / 60)}h ${signals.sessionUptimeMin % 60}m (this session)`
+      : 'n/a';
+
+    return {
+      content: `**System Status (local browser signals):**
+🧠 CPU cores: ${signals.cpuCores}
+💾 JS heap: ${signals.jsHeapUsedMB} / ${signals.jsHeapTotalMB} MB
+🌐 P2P Peers: ${signals.p2pPeers}
+⏱️ Uptime: ${uptime}
+
+CPU % and network throughput are not measurable from a browser and are not shown.`,
       speak: true,
       actions: [
         { type: 'open-app', data: 'task-manager', label: '📊 View Details' }
@@ -985,12 +1300,18 @@ System is running normally!`,
   }
 
   getRecentFiles() {
-    // Get recently accessed files
-    // This would integrate with the file manager
-    return [
-      { name: 'project-notes.md', path: '/documents/', modified: Date.now() - 3600000 },
-      { name: 'ai-model.json', path: '/models/', modified: Date.now() - 7200000 }
-    ];
+    // Honest local recency: derive from learning data recorded in this
+    // browser, or report none. Never fabricate file entries.
+    try {
+      const names = [];
+      for (const [, entry] of this.learningData) {
+        if (entry && entry.type === 'file' && entry.content) names.push(entry.content);
+        if (names.length >= 5) break;
+      }
+      return names.map(name => ({ name, path: '', modified: Date.now() }));
+    } catch {
+      return [];
+    }
   }
 
   getP2PPeers() {
@@ -1013,10 +1334,14 @@ System is running normally!`,
   }
 
   async getSystemHealth() {
+    // Real local signals only; unmeasurable fields are n/a, never random.
+    const signals = this.readLocalSystemSignals();
     return {
-      cpu: Math.floor(Math.random() * 30 + 20),
-      memory: Math.floor(Math.random() * 40 + 30),
-      status: 'healthy',
+      cpuCores: signals.cpuCores,
+      jsHeapUsedMB: signals.jsHeapUsedMB,
+      jsHeapTotalMB: signals.jsHeapTotalMB,
+      p2pPeers: signals.p2pPeers,
+      status: 'local-signals',
       alerts: []
     };
   }
@@ -1060,14 +1385,17 @@ System is running normally!`,
     const healthContainer = document.getElementById('system-health-list');
     if (healthContainer) {
       const health = this.context.systemHealth;
+      const heapLabel = health.jsHeapUsedMB === 'n/a' || health.jsHeapTotalMB === 'n/a'
+        ? 'n/a'
+        : `${health.jsHeapUsedMB}/${health.jsHeapTotalMB} MB`;
       healthContainer.innerHTML = `
         <div class="context-item">
           <span class="item-icon">💚</span>
-          <span class="item-text">CPU: ${health.cpu}%</span>
+          <span class="item-text">Cores: ${health.cpuCores}</span>
         </div>
         <div class="context-item">
           <span class="item-icon">🧠</span>
-          <span class="item-text">Memory: ${health.memory}%</span>
+          <span class="item-text">JS heap: ${heapLabel}</span>
         </div>
       `;
     }

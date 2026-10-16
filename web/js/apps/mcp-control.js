@@ -258,10 +258,10 @@ class MCPControlApp {
                         <h2>🔌 MCP Server Control Center</h2>
                         <div class="server-status">
                             <span class="status-indicator" title="${MCP_DASHBOARD_BROWSER_POLICY.hostDaemonCommandDisclaimer}">
-                                🟢 ${this.getActiveServerCount()} host daemon commands running
+                                <span class="sk-status-dot is-ok"></span>🟢 ${this.getActiveServerCount()} host daemon commands running
                             </span>
                             <span class="status-indicator" title="Browser-connectable remotes: ${MCP_DASHBOARD_BROWSER_POLICY.browserConnectableTransports.join(', ')}">
-                                🌐 ${this.connections.size} browser-connected remotes
+                                <span class="sk-status-dot ${this.connections.size > 0 ? 'is-ok' : 'is-idle'}"></span>🌐 ${this.connections.size} browser-connected remotes
                             </span>
                             <span class="discovery-status">
                                 ${this.autoDiscovery ? '🔍 Auto-discovery ON' : '🔍 Auto-discovery OFF'}
@@ -269,13 +269,13 @@ class MCPControlApp {
                         </div>
                     </div>
                     <div class="mcp-actions">
-                        <button onclick="mcpControlApp.refreshServers()" class="btn-primary">🔄 Refresh</button>
-                        <button onclick="mcpControlApp.showServerTemplates()" class="btn-secondary">📋 Templates</button>
-                        <button onclick="mcpControlApp.showAddServer()" class="btn-secondary" title="${MCP_DASHBOARD_BROWSER_POLICY.hostDaemonCommandDisclaimer}">🖥️ Add Host Daemon</button>
-                        <button onclick="mcpControlApp.showAddRemote()" class="btn-secondary" title="Browser-connectable remotes: ${MCP_DASHBOARD_BROWSER_POLICY.browserConnectableTransports.join(', ')}">🌐 Add Browser Remote</button>
-                        <button onclick="mcpControlApp.showDiscovery()" class="btn-secondary">🔍 Discovery</button>
-                        <button onclick="mcpControlApp.showMetrics()" class="btn-secondary">📊 Metrics</button>
-                        <button onclick="mcpControlApp.refreshLibp2pBrowserDefaults()" class="btn-secondary">🔄 libp2p</button>
+                        <button onclick="mcpControlApp.refreshServers()" class="btn-primary sk-btn sk-btn-primary">🔄 Refresh</button>
+                        <button onclick="mcpControlApp.showServerTemplates()" class="btn-secondary sk-btn">📋 Templates</button>
+                        <button onclick="mcpControlApp.showAddServer()" class="btn-secondary sk-btn" title="${MCP_DASHBOARD_BROWSER_POLICY.hostDaemonCommandDisclaimer}">🖥️ Add Host Daemon</button>
+                        <button onclick="mcpControlApp.showAddRemote()" class="btn-secondary sk-btn" title="Browser-connectable remotes: ${MCP_DASHBOARD_BROWSER_POLICY.browserConnectableTransports.join(', ')}">🌐 Add Browser Remote</button>
+                        <button onclick="mcpControlApp.showDiscovery()" class="btn-secondary sk-btn">🔍 Discovery</button>
+                        <button onclick="mcpControlApp.showMetrics()" class="btn-secondary sk-btn">📊 Metrics</button>
+                        <button onclick="mcpControlApp.refreshLibp2pBrowserDefaults()" class="btn-secondary sk-btn">🔄 libp2p</button>
                     </div>
                 </div>
                 
@@ -366,16 +366,16 @@ class MCPControlApp {
                     <div class="server-list-container">
                         <div class="list-header">
                             <div class="search-filter-bar">
-                                <input type="text" id="server-search" placeholder="Search servers..." 
+                                <input type="text" id="server-search" class="sk-input" placeholder="Search servers..." 
                                        onkeyup="mcpControlApp.filterServers()">
-                                <select id="status-filter" onchange="mcpControlApp.filterServers()">
+                                <select id="status-filter" class="sk-select" onchange="mcpControlApp.filterServers()">
                                     <option value="">All Status</option>
                                     <option value="running">Running</option>
                                     <option value="connected">Connected</option>
                                     <option value="stopped">Stopped</option>
                                     <option value="error">Error</option>
                                 </select>
-                                <select id="type-filter" onchange="mcpControlApp.filterServers()">
+                                <select id="type-filter" class="sk-select" onchange="mcpControlApp.filterServers()">
                                     <option value="">All Types</option>
                                     <option value="local">Host Daemon</option>
                                     <option value="remote">Browser Remote</option>
@@ -400,10 +400,10 @@ class MCPControlApp {
                 .libp2p-browser-defaults {
                     margin-top: 16px;
                     padding: 12px;
-                    border: 1px solid #d8dee8;
+                    border: 1px solid var(--sk-border, #263a34);
                     border-radius: 8px;
-                    background: #f8fafc;
-                    color: #243041;
+                    background: var(--sk-card, #17241f);
+                    color: var(--sk-text, #edf7f2);
                 }
 
                 .libp2p-browser-header {
@@ -425,7 +425,7 @@ class MCPControlApp {
                 }
 
                 .libp2p-browser-meta {
-                    color: #5d6b7c;
+                    color: var(--sk-text-dim, #a8bbb2);
                     font-size: 12px;
                     line-height: 1.4;
                     margin-bottom: 10px;
@@ -446,21 +446,22 @@ class MCPControlApp {
                 .libp2p-capability,
                 .libp2p-gap-row {
                     padding: 8px;
-                    border: 1px solid #d8dee8;
-                    border-left: 4px solid #94a3b8;
+                    border: 1px solid var(--sk-border, #263a34);
+                    border-left: 4px solid var(--sk-idle, #7e8d87);
                     border-radius: 6px;
-                    background: #ffffff;
+                    background: var(--sk-bg2, #101b18);
+                    color: var(--sk-text-dim, #a8bbb2);
                     font-size: 12px;
                 }
 
                 .libp2p-capability.configured {
-                    border-left-color: #16a34a;
+                    border-left-color: var(--sk-ok, #5ee3a1);
                 }
 
                 .libp2p-capability.gap,
                 .libp2p-gap-row {
-                    border-left-color: #d97706;
-                    background: #fff7ed;
+                    border-left-color: var(--sk-warn, #ffd166);
+                    background: rgba(255, 209, 102, 0.06);
                 }
 
                 .libp2p-capability strong,
@@ -547,7 +548,7 @@ class MCPControlApp {
             <div class="libp2p-browser-defaults" data-testid="mcp-libp2p-browser-defaults">
                 <div class="libp2p-browser-header">
                     <h4>Browser libp2p Defaults</h4>
-                    <button onclick="mcpControlApp.refreshLibp2pBrowserDefaults()" class="btn-secondary btn-sm">Refresh</button>
+                    <button onclick="mcpControlApp.refreshLibp2pBrowserDefaults()" class="btn-secondary btn-sm sk-btn">Refresh</button>
                 </div>
                 <div class="libp2p-browser-status" data-testid="mcp-libp2p-browser-status">
                     ${this.escapeHtml(statusText)}
@@ -599,23 +600,23 @@ class MCPControlApp {
         
         if (allServers.size === 0) {
             return `
-                <div class="no-servers">
+                <div class="no-servers sk-empty">
                     <div class="no-servers-icon">🔌</div>
                     <h3>No MCP Servers Configured</h3>
                     <p>Add your first MCP server to get started with Model Context Protocol integration.</p>
-                    <p class="browser-truth-note">
+                    <p class="browser-truth-note sk-honest-note">
                         "Host Daemon" entries record a command line for a host process to run \u2014 the
                         browser never executes it. "Browser Remote" entries are HTTP(S), WebSocket, or
                         libp2p endpoints the browser build connects to directly.
                     </p>
                     <div class="quick-actions">
-                        <button onclick="mcpControlApp.showServerTemplates()" class="btn-primary">
+                        <button onclick="mcpControlApp.showServerTemplates()" class="btn-primary sk-btn sk-btn-primary">
                             📋 Browse Templates
                         </button>
-                        <button onclick="mcpControlApp.showAddServer()" class="btn-secondary">
+                        <button onclick="mcpControlApp.showAddServer()" class="btn-secondary sk-btn">
                             🖥️ Add Host Daemon Command
                         </button>
-                        <button onclick="mcpControlApp.showAddRemote()" class="btn-secondary">
+                        <button onclick="mcpControlApp.showAddRemote()" class="btn-secondary sk-btn">
                             🌐 Add Browser Remote
                         </button>
                     </div>
@@ -633,7 +634,7 @@ class MCPControlApp {
                 : describeMcpDashboardHostDaemonCommand(server.command, server.args);
             
             return `
-                <div class="server-card ${statusClass} ${isRemote ? 'remote-server' : 'local-server'}">
+                <div class="server-card sk-card ${statusClass} ${isRemote ? 'remote-server' : 'local-server'}">
                     <div class="server-header">
                         <div class="server-info">
                             <div class="server-title">
@@ -647,8 +648,8 @@ class MCPControlApp {
                             <div class="server-description">${server.description || 'No description'}</div>
                             <div class="server-command">
                                 ${isRemote ?
-                                    `<code>🌐 ${server.url}</code>` :
-                                    `<code>${entryDescriptor.isPythonCommand ? '🐍' : '🖥️'} ${server.command} ${(server.args || []).join(' ')}</code>`
+                                    `<code class="sk-code">🌐 ${server.url}</code>` :
+                                    `<code class="sk-code">${entryDescriptor.isPythonCommand ? '🐍' : '🖥️'} ${server.command} ${(server.args || []).join(' ')}</code>`
                                 }
                             </div>
                             ${isRemote ? '' : `
@@ -667,7 +668,7 @@ class MCPControlApp {
                             <div class="detail-item">
                                 <strong>Status:</strong>
                                 <span class="status-badge ${statusClass}">
-                                    ${statusIcon} ${(server.status || 'stopped').toUpperCase()}
+                                    <span class="sk-status-dot ${server.status === 'running' ? 'is-ok' : server.status === 'error' ? 'is-err' : (server.status === 'starting' || server.status === 'stopping') ? 'is-warn' : 'is-idle'}"></span>${statusIcon} ${(server.status || 'stopped').toUpperCase()}
                                 </span>
                             </div>
                             ${isRemote ? `
@@ -889,7 +890,7 @@ class MCPControlApp {
                         <button onclick="mcpControlApp.hideAddServer()" class="modal-close">✕</button>
                     </div>
                     <div class="modal-body">
-                        <p class="browser-truth-note">
+                        <p class="browser-truth-note sk-honest-note">
                             This records a <strong>host-managed daemon command</strong>. SwissKnife's
                             browser build never executes this command \u2014 a host process (desktop app,
                             CLI, or configured MCP daemon supervisor) must run it separately. This applies
@@ -898,28 +899,28 @@ class MCPControlApp {
                         <form id="add-server-form">
                             <div class="form-group">
                                 <label for="server-name">Server Name:</label>
-                                <input type="text" id="server-name" placeholder="my-mcp-server" required>
+                                <input type="text" id="server-name" class="sk-input" placeholder="my-mcp-server" required>
                             </div>
                             <div class="form-group">
                                 <label for="server-command">Host Command:</label>
-                                <input type="text" id="server-command" placeholder="npx @modelcontextprotocol/server-filesystem" required oninput="mcpControlApp.updateAddServerCommandWarning()">
+                                <input type="text" id="server-command" class="sk-input" placeholder="npx @modelcontextprotocol/server-filesystem" required oninput="mcpControlApp.updateAddServerCommandWarning()">
                                 <div id="server-command-warning" class="host-daemon-disclaimer hidden"></div>
                             </div>
                             <div class="form-group">
                                 <label for="server-args">Arguments (JSON):</label>
-                                <textarea id="server-args" placeholder='["--root", "/path/to/directory"]' rows="3"></textarea>
+                                <textarea id="server-args" class="sk-textarea" placeholder='["--root", "/path/to/directory"]' rows="3"></textarea>
                             </div>
                             <div class="form-group">
                                 <label for="server-env">Environment Variables (JSON):</label>
-                                <textarea id="server-env" placeholder='{"NODE_ENV": "production"}' rows="3"></textarea>
+                                <textarea id="server-env" class="sk-textarea" placeholder='{"NODE_ENV": "production"}' rows="3"></textarea>
                             </div>
                             <div class="form-group">
                                 <label for="server-description">Description:</label>
-                                <input type="text" id="server-description" placeholder="Brief description of the server">
+                                <input type="text" id="server-description" class="sk-input" placeholder="Brief description of the server">
                             </div>
                             <div class="form-group">
                                 <label for="server-category">Category:</label>
-                                <select id="server-category">
+                                <select id="server-category" class="sk-select">
                                     <option value="custom">Custom</option>
                                     <option value="core">Core</option>
                                     <option value="integration">Integration</option>
@@ -938,8 +939,8 @@ class MCPControlApp {
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button onclick="mcpControlApp.addServer()" class="btn-primary">Add Host Daemon Command</button>
-                        <button onclick="mcpControlApp.hideAddServer()" class="btn-secondary">Cancel</button>
+                        <button onclick="mcpControlApp.addServer()" class="btn-primary sk-btn sk-btn-primary">Add Host Daemon Command</button>
+                        <button onclick="mcpControlApp.hideAddServer()" class="btn-secondary sk-btn">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -952,7 +953,7 @@ class MCPControlApp {
                         <button onclick="mcpControlApp.hideAddRemote()" class="modal-close">✕</button>
                     </div>
                     <div class="modal-body">
-                        <p class="browser-truth-note">
+                        <p class="browser-truth-note sk-honest-note">
                             SwissKnife's browser build connects to these endpoints <strong>directly</strong>
                             using ${MCP_DASHBOARD_BROWSER_POLICY.browserConnectableTransports.join(', ')}.
                             Unlike host daemon commands, no separate host process is required to reach them.
@@ -960,15 +961,15 @@ class MCPControlApp {
                         <form id="add-remote-form">
                             <div class="form-group">
                                 <label for="remote-name">Server Name:</label>
-                                <input type="text" id="remote-name" placeholder="remote-mcp-server" required>
+                                <input type="text" id="remote-name" class="sk-input" placeholder="remote-mcp-server" required>
                             </div>
                             <div class="form-group">
                                 <label for="remote-url">Server URL / Multiaddr:</label>
-                                <input type="text" id="remote-url" placeholder="ws://localhost:8765, https://api.example.com/mcp, or /dns4/host/tcp/4001/p2p/<peerId>" required>
+                                <input type="text" id="remote-url" class="sk-input" placeholder="ws://localhost:8765, https://api.example.com/mcp, or /dns4/host/tcp/4001/p2p/<peerId>" required>
                             </div>
                             <div class="form-group">
                                 <label for="remote-protocol">Browser-Connectable Transport:</label>
-                                <select id="remote-protocol">
+                                <select id="remote-protocol" class="sk-select">
                                     <option value="websocket">WebSocket</option>
                                     <option value="http">HTTP</option>
                                     <option value="https">HTTPS</option>
@@ -977,7 +978,7 @@ class MCPControlApp {
                             </div>
                             <div class="form-group">
                                 <label for="remote-auth">Authentication:</label>
-                                <select id="remote-auth">
+                                <select id="remote-auth" class="sk-select">
                                     <option value="none">None</option>
                                     <option value="bearer">Bearer Token</option>
                                     <option value="api-key">API Key</option>
@@ -986,15 +987,15 @@ class MCPControlApp {
                             </div>
                             <div class="form-group auth-details hidden" id="auth-details">
                                 <label for="auth-token">Token/Key:</label>
-                                <input type="password" id="auth-token" placeholder="Enter authentication token">
+                                <input type="password" id="auth-token" class="sk-input" placeholder="Enter authentication token">
                             </div>
                             <div class="form-group">
                                 <label for="remote-description">Description:</label>
-                                <input type="text" id="remote-description" placeholder="Brief description of the remote server">
+                                <input type="text" id="remote-description" class="sk-input" placeholder="Brief description of the remote server">
                             </div>
                             <div class="form-group">
                                 <label for="remote-category">Category:</label>
-                                <select id="remote-category">
+                                <select id="remote-category" class="sk-select">
                                     <option value="integration">Integration</option>
                                     <option value="cloud">Cloud</option>
                                     <option value="database">Database</option>
@@ -1011,9 +1012,9 @@ class MCPControlApp {
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button onclick="mcpControlApp.testRemoteConnection()" class="btn-secondary">🧪 Test Connection</button>
-                        <button onclick="mcpControlApp.addRemoteServer()" class="btn-primary">Add Browser Remote</button>
-                        <button onclick="mcpControlApp.hideAddRemote()" class="btn-secondary">Cancel</button>
+                        <button onclick="mcpControlApp.testRemoteConnection()" class="btn-secondary sk-btn">🧪 Test Connection</button>
+                        <button onclick="mcpControlApp.addRemoteServer()" class="btn-primary sk-btn sk-btn-primary">Add Browser Remote</button>
+                        <button onclick="mcpControlApp.hideAddRemote()" class="btn-secondary sk-btn">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -1060,7 +1061,7 @@ class MCPControlApp {
                         
                         <div class="network-discovery">
                             <h4>🌐 Network Discovery</h4>
-                            <button onclick="mcpControlApp.scanNetwork()" class="btn-primary">🔍 Scan Network</button>
+                            <button onclick="mcpControlApp.scanNetwork()" class="btn-primary sk-btn sk-btn-primary">🔍 Scan Network</button>
                             <div id="network-scan-results" class="scan-results">
                                 <!-- Network scan results will appear here -->
                             </div>
@@ -1107,7 +1108,7 @@ class MCPControlApp {
                     ⚠️ ${entryDescriptor.disclaimer}
                 </div>
                 <div class="template-actions">
-                    <button onclick="mcpControlApp.useTemplate('${id}')" class="btn-primary">
+                    <button onclick="mcpControlApp.useTemplate('${id}')" class="btn-primary sk-btn sk-btn-primary">
                         ➕ Use Template
                     </button>
                 </div>
@@ -1132,10 +1133,10 @@ class MCPControlApp {
                     <div class="discovered-time">Discovered: ${new Date(server.discoveredAt).toLocaleString()}</div>
                 </div>
                 <div class="server-actions">
-                    <button onclick="mcpControlApp.addDiscoveredServer('${server.name}')" class="btn-primary">
+                    <button onclick="mcpControlApp.addDiscoveredServer('${server.name}')" class="btn-primary sk-btn sk-btn-primary">
                         ➕ Add
                     </button>
-                    <button onclick="mcpControlApp.ignoreDiscovered('${server.name}')" class="btn-secondary">
+                    <button onclick="mcpControlApp.ignoreDiscovered('${server.name}')" class="btn-secondary sk-btn">
                         ✕ Ignore
                     </button>
                 </div>
@@ -1188,12 +1189,12 @@ class MCPControlApp {
     renderRemoteActions(name, server) {
         return `
             ${server.status === 'connected' ? 
-                `<button onclick="mcpControlApp.disconnectRemote('${name}')" class="btn-danger">🔌 Disconnect</button>` :
-                `<button onclick="mcpControlApp.connectRemote('${name}')" class="btn-primary">🔗 Connect</button>`
+                `<button onclick="mcpControlApp.disconnectRemote('${name}')" class="btn-danger sk-btn sk-btn-danger">🔌 Disconnect</button>` :
+                `<button onclick="mcpControlApp.connectRemote('${name}')" class="btn-primary sk-btn sk-btn-primary">🔗 Connect</button>`
             }
-            <button onclick="mcpControlApp.testRemoteConnection('${name}')" class="btn-secondary">🧪 Test</button>
-            <button onclick="mcpControlApp.editRemoteServer('${name}')" class="btn-secondary">✏️ Edit</button>
-            <button onclick="mcpControlApp.removeRemoteServer('${name}')" class="btn-danger">🗑️ Remove</button>
+            <button onclick="mcpControlApp.testRemoteConnection('${name}')" class="btn-secondary sk-btn">🧪 Test</button>
+            <button onclick="mcpControlApp.editRemoteServer('${name}')" class="btn-secondary sk-btn">✏️ Edit</button>
+            <button onclick="mcpControlApp.removeRemoteServer('${name}')" class="btn-danger sk-btn sk-btn-danger">🗑️ Remove</button>
         `;
     }
 
@@ -1201,24 +1202,24 @@ class MCPControlApp {
         if (server.managedBy === 'hallucinate_app.electron.daemon') {
             return `
                 ${server.status === 'running' ? 
-                    `<button onclick="mcpControlApp.stopServer('${name}')" class="btn-danger">Stop</button>` :
-                    `<button onclick="mcpControlApp.startServer('${name}')" class="btn-primary">Start</button>`
+                    `<button onclick="mcpControlApp.stopServer('${name}')" class="btn-danger sk-btn sk-btn-danger">Stop</button>` :
+                    `<button onclick="mcpControlApp.startServer('${name}')" class="btn-primary sk-btn sk-btn-primary">Start</button>`
                 }
-                <button onclick="mcpControlApp.restartServer('${name}')" class="btn-secondary">Restart</button>
-                <button onclick="mcpControlApp.testConnection('${name}')" class="btn-secondary">Health</button>
-                ${server.dashboardUrl ? `<button onclick="window.open('${server.dashboardUrl}', '_blank', 'noopener,noreferrer')" class="btn-secondary">Dashboard</button>` : ''}
+                <button onclick="mcpControlApp.restartServer('${name}')" class="btn-secondary sk-btn">Restart</button>
+                <button onclick="mcpControlApp.testConnection('${name}')" class="btn-secondary sk-btn">Health</button>
+                ${server.dashboardUrl ? `<button onclick="window.open('${server.dashboardUrl}', '_blank', 'noopener,noreferrer')" class="btn-secondary sk-btn">Dashboard</button>` : ''}
             `;
         }
 
         return `
             ${server.status === 'running' ? 
-                `<button onclick="mcpControlApp.stopServer('${name}')" class="btn-danger">⏹️ Stop</button>` :
-                `<button onclick="mcpControlApp.startServer('${name}')" class="btn-primary">▶️ Start</button>`
+                `<button onclick="mcpControlApp.stopServer('${name}')" class="btn-danger sk-btn sk-btn-danger">⏹️ Stop</button>` :
+                `<button onclick="mcpControlApp.startServer('${name}')" class="btn-primary sk-btn sk-btn-primary">▶️ Start</button>`
             }
-            <button onclick="mcpControlApp.restartServer('${name}')" class="btn-secondary">🔄 Restart</button>
-            <button onclick="mcpControlApp.editServer('${name}')" class="btn-secondary">✏️ Edit</button>
-            <button onclick="mcpControlApp.testConnection('${name}')" class="btn-secondary">🧪 Test</button>
-            <button onclick="mcpControlApp.removeServer('${name}')" class="btn-danger">🗑️ Remove</button>
+            <button onclick="mcpControlApp.restartServer('${name}')" class="btn-secondary sk-btn">🔄 Restart</button>
+            <button onclick="mcpControlApp.editServer('${name}')" class="btn-secondary sk-btn">✏️ Edit</button>
+            <button onclick="mcpControlApp.testConnection('${name}')" class="btn-secondary sk-btn">🧪 Test</button>
+            <button onclick="mcpControlApp.removeServer('${name}')" class="btn-danger sk-btn sk-btn-danger">🗑️ Remove</button>
         `;
     }
 
@@ -1801,18 +1802,12 @@ class MCPControlApp {
             }
         }
         
-        // Fallback: Show example servers if no real ones detected
+        // Honest empty state: no invented example servers. Server records
+        // appear here only when the user adds them or a real daemon is
+        // detected through the hallucinate bridge.
         if (this.servers.size === 0) {
-            const fallbackServers = [
-                { name: 'example-mcp-server', command: 'uvicorn main:app', status: 'stopped', port: 8765 },
-                { name: 'example-mcp-server-2', command: 'python server.py', status: 'stopped', port: 8766 }
-            ];
-
-            for (const server of fallbackServers) {
-                if (!this.servers.has(server.name)) {
-                    this.servers.set(server.name, server);
-                }
-            }
+            console.log('MCP Control: no servers configured yet.');
+        }
         }
 
         // Check remote server connections
@@ -1967,15 +1962,44 @@ class MCPControlApp {
         }
     }
 
-    testConnection(name) {
+    async testConnection(name) {
         const server = this.servers.get(name);
-        if (server) {
-            // Simulate connection test for local servers
-            this.showNotification(`Testing connection to "${name}"...`, 'info');
-            setTimeout(() => {
-                this.showNotification(`Connection test ${Math.random() > 0.3 ? 'successful' : 'failed'} for "${name}"`, 
-                    Math.random() > 0.3 ? 'success' : 'error');
-            }, 2000);
+        if (!server) return;
+
+        const isRemote = this.remoteServers.has(name);
+        if (!isRemote) {
+            // Honest: local entries are host-daemon command records; the
+            // browser cannot reach a host process, so there is nothing real
+            // to probe. (The add-server dialog already labels these as
+            // host-managed.)
+            this.showNotification(`"${name}" is a host-managed command record — test its process in your own terminal, not from this browser surface.`, 'info');
+            return;
+        }
+
+        // Real probe against the browser-connectable remote endpoint.
+        this.showNotification(`Testing connection to "${name}"...`, 'info');
+        const url = server.url || '';
+        const timeoutMs = 8000;
+        try {
+            if (/^wss?:\/\//i.test(url)) {
+                await new Promise((resolve, reject) => {
+                    const ws = new WebSocket(url);
+                    const timer = setTimeout(() => { try { ws.close(); } catch (e) {} reject(new Error('connection timed out')); }, timeoutMs);
+                    ws.onopen = () => { clearTimeout(timer); try { ws.close(); } catch (e) {} resolve(); };
+                    ws.onerror = () => { clearTimeout(timer); reject(new Error('WebSocket connection failed')); };
+                });
+            } else if (/^https?:\/\//i.test(url)) {
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), timeoutMs);
+                const response = await fetch(url, { method: 'GET', signal: controller.signal, mode: 'cors' }).catch(() => null);
+                clearTimeout(timer);
+                if (!response) throw new Error('no HTTP response (the endpoint may block CORS or be unreachable)');
+            } else {
+                throw new Error(`transport "${url}" is not browser-probeable`);
+            }
+            this.showNotification(`Connection test succeeded for "${name}"`, 'success');
+        } catch (error) {
+            this.showNotification(`Connection test failed for "${name}": ${error.message}`, 'error');
         }
     }
 
@@ -2080,20 +2104,16 @@ class MCPControlApp {
                 return;
             }
 
-            // In a real implementation, this would start the actual process
-            // For now, simulate starting
-            server.status = 'starting';
+            // Honest: this browser surface cannot spawn host processes. Local
+            // command entries are host-managed records (see the add-server
+            // dialog warning) — starting them here would be a fabrication,
+            // so the record is left untouched and the user is told how to
+            // start it for real.
+            server.status = 'host-managed';
+            server.lastError = null;
             this.refreshUI();
-            
-            setTimeout(() => {
-                server.status = 'running';
-                server.pid = Math.floor(Math.random() * 10000) + 1000;
-                server.port = server.port || 8765;
-                server.startTime = Date.now();
-                this.addConnectionEvent(`Server "${name}" started`, 'server_started');
-                this.refreshUI();
-                this.showNotification(`Server "${name}" started successfully`, 'success');
-            }, 2000);
+            this.addConnectionEvent(`Start requested for host-managed "${name}" — run \`${server.command || ''}\` in your own terminal; this browser cannot start host processes.`, 'server_info');
+            this.showNotification(`"${name}" is host-managed: run \`${server.command || 'the command'}\` in your own terminal. This browser surface cannot start it.`, 'info');
             
         } catch (error) {
             server.status = 'error';
@@ -2119,17 +2139,15 @@ class MCPControlApp {
                 return;
             }
 
-            server.status = 'stopping';
+            // Honest: nothing was started from here (see startServer), so
+            // there is nothing real to stop. The record is returned to its
+            // prior state instead of fabricating a stop.
+            server.status = 'stopped';
+            server.pid = null;
+            server.startTime = null;
             this.refreshUI();
-            
-            setTimeout(() => {
-                server.status = 'stopped';
-                server.pid = null;
-                server.startTime = null;
-                this.addConnectionEvent(`Server "${name}" stopped`, 'server_stopped');
-                this.refreshUI();
-                this.showNotification(`Server "${name}" stopped`, 'info');
-            }, 1000);
+            this.addConnectionEvent(`Host-managed "${name}" marked stopped (record only — manage the real process in your terminal)`, 'server_stopped');
+            this.showNotification(`"${name}" marked stopped (record only). Stop the real process in your own terminal.`, 'info');
             
         } catch (error) {
             this.showNotification(`Failed to stop server "${name}": ${error.message}`, 'error');

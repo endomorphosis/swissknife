@@ -181,6 +181,16 @@ export class BrowserAppCapabilityGateway {
   }
 
   async invokeIPFSOperation(capability, input) {
+    // ipfs_datasets_py and ipfs_accelerate_py are served by their MCP++
+    // compat adapters over HTTP (JSON-RPC tools/call), reached through the
+    // MCP++ desktop client — the same transport the supervisor gateway uses.
+    // Previously these families threw unconditionally here, so every one of
+    // their descriptor operations degraded without ever attempting a live
+    // backend call.
+    if (capability.service_family === 'ipfs_datasets_py'
+        || capability.service_family === 'ipfs_accelerate_py') {
+      return this.invokeAdapterTool(capability, input);
+    }
     if (capability.service_family !== 'ipfs_kit_py') {
       throw new Error(`No live ${capability.service_family} descriptor transport is registered in the browser runtime.`);
     }
@@ -214,6 +224,21 @@ export class BrowserAppCapabilityGateway {
       || null;
   }
 
+  /**
+   * Live transport for adapter-backed service families: JSON-RPC
+   * `tools/call` against the family's MCP++ compat adapter, via the MCP++
+   * desktop client. Failures propagate to the caller, which reports them
+   * verbatim in a degraded envelope — never masked with fabricated output.
+   */
+  async invokeAdapterTool(capability, input) {
+    const clientModule = await import('./mcp-plus-plus-desktop-client.js');
+    const client = clientModule.getMCPPlusPlusDesktopClient();
+    return client.rpc(capability.service_family, 'tools/call', {
+      name: capability.mcp_tool_name,
+      arguments: input || {},
+    });
+  }
+
   buildEnvelope(input) {
     const finishedAt = this.now();
     const durationMs = Math.max(0, finishedAt.getTime() - input.startedAt.getTime());
@@ -237,7 +262,9 @@ export class BrowserAppCapabilityGateway {
       started_at: input.startedAt.toISOString(),
       finished_at: finishedAt.toISOString(),
       duration_ms: durationMs,
-      transport: input.status === 'ok' ? 'browser-ipfs-api' : 'descriptor-fallback',
+      transport: input.status === 'ok'
+        ? (input.serviceFamily === 'ipfs_kit_py' ? 'browser-ipfs-api' : 'mcp-adapter-tools-call')
+        : 'descriptor-fallback',
       warnings: input.warnings,
     };
     const receipt = {

@@ -3,7 +3,44 @@
  * 
  * A professional, fully functional media player with classic Winamp aesthetics.
  * Supports audio and video playback with comprehensive playlist management.
+ *
+ * Backend contract: playback itself is honestly local (Web Audio/Video).
+ * Playlists and track metadata persist through the genuine MCP++ desktop
+ * client to the ipfs_kit_py artifact store (POST /mcp/artifacts/put) and are
+ * read back via GET /mcp/artifacts/<cid>. Every backend-mutating POST sits
+ * behind an explicit user confirmation step; backend failures surface
+ * verbatim and never fall back to fixtures or simulated success.
  */
+
+import { contentCidForBytes, stableStringifyValue, base64ForBytes } from '../core/mcp-plus-plus-desktop-client.js';
+
+async function backendClient() {
+    const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
+    return clientModule.getMCPPlusPlusDesktopClient();
+}
+
+function bytesFromBase64(b64) {
+    const bin = atob(String(b64 || '').replace(/\s+/g, ''));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+}
+
+function escapeHtmlMp(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function guessMimeFromArtifact(artifact) {
+    const kind = String(artifact?.kind || '').toLowerCase();
+    const profile = String(artifact?.profile || '').toLowerCase();
+    if (kind.includes('video') || profile.includes('video')) return 'video/mp4';
+    if (kind.includes('audio') || profile.includes('audio')) return 'audio/mpeg';
+    const name = String(artifact?.name || artifact?.filename || '').toLowerCase();
+    if (/\.(mp4|m4v|webm|ogv)$/.test(name)) return 'video/mp4';
+    return 'audio/mpeg';
+}
 
 class MediaPlayer {
     constructor() {
@@ -165,6 +202,7 @@ class MediaPlayer {
                     <div class="titlebar-title">
                         <span class="player-icon">🎵</span>
                         SwissKnife Media Player
+                        <span class="local-playback-badge" title="Audio/video decoding and playback run locally in this browser; no backend claim">local playback</span>
                     </div>
                     <div class="titlebar-controls">
                         <button class="titlebar-btn minimize-btn" onclick="mediaPlayer.minimizePlayer()" title="Minimize">−</button>
@@ -194,20 +232,20 @@ class MediaPlayer {
                 </div>
 
                 <!-- Transport Controls -->
-                <div class="transport-controls">
-                    <button class="control-btn" onclick="mediaPlayer.previousTrack()" title="Previous">⏮</button>
-                    <button class="control-btn play-btn" id="playButton" onclick="mediaPlayer.togglePlay()" title="Play/Pause">▶</button>
-                    <button class="control-btn" onclick="mediaPlayer.stop()" title="Stop">⏹</button>
-                    <button class="control-btn" onclick="mediaPlayer.nextTrack()" title="Next">⏭</button>
+                <div class="transport-controls sk-transport">
+                    <button class="sk-transport-btn" onclick="mediaPlayer.previousTrack()" title="Previous" aria-label="Previous track">⏮</button>
+                    <button class="sk-transport-btn is-main" id="playButton" onclick="mediaPlayer.togglePlay()" title="Play/Pause" aria-label="Play or pause">▶</button>
+                    <button class="sk-transport-btn" onclick="mediaPlayer.stop()" title="Stop" aria-label="Stop">⏹</button>
+                    <button class="sk-transport-btn" onclick="mediaPlayer.nextTrack()" title="Next" aria-label="Next track">⏭</button>
                     
                     <div class="volume-control">
-                        <button class="control-btn volume-btn" onclick="mediaPlayer.toggleMute()" title="Mute">🔊</button>
+                        <button class="sk-transport-btn volume-btn" onclick="mediaPlayer.toggleMute()" title="Mute" aria-label="Mute">🔊</button>
                         <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="80"
                                onchange="mediaPlayer.setVolume(this.value)" />
                     </div>
                     
-                    <button class="control-btn" onclick="mediaPlayer.toggleShuffle()" id="shuffleBtn" title="Shuffle">🔀</button>
-                    <button class="control-btn" onclick="mediaPlayer.toggleRepeat()" id="repeatBtn" title="Repeat">🔁</button>
+                    <button class="sk-transport-btn" onclick="mediaPlayer.toggleShuffle()" id="shuffleBtn" title="Shuffle" aria-label="Shuffle">🔀</button>
+                    <button class="sk-transport-btn" onclick="mediaPlayer.toggleRepeat()" id="repeatBtn" title="Repeat" aria-label="Repeat">🔁</button>
                 </div>
 
                 <!-- Mode Controls -->
@@ -218,7 +256,7 @@ class MediaPlayer {
                     <button class="mode-btn" onclick="mediaPlayer.showPreferences()" title="Settings">⚙️</button>
                 </div>
 
-                <!-- VDA-G040 workflow evidence -->
+                <!-- VDA-G040 workflow: real backend evidence (no fixtures) -->
                 <section class="vda-media-workflow"
                          data-svd-workflow="media-player.cid-audio-quality-recovery"
                          aria-label="CID media playback workflow">
@@ -226,87 +264,73 @@ class MediaPlayer {
                         <div>
                             <span class="vda-kicker">VDA-G040</span>
                             <h3>CID Audio Workflow</h3>
-                            <p class="vda-evidence-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
+                            <p class="vda-workflow-sub">Playback is local; every CID and receipt below comes from a live ipfs_kit_py backend call. Backend-mutating actions ask for explicit confirmation first.</p>
                         </div>
-                        <span class="vda-status" data-playback-state="playing" data-cid-media-state="retrieved">CID media ready</span>
+                        <span class="vda-status" data-playback-state="idle" data-cid-media-state="none">CID media idle</span>
                     </div>
 
                     <div class="vda-workflow-grid">
                         <article data-svd-vda-marker="cid-media"
-                                 data-cid="bafymediaplayerg040audiocidplayback"
-                                 data-retrieval-state="retrieved"
-                                 data-playback-state="playing">
+                                 data-retrieval-state="none"
+                                 data-playback-state="idle">
                             <strong>CID media</strong>
-                            <p>IPFS audio CID bafymediaplayerg040audiocidplayback streams from retrieval manifest bafymediaplayerg040retrievalmanifest with gateway RTT 42 ms and pinned range cache.</p>
-                            <small>receipt:media-player:g040:cid-media</small>
+                            <p class="vda-real-line" data-field="cid-media">No CID retrieved yet. Use “Retrieve CID media”, then enter an artifact CID to fetch its real bytes from ipfs_kit_py and play them locally.</p>
+                            <small data-field="cid-media-receipt"></small>
                         </article>
 
                         <article data-svd-vda-marker="captions-metadata"
-                                 data-caption-state="enabled"
-                                 data-metadata-state="loaded">
+                                 data-caption-state="none"
+                                 data-metadata-state="none">
                             <strong>Captions and metadata</strong>
-                            <p>VTT caption catalog bafymediaplayerg040captionmetadata is enabled with transcript cues, album art metadata, artist credits, duration, codec, and provenance tags.</p>
-                            <small>receipt:media-player:g040:captions-metadata</small>
+                            <p class="vda-real-line" data-field="captions-metadata">No metadata persisted yet. “Captions metadata” builds a metadata record from the real current-track values and persists it to ipfs_kit_py behind a confirmation.</p>
+                            <small data-field="captions-metadata-receipt"></small>
                         </article>
 
                         <article data-svd-vda-marker="diagnostics"
-                                 data-diagnostic-state="transcode-ready">
+                                 data-diagnostic-state="none">
                             <strong>Diagnostics</strong>
-                            <p>Quality diagnostics wrote bafymediaplayerg040transcodediagnostics: transcode recommendation AAC 160 kbps, normalized loudness -18 LUFS, packet jitter 3 ms, gateway RTT healthy.</p>
-                            <small>receipt:media-player:g040:diagnostics</small>
+                            <p class="vda-real-line" data-field="diagnostics">No diagnostics run yet. “Run diagnostics” re-reads the last backend artifact and reports the measured round-trip time — no fabricated RTT figures.</p>
+                            <small data-field="diagnostics-receipt"></small>
                         </article>
 
                         <article data-svd-vda-marker="seek-volume"
-                                 data-seek-state="bounded"
-                                 data-volume-state="bounded">
-                            <strong>Seek and volume</strong>
-                            <p>Seek checkpoint bafymediaplayerg040seekvolume clamps scrubber to 01:12 / 03:24, records volume 62%, mute-safe resume, and headphone output bounded below policy max.</p>
-                            <small>receipt:media-player:g040:seek-volume</small>
+                                 data-seek-state="local"
+                                 data-volume-state="local">
+                            <strong>Seek and volume (local)</strong>
+                            <p class="vda-real-line" data-field="seek-volume">Local player state only — no backend involved. “Seek volume” moves the real playhead and volume control and reports the actual values.</p>
+                            <small data-field="seek-volume-receipt"></small>
                         </article>
 
                         <article data-svd-vda-marker="missing-codec"
-                                 data-codec-state="fallback-ready"
-                                 data-fallback-state="aac-preview">
-                            <strong>Missing codec</strong>
-                            <p>Missing codec recovery bafymediaplayerg040missingcodec rejects unsupported ALAC-in-OGG, keeps controls visible, and recommends AAC preview fallback target aac-preview.</p>
-                            <small>receipt:media-player:g040:missing-codec</small>
+                                 data-codec-state="local"
+                                 data-fallback-state="local">
+                            <strong>Codec support (local)</strong>
+                            <p class="vda-real-line" data-field="missing-codec">Local codec probe only. “Missing codec” reports this browser's real <code>canPlayType</code> results for common codecs — no backend involved.</p>
+                            <small data-field="missing-codec-receipt"></small>
                         </article>
 
                         <article data-svd-vda-marker="background-audio-recovery"
-                                 data-background-audio-state="recovered"
-                                 data-audio-route-state="recovered">
-                            <strong>Background audio recovery</strong>
-                            <p>Background audio recovered after route loss via bafymediaplayerg040backgroundaudiorecovery; resume token restored playback, captions, and volume after desktop focus returned.</p>
-                            <small>receipt:media-player:g040:background-audio</small>
+                                 data-background-audio-state="local"
+                                 data-audio-route-state="local">
+                            <strong>Resume playback (local)</strong>
+                            <p class="vda-real-line" data-field="background-audio">Local resume only. “Recover audio” calls play() on the real media element and reports the actual outcome — no backend involved.</p>
+                            <small data-field="background-audio-receipt"></small>
                         </article>
-                    </div>
-
-                    <div class="vda-reference-strip" aria-label="Workflow references">
-                        bafymediaplayerg040playbacksession
-                        bafymediaplayerg040retrievalmanifest
-                        bafymediaplayerg040captionmetadata
-                        bafymediaplayerg040transcodediagnostics
-                        bafymediaplayerg040seekvolume
-                        bafymediaplayerg040missingcodec
-                        bafymediaplayerg040backgroundaudiorecovery
                     </div>
 
                     <div class="vda-workflow-actions">
                         <button type="button" data-svd-workflow-action="retrieve-cid-media" onclick="mediaPlayer.retrieveCidMedia()" aria-label="Retrieve CID media">Retrieve CID media</button>
-                        <button type="button" data-svd-workflow-action="toggle-captions-metadata" onclick="mediaPlayer.toggleCaptionsMetadata()" aria-label="Toggle captions metadata">Captions metadata</button>
+                        <button type="button" data-svd-workflow-action="toggle-captions-metadata" onclick="mediaPlayer.persistCaptionsMetadata()" aria-label="Persist captions metadata">Captions metadata</button>
                         <button type="button" data-svd-workflow-action="run-quality-diagnostics" onclick="mediaPlayer.runQualityDiagnostics()" aria-label="Run quality diagnostics">Run diagnostics</button>
                         <button type="button" data-svd-workflow-action="exercise-seek-volume" onclick="mediaPlayer.exerciseSeekVolume()" aria-label="Exercise seek volume">Seek volume</button>
-                        <button type="button" data-svd-workflow-action="simulate-missing-codec" onclick="mediaPlayer.simulateMissingCodec()" aria-label="Simulate missing codec">Missing codec</button>
+                        <button type="button" data-svd-workflow-action="simulate-missing-codec" onclick="mediaPlayer.probeMissingCodec()" aria-label="Probe missing codec">Missing codec</button>
                         <button type="button" data-svd-workflow-action="recover-background-audio" onclick="mediaPlayer.recoverBackgroundAudio()" aria-label="Recover background audio">Recover audio</button>
                     </div>
 
-                    <div class="vda-workflow-receipts" aria-label="Workflow receipts">
-                        receipt:media-player:g040:cid-media
-                        receipt:media-player:g040:captions-metadata
-                        receipt:media-player:g040:diagnostics
-                        receipt:media-player:g040:seek-volume
-                        receipt:media-player:g040:missing-codec
-                        receipt:media-player:g040:background-audio
+                    <div class="vda-workflow-receipts" aria-label="Backend operation log">
+                        <ol class="vda-receipt-log" data-field="receipt-log">
+                            <li>No backend operations yet.</li>
+                        </ol>
                     </div>
                 </section>
 
@@ -381,6 +405,17 @@ class MediaPlayer {
                 display: flex;
                 align-items: center;
                 gap: 8px;
+            }
+
+            .local-playback-badge {
+                font-size: 9px;
+                font-weight: normal;
+                color: #062b06;
+                background: #7dff7d;
+                border-radius: 999px;
+                padding: 2px 8px;
+                letter-spacing: 0;
+                text-transform: uppercase;
             }
 
             .player-icon {
@@ -478,43 +513,12 @@ class MediaPlayer {
                 cursor: pointer;
             }
 
-            .transport-controls {
-                display: flex;
+            /* Unified transport: sizing/behavior comes from .sk-transport /
+               .sk-transport-btn in web/css/apps.css; the player keeps its
+               layout row + volume cluster here. */
+            .media-player-container .sk-transport {
                 justify-content: space-between;
-                align-items: center;
                 padding: 0 16px 16px;
-                gap: 8px;
-            }
-
-            .control-btn {
-                background: #003300;
-                border: 2px solid #00ff00;
-                color: #00ff00;
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                cursor: pointer;
-                font-size: 16px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: all 0.2s;
-            }
-
-            .control-btn:hover {
-                background: #006600;
-                box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-            }
-
-            .control-btn:active {
-                transform: scale(0.95);
-            }
-
-            .play-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 20px;
-                background: #004400;
             }
 
             .volume-control {
@@ -523,7 +527,7 @@ class MediaPlayer {
                 gap: 8px;
             }
 
-            .volume-btn {
+            .media-player-container .sk-transport-btn.volume-btn {
                 width: 32px;
                 height: 32px;
                 font-size: 14px;
@@ -596,6 +600,187 @@ class MediaPlayer {
                 font-size: 10px;
                 letter-spacing: 0;
                 text-transform: uppercase;
+            }
+
+            .vda-workflow-sub {
+                margin: 4px 0 0;
+                color: #b6ffb6;
+                font-size: 10px;
+                line-height: 1.4;
+            }
+
+            .vda-receipt-log {
+                margin: 0;
+                padding-left: 18px;
+                color: #b6ffb6;
+                font-size: 10px;
+                line-height: 1.5;
+                overflow-wrap: anywhere;
+                max-height: 120px;
+                overflow-y: auto;
+            }
+
+            .vda-real-line {
+                overflow-wrap: anywhere;
+            }
+
+            /* Confirmation-gated governed write dialog */
+            .mp-governed-confirm-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.72);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 20000;
+            }
+
+            .mp-governed-confirm-dialog {
+                background: #0a140a;
+                border: 2px solid #00ff00;
+                border-radius: 8px;
+                color: #eaffea;
+                max-width: 420px;
+                width: calc(100% - 48px);
+                max-height: 80vh;
+                overflow-y: auto;
+                padding: 18px;
+                font-family: 'Courier New', monospace;
+            }
+
+            .mp-governed-confirm-dialog h3 {
+                margin: 0 0 8px;
+                color: #7dff7d;
+                font-size: 14px;
+            }
+
+            .mp-governed-confirm-dialog h4 {
+                margin: 12px 0 6px;
+                color: #7dff7d;
+                font-size: 12px;
+            }
+
+            .mp-governed-confirm-dialog p {
+                margin: 0 0 8px;
+                font-size: 11px;
+                color: #b6ffb6;
+                line-height: 1.5;
+                overflow-wrap: anywhere;
+            }
+
+            .mp-governed-target {
+                color: #82ff82 !important;
+            }
+
+            .mp-governed-check {
+                display: flex;
+                gap: 8px;
+                align-items: flex-start;
+                font-size: 11px;
+                color: #eaffea;
+                margin: 10px 0;
+                cursor: pointer;
+            }
+
+            .mp-governed-actions {
+                display: flex;
+                gap: 8px;
+                justify-content: flex-end;
+                margin-top: 12px;
+            }
+
+            .mp-governed-actions button,
+            .mp-picker-cid-row .mp-governed-confirm {
+                background: #003300;
+                border: 1px solid #00ff00;
+                color: #eaffea;
+                padding: 8px 14px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12px;
+                font-family: 'Courier New', monospace;
+            }
+
+            .mp-governed-actions button:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+            }
+
+            .mp-governed-actions button:not(:disabled):hover {
+                background: #006600;
+            }
+
+            .mp-cid-input {
+                width: 100%;
+                box-sizing: border-box;
+                background: #001100;
+                border: 1px solid #00ff00;
+                color: #eaffea;
+                padding: 8px;
+                border-radius: 4px;
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                margin-top: 4px;
+            }
+
+            .mp-picker-dialog {
+                max-width: 480px;
+            }
+
+            .mp-picker-list {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+                display: grid;
+                gap: 6px;
+                max-height: 140px;
+                overflow-y: auto;
+            }
+
+            .mp-picker-empty {
+                font-size: 11px;
+                color: #82ff82;
+            }
+
+            .mp-picker-item {
+                width: 100%;
+                text-align: left;
+                background: #021202;
+                border: 1px solid #145f14;
+                color: #eaffea;
+                border-radius: 4px;
+                padding: 8px;
+                cursor: pointer;
+                font-family: 'Courier New', monospace;
+                display: grid;
+                gap: 2px;
+            }
+
+            .mp-picker-item:hover {
+                border-color: #00ff00;
+                background: #062b06;
+            }
+
+            .mp-picker-item strong {
+                font-size: 12px;
+                color: #7dff7d;
+            }
+
+            .mp-picker-item span,
+            .mp-picker-item small {
+                font-size: 10px;
+                color: #b6ffb6;
+                overflow-wrap: anywhere;
+            }
+
+            .mp-picker-cid-row {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
+
+            .mp-picker-cid-row .mp-cid-input {
+                margin-top: 0;
             }
 
             .vda-status {
@@ -733,6 +918,21 @@ class MediaPlayer {
                 border-color: #00ff00;
             }
 
+            .playlist-item .mp-track-title {
+                font-weight: bold;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .playlist-item .mp-track-meta {
+                font-size: 11px;
+                color: #66ff66;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
             .playlist-controls {
                 padding: 12px;
                 border-top: 1px solid #00ff00;
@@ -866,8 +1066,7 @@ class MediaPlayer {
                     max-width: 380px;
                 }
                 
-                .transport-controls {
-                    flex-wrap: wrap;
+                .media-player-container .sk-transport {
                     gap: 4px;
                 }
                 
@@ -888,11 +1087,8 @@ class MediaPlayer {
                 }
             }
 
-            /* Active states */
-            .control-btn.active {
-                background: #006600;
-                box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
-            }
+            /* Active transport states (shuffle/repeat) are styled by
+               .sk-transport-btn.active in web/css/apps.css. */
 
             /* Loading animation */
             .loading {
@@ -1440,8 +1636,8 @@ class MediaPlayer {
         this.playlistContainer.innerHTML = this.playlist.map((track, index) => `
             <div class="playlist-item ${index === this.currentTrack ? 'active' : ''}" 
                  onclick="mediaPlayer.loadTrack(${index})">
-                <div style="font-weight: bold;">${track.title}</div>
-                <div style="font-size: 11px; color: #66ff66;">
+                <div class="mp-track-title">${track.title}</div>
+                <div class="mp-track-meta">
                     ${track.artist} - ${this.formatTime(track.duration)}
                 </div>
             </div>
@@ -1463,49 +1659,191 @@ class MediaPlayer {
     /**
      * 💾 Save playlist (to localStorage)
      */
-    savePlaylist() {
+    /**
+     * 💾 Save playlist: persists the playlist record to the ipfs_kit_py
+     * artifact store behind an explicit confirmation, returns the real
+     * canonical CID, and keeps an honest local index of real artifact CIDs.
+     */
+    async savePlaylist() {
+        const record = {
+            schema: 'swissknife.media-player.playlist.v1',
+            app: 'media-player',
+            name: `Playlist_${new Date().toISOString().split('T')[0]}`,
+            saved_at: new Date().toISOString(),
+            tracks: this.playlist.map(track => ({
+                title: track.title,
+                artist: track.artist,
+                album: track.album,
+                duration: track.duration,
+                type: track.type,
+                format: track.format,
+                source_cid: track.cid || null,
+                local_file: !track.cid
+            }))
+        };
+        const confirmed = await this.confirmGovernedWrite({
+            title: 'Save playlist to backend',
+            description: `Persist playlist “${record.name}” (${record.tracks.length} track(s), metadata only — local file bytes are not uploaded) to ipfs_kit_py (pinned)?`
+        });
+        if (!confirmed) return;
         try {
-            const playlistData = {
-                name: `Playlist_${new Date().toISOString().split('T')[0]}`,
-                tracks: this.playlist.map(track => ({
-                    title: track.title,
-                    artist: track.artist,
-                    album: track.album,
-                    duration: track.duration,
-                    type: track.type,
-                    format: track.format
-                }))
-            };
-            
-            const saved = JSON.parse(localStorage.getItem('mediaPlayerPlaylists') || '[]');
-            saved.push(playlistData);
-            localStorage.setItem('mediaPlayerPlaylists', JSON.stringify(saved));
-            
-            this.showNotification('Playlist saved', 'success');
+            const client = await backendClient();
+            const bytes = new TextEncoder().encode(stableStringifyValue(record));
+            const cid = await contentCidForBytes(bytes);
+            const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+                cid,
+                bytes_base64: base64ForBytes(bytes),
+                profile: 'media-player-playlist',
+                kind: 'playlist',
+                service: 'ipfs_kit_py',
+                pin: true
+            });
+            if (!result || result.persisted !== true || result.cid !== cid) {
+                throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted playlist artifact.');
+            }
+            const index = this.readPlaylistIndex();
+            index.push({ name: record.name, cid, saved_at: record.saved_at, backend: 'ipfs_kit_py' });
+            this.writePlaylistIndex(index);
+            this.lastPersistedArtifact = { cid, kind: 'playlist', verified: result.verified === true, ms: 0 };
+            this.appendReceiptLog(`saved playlist ${cid} (${record.tracks.length} tracks, verified=${result.verified === true})`);
+            this.showNotification(`Playlist saved: ${cid}`, 'success');
         } catch (error) {
-            this.showNotification('Failed to save playlist', 'error');
+            const message = error instanceof Error ? error.message : String(error);
+            this.appendReceiptLog(`playlist save failed: ${message}`);
+            this.showNotification(`Save failed: ${message}`, 'error');
         }
     }
 
     /**
-     * 📂 Load playlist (from localStorage)
+     * 📂 Load playlist: pick from the local index of real backend playlist
+     * CIDs, from older browser-local playlists, or enter a CID directly; the
+     * record is fetched live from ipfs_kit_py. Track bytes are not embedded —
+     * local-file tracks restore as metadata only (stated honestly).
      */
-    loadPlaylist() {
+    async loadPlaylist() {
+        const choice = await this.pickPlaylistSource();
+        if (!choice) return;
+        if (choice.local) {
+            this.playlist = choice.tracks.map((t, i) => ({
+                id: i + 1,
+                title: t.title, artist: t.artist, album: t.album,
+                duration: t.duration || 0, type: t.type || 'audio', format: t.format || ''
+            }));
+            this.currentTrack = 0;
+            this.updatePlaylist();
+            this.updateDisplay();
+            this.showNotification(`Loaded browser-local playlist: ${choice.name} (metadata only)`, 'success');
+            return;
+        }
+        const cid = choice.cid;
         try {
-            const saved = JSON.parse(localStorage.getItem('mediaPlayerPlaylists') || '[]');
-            if (saved.length > 0) {
-                // For demo, load the most recent playlist
-                const latest = saved[saved.length - 1];
-                this.playlist = latest.tracks;
-                this.currentTrack = 0;
-                this.updatePlaylist();
-                this.updateDisplay();
-                this.showNotification(`Loaded playlist: ${latest.name}`, 'success');
-            } else {
-                this.showNotification('No saved playlists found', 'info');
+            const client = await backendClient();
+            const started = performance.now();
+            const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(cid));
+            const ms = Math.round(performance.now() - started);
+            if (!artifact || artifact.found !== true) {
+                throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
             }
+            const record = JSON.parse(new TextDecoder().decode(bytesFromBase64(artifact.bytes_base64 || '')));
+            const tracks = Array.isArray(record.tracks) ? record.tracks : [];
+            this.playlist = tracks.map((t, i) => ({
+                id: i + 1,
+                title: t.title, artist: t.artist, album: t.album,
+                duration: t.duration || 0, type: t.type || 'audio', format: t.format || '',
+                cid: t.source_cid || undefined
+            }));
+            this.currentTrack = 0;
+            this.updatePlaylist();
+            this.updateDisplay();
+            this.appendReceiptLog(`loaded playlist ${cid} (${tracks.length} tracks, ${ms} ms)`);
+            this.showNotification(`Loaded playlist ${record.name || cid} (${ms} ms) — metadata only; re-add local files to play them`, 'success');
         } catch (error) {
-            this.showNotification('Failed to load playlist', 'error');
+            const message = error instanceof Error ? error.message : String(error);
+            this.appendReceiptLog(`playlist load failed for ${cid}: ${message}`);
+            this.showNotification(`Load failed: ${message}`, 'error');
+        }
+    }
+
+    /**
+     * 🗂️ Playlist source picker: real backend CIDs from the local index,
+     * honestly-labeled browser-local legacy playlists, or a direct CID.
+     */
+    pickPlaylistSource() {
+        return new Promise((resolve) => {
+            const index = this.readPlaylistIndex();
+            let legacy = [];
+            try {
+                legacy = JSON.parse(localStorage.getItem('mediaPlayerPlaylists') || '[]');
+                if (!Array.isArray(legacy)) legacy = [];
+            } catch { legacy = []; }
+            const overlay = document.createElement('div');
+            overlay.className = 'mp-governed-confirm-overlay';
+            const backendItems = index.length === 0
+                ? '<li class="mp-picker-empty">No backend playlists saved yet — use “Save Playlist” first.</li>'
+                : index.map((entry, i) => `
+                    <li><button type="button" class="mp-picker-item" data-backend-index="${i}">
+                        <strong>${escapeHtmlMp(entry.name)}</strong>
+                        <span>${escapeHtmlMp(entry.cid)}</span>
+                        <small>ipfs_kit_py artifact · ${escapeHtmlMp(entry.saved_at || '')}</small>
+                    </button></li>`).join('');
+            const legacyItems = legacy.length === 0
+                ? '<li class="mp-picker-empty">No browser-local playlists.</li>'
+                : legacy.map((entry, i) => `
+                    <li><button type="button" class="mp-picker-item" data-legacy-index="${i}">
+                        <strong>${escapeHtmlMp(entry.name || `Local playlist ${i + 1}`)}</strong>
+                        <small>browser-local storage (metadata only, not a backend artifact)</small>
+                    </button></li>`).join('');
+            overlay.innerHTML = `
+                <div class="mp-governed-confirm-dialog mp-picker-dialog" role="dialog" aria-modal="true" aria-label="Load playlist">
+                    <h3>Load playlist</h3>
+                    <p>Backend playlists are fetched live from ipfs_kit_py. Track entries restore as metadata — re-add local files to play them.</p>
+                    <h4>Backend playlists (real artifacts)</h4>
+                    <ul class="mp-picker-list">${backendItems}</ul>
+                    <h4>Browser-local playlists</h4>
+                    <ul class="mp-picker-list">${legacyItems}</ul>
+                    <h4>Or enter an artifact CID</h4>
+                    <div class="mp-picker-cid-row">
+                        <input type="text" class="mp-cid-input" placeholder="bafy…" aria-label="Playlist artifact CID" spellcheck="false">
+                        <button type="button" class="mp-governed-confirm">Load CID</button>
+                    </div>
+                    <div class="mp-governed-actions">
+                        <button type="button" class="mp-governed-cancel">Cancel</button>
+                    </div>
+                </div>`;
+            const done = (value) => { overlay.remove(); resolve(value); };
+            overlay.querySelectorAll('[data-backend-index]').forEach(btn => {
+                btn.addEventListener('click', () => done({ cid: index[Number(btn.dataset.backendIndex)].cid }));
+            });
+            overlay.querySelectorAll('[data-legacy-index]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const entry = legacy[Number(btn.dataset.legacyIndex)];
+                    done({ local: true, name: entry.name, tracks: entry.tracks || [] });
+                });
+            });
+            const cidInput = overlay.querySelector('.mp-cid-input');
+            overlay.querySelector('.mp-picker-cid-row .mp-governed-confirm').addEventListener('click', () => {
+                const cid = cidInput.value.trim();
+                done(cid ? { cid } : null);
+            });
+            overlay.querySelector('.mp-governed-cancel').addEventListener('click', () => done(null));
+            document.body.appendChild(overlay);
+        });
+    }
+
+    readPlaylistIndex() {
+        try {
+            const raw = JSON.parse(localStorage.getItem('mediaPlayerPlaylistIndex') || '[]');
+            return Array.isArray(raw) ? raw : [];
+        } catch {
+            return [];
+        }
+    }
+
+    writePlaylistIndex(index) {
+        try {
+            localStorage.setItem('mediaPlayerPlaylistIndex', JSON.stringify(index));
+        } catch (error) {
+            console.warn('Could not persist playlist index:', error);
         }
     }
 
@@ -1531,52 +1869,348 @@ class MediaPlayer {
         }
     }
 
-    retrieveCidMedia() {
-        this.currentTrack = 0;
-        this.duration = 204;
-        this.currentTime = 18;
-        this.isPlaying = true;
-        this.setWorkflowState('[data-svd-vda-marker="cid-media"]', 'playbackState', 'playing');
-        this.setWorkflowState('[data-svd-vda-marker="cid-media"]', 'retrievalState', 'retrieved');
-        this.markWorkflowAction('retrieve-cid-media');
-        this.updatePlayButton();
-        this.updateDisplay();
-        this.updateProgress();
+    /**
+     * 🛰️ Retrieve CID media: real GET /mcp/artifacts/<cid> from ipfs_kit_py.
+     * Bytes are decoded, turned into a blob URL and appended to the playlist;
+     * playback of those bytes stays honestly local. Retrieval time is measured,
+     * never fabricated. Failures surface verbatim.
+     */
+    async retrieveCidMedia() {
+        const cid = await this.promptForCid(
+            'Retrieve CID media',
+            'Enter the CID of an audio/video artifact stored in ipfs_kit_py. Its real bytes will be fetched and added to the playlist.'
+        );
+        if (!cid) return;
+        this.setWorkflowLine('cid-media', `Retrieving ${cid} from ipfs_kit_py…`);
+        const started = performance.now();
+        try {
+            const client = await backendClient();
+            const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(cid));
+            const ms = Math.round(performance.now() - started);
+            if (!artifact || artifact.found !== true) {
+                throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
+            }
+            const bytes = bytesFromBase64(artifact.bytes_base64 || '');
+            if (bytes.length === 0) throw new Error(`Artifact ${cid} returned no bytes from ipfs_kit_py.`);
+            const mime = guessMimeFromArtifact(artifact);
+            const blobUrl = URL.createObjectURL(new Blob([bytes], { type: mime }));
+            const track = {
+                id: this.playlist.length + 1,
+                title: `CID ${cid.slice(0, 14)}…`,
+                artist: 'ipfs_kit_py artifact',
+                album: 'Retrieved media',
+                duration: 0,
+                type: mime.startsWith('video/') ? 'video' : 'audio',
+                format: (mime.split('/')[1] || 'media').toLowerCase(),
+                url: blobUrl,
+                cid
+            };
+            this.playlist.push(track);
+            this.lastRetrievedArtifact = { cid, bytes: bytes.length, verified: artifact.verified === true, ms, mime };
+            this.setWorkflowLine('cid-media',
+                `Retrieved ${cid} — ${bytes.length.toLocaleString()} bytes, verified=${artifact.verified === true}, measured ${ms} ms. Added to the playlist; playback is local.`);
+            this.setWorkflowReceipt('cid-media', `artifact ${cid} · verified ${artifact.verified === true} · ${ms} ms`);
+            this.appendReceiptLog(`retrieved ${cid} (${bytes.length.toLocaleString()} bytes, verified=${artifact.verified === true}, ${ms} ms)`);
+            this.setWorkflowState('[data-svd-vda-marker="cid-media"]', 'retrievalState', 'retrieved');
+            this.markWorkflowAction('retrieve-cid-media');
+            this.updatePlaylist();
+            this.showNotification(`Retrieved ${cid} in ${ms} ms`, 'success');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.setWorkflowLine('cid-media', `Retrieval failed: ${message}`);
+            this.setWorkflowReceipt('cid-media', 'retrieval failed');
+            this.setWorkflowState('[data-svd-vda-marker="cid-media"]', 'retrievalState', 'failed');
+            this.appendReceiptLog(`retrieval failed for ${cid}: ${message}`);
+            this.showNotification(`Retrieval failed: ${message}`, 'error');
+        }
     }
 
-    toggleCaptionsMetadata() {
-        this.setWorkflowState('[data-svd-vda-marker="captions-metadata"]', 'captionState', 'enabled');
-        this.setWorkflowState('[data-svd-vda-marker="captions-metadata"]', 'metadataState', 'loaded');
-        this.markWorkflowAction('toggle-captions-metadata');
+    /**
+     * 📝 Persist captions metadata: builds a metadata record from the real
+     * current-track values and writes it to ipfs_kit_py behind an explicit
+     * user confirmation. Returns the real canonical CID.
+     */
+    async persistCaptionsMetadata() {
+        const track = this.playlist[this.currentTrack];
+        if (!track) {
+            this.showNotification('No track selected', 'info');
+            return;
+        }
+        const el = this.currentElement;
+        const record = {
+            schema: 'swissknife.media-player.track-metadata.v1',
+            app: 'media-player',
+            recorded_at: new Date().toISOString(),
+            track: {
+                title: track.title,
+                artist: track.artist,
+                album: track.album,
+                format: track.format,
+                type: track.type,
+                source_cid: track.cid || null,
+                local_file: !track.cid
+            },
+            playback: {
+                duration_seconds: el && Number.isFinite(el.duration) ? el.duration : null,
+                current_time_seconds: el && Number.isFinite(el.currentTime) ? el.currentTime : null,
+                volume: this.volume,
+                muted: this.isMuted,
+                audio_can_play_mp3: el && el.canPlayType ? el.canPlayType('audio/mpeg') : '',
+                video_can_play_mp4: el && el.canPlayType ? el.canPlayType('video/mp4') : ''
+            }
+        };
+        const confirmed = await this.confirmGovernedWrite({
+            title: 'Persist track metadata',
+            description: `Write the metadata record for “${track.title}” to the ipfs_kit_py artifact store (pinned)?`
+        });
+        if (!confirmed) return;
+        try {
+            const client = await backendClient();
+            const bytes = new TextEncoder().encode(stableStringifyValue(record));
+            const cid = await contentCidForBytes(bytes);
+            const started = performance.now();
+            const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+                cid,
+                bytes_base64: base64ForBytes(bytes),
+                profile: 'media-player-metadata',
+                kind: 'track-metadata',
+                service: 'ipfs_kit_py',
+                pin: true
+            });
+            const ms = Math.round(performance.now() - started);
+            if (!result || result.persisted !== true || result.cid !== cid) {
+                throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted metadata artifact.');
+            }
+            this.lastPersistedArtifact = { cid, kind: 'track-metadata', verified: result.verified === true, ms };
+            this.setWorkflowLine('captions-metadata',
+                `Persisted metadata for “${track.title}” as ${cid} (verified=${result.verified === true}, ${ms} ms).`);
+            this.setWorkflowReceipt('captions-metadata', `persisted ${cid} · verified ${result.verified === true}`);
+            this.appendReceiptLog(`persisted track metadata ${cid} (verified=${result.verified === true}, ${ms} ms)`);
+            this.setWorkflowState('[data-svd-vda-marker="captions-metadata"]', 'metadataState', 'persisted');
+            this.markWorkflowAction('toggle-captions-metadata');
+            this.showNotification(`Metadata persisted: ${cid}`, 'success');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.setWorkflowLine('captions-metadata', `Persist failed: ${message}`);
+            this.setWorkflowReceipt('captions-metadata', 'persist failed');
+            this.appendReceiptLog(`metadata persist failed: ${message}`);
+            this.showNotification(`Persist failed: ${message}`, 'error');
+        }
     }
 
-    runQualityDiagnostics() {
-        this.setWorkflowState('[data-svd-vda-marker="diagnostics"]', 'diagnosticState', 'transcode-ready');
-        this.markWorkflowAction('run-quality-diagnostics');
+    /**
+     * 📊 Diagnostics: re-reads the last backend artifact and reports the
+     * MEASURED round-trip time plus real element stats. No fabricated RTTs.
+     */
+    async runQualityDiagnostics() {
+        const target = this.lastPersistedArtifact || this.lastRetrievedArtifact;
+        const el = this.currentElement;
+        if (!target) {
+            this.setWorkflowLine('diagnostics',
+                'No backend artifact yet — persist metadata or retrieve CID media first, then diagnostics will measure a real re-read.');
+            this.setWorkflowState('[data-svd-vda-marker="diagnostics"]', 'diagnosticState', 'no-artifact');
+            this.markWorkflowAction('run-quality-diagnostics');
+            return;
+        }
+        this.setWorkflowLine('diagnostics', `Re-reading ${target.cid} from ipfs_kit_py…`);
+        const started = performance.now();
+        try {
+            const client = await backendClient();
+            const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(target.cid));
+            const ms = Math.round(performance.now() - started);
+            if (!artifact || artifact.found !== true) {
+                throw new Error(artifact?.error || `Artifact ${target.cid} was not found in ipfs_kit_py.`);
+            }
+            const payloadChars = (artifact.bytes_base64 || '').length;
+            const duration = el && Number.isFinite(el.duration) ? `${el.duration.toFixed(1)}s` : 'n/a';
+            this.setWorkflowLine('diagnostics',
+                `Diagnostics for ${target.cid}: backend re-read measured ${ms} ms, payload ~${payloadChars.toLocaleString()} base64 chars, verified=${artifact.verified === true}; ` +
+                `local element duration=${duration}, readyState=${el ? el.readyState : 'n/a'}. This timing was measured just now — no fabricated values.`);
+            this.setWorkflowReceipt('diagnostics', `re-read ${target.cid} in ${ms} ms · verified ${artifact.verified === true}`);
+            this.appendReceiptLog(`diagnostics re-read ${target.cid}: ${ms} ms, verified=${artifact.verified === true}`);
+            this.setWorkflowState('[data-svd-vda-marker="diagnostics"]', 'diagnosticState', 'measured');
+            this.markWorkflowAction('run-quality-diagnostics');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.setWorkflowLine('diagnostics', `Diagnostics failed: ${message}`);
+            this.setWorkflowReceipt('diagnostics', 'diagnostics failed');
+            this.appendReceiptLog(`diagnostics failed for ${target.cid}: ${message}`);
+            this.showNotification(`Diagnostics failed: ${message}`, 'error');
+        }
     }
 
+    /**
+     * 🎚️ Seek/volume checkpoint: honestly local. Moves the real playhead and
+     * volume control and reports the actual resulting values.
+     */
     exerciseSeekVolume() {
-        this.currentTime = 72;
-        this.duration = 204;
-        this.setVolume(62);
-        this.setWorkflowState('[data-svd-vda-marker="seek-volume"]', 'seekState', 'bounded');
-        this.setWorkflowState('[data-svd-vda-marker="seek-volume"]', 'volumeState', 'bounded');
+        const el = this.currentElement;
+        const targetVolume = 62;
+        if (el && Number.isFinite(el.duration) && el.duration > 0) {
+            el.currentTime = Math.min(72, el.duration);
+        } else {
+            this.currentTime = 72;
+        }
+        this.setVolume(targetVolume);
+        const actualTime = el && Number.isFinite(el.currentTime) ? el.currentTime : this.currentTime;
+        this.setWorkflowLine('seek-volume',
+            `Local seek/volume checkpoint: playhead=${this.formatTime(actualTime)}, volume=${targetVolume}%. Local player state only — no backend involved.`);
+        this.setWorkflowReceipt('seek-volume', `local: ${this.formatTime(actualTime)} · vol ${targetVolume}%`);
+        this.setWorkflowState('[data-svd-vda-marker="seek-volume"]', 'seekState', 'applied');
         this.markWorkflowAction('exercise-seek-volume');
         this.updateProgress();
     }
 
-    simulateMissingCodec() {
-        this.setWorkflowState('[data-svd-vda-marker="missing-codec"]', 'codecState', 'fallback-ready');
-        this.setWorkflowState('[data-svd-vda-marker="missing-codec"]', 'fallbackState', 'aac-preview');
+    /**
+     * 🧩 Codec probe: honestly local. Reports this browser's real
+     * canPlayType results for common codecs.
+     */
+    probeMissingCodec() {
+        const el = this.currentElement || document.createElement('audio');
+        const probes = [
+            'audio/mpeg',
+            'audio/ogg; codecs="vorbis"',
+            'audio/wav',
+            'audio/aac',
+            'video/mp4',
+            'video/webm; codecs="vp9"'
+        ];
+        const results = probes
+            .map(type => `${type.split(';')[0]}: ${el.canPlayType ? (el.canPlayType(type) || 'no') : 'n/a'}`)
+            .join(' · ');
+        this.setWorkflowLine('missing-codec',
+            `Local codec probe (this browser, just now): ${results}. Local only — no backend involved.`);
+        this.setWorkflowReceipt('missing-codec', 'local probe complete');
+        this.setWorkflowState('[data-svd-vda-marker="missing-codec"]', 'codecState', 'probed');
         this.markWorkflowAction('simulate-missing-codec');
     }
 
-    recoverBackgroundAudio() {
-        this.isPlaying = true;
-        this.setWorkflowState('[data-svd-vda-marker="background-audio-recovery"]', 'backgroundAudioState', 'recovered');
-        this.setWorkflowState('[data-svd-vda-marker="background-audio-recovery"]', 'audioRouteState', 'recovered');
+    /**
+     * 🔊 Resume playback: honestly local. Calls play() on the real media
+     * element and reports the actual outcome.
+     */
+    async recoverBackgroundAudio() {
+        const el = this.currentElement;
+        if (!el) {
+            this.showNotification('No media element', 'info');
+            return;
+        }
+        try {
+            await el.play();
+            this.isPlaying = true;
+            this.setWorkflowLine('background-audio',
+                `Local resume succeeded at ${new Date().toISOString()} — the media element is playing. Local only — no backend involved.`);
+            this.setWorkflowReceipt('background-audio', 'local resume ok');
+            this.setWorkflowState('[data-svd-vda-marker="background-audio-recovery"]', 'backgroundAudioState', 'resumed');
+            this.showNotification('Playback resumed locally', 'success');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.setWorkflowLine('background-audio', `Local resume failed: ${message}`);
+            this.setWorkflowReceipt('background-audio', 'local resume failed');
+            this.setWorkflowState('[data-svd-vda-marker="background-audio-recovery"]', 'backgroundAudioState', 'failed');
+            this.showNotification(`Resume failed: ${message}`, 'error');
+        }
         this.markWorkflowAction('recover-background-audio');
         this.updatePlayButton();
+    }
+
+    /**
+     * 📝 Write a line of real evidence into a workflow card.
+     */
+    setWorkflowLine(field, text) {
+        const node = this.container?.querySelector(`[data-field="${field}"]`);
+        if (node) node.textContent = text;
+    }
+
+    /**
+     * 🧾 Write a short real receipt summary under a workflow card.
+     */
+    setWorkflowReceipt(field, text) {
+        const node = this.container?.querySelector(`[data-field="${field}-receipt"]`);
+        if (node) node.textContent = text;
+    }
+
+    /**
+     * 📜 Append a real backend operation to the receipt log (never fixtures).
+     */
+    appendReceiptLog(text) {
+        const log = this.container?.querySelector('[data-field="receipt-log"]');
+        if (!log) return;
+        const placeholder = log.querySelector('li:only-child');
+        if (placeholder && /No backend operations yet/.test(placeholder.textContent || '')) {
+            placeholder.remove();
+        }
+        const item = document.createElement('li');
+        item.textContent = `${new Date().toISOString()} — ${text}`;
+        log.appendChild(item);
+    }
+
+    /**
+     * 🔐 Confirmation-gated governed write (mirrors supervisor receipts.persist):
+     * every backend-mutating POST requires this explicit, reviewed user
+     * confirmation step first. Resolves true only when the user ticks the
+     * checkbox and clicks Confirm.
+     */
+    confirmGovernedWrite({ title, description, confirmLabel = 'Confirm write' }) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'mp-governed-confirm-overlay';
+            overlay.innerHTML = `
+                <div class="mp-governed-confirm-dialog" role="dialog" aria-modal="true" aria-label="${escapeHtmlMp(title)}">
+                    <h3>${escapeHtmlMp(title)}</h3>
+                    <p>${escapeHtmlMp(description)}</p>
+                    <p class="mp-governed-target">Target: ipfs_kit_py · POST /mcp/artifacts/put (pinned)</p>
+                    <label class="mp-governed-check">
+                        <input type="checkbox">
+                        <span>I confirm this governed write. I have reviewed the data being persisted.</span>
+                    </label>
+                    <div class="mp-governed-actions">
+                        <button type="button" class="mp-governed-cancel">Cancel</button>
+                        <button type="button" class="mp-governed-confirm" disabled>${escapeHtmlMp(confirmLabel)}</button>
+                    </div>
+                </div>`;
+            const checkbox = overlay.querySelector('input[type="checkbox"]');
+            const confirmBtn = overlay.querySelector('.mp-governed-confirm');
+            const done = (value) => {
+                overlay.remove();
+                resolve(value);
+            };
+            checkbox.addEventListener('change', () => { confirmBtn.disabled = !checkbox.checked; });
+            overlay.querySelector('.mp-governed-cancel').addEventListener('click', () => done(false));
+            confirmBtn.addEventListener('click', () => done(true));
+            overlay.addEventListener('click', (event) => { if (event.target === overlay) done(false); });
+            document.body.appendChild(overlay);
+        });
+    }
+
+    /**
+     * ⌨️ Prompt the user for a CID (used by retrieval flows).
+     */
+    promptForCid(title, description) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'mp-governed-confirm-overlay';
+            overlay.innerHTML = `
+                <div class="mp-governed-confirm-dialog" role="dialog" aria-modal="true" aria-label="${escapeHtmlMp(title)}">
+                    <h3>${escapeHtmlMp(title)}</h3>
+                    <p>${escapeHtmlMp(description)}</p>
+                    <input type="text" class="mp-cid-input" placeholder="bafy…" aria-label="Artifact CID" spellcheck="false">
+                    <div class="mp-governed-actions">
+                        <button type="button" class="mp-governed-cancel">Cancel</button>
+                        <button type="button" class="mp-governed-confirm">Retrieve</button>
+                    </div>
+                </div>`;
+            const input = overlay.querySelector('.mp-cid-input');
+            const done = (value) => {
+                overlay.remove();
+                resolve(value ? value.trim() : null);
+            };
+            overlay.querySelector('.mp-governed-cancel').addEventListener('click', () => done(null));
+            overlay.querySelector('.mp-governed-confirm').addEventListener('click', () => done(input.value));
+            input.addEventListener('keydown', (event) => { if (event.key === 'Enter') done(input.value); });
+            document.body.appendChild(overlay);
+            input.focus();
+        });
     }
 
     /**

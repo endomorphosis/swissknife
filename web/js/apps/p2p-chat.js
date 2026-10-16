@@ -1,7 +1,31 @@
 /**
  * P2P Chat Application for SwissKnife Virtual Desktop
  * Enables direct peer-to-peer messaging using libp2p with enhanced design language
+ *
+ * Backend contract: chat messages go out as REAL libp2p pubsub publishes via
+ * this.libp2p.publish() (resolved from the desktop P2P API, mirroring
+ * p2p-chat-unified). When no P2P transport exists, messages are honestly
+ * marked unsent — never simulated. Chat history persists through the genuine
+ * MCP++ desktop client to the ipfs_kit_py artifact store
+ * (POST /mcp/artifacts/put) behind an explicit user confirmation; backend
+ * failures surface verbatim.
  */
+
+import { contentCidForBytes, stableStringifyValue, base64ForBytes } from '../core/mcp-plus-plus-desktop-client.js';
+
+const PUBSUB_TOPIC = '/swissknife/chat/g047';
+
+async function backendClient() {
+  const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
+  return clientModule.getMCPPlusPlusDesktopClient();
+}
+
+function bytesFromBase64(b64) {
+  const bin = atob(String(b64 || '').replace(/\s+/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
 
 export class P2PChatApp {
   constructor(desktop) {
@@ -14,29 +38,20 @@ export class P2PChatApp {
     this.currentChatPeer = null;
     this.messageHistory = [];
     this.instanceId = 'p2p-chat-' + Date.now();
+    // Real libp2p node (resolved from the desktop P2P API); null when no
+    // transport exists — the UI then stays honestly local, never simulated.
+    this.libp2p = null;
+    this.lastSendOutcome = null;
+    this.offlineQueue = [];
     this.workflowState = {
-      alias: 'documented',
+      alias: 'documented-local',
       pubsub: 'pending',
-      offline: 'peer-offline',
-      delivery: 'pending',
-      migration: 'available',
-      selectedPanel: 'alias'
+      offline: 'empty',
+      delivery: 'none',
+      migration: 'available-local',
+      selectedPanel: 'alias',
+      provenanceCid: ''
     };
-    this.workflowReceipts = [
-      'receipt:p2p-chat:g047:alias:legacy-route',
-      'receipt:p2p-chat:g047:pubsub:provenance-ready',
-      'receipt:p2p-chat:g047:offline:queued',
-      'receipt:p2p-chat:g047:delivery:failed',
-      'receipt:p2p-chat:g047:migration:unified-ready'
-    ];
-    this.workflowCids = [
-      'bafyp2pchatg047legacyalias',
-      'bafyp2pchatg047pubsubprovenance',
-      'bafyp2pchatg047offlinequeue',
-      'bafyp2pchatg047deliveryfailure',
-      'bafyp2pchatg047migrationpath',
-      'bafyp2pchatg047eventdag'
-    ];
     
     // Friends List integration
     this.friendsList = null;
@@ -62,187 +77,227 @@ export class P2PChatApp {
     }
   }
 
+  /**
+   * 📡 Resolve the real libp2p node from the desktop P2P API (mirrors
+   * p2p-chat-unified's createLibp2pNode). Returns null when no transport
+   * exists — callers must then stay honestly local, never fake delivery.
+   */
+  async ensureLibp2p() {
+    if (this.libp2p) return this.libp2p;
+    const p2pApi = this.desktop?.swissknife?.p2p || window.SwissKnife?.p2p || null;
+    if (!p2pApi) {
+      this.libp2p = null;
+      return null;
+    }
+    let peerId = this.peerId;
+    try {
+      if (typeof p2pApi.getPeerInfo === 'function') {
+        const info = await p2pApi.getPeerInfo();
+        peerId = info?.peerId || info?.id || peerId;
+      } else if (typeof p2pApi.id === 'function') {
+        const info = await p2pApi.id();
+        peerId = info?.id || peerId;
+      }
+    } catch {
+      // keep existing peerId
+    }
+    this.peerId = peerId;
+    this.libp2p = {
+      peerId,
+      publish: async (topic, payload) => {
+        if (typeof p2pApi.pubsubPublish === 'function') return p2pApi.pubsubPublish(topic, payload);
+        if (typeof p2pApi.publish === 'function') return p2pApi.publish(topic, payload);
+        if (typeof p2pApi.sendMessage === 'function') return p2pApi.sendMessage(payload.to, payload.content);
+        throw new Error('No browser pubsub publish method is registered.');
+      },
+    };
+    return this.libp2p;
+  }
+
+  /**
+   * 📤 The single real send path, invoked by the send button: publishes the
+   * message via this.libp2p.publish() on the real pubsub topic. The delivery
+   * outcome is recorded verbatim on the message; failures queue locally for
+   * retry. Nothing is ever simulated.
+   */
+  async deliverMessage(peerId, content) {
+    const message = {
+      id: `g047-${Date.now()}`,
+      content,
+      sender: 'self',
+      to: peerId,
+      timestamp: new Date(),
+      type: 'text',
+      topic: PUBSUB_TOPIC,
+      transport: 'unsent'
+    };
+    const libp2p = await this.ensureLibp2p();
+    if (!libp2p) {
+      message.transport = 'unsent-no-transport';
+      message.error = 'No P2P transport available in this environment.';
+      this.offlineQueue.push(message);
+      this.lastSendOutcome = { status: 'unsent', error: message.error, at: new Date() };
+      this.addMessageToConversation(peerId, message);
+      this.updateWorkflowPanel();
+      return message;
+    }
+    try {
+      await libp2p.publish(PUBSUB_TOPIC, { ...message, topic: PUBSUB_TOPIC });
+      message.transport = 'libp2p-pubsub';
+      this.lastSendOutcome = { status: 'delivered', transport: 'libp2p-pubsub', at: new Date() };
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      message.transport = 'failed';
+      message.error = errMsg;
+      this.offlineQueue.push(message);
+      this.lastSendOutcome = { status: 'failed', error: errMsg, at: new Date() };
+    }
+    this.addMessageToConversation(peerId, message);
+    this.updateWorkflowPanel();
+    return message;
+  }
+
   setupRealP2PManager() {
-    // Real P2P manager using SwissKnife API
+    // Real P2P manager using SwissKnife API; sends go through the real
+    // libp2p publish path (deliverMessage). Failures stay honest.
     const p2pApi = this.desktop.swissknife.p2p;
-    
+
     this.p2pManager = {
       start: async () => {
         this.connectionStatus = 'connecting';
         this.updateConnectionStatus();
-        
+
         try {
           const result = await p2pApi.start();
           this.connectionStatus = 'connected';
           this.peerId = result.peerId || 'peer-' + Math.random().toString(36).substr(2, 9);
           this.updateConnectionStatus();
-          
+          await this.ensureLibp2p();
+
           // Load real peers from network
           const peers = await p2pApi.getPeers();
           this.loadPeersFromList(peers);
         } catch (error) {
-          console.warn('⚠️ P2P connection failed, using fallback peers:', error);
-          this.connectionStatus = 'connected';
-          this.peerId = 'fallback-peer-' + Math.random().toString(36).substr(2, 9);
+          const message = error instanceof Error ? error.message : String(error);
+          console.warn('⚠️ P2P connection failed:', message);
+          this.connectionStatus = 'disconnected';
           this.updateConnectionStatus();
-          this.addExamplePeers();
+          this.showNotification(`P2P connection failed: ${message}`, 'error');
         }
       },
-      
+
       stop: () => {
         p2pApi.stop?.();
         this.connectionStatus = 'disconnected';
         this.peers.clear();
         this.updateConnectionStatus();
       },
-      
-      sendMessage: async (peerId, message) => {
-        console.log(`📤 Sending message to ${peerId}:`, message);
-        
-        try {
-          await p2pApi.sendMessage(peerId, message);
-          
-          // Add message to conversation
-          this.addMessageToConversation(peerId, {
-            id: Date.now().toString(),
-            content: message,
-            sender: 'self',
-            timestamp: new Date(),
-            type: 'text'
-          });
-        } catch (error) {
-          console.warn('⚠️ Message send failed:', error);
-        }
-      },
-      
+
+      sendMessage: (peerId, message) => this.deliverMessage(peerId, message),
+
       broadcast: async (message) => {
         console.log('📢 Broadcasting message:', message);
         try {
           await p2pApi.broadcast(message);
         } catch (error) {
-          console.warn('⚠️ Broadcast failed:', error);
+          const message_text = error instanceof Error ? error.message : String(error);
+          console.warn('⚠️ Broadcast failed:', message_text);
+          this.showNotification(`Broadcast failed: ${message_text}`, 'error');
         }
       },
-      
+
       getPeers: () => Array.from(this.peers.values()),
-      
+
       getConnectionStatus: () => this.connectionStatus
     };
   }
 
   setupP2PMLSystemManager() {
-    // Use existing P2P ML System
+    // Use existing P2P ML System; sends go through the real libp2p publish
+    // path (deliverMessage).
     const p2pSystem = window.p2pMLSystem;
-    
+
     this.p2pManager = {
       start: async () => {
         this.connectionStatus = 'connecting';
         this.updateConnectionStatus();
-        
+
         try {
           const info = await p2pSystem.getPeerInfo();
           this.connectionStatus = 'connected';
           this.peerId = info.peerId;
           this.updateConnectionStatus();
-          
+          await this.ensureLibp2p();
+
           // Get connected peers
           const peers = await p2pSystem.getConnectedPeers();
           this.loadPeersFromList(peers);
         } catch (error) {
-          console.warn('⚠️ P2P ML System connection failed:', error);
-          this.setupFallbackP2PManager();
-          await this.p2pManager.start();
+          const message = error instanceof Error ? error.message : String(error);
+          console.warn('⚠️ P2P ML System connection failed:', message);
+          this.connectionStatus = 'disconnected';
+          this.updateConnectionStatus();
+          this.showNotification(`P2P connection failed: ${message}`, 'error');
         }
       },
-      
+
       stop: () => {
         this.connectionStatus = 'disconnected';
         this.peers.clear();
         this.updateConnectionStatus();
       },
-      
-      sendMessage: async (peerId, message) => {
-        console.log(`📤 Sending message to ${peerId}:`, message);
-        
-        try {
-          await p2pSystem.sendMessage(peerId, message);
-          
-          this.addMessageToConversation(peerId, {
-            id: Date.now().toString(),
-            content: message,
-            sender: 'self',
-            timestamp: new Date(),
-            type: 'text'
-          });
-        } catch (error) {
-          console.warn('⚠️ Message send failed:', error);
-        }
-      },
-      
+
+      sendMessage: (peerId, message) => this.deliverMessage(peerId, message),
+
       broadcast: (message) => {
         console.log('📢 Broadcasting message:', message);
         this.peers.forEach((peer, peerId) => {
-          this.p2pManager.sendMessage(peerId, message);
+          this.deliverMessage(peerId, message);
         });
       },
-      
+
       getPeers: () => Array.from(this.peers.values()),
-      
+
       getConnectionStatus: () => this.connectionStatus
     };
   }
 
   setupFallbackP2PManager() {
-    // Fallback P2P manager for when real APIs unavailable
+    // Honest fallback: no P2P transport is available, so the app runs
+    // local-only. Nothing is simulated — no fake peers, no fake delivery,
+    // no canned auto-responses. Sends are honestly marked unsent.
     this.p2pManager = {
       start: async () => {
         this.connectionStatus = 'connecting';
         this.updateConnectionStatus();
-        
-        // Simulate connection delay
-        setTimeout(() => {
+
+        await this.ensureLibp2p();
+        if (this.libp2p) {
           this.connectionStatus = 'connected';
-          this.peerId = 'fallback-peer-' + Math.random().toString(36).substr(2, 9);
-          this.updateConnectionStatus();
-          
-          // Add example peers for demonstration
-          this.addExamplePeers();
-        }, 2000);
+        } else {
+          this.connectionStatus = 'disconnected';
+          this.showNotification('No P2P transport available — running local-only.', 'info');
+        }
+        this.updateConnectionStatus();
       },
-      
+
       stop: () => {
         this.connectionStatus = 'disconnected';
         this.peers.clear();
         this.updateConnectionStatus();
       },
-      
-      sendMessage: (peerId, message) => {
-        console.log(`📤 Sending message to ${peerId}:`, message);
-        
-        // Add message to conversation
-        this.addMessageToConversation(peerId, {
-          id: Date.now().toString(),
-          content: message,
-          sender: 'self',
-          timestamp: new Date(),
-          type: 'text'
-        });
-        
-        // Simulate receiving a response after a delay
-        setTimeout(() => {
-          this.simulateIncomingMessage(peerId, message);
-        }, 1000 + Math.random() * 2000);
-      },
-      
+
+      sendMessage: (peerId, message) => this.deliverMessage(peerId, message),
+
       broadcast: (message) => {
         console.log('📢 Broadcasting message:', message);
         this.peers.forEach((peer, peerId) => {
-          this.p2pManager.sendMessage(peerId, message);
+          this.deliverMessage(peerId, message);
         });
       },
-      
+
       getPeers: () => Array.from(this.peers.values()),
-      
+
       getConnectionStatus: () => this.connectionStatus
     };
   }
@@ -261,51 +316,6 @@ export class P2PChatApp {
         });
       });
     }
-  }
-
-  addExamplePeers() {
-    // First try to get friends from Friends List app
-    this.loadFriendsFromFriendsList();
-    
-    // If no friends loaded, use example peers as fallback
-    if (this.peers.size === 0) {
-      const examplePeers = [
-        {
-          id: 'peer-alice-123',
-          name: 'Alice',
-          status: 'online',
-          lastSeen: new Date(),
-          avatar: '👩‍💻',
-          mood: 'coding',
-          activity: 'Working on AI projects'
-        },
-        {
-          id: 'peer-bob-456',
-          name: 'Bob',
-          status: 'online',
-          lastSeen: new Date(),
-          avatar: '👨‍💼',
-          mood: 'focused',
-          activity: 'Reviewing blockchain code'
-        },
-        {
-          id: 'peer-charlie-789',
-          name: 'Charlie',
-          status: 'away',
-          lastSeen: new Date(Date.now() - 300000), // 5 minutes ago
-          avatar: '🧑‍🔬',
-          mood: 'researching',
-          activity: 'Deep learning experiments'
-        }
-      ];
-
-      examplePeers.forEach(peer => {
-        this.peers.set(peer.id, peer);
-        this.conversations.set(peer.id, []);
-      });
-    }
-
-    this.updatePeersList();
   }
 
   loadFriendsFromFriendsList() {
@@ -395,32 +405,6 @@ export class P2PChatApp {
     }
   }
 
-  simulateIncomingMessage(fromPeerId, originalMessage) {
-    const peer = this.peers.get(fromPeerId);
-    if (!peer) return;
-
-    // Generate a mock response based on the original message and peer personality
-    const responses = [
-      `Thanks for the message! How's your day going? - ${peer.name}`,
-      `Got it! I'll get back to you soon. Currently ${peer.activity} - ${peer.name}`,
-      `That's interesting! Tell me more about that. - ${peer.name}`,
-      `Hey! Great to hear from you! I'm ${peer.mood} right now. - ${peer.name}`,
-      `Nice to chat with you! What are you working on? - ${peer.name}`,
-      `Awesome! I love discussing these topics. - ${peer.name}`,
-      `Cool! Let me think about that... - ${peer.name}`
-    ];
-
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-
-    this.addMessageToConversation(fromPeerId, {
-      id: Date.now().toString(),
-      content: randomResponse,
-      sender: fromPeerId,
-      timestamp: new Date(),
-      type: 'text'
-    });
-  }
-
   async initialize() {
     console.log('🚀 Initializing P2P Chat...');
     
@@ -438,7 +422,8 @@ export class P2PChatApp {
             height: 100%;
             display: flex;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--sk-bg-deep, #0e1412);
+            color: var(--sk-text, #edf7f2);
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
@@ -446,17 +431,17 @@ export class P2PChatApp {
           
           .chat-sidebar {
             width: 320px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            background: var(--sk-bg-panel, #101b18);
+            border-right: 1px solid var(--sk-border, #263a34);
             display: flex;
             flex-direction: column;
           }
           
           .chat-header {
             padding: 20px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
+            background: var(--sk-bg-header, #12211d);
+            border-bottom: 1px solid var(--sk-border, #263a34);
+            color: var(--sk-text, #edf7f2);
             display: flex;
             align-items: center;
             gap: 12px;
@@ -479,18 +464,18 @@ export class P2PChatApp {
           }
           
           .connection-status.connected {
-            color: #10b981;
-            background: rgba(16, 185, 129, 0.1);
+            color: var(--sk-ok, #5ee3a1);
+            background: rgba(94, 227, 161, 0.1);
           }
           
           .connection-status.connecting {
-            color: #f59e0b;
-            background: rgba(245, 158, 11, 0.1);
+            color: var(--sk-warn, #ffd166);
+            background: rgba(255, 209, 102, 0.1);
           }
           
           .connection-status.disconnected {
-            color: #ef4444;
-            background: rgba(239, 68, 68, 0.1);
+            color: var(--sk-err, #ff6b6b);
+            background: rgba(255, 107, 107, 0.1);
           }
           
           .status-indicator {
@@ -518,11 +503,11 @@ export class P2PChatApp {
             padding: 10px 16px;
             border: none;
             border-radius: 8px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
+            background: var(--sk-accent, #8bd8bd);
+            color: #0e1412;
             cursor: pointer;
             font-size: 13px;
-            font-weight: 500;
+            font-weight: 600;
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
@@ -531,7 +516,7 @@ export class P2PChatApp {
           
           .control-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 12px rgba(139, 216, 189, 0.3);
           }
           
           .control-btn:disabled {
@@ -550,7 +535,7 @@ export class P2PChatApp {
             margin: 0 20px 12px;
             font-size: 14px;
             font-weight: 600;
-            color: #4b5563;
+            color: var(--sk-text-faint, #9eb2aa);
             text-transform: uppercase;
             letter-spacing: 0.5px;
           }
@@ -566,20 +551,21 @@ export class P2PChatApp {
           }
           
           .peer-item:hover {
-            background: rgba(102, 126, 234, 0.05);
-            border-left-color: #667eea;
+            background: rgba(139, 216, 189, 0.08);
+            border-left-color: var(--sk-accent, #8bd8bd);
           }
           
           .peer-item.active {
-            background: rgba(102, 126, 234, 0.1);
-            border-left-color: #667eea;
+            background: rgba(139, 216, 189, 0.14);
+            border-left-color: var(--sk-accent, #8bd8bd);
           }
           
           .peer-avatar {
             width: 40px;
             height: 40px;
             border-radius: 12px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: var(--sk-bg-inset, #17241f);
+            border: 1px solid var(--sk-border, #263a34);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -594,41 +580,41 @@ export class P2PChatApp {
           
           .peer-name {
             font-weight: 600;
-            color: #1f2937;
+            color: var(--sk-text, #edf7f2);
             margin-bottom: 2px;
             font-size: 14px;
           }
           
           .peer-status {
             font-size: 12px;
-            color: #6b7280;
+            color: var(--sk-text-faint, #9eb2aa);
             display: flex;
             align-items: center;
             gap: 4px;
           }
           
           .peer-status.online {
-            color: #10b981;
+            color: var(--sk-ok, #5ee3a1);
           }
           
           .peer-status.away {
-            color: #f59e0b;
+            color: var(--sk-warn, #ffd166);
           }
           
           .peer-status.offline {
-            color: #6b7280;
+            color: var(--sk-idle, #7c8f87);
           }
           
           .peer-activity {
             font-size: 11px;
-            color: #9ca3af;
+            color: var(--sk-text-faint, #9eb2aa);
             margin-top: 2px;
             font-style: italic;
           }
           
           .peer-verified {
             font-size: 10px;
-            color: #10b981;
+            color: var(--sk-ok, #5ee3a1);
             font-weight: 600;
             margin-top: 2px;
           }
@@ -637,13 +623,13 @@ export class P2PChatApp {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: white;
+            background: var(--sk-bg-deep, #0e1412);
           }
           
           .chat-area-header {
             padding: 16px 20px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            background: white;
+            border-bottom: 1px solid var(--sk-border, #263a34);
+            background: var(--sk-bg-panel, #101b18);
             display: flex;
             align-items: center;
             gap: 12px;
@@ -658,7 +644,7 @@ export class P2PChatApp {
           
           .current-peer-name {
             font-weight: 600;
-            color: #1f2937;
+            color: var(--sk-text, #edf7f2);
             font-size: 16px;
           }
           
@@ -669,17 +655,17 @@ export class P2PChatApp {
           
           .action-btn {
             padding: 6px 12px;
-            border: 1px solid rgba(102, 126, 234, 0.3);
+            border: 1px solid var(--sk-border, #263a34);
             border-radius: 6px;
-            background: transparent;
-            color: #667eea;
+            background: var(--sk-bg-header, #12211d);
+            color: var(--sk-accent, #8bd8bd);
             cursor: pointer;
             font-size: 12px;
             transition: all 0.2s ease;
           }
           
           .action-btn:hover {
-            background: rgba(102, 126, 234, 0.1);
+            background: var(--sk-bg-inset, #17241f);
           }
           
           .messages-container {
@@ -689,7 +675,7 @@ export class P2PChatApp {
             display: flex;
             flex-direction: column;
             gap: 16px;
-            background: #f8fafc;
+            background: transparent;
           }
           
           .message {
@@ -711,7 +697,9 @@ export class P2PChatApp {
           }
           
           .message-content {
-            background: white;
+            background: var(--sk-bg-panel, #101b18);
+            border: 1px solid var(--sk-border, #263a34);
+            color: var(--sk-text, #edf7f2);
             padding: 12px 16px;
             border-radius: 18px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -719,8 +707,9 @@ export class P2PChatApp {
           }
           
           .message.self .message-content {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
+            background: rgba(139, 216, 189, 0.14);
+            border-color: var(--sk-accent, #8bd8bd);
+            color: var(--sk-text, #edf7f2);
           }
           
           .message-text {
@@ -744,8 +733,8 @@ export class P2PChatApp {
             display: flex;
             align-items: center;
             gap: 8px;
-            background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.12);
+            color: #93c5fd;
             padding: 8px 16px;
             border-radius: 20px;
             font-size: 12px;
@@ -759,15 +748,15 @@ export class P2PChatApp {
           
           .message-input-area {
             padding: 20px;
-            background: white;
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            background: var(--sk-bg-panel, #101b18);
+            border-top: 1px solid var(--sk-border, #263a34);
           }
           
           .message-input-container {
             display: flex;
             gap: 12px;
             align-items: end;
-            background: #f8fafc;
+            background: var(--sk-bg-header, #12211d);
             border-radius: 24px;
             padding: 8px;
             border: 2px solid transparent;
@@ -775,8 +764,8 @@ export class P2PChatApp {
           }
           
           .message-input-container:focus-within {
-            border-color: #667eea;
-            background: white;
+            border-color: var(--sk-accent, #8bd8bd);
+            background: var(--sk-bg-header, #12211d);
           }
           
           .message-input {
@@ -791,24 +780,29 @@ export class P2PChatApp {
             font-size: 14px;
             outline: none;
             background: transparent;
+            color: var(--sk-text, #edf7f2);
+          }
+          
+          .message-input::placeholder {
+            color: var(--sk-text-faint, #9eb2aa);
           }
           
           .send-btn {
             padding: 10px 16px;
             border: none;
             border-radius: 18px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
+            background: var(--sk-accent, #8bd8bd);
+            color: #0e1412;
             cursor: pointer;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             min-width: 70px;
             transition: all 0.2s ease;
           }
           
           .send-btn:hover:not(:disabled) {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 12px rgba(139, 216, 189, 0.3);
           }
           
           .send-btn:disabled {
@@ -823,7 +817,7 @@ export class P2PChatApp {
             align-items: center;
             justify-content: center;
             height: 100%;
-            color: #6b7280;
+            color: var(--sk-text-faint, #9eb2aa);
             text-align: center;
           }
           
@@ -845,11 +839,128 @@ export class P2PChatApp {
           }
 
           .legacy-workflow-panel {
-            border-top: 1px solid rgba(15, 23, 42, 0.08);
-            background: #f8fafc;
+            border-top: 1px solid var(--sk-border, #263a34);
+            background: var(--sk-bg-panel, #101b18);
             padding: 14px 16px;
             display: grid;
             gap: 10px;
+          }
+
+          .legacy-note {
+            margin: 0;
+            font-size: 12px;
+            color: var(--sk-text-faint, #9eb2aa);
+            line-height: 1.5;
+          }
+
+          .message-transport {
+            font-size: 10px;
+            opacity: 0.65;
+            margin-top: 4px;
+          }
+
+          .message-failed {
+            color: #fca5a5;
+            opacity: 0.95;
+          }
+
+          .pc-governed-confirm-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.72);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+          }
+
+          .pc-governed-confirm-dialog {
+            background: #ffffff;
+            border: 1px solid #c7d2fe;
+            border-radius: 12px;
+            color: #1f2937;
+            max-width: 430px;
+            width: calc(100% - 48px);
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+          }
+
+          .pc-governed-confirm-dialog h3 {
+            margin: 0 0 8px;
+            font-size: 15px;
+            color: #3730a3;
+          }
+
+          .pc-governed-confirm-dialog p {
+            margin: 0 0 8px;
+            font-size: 13px;
+            color: #475569;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+          }
+
+          .pc-governed-target {
+            color: #4f46e5 !important;
+            font-size: 12px !important;
+          }
+
+          .pc-governed-check {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            font-size: 13px;
+            margin: 12px 0;
+            cursor: pointer;
+          }
+
+          .pc-governed-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 12px;
+          }
+
+          .pc-governed-actions button {
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+          }
+
+          .pc-governed-cancel {
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #475569;
+          }
+
+          .pc-governed-confirm {
+            border: none;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+          }
+
+          .pc-governed-confirm:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+          }
+
+          .pc-cid-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px 12px;
+            border: 1px solid var(--sk-border, #263a34);
+            border-radius: 8px;
+            font-size: 13px;
+            margin-top: 4px;
+            background: var(--sk-bg-header, #12211d);
+            color: var(--sk-text, #edf7f2);
+          }
+          
+          .pc-cid-input::placeholder {
+            color: var(--sk-text-faint, #9eb2aa);
           }
 
           .legacy-workflow-actions {
@@ -859,11 +970,11 @@ export class P2PChatApp {
           }
 
           .legacy-workflow-actions button {
-            border: 1px solid #cbd5e1;
-            background: #fff;
+            border: 1px solid var(--sk-border, #263a34);
+            background: var(--sk-bg-header, #12211d);
             border-radius: 7px;
             min-height: 36px;
-            color: #334155;
+            color: var(--sk-text, #edf7f2);
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
@@ -872,8 +983,8 @@ export class P2PChatApp {
 
           .legacy-workflow-actions button:hover,
           .legacy-workflow-actions button:focus {
-            border-color: #4f46e5;
-            color: #3730a3;
+            border-color: var(--sk-accent, #8bd8bd);
+            color: var(--sk-accent, #8bd8bd);
             outline: none;
           }
 
@@ -884,17 +995,17 @@ export class P2PChatApp {
           }
 
           .legacy-marker {
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--sk-border, #263a34);
             border-radius: 8px;
-            background: #fff;
+            background: var(--sk-bg-panel, #101b18);
             padding: 9px;
             min-height: 118px;
-            color: #334155;
+            color: var(--sk-text-faint, #9eb2aa);
           }
 
           .legacy-marker h5 {
             margin: 0 0 6px;
-            color: #0f172a;
+            color: var(--sk-text, #edf7f2);
             font-size: 12px;
           }
 
@@ -908,7 +1019,7 @@ export class P2PChatApp {
           .legacy-marker code {
             display: inline-block;
             margin-top: 6px;
-            color: #4338ca;
+            color: var(--sk-accent, #8bd8bd);
             font-size: 10px;
             overflow-wrap: anywhere;
           }
@@ -918,12 +1029,13 @@ export class P2PChatApp {
             flex-wrap: wrap;
             gap: 8px;
             font-size: 11px;
-            color: #475569;
+            color: var(--sk-text-faint, #9eb2aa);
           }
 
           .legacy-status-strip span {
             border-radius: 999px;
-            background: #e2e8f0;
+            background: var(--sk-bg-inset, #17241f);
+            border: 1px solid var(--sk-border, #263a34);
             padding: 4px 8px;
           }
 
@@ -965,6 +1077,12 @@ export class P2PChatApp {
             <button class="control-btn" onclick="window.p2pChatInstances?.['${this.instanceId}']?.broadcastMessage()" ${this.connectionStatus !== 'connected' ? 'disabled' : ''}>
               📢 Broadcast Message
             </button>
+            <button class="control-btn" onclick="window.p2pChatInstances?.['${this.instanceId}']?.saveHistory()" title="Persist chat history to ipfs_kit_py (confirmation-gated)">
+              💾 Save History
+            </button>
+            <button class="control-btn" onclick="window.p2pChatInstances?.['${this.instanceId}']?.loadHistory()" title="Load chat history from an ipfs_kit_py artifact CID">
+              📂 Load History
+            </button>
           </div>
           
           <div class="peers-section">
@@ -1004,7 +1122,7 @@ export class P2PChatApp {
 
   renderPeersList() {
     if (this.peers.size === 0) {
-      return '<div style="padding: 20px; text-align: center; color: #6b7280; font-size: 14px;">No peers connected<br><small>Use "Discover Peers" to find others</small></div>';
+      return '<div class="sk-empty">No peers connected<br><small>Use "Discover Peers" to find others</small></div>';
     }
 
     return Array.from(this.peers.values()).map(peer => `
@@ -1049,7 +1167,7 @@ export class P2PChatApp {
     const messages = this.conversations.get(this.currentChatPeer) || [];
     
     if (messages.length === 0) {
-      return '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; font-weight: 500;">Start the conversation! 👋</div>';
+      return '<div class="sk-empty">Start the conversation! 👋</div>';
     }
 
     return messages.map(message => {
@@ -1063,12 +1181,25 @@ export class P2PChatApp {
           </div>
         `;
       }
-      
+
+      // Self messages carry their real delivery outcome — never a fake success.
+      let transportNote = '';
+      if (message.sender === 'self' && message.transport) {
+        if (message.transport === 'libp2p-pubsub') {
+          transportNote = '<div class="message-transport">sent via libp2p pubsub</div>';
+        } else if (message.transport === 'failed') {
+          transportNote = `<div class="message-transport message-failed">send failed: ${this.escapeHtml(message.error || 'unknown error')}</div>`;
+        } else if (message.transport === 'unsent-no-transport') {
+          transportNote = '<div class="message-transport">unsent — no P2P transport (queued locally)</div>';
+        }
+      }
+
       return `
         <div class="message ${message.sender === 'self' ? 'self' : 'peer'}">
           <div class="message-content">
             <div class="message-text">${this.escapeHtml(message.content)}</div>
             <div class="message-timestamp">${this.formatTime(message.timestamp)}</div>
+            ${transportNote}
           </div>
         </div>
       `;
@@ -1103,9 +1234,13 @@ export class P2PChatApp {
   }
 
   renderLegacyWorkflowPanel() {
+    const state = this.workflowState;
+    const lastOutcome = this.lastSendOutcome
+      ? `${this.lastSendOutcome.status}${this.lastSendOutcome.error ? `: ${this.lastSendOutcome.error}` : ''} (${this.formatTime(this.lastSendOutcome.at)})`
+      : 'no sends yet';
     return `
-      <section class="legacy-workflow-panel" data-svd-workflow="p2p-chat.legacy-alias-pubsub-migration" aria-label="Legacy P2P Chat workflow evidence">
-        <p class="legacy-evidence-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification.</p>
+      <section class="legacy-workflow-panel" data-svd-workflow="p2p-chat.legacy-alias-pubsub-migration" aria-label="P2P Chat message provenance">
+        <p class="legacy-note">Message provenance for this chat. Sends publish through real libp2p pubsub when a transport exists; history persistence is confirmation-gated. Every state below is real — nothing is fabricated.</p>
         <div class="legacy-workflow-actions">
           <button type="button" data-svd-primary-control="p2p-chat-legacy-primary" data-svd-workflow-action="document-legacy-alias" onclick="window.p2pChatInstances?.['${this.instanceId}']?.documentLegacyAlias()">
             Legacy alias
@@ -1113,48 +1248,43 @@ export class P2PChatApp {
           <button type="button" data-svd-workflow-action="publish-pubsub-provenance" onclick="window.p2pChatInstances?.['${this.instanceId}']?.publishPubsubProvenance()">
             Pubsub proof
           </button>
-          <button type="button" data-svd-workflow-action="queue-offline-state" onclick="window.p2pChatInstances?.['${this.instanceId}']?.queueOfflineState()">
+          <button type="button" data-svd-workflow-action="queue-offline-state" onclick="window.p2pChatInstances?.['${this.instanceId}']?.showOfflineQueue()">
             Offline queue
           </button>
-          <button type="button" data-svd-workflow-action="simulate-delivery-failure" onclick="window.p2pChatInstances?.['${this.instanceId}']?.simulateDeliveryFailure()">
-            Failed send
+          <button type="button" data-svd-workflow-action="simulate-delivery-failure" onclick="window.p2pChatInstances?.['${this.instanceId}']?.showDeliveryStatus()">
+            Delivery status
           </button>
           <button type="button" data-svd-workflow-action="show-migration-path" onclick="window.p2pChatInstances?.['${this.instanceId}']?.showMigrationPath()">
             Migrate
           </button>
         </div>
         <div class="legacy-status-strip" role="status" aria-live="polite">
-          <span data-legacy-alias-state="${this.workflowState.alias}">alias ${this.workflowState.alias}</span>
-          <span data-pubsub-provenance-state="${this.workflowState.pubsub}">pubsub ${this.workflowState.pubsub}</span>
-          <span data-offline-state="${this.workflowState.offline}">offline ${this.workflowState.offline}</span>
-          <span data-delivery-failure-state="${this.workflowState.delivery}">delivery ${this.workflowState.delivery}</span>
-          <span data-migration-state="${this.workflowState.migration}">migration ${this.workflowState.migration}</span>
+          <span data-legacy-alias-state="${this.escapeHtml(state.alias)}">alias ${this.escapeHtml(state.alias)}</span>
+          <span data-pubsub-provenance-state="${this.escapeHtml(state.pubsub)}">pubsub ${this.escapeHtml(state.pubsub)}</span>
+          <span data-offline-state="${this.escapeHtml(state.offline)}">offline queue ${this.offlineQueue.length}</span>
+          <span data-delivery-failure-state="${this.escapeHtml(state.delivery)}">delivery ${this.escapeHtml(state.delivery)}</span>
+          <span data-migration-state="${this.escapeHtml(state.migration)}">migration ${this.escapeHtml(state.migration)}</span>
         </div>
         <div class="legacy-workflow-grid">
           <article class="legacy-marker" data-svd-vda-marker="legacy-alias-behavior">
             <h5>Legacy alias behavior</h5>
-            <p>Canonical desktop id p2p-chat launches this classic UI. Alias p2p-chat-offline is documented as legacy-only and rejected by the app-improvement runner, preserving explicit migration pressure.</p>
-            <code>bafyp2pchatg047legacyalias receipt:p2p-chat:g047:alias:legacy-route</code>
+            <p>Canonical desktop id p2p-chat launches this classic UI; the alias p2p-chat-offline is legacy-only. Local documentation — no backend involved.</p>
           </article>
           <article class="legacy-marker" data-svd-vda-marker="pubsub-provenance">
             <h5>Pubsub provenance</h5>
-            <p>Message route records ipfs.kit.pubsub topic swissknife.legacy.p2p-chat, peer peer-alice-123, Event DAG bafyp2pchatg047eventdag, and provenance CID before delivery.</p>
-            <code>bafyp2pchatg047pubsubprovenance receipt:p2p-chat:g047:pubsub:provenance-ready</code>
+            <p>${state.provenanceCid ? `Provenance record persisted to ipfs_kit_py: ${this.escapeHtml(state.provenanceCid)}` : 'No provenance record persisted yet. “Pubsub proof” persists the pubsub route record to ipfs_kit_py behind a confirmation.'}</p>
           </article>
           <article class="legacy-marker" data-svd-vda-marker="offline-state">
-            <h5>Offline state</h5>
-            <p>Offline recipient state is visible as store-and-forward queue depth 1, retry after reconnect, and durable queue reference for the legacy peer session.</p>
-            <code>bafyp2pchatg047offlinequeue receipt:p2p-chat:g047:offline:queued</code>
+            <h5>Offline queue (local)</h5>
+            <p>${this.offlineQueue.length} message(s) queued locally for retry. Local store-and-forward — no backend involved.</p>
           </article>
           <article class="legacy-marker" data-svd-vda-marker="delivery-failure">
-            <h5>Delivery failure</h5>
-            <p>Failed delivery remains in the transcript with retry guidance, error receipt, and no false success acknowledgement while the peer is offline.</p>
-            <code>bafyp2pchatg047deliveryfailure receipt:p2p-chat:g047:delivery:failed</code>
+            <h5>Delivery status (real)</h5>
+            <p>Last send outcome: ${this.escapeHtml(lastOutcome)}.</p>
           </article>
           <article class="legacy-marker" data-svd-vda-marker="migration-path">
             <h5>Migration path</h5>
-            <p>Use p2p-chat-unified for moderated pubsub, audio fallback, and offline recovery. Legacy history exports through bafyp2pchatg047migrationpath before handoff.</p>
-            <code>bafyp2pchatg047migrationpath receipt:p2p-chat:g047:migration:unified-ready</code>
+            <p>Use p2p-chat-unified for moderated pubsub and offline recovery. Local guidance — no backend involved.</p>
           </article>
         </div>
       </section>
@@ -1174,53 +1304,247 @@ export class P2PChatApp {
   }
 
   documentLegacyAlias() {
-    this.workflowState.alias = 'canonical-p2p-chat-alias-p2p-chat-offline-rejected';
+    this.workflowState.alias = 'documented-local';
     this.recordLegacyWorkflowStep('alias');
-    this.showNotification('Legacy alias behavior recorded for p2p-chat.', 'success');
+    this.showNotification('Legacy alias behavior recorded (local documentation).', 'success');
   }
 
-  publishPubsubProvenance() {
-    this.workflowState.pubsub = 'provenance-cid-recorded';
+  /**
+   * 🛰️ Persist the pubsub route record to ipfs_kit_py behind an explicit
+   * user confirmation. Returns the real canonical CID.
+   */
+  async publishPubsubProvenance() {
+    const record = {
+      schema: 'swissknife.p2p-chat.pubsub-provenance.v1',
+      app: 'p2p-chat',
+      recorded_at: new Date().toISOString(),
+      topic: PUBSUB_TOPIC,
+      peer_id: this.peerId,
+      transport: this.libp2p ? 'libp2p-pubsub' : 'none',
+      last_send_outcome: this.lastSendOutcome,
+      offline_queue_depth: this.offlineQueue.length
+    };
+    const confirmed = await this.confirmGovernedWrite({
+      title: 'Persist pubsub provenance',
+      description: `Write the pubsub route record (topic ${PUBSUB_TOPIC}) to the ipfs_kit_py artifact store (pinned)?`
+    });
+    if (!confirmed) return;
+    try {
+      const client = await backendClient();
+      const bytes = new TextEncoder().encode(stableStringifyValue(record));
+      const cid = await contentCidForBytes(bytes);
+      const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+        cid,
+        bytes_base64: base64ForBytes(bytes),
+        profile: 'p2p-chat-provenance',
+        kind: 'pubsub-provenance',
+        service: 'ipfs_kit_py',
+        pin: true
+      });
+      if (!result || result.persisted !== true || result.cid !== cid) {
+        throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted provenance artifact.');
+      }
+      this.workflowState.pubsub = 'provenance-persisted';
+      this.workflowState.provenanceCid = cid;
+      this.addMessageToConversation(this.currentChatPeer || 'local', {
+        id: `g047-pubsub-${Date.now()}`,
+        content: `Pubsub provenance persisted: ${cid} (verified=${result.verified === true}).`,
+        sender: 'system',
+        timestamp: new Date(),
+        type: 'system'
+      });
+      this.showNotification(`Provenance persisted: ${cid}`, 'success');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.workflowState.pubsub = 'persist-failed';
+      this.showNotification(`Provenance persist failed: ${message}`, 'error');
+    }
     this.recordLegacyWorkflowStep('pubsub');
-    this.addMessageToConversation(this.currentChatPeer || 'peer-alice-123', {
-      id: `g047-pubsub-${Date.now()}`,
-      content: 'Pubsub route recorded with provenance CID bafyp2pchatg047pubsubprovenance and Event DAG bafyp2pchatg047eventdag.',
-      sender: 'system',
-      timestamp: new Date(),
-      type: 'system'
-    });
   }
 
-  queueOfflineState() {
-    this.workflowState.offline = 'queued-for-reconnect';
-    const peer = this.peers.get('peer-charlie-789');
-    if (peer) peer.status = 'offline';
+  /**
+   * 📥 Show the real local offline queue depth (honestly local).
+   */
+  showOfflineQueue() {
+    this.workflowState.offline = this.offlineQueue.length > 0 ? `${this.offlineQueue.length}-queued` : 'empty';
     this.recordLegacyWorkflowStep('offline');
-    this.addMessageToConversation(this.currentChatPeer || 'peer-charlie-789', {
-      id: `g047-offline-${Date.now()}`,
-      content: 'Offline queue depth 1 stored at bafyp2pchatg047offlinequeue; retry scheduled after reconnect.',
-      sender: 'system',
-      timestamp: new Date(),
-      type: 'system'
-    });
+    this.showNotification(
+      this.offlineQueue.length > 0
+        ? `${this.offlineQueue.length} message(s) queued locally for retry.`
+        : 'Offline queue is empty.',
+      'info'
+    );
   }
 
-  simulateDeliveryFailure() {
-    this.workflowState.delivery = 'failed-no-ack';
+  /**
+   * 📊 Show the real last send outcome — verbatim, never fabricated.
+   */
+  showDeliveryStatus() {
+    const outcome = this.lastSendOutcome;
+    this.workflowState.delivery = outcome ? outcome.status : 'none';
     this.recordLegacyWorkflowStep('delivery');
-    this.addMessageToConversation(this.currentChatPeer || 'peer-charlie-789', {
-      id: `g047-failure-${Date.now()}`,
-      content: 'Delivery failed without ack; receipt:p2p-chat:g047:delivery:failed keeps retry guidance visible.',
-      sender: 'system',
-      timestamp: new Date(),
-      type: 'system'
-    });
+    this.showNotification(
+      outcome
+        ? `Last send: ${outcome.status}${outcome.error ? ` — ${outcome.error}` : ''}`
+        : 'No messages sent yet.',
+      outcome && outcome.status !== 'delivered' ? 'error' : 'info'
+    );
   }
 
   showMigrationPath() {
     this.workflowState.migration = 'ready-for-p2p-chat-unified';
     this.recordLegacyWorkflowStep('migration');
     this.showNotification('Migration path points to p2p-chat-unified with exported legacy history.', 'info');
+  }
+
+  /**
+   * 💾 Save chat history: persists the conversation record to ipfs_kit_py
+   * behind an explicit confirmation. Returns the real canonical CID.
+   */
+  async saveHistory() {
+    const record = {
+      schema: 'swissknife.p2p-chat.history.v1',
+      app: 'p2p-chat',
+      saved_at: new Date().toISOString(),
+      peer_id: this.peerId,
+      conversations: Array.from(this.conversations.entries()).map(([peerId, messages]) => ({
+        peer_id: peerId,
+        messages: messages.map(m => ({
+          ...m,
+          timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp
+        }))
+      }))
+    };
+    const confirmed = await this.confirmGovernedWrite({
+      title: 'Save chat history',
+      description: `Persist chat history (${record.conversations.length} conversation(s)) to the ipfs_kit_py artifact store (pinned)?`
+    });
+    if (!confirmed) return;
+    try {
+      const client = await backendClient();
+      const bytes = new TextEncoder().encode(stableStringifyValue(record));
+      const cid = await contentCidForBytes(bytes);
+      const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+        cid,
+        bytes_base64: base64ForBytes(bytes),
+        profile: 'p2p-chat-history',
+        kind: 'chat-history',
+        service: 'ipfs_kit_py',
+        pin: true
+      });
+      if (!result || result.persisted !== true || result.cid !== cid) {
+        throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted history artifact.');
+      }
+      let dagNote = '';
+      try {
+        const dagResult = await client.post('ipfs_kit_py', '/mcp/dag/append', {
+          event: {
+            event_type: 'p2p-chat.history.saved',
+            history_cid: cid,
+            peer_id: this.peerId
+          }
+        });
+        if (dagResult?.event_cid) dagNote = `; event DAG ${dagResult.event_cid}`;
+      } catch (dagError) {
+        dagNote = `; event DAG append failed: ${dagError instanceof Error ? dagError.message : String(dagError)}`;
+      }
+      this.showNotification(`History saved: ${cid}${dagNote}`, 'success');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.showNotification(`History save failed: ${message}`, 'error');
+    }
+  }
+
+  /**
+   * 📂 Load chat history: fetch a real history artifact live from ipfs_kit_py.
+   */
+  async loadHistory() {
+    const cid = await this.promptForCid(
+      'Load chat history',
+      'Enter the CID of a chat history artifact stored in ipfs_kit_py.'
+    );
+    if (!cid) return;
+    try {
+      const client = await backendClient();
+      const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(cid));
+      if (!artifact || artifact.found !== true) {
+        throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
+      }
+      const record = JSON.parse(new TextDecoder().decode(bytesFromBase64(artifact.bytes_base64 || '')));
+      const conversations = Array.isArray(record.conversations) ? record.conversations : [];
+      for (const conv of conversations) {
+        this.conversations.set(conv.peer_id, (conv.messages || []).map(m => ({
+          ...m,
+          timestamp: m.timestamp ? new Date(m.timestamp) : new Date()
+        })));
+      }
+      this.updateDisplay();
+      this.showNotification(`History loaded from ${cid} (${conversations.length} conversation(s))`, 'success');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.showNotification(`History load failed: ${message}`, 'error');
+    }
+  }
+
+  /**
+   * 🔐 Confirmation-gated governed write (mirrors supervisor receipts.persist):
+   * every backend-mutating POST requires this explicit, reviewed user
+   * confirmation step first.
+   */
+  confirmGovernedWrite({ title, description, confirmLabel = 'Confirm write' }) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'pc-governed-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="pc-governed-confirm-dialog" role="dialog" aria-modal="true" aria-label="${this.escapeHtml(title)}">
+          <h3>${this.escapeHtml(title)}</h3>
+          <p>${this.escapeHtml(description)}</p>
+          <p class="pc-governed-target">Target: ipfs_kit_py · POST /mcp/artifacts/put (pinned)</p>
+          <label class="pc-governed-check">
+            <input type="checkbox">
+            <span>I confirm this governed write. I have reviewed the data being persisted.</span>
+          </label>
+          <div class="pc-governed-actions">
+            <button type="button" class="pc-governed-cancel">Cancel</button>
+            <button type="button" class="pc-governed-confirm" disabled>${this.escapeHtml(confirmLabel)}</button>
+          </div>
+        </div>`;
+      const checkbox = overlay.querySelector('input[type="checkbox"]');
+      const confirmBtn = overlay.querySelector('.pc-governed-confirm');
+      const done = (value) => { overlay.remove(); resolve(value); };
+      checkbox.addEventListener('change', () => { confirmBtn.disabled = !checkbox.checked; });
+      overlay.querySelector('.pc-governed-cancel').addEventListener('click', () => done(false));
+      confirmBtn.addEventListener('click', () => done(true));
+      overlay.addEventListener('click', (event) => { if (event.target === overlay) done(false); });
+      document.body.appendChild(overlay);
+    });
+  }
+
+  /**
+   * ⌨️ Prompt the user for a CID.
+   */
+  promptForCid(title, description) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'pc-governed-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="pc-governed-confirm-dialog" role="dialog" aria-modal="true" aria-label="${this.escapeHtml(title)}">
+          <h3>${this.escapeHtml(title)}</h3>
+          <p>${this.escapeHtml(description)}</p>
+          <input type="text" class="pc-cid-input" placeholder="bafy…" aria-label="Artifact CID" spellcheck="false">
+          <div class="pc-governed-actions">
+            <button type="button" class="pc-governed-cancel">Cancel</button>
+            <button type="button" class="pc-governed-confirm">Load</button>
+          </div>
+        </div>`;
+      const input = overlay.querySelector('.pc-cid-input');
+      const done = (value) => { overlay.remove(); resolve(value ? value.trim() : null); };
+      overlay.querySelector('.pc-governed-cancel').addEventListener('click', () => done(null));
+      overlay.querySelector('.pc-governed-confirm').addEventListener('click', () => done(input.value));
+      input.addEventListener('keydown', (event) => { if (event.key === 'Enter') done(input.value); });
+      document.body.appendChild(overlay);
+      input.focus();
+    });
   }
 
   // Event handlers
@@ -1232,29 +1556,42 @@ export class P2PChatApp {
 
   discoverPeers() {
     if (this.connectionStatus === 'connected') {
-      // Try to discover real peers via P2P API
+      // Discover real peers via the P2P API only — never fabricated peers.
+      const fail = (error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn('⚠️ Peer discovery failed:', message);
+        this.loadFriendsFromFriendsList();
+        this.updatePeersList();
+        this.showNotification(
+          this.peers.size > 0
+            ? `Peer discovery failed (${message}); showing Friends List contacts.`
+            : `Peer discovery failed: ${message}`,
+          'error'
+        );
+      };
       if (this.desktop?.swissknife?.p2p?.discoverPeers) {
         this.desktop.swissknife.p2p.discoverPeers().then(peers => {
           this.loadPeersFromList(peers);
-          this.showNotification(`🔍 Found ${peers.length} peers!`, 'success');
-        }).catch(error => {
-          console.warn('⚠️ Peer discovery failed:', error);
-          this.addExamplePeers();
-          this.showNotification('🔍 Discovering peers...', 'success');
-        });
+          this.updatePeersList();
+          this.showNotification(`🔍 Found ${Array.isArray(peers) ? peers.length : this.peers.size} peers!`, 'success');
+        }).catch(fail);
       } else if (window.p2pMLSystem?.discoverPeers) {
         window.p2pMLSystem.discoverPeers().then(peers => {
           this.loadPeersFromList(peers);
-          this.showNotification(`🔍 Found ${peers.length} peers!`, 'success');
-        }).catch(error => {
-          console.warn('⚠️ Peer discovery failed:', error);
-          this.addExamplePeers();
-          this.showNotification('🔍 Discovering peers...', 'success');
-        });
+          this.updatePeersList();
+          this.showNotification(`🔍 Found ${Array.isArray(peers) ? peers.length : this.peers.size} peers!`, 'success');
+        }).catch(fail);
       } else {
-        // Fallback to example peers
-        this.addExamplePeers();
-        this.showNotification('🔍 Discovering peers...', 'success');
+        // No discovery API: fall back to the real Friends List integration,
+        // honestly labeled, or report that discovery is unavailable.
+        this.loadFriendsFromFriendsList();
+        this.updatePeersList();
+        this.showNotification(
+          this.peers.size > 0
+            ? `Loaded ${this.peers.size} contact(s) from Friends List (local).`
+            : 'Peer discovery unavailable — no P2P transport in this environment.',
+          'info'
+        );
       }
     }
   }
@@ -1369,7 +1706,7 @@ export class P2PChatApp {
     switch (this.connectionStatus) {
       case 'connected': return 'Connected to P2P Network';
       case 'connecting': return 'Connecting...';
-      case 'disconnected': return 'Disconnected';
+      case 'disconnected': return this.libp2p ? 'Disconnected' : 'Disconnected — no P2P transport (local-only)';
       default: return 'Unknown';
     }
   }
@@ -1383,11 +1720,11 @@ export class P2PChatApp {
       right: 20px;
       padding: 12px 20px;
       border-radius: 8px;
-      color: white;
+      color: #0e1412;
       font-weight: 500;
       z-index: 10000;
       animation: slideIn 0.3s ease;
-      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+      background: ${type === 'success' ? 'var(--sk-ok, #5ee3a1)' : type === 'error' ? 'var(--sk-err, #ff6b6b)' : 'var(--sk-accent, #8bd8bd)'};
     `;
     notification.textContent = message;
     document.body.appendChild(notification);

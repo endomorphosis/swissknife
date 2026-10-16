@@ -127,12 +127,12 @@ export class StrudelAIDAW {
 
                 <!-- Transport Controls -->
                 <div class="transport-bar">
-                    <div class="transport-controls">
-                        <button class="transport-btn large" id="play-btn">▶️</button>
-                        <button class="transport-btn" id="pause-btn" disabled>⏸️</button>
-                        <button class="transport-btn" id="stop-btn" disabled>⏹️</button>
-                        <button class="transport-btn" id="record-btn">🔴</button>
-                        <button class="transport-btn" id="undo-btn" aria-label="Undo last DAW edit">↩</button>
+                    <div class="transport-controls sk-transport">
+                        <button class="sk-transport-btn is-main" id="play-btn" aria-label="Play">▶️</button>
+                        <button class="sk-transport-btn" id="pause-btn" disabled aria-label="Pause">⏸️</button>
+                        <button class="sk-transport-btn" id="stop-btn" disabled aria-label="Stop">⏹️</button>
+                        <button class="sk-transport-btn" id="record-btn" aria-label="Record">🔴</button>
+                        <button class="sk-transport-btn" id="undo-btn" aria-label="Undo last DAW edit">↩</button>
                     </div>
                     
                     <div class="tempo-section">
@@ -163,6 +163,7 @@ export class StrudelAIDAW {
                         <div>
                             <h4>VDA-G045 DAW Workflow</h4>
                             <p>Project assets, assistant changes, render recovery, undo, and compact controls are tracked in one local session.</p>
+                            <p class="vda-evidence-note sk-honest-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification until “Assets” persists a real composition artifact.</p>
                         </div>
                         <span class="svd-g045-status" data-g045-workflow-status="ready">ready</span>
                     </div>
@@ -1508,16 +1509,46 @@ note("c2 ~ eb2 ~").sound("sawtooth").lpf(300).gain(0.6)`;
         if (this.undoStack.length > 20) this.undoStack.shift();
     }
 
-    loadAssetProvenance(window) {
-        const { projectCid, mediaCid, sampleCid, libraryCid, eventDagCid, receipt } = this.assetProvenance;
-        this.updateG045Marker(
-            window,
-            'asset-provenance',
-            `Asset provenance verified: project CID ${projectCid}, media CID ${mediaCid}, sample library CID ${sampleCid}, library context ${libraryCid}, Event DAG ${eventDagCid}, receipt ${receipt}. Rights: creator-release CC-BY-4.0 samples and local project stem manifest.`,
-            { assetProvenanceState: 'verified', projectCidState: 'loaded', mediaCidState: 'loaded' }
-        );
-        this.setG045Status(window, 'asset-provenance-verified');
-        this.addConsoleMessage(window, `Asset provenance verified for ${projectCid}`, 'info');
+    async loadAssetProvenance(window) {
+        // Real persistence: the live composition (code, BPM, pattern) goes to
+        // the ipfs_kit_py artifact store with a canonical CID over the exact
+        // bytes, after the user's explicit confirmation. The fixture CIDs in
+        // the constructor are replaced by the real one; backend failures
+        // surface verbatim.
+        this.updateG045Marker(window, 'asset-provenance', 'Persisting composition artifact…', { assetProvenanceState: 'persisting' });
+        try {
+            const helper = await import('./real-artifact.js');
+            if (!helper.userConfirmsBackendWrite('Persist the current Strudel composition to the ipfs_kit_py artifact store?')) {
+                this.updateG045Marker(window, 'asset-provenance', 'Asset persist cancelled; fixture references remain design-verification only.', { assetProvenanceState: 'cancelled' });
+                return;
+            }
+            const editor = window.querySelector('#strudel-code-editor');
+            const record = {
+                schema: 'swissknife.strudel-ai-daw.composition.v1',
+                code: editor?.value ?? this.currentCode,
+                activePattern: this.activePattern,
+                bpm: this.bpm,
+                savedAt: new Date().toISOString()
+            };
+            const persisted = await helper.persistArtifactRecord({
+                record,
+                profile: 'strudel-ai-daw-composition',
+                kind: 'composition'
+            });
+            this.assetProvenance.projectCid = persisted.cid;
+            this.updateG045Marker(
+                window,
+                'asset-provenance',
+                `Composition persisted: project CID ${persisted.cid} (verified=${persisted.verified}). Rights: creator-release CC-BY-4.0 samples and local project stem manifest.`,
+                { assetProvenanceState: 'verified', projectCidState: 'loaded', mediaCidState: 'loaded' }
+            );
+            this.setG045Status(window, 'asset-provenance-verified');
+            this.addConsoleMessage(window, `Composition artifact persisted: ${persisted.cid}`, 'info');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.updateG045Marker(window, 'asset-provenance', `Asset persist failed: ${message}`, { assetProvenanceState: 'failed' });
+            this.addConsoleMessage(window, `Asset persist failed: ${message}`, 'error');
+        }
     }
 
     requestAssistedComposition(window) {
@@ -1536,41 +1567,42 @@ stack(
         this.codeContext = 'assisted composition: library context D minor, 126 BPM, local edit preserved';
         this.updateLineNumbers(window);
         this.scanCodeVariables(window);
-        const assistedCid = 'bafystrudelaidawg045assistedcompositionv1';
-        const receipt = 'receipt:strudel-ai-daw:g045:assisted-composition:accepted';
         this.updateG045Marker(
             window,
             'assisted-composition',
-            `Assisted composition accepted as an editable local change: ${assistedCid}; ${receipt}. Assistant used library context, D minor, 126 BPM, and preserved undo history before replacing the editor pattern.`,
+            'Assisted composition accepted as an editable local change (local template, D minor, 126 BPM). Undo history preserved before replacing the editor pattern; no backend call was made.',
             { assistedCompositionState: 'accepted', assistantEditState: 'editable' }
         );
         this.updateG045Marker(
             window,
             'undo',
-            `Undo history armed: ${this.undoStack.length} snapshot available before the assistant edit. Restore source bafystrudelaidawg045undosnapshotv1; receipt:strudel-ai-daw:g045:undo:snapshot-ready.`,
-            { undoState: 'ready', undoProof: 'snapshot' }
+            `Undo history armed: ${this.undoStack.length} snapshot(s) available before the assistant edit (local history stack).`,
+            { undoState: 'ready', undoProof: 'local-history' }
         );
         this.setG045Status(window, 'assistant-edit-ready');
         this.addConsoleMessage(window, 'Assistant composition inserted with undo snapshot', 'info');
     }
 
     startRenderJob(window) {
+        // Honest local render state: the queue entry is real session state,
+        // but there is no audio render backend here, so no progress percent,
+        // checkpoint CID or receipt is claimed.
         this.renderState = {
-            status: 'rendering',
-            progress: 76,
-            checkpoint: 'bafystrudelaidawg045renderstateprogressv1',
-            receipt: 'receipt:strudel-ai-daw:g045:render-state:queued'
+            status: 'queued-local',
+            progress: 0,
+            checkpoint: null,
+            receipt: null
         };
         this.updateG045Marker(
             window,
             'render-state',
-            `Render state queued: composition render job render:g045:local-preview is 76% complete with checkpoint ${this.renderState.checkpoint}; stem preview CID bafystrudelaidawg045renderpreviewv1; ${this.renderState.receipt}. Latency budget 48ms and offline bounce fallback prepared.<progress data-render-progress value="76" max="100"></progress>`,
-            { renderState: 'queued', renderJobState: 'rendering' }
+            'Render queued in the local session (no audio render backend connected, so no progress or artifact CID is claimed). Use Export for a local manifest.',
+            { renderState: 'queued', renderJobState: 'local-only' }
         );
         const progress = window.querySelector('progress[data-render-progress]');
-        if (progress) progress.value = this.renderState.progress;
+        if (progress) progress.value = 0;
         this.setG045Status(window, 'render-queued');
-        this.addConsoleMessage(window, `Render queued at ${this.renderState.progress}%`, 'info');
+        this.addConsoleMessage(window, 'Render queued (local session state)', 'info');
     }
 
     undoLastChange(window) {
@@ -1593,7 +1625,7 @@ stack(
         this.updateG045Marker(
             window,
             'undo',
-            `Undo applied from local history snapshot bafystrudelaidawg045undosnapshotv1; receipt:strudel-ai-daw:g045:undo:restored. Restored reason ${snapshot.reason}, active pattern ${snapshot.activePattern}, and editable code without clearing render receipts.`,
+            `Undo applied from the local history stack. Restored reason ${snapshot.reason}, active pattern ${snapshot.activePattern}, and editable code.`,
             { undoState: 'restored', undoProof: 'local-history' }
         );
         this.setG045Status(window, 'undo-restored');
@@ -1601,15 +1633,14 @@ stack(
     }
 
     simulateAudioBackendFailure(window) {
-        const backendCid = 'bafystrudelaidawg045failedaudiobackendv1';
-        const fallbackCid = 'bafystrudelaidawg045audiobackendfallbackv1';
-        const receipt = 'receipt:strudel-ai-daw:g045:failed-audio-backend:fallback-active';
+        // Test control: simulates a backend failure locally. No CIDs or
+        // receipts are minted by a test.
         this.isUsingWorklet = false;
         this.updateG045Marker(
             window,
             'failed-audio-backend',
-            `Audio backend error simulated: AudioWorklet processor unavailable, checkpoint ${backendCid}. Fallback active via offline WebAudio preview ${fallbackCid}; ${receipt}. Transport stays disabled from the failed backend and render state remains recoverable.`,
-            { audioBackendState: 'failed', audioFallbackState: 'fallback-active' }
+            'Test: simulated AudioWorklet failure. Fallback active via offline WebAudio preview (local). Transport stays disabled while the simulated failure is active.',
+            { audioBackendState: 'failed-test', audioFallbackState: 'fallback-active' }
         );
         this.setG045Status(window, 'audio-backend-fallback-active');
         this.addConsoleMessage(window, 'Audio backend error handled; fallback active', 'error');
@@ -1621,7 +1652,7 @@ stack(
         this.updateG045Marker(
             window,
             'compact-controls',
-            'Compact controls enabled: transport, BPM input, volume slider, render state, undo, and backend fallback actions fit in the narrow mobile control strip. Checkpoint bafystrudelaidawg045compactcontrolsv1; receipt:strudel-ai-daw:g045:compact-controls:enabled.',
+            'Compact controls enabled: transport, BPM input, volume slider, render state, undo, and backend fallback actions fit in the narrow mobile control strip (local UI state).',
             { compactControlsState: 'enabled', compactControlsProof: 'mobile-ready' }
         );
         this.setG045Status(window, 'compact-controls-enabled');
@@ -1858,24 +1889,40 @@ stack(
         }
     }
 
-    exportAudio(window) {
+    async exportAudio(window) {
         this.startRenderJob(window);
         const manifest = {
             schema: 'swissknife.strudel-ai-daw.render-manifest.v1',
-            projectCid: this.assetProvenance.projectCid,
-            previewCid: 'bafystrudelaidawg045renderpreviewv1',
             bpm: this.bpm,
             durationSeconds: 16,
             channels: 2,
             sampleRate: this.audioContext?.sampleRate || 44100,
             fallback: !this.isUsingWorklet,
-            code: this.currentCode
+            code: this.currentCode,
+            exportedAt: new Date().toISOString()
         };
         try {
             localStorage.setItem('swissknife:strudel-ai-daw:last-render-manifest', JSON.stringify(manifest));
-            this.addConsoleMessage(window, `Export manifest prepared for ${manifest.previewCid}`, 'info');
         } catch (error) {
-            this.addConsoleMessage(window, `Export manifest could not be persisted: ${error.message}`, 'error');
+            this.addConsoleMessage(window, `Local manifest save skipped: ${error.message}`, 'error');
+        }
+        // Real backend persist of the export manifest (user-confirmed), so a
+        // shareable composition gets a real artifact CID.
+        try {
+            const helper = await import('./real-artifact.js');
+            if (!helper.userConfirmsBackendWrite('Persist this composition export manifest to the ipfs_kit_py artifact store?')) {
+                this.addConsoleMessage(window, 'Export manifest kept local only (persist cancelled).', 'info');
+                return;
+            }
+            const persisted = await helper.persistArtifactRecord({
+                record: manifest,
+                profile: 'strudel-ai-daw-export',
+                kind: 'composition'
+            });
+            this.addConsoleMessage(window, `Export manifest persisted: ${persisted.cid}`, 'info');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.addConsoleMessage(window, `Export manifest could not be persisted: ${message}`, 'error');
         }
     }
 

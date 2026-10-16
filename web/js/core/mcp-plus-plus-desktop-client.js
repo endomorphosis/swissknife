@@ -816,3 +816,8 @@ function required(value, label) {
   if (!result) throw new Error(`Enter a ${label}.`);
   return result;
 }
+
+// Canonical byte helpers, exported so app surfaces can persist real artifacts
+// through the kit adapter with the same CID semantics as the supervisor
+// gateway (CIDv1-raw+sha2-256 over the exact bytes sent to /mcp/artifacts/put).
+export { stableStringifyValue, contentCidForBytes, base64ForBytes };

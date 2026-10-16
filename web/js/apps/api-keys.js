@@ -122,12 +122,12 @@ class APIKeysApp {
                         </div>
                     </div>
                     <div class="keys-actions">
-                        <button onclick="apiKeysApp.showAddKey()" class="btn-primary">➕ Add Key</button>
-                        <button onclick="apiKeysApp.showP2PManager()" class="btn-secondary">🌐 P2P Sharing</button>
-                        <button onclick="apiKeysApp.importKeys()" class="btn-secondary">📥 Import</button>
-                        <button onclick="apiKeysApp.exportKeys()" class="btn-secondary">📤 Export</button>
-                        <button onclick="apiKeysApp.showSecurity()" class="btn-secondary">🛡️ Security</button>
-                        <button onclick="apiKeysApp.lockVault()" class="btn-danger">🔒 Lock Vault</button>
+                        <button onclick="apiKeysApp.showAddKey()" class="btn-primary sk-btn sk-btn-primary">➕ Add Key</button>
+                        <button onclick="apiKeysApp.showP2PManager()" class="btn-secondary sk-btn">🌐 P2P Sharing</button>
+                        <button onclick="apiKeysApp.importKeys()" class="btn-secondary sk-btn">📥 Import</button>
+                        <button onclick="apiKeysApp.exportKeys()" class="btn-secondary sk-btn">📤 Export</button>
+                        <button onclick="apiKeysApp.showSecurity()" class="btn-secondary sk-btn">🛡️ Security</button>
+                        <button onclick="apiKeysApp.lockVault()" class="btn-danger sk-btn sk-btn-danger">🔒 Lock Vault</button>
                     </div>
                 </div>
                 
@@ -168,17 +168,17 @@ class APIKeysApp {
                     <div class="keys-main">
                         <div class="search-filter-bar">
                             <div class="search-box">
-                                <input type="text" id="key-search" placeholder="Search keys..." onkeyup="apiKeysApp.filterKeys()">
+                                <input type="text" id="key-search" class="sk-input" placeholder="Search keys..." onkeyup="apiKeysApp.filterKeys()">
                                 <button class="search-btn">🔍</button>
                             </div>
                             <div class="filter-options">
-                                <select id="status-filter" onchange="apiKeysApp.filterKeys()">
+                                <select id="status-filter" class="sk-select" onchange="apiKeysApp.filterKeys()">
                                     <option value="">All Status</option>
                                     <option value="valid">Valid</option>
                                     <option value="invalid">Invalid</option>
                                     <option value="unknown">Unknown</option>
                                 </select>
-                                <select id="category-filter" onchange="apiKeysApp.filterKeys()">
+                                <select id="category-filter" class="sk-select" onchange="apiKeysApp.filterKeys()">
                                     <option value="">All Categories</option>
                                     <option value="ai">AI Services</option>
                                     <option value="cloud">Cloud Providers</option>
@@ -210,14 +210,14 @@ class APIKeysApp {
                     
                     <form id="vault-unlock-form" onsubmit="apiKeysApp.unlockVault(event)">
                         <div class="form-group">
-                            <input type="password" id="vault-password" placeholder="Vault Password" required autofocus>
+                            <input type="password" id="vault-password" class="sk-input" placeholder="Vault Password" required autofocus>
                         </div>
                         <div class="unlock-options">
                             <label>
                                 <input type="checkbox" id="remember-session"> Remember for this session
                             </label>
                         </div>
-                        <button type="submit" class="btn-primary unlock-btn">🔓 Unlock Vault</button>
+                        <button type="submit" class="btn-primary unlock-btn sk-btn sk-btn-primary">🔓 Unlock Vault</button>
                     </form>
                     
                     <div class="security-info">
@@ -270,7 +270,7 @@ class APIKeysApp {
     renderRecentActivity() {
         const recent = this.securityEvents.slice(-5).reverse();
         if (recent.length === 0) {
-            return '<div class="no-activity">No recent activity</div>';
+            return '<div class="no-activity sk-empty">No recent activity</div>';
         }
         
         return recent.map(event => `
@@ -297,7 +297,7 @@ class APIKeysApp {
                         <form id="add-key-form">
                             <div class="form-group">
                                 <label for="key-provider">Provider:</label>
-                                <select id="key-provider" onchange="apiKeysApp.updateKeyForm()" required>
+                                <select id="key-provider" class="sk-select" onchange="apiKeysApp.updateKeyForm()" required>
                                     <option value="">Select a provider</option>
                                     ${this.providers.map(p => `
                                         <option value="${p.id}">
@@ -309,7 +309,7 @@ class APIKeysApp {
                             <div id="key-fields"></div>
                             <div class="form-group">
                                 <label for="key-description">Description (optional):</label>
-                                <input type="text" id="key-description" placeholder="Production key, Testing, etc.">
+                                <input type="text" id="key-description" class="sk-input" placeholder="Production key, Testing, etc.">
                             </div>
                             <div class="form-group">
                                 <label>
@@ -319,8 +319,8 @@ class APIKeysApp {
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button onclick="apiKeysApp.addKey()" class="btn-primary">Add Key</button>
-                        <button onclick="apiKeysApp.hideAddKey()" class="btn-secondary">Cancel</button>
+                        <button onclick="apiKeysApp.addKey()" class="btn-primary sk-btn sk-btn-primary">Add Key</button>
+                        <button onclick="apiKeysApp.hideAddKey()" class="btn-secondary sk-btn">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -356,7 +356,7 @@ class APIKeysApp {
                         <div class="security-settings">
                             <div class="setting-group">
                                 <label for="auto-lock-minutes">Auto-lock timeout (minutes):</label>
-                                <input type="number" id="auto-lock-minutes" 
+                                <input type="number" id="auto-lock-minutes" class="sk-input" 
                                        value="${this.securitySettings.autoLockMinutes}" 
                                        min="1" max="60">
                             </div>
@@ -376,7 +376,7 @@ class APIKeysApp {
                             </div>
                             <div class="setting-group">
                                 <label for="encryption-strength">Encryption strength:</label>
-                                <select id="encryption-strength">
+                                <select id="encryption-strength" class="sk-select">
                                     <option value="AES-128-GCM" ${this.securitySettings.encryptionStrength === 'AES-128-GCM' ? 'selected' : ''}>AES-128-GCM</option>
                                     <option value="AES-256-GCM" ${this.securitySettings.encryptionStrength === 'AES-256-GCM' ? 'selected' : ''}>AES-256-GCM</option>
                                 </select>
@@ -385,14 +385,14 @@ class APIKeysApp {
                         
                         <div class="security-audit">
                             <h4>🔍 Security Events</h4>
-                            <div class="audit-log" id="audit-log">
+                            <div class="audit-log sk-code" id="audit-log">
                                 ${this.renderAuditLog()}
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button onclick="apiKeysApp.saveSecuritySettings()" class="btn-primary">Save Settings</button>
-                        <button onclick="apiKeysApp.clearAuditLog()" class="btn-danger">Clear Audit Log</button>
+                        <button onclick="apiKeysApp.saveSecuritySettings()" class="btn-primary sk-btn sk-btn-primary">Save Settings</button>
+                        <button onclick="apiKeysApp.clearAuditLog()" class="btn-danger sk-btn sk-btn-danger">Clear Audit Log</button>
                     </div>
                 </div>
             </div>
@@ -566,11 +566,11 @@ class APIKeysApp {
 
         if (filteredKeys.length === 0) {
             container.innerHTML = `
-                <div class="no-keys">
-                    <div class="no-keys-icon">🔍</div>
+                <div class="no-keys sk-empty">
+                    <div class="no-keys-icon sk-empty-icon">🔍</div>
                     <h3>No keys found</h3>
                     <p>No API keys match your current filters.</p>
-                    <button onclick="apiKeysApp.showAddKey()" class="btn-primary">➕ Add API Key</button>
+                    <button onclick="apiKeysApp.showAddKey()" class="btn-primary sk-btn sk-btn-primary">➕ Add API Key</button>
                 </div>
             `;
             return;
@@ -581,31 +581,31 @@ class APIKeysApp {
             const maskedKey = this.maskKey(key.apiKey || key.token || Object.values(key.credentials || {})[0]);
             
             return `
-                <div class="key-card enhanced">
+                <div class="key-card enhanced sk-card">
                     <div class="key-header">
                         <div class="key-info">
                             <div class="key-title">
                                 <span class="provider-icon">${provider?.icon || '🔑'}</span>
                                 <h4>${provider?.name || key.provider}</h4>
-                                <span class="key-category">${provider?.category || 'other'}</span>
+                                <span class="key-category sk-badge">${provider?.category || 'other'}</span>
                             </div>
-                            <div class="key-value">${maskedKey}</div>
+                            <div class="key-value sk-code">${maskedKey}</div>
                             ${key.description ? `<div class="key-description">${key.description}</div>` : ''}
                         </div>
                         <div class="key-actions">
-                            <button onclick="apiKeysApp.testKey('${id}')" class="btn-secondary" title="Test Key">
+                            <button onclick="apiKeysApp.testKey('${id}')" class="btn-secondary sk-btn" title="Test Key">
                                 🧪 Test
                             </button>
-                            <button onclick="apiKeysApp.editKey('${id}')" class="btn-secondary" title="Edit Key">
+                            <button onclick="apiKeysApp.editKey('${id}')" class="btn-secondary sk-btn" title="Edit Key">
                                 ✏️ Edit
                             </button>
-                            <button onclick="apiKeysApp.copyKey('${id}')" class="btn-secondary" title="Copy Key">
+                            <button onclick="apiKeysApp.copyKey('${id}')" class="btn-secondary sk-btn" title="Copy Key">
                                 📋 Copy
                             </button>
-                            <button onclick="apiKeysApp.shareKey('${id}')" class="btn-secondary" title="Share via P2P">
+                            <button onclick="apiKeysApp.shareKey('${id}')" class="btn-secondary sk-btn" title="Share via P2P">
                                 🌐 Share
                             </button>
-                            <button onclick="apiKeysApp.removeKey('${id}')" class="btn-danger" title="Remove Key">
+                            <button onclick="apiKeysApp.removeKey('${id}')" class="btn-danger sk-btn sk-btn-danger" title="Remove Key">
                                 🗑️ Remove
                             </button>
                         </div>
@@ -633,7 +633,7 @@ class APIKeysApp {
                         </div>
                         <div class="key-status-bar">
                             <div class="status-indicator ${key.status || 'unknown'}">
-                                ${this.getStatusIcon(key.status)} ${(key.status || 'unknown').toUpperCase()}
+                                <span class="sk-status-dot ${key.status === 'valid' ? 'is-ok' : key.status === 'invalid' ? 'is-err' : 'is-idle'}"></span>${this.getStatusIcon(key.status)} ${(key.status || 'unknown').toUpperCase()}
                             </div>
                             ${key.testResults ? `
                                 <div class="test-results">
@@ -688,7 +688,7 @@ class APIKeysApp {
             return `
                 <div class="form-group">
                     <label for="key-${field}">${label}:</label>
-                    <input type="${type}" id="key-${field}" name="${field}" required>
+                    <input type="${type}" id="key-${field}" name="${field}" class="sk-input" required>
                 </div>
             `;
         }).join('');

@@ -37,10 +37,10 @@ class GitHubApp {
                         </div>
                     </div>
                     <div class="github-actions">
-                        <button onclick="githubApp.refreshData()" class="btn-primary">🔄 Refresh</button>
-                        <button onclick="githubApp.showCreateRepo()" class="btn-secondary">➕ New Repo</button>
-                        <button onclick="githubApp.showSettings()" class="btn-secondary">⚙️ Settings</button>
-                        <button onclick="githubApp.disconnect()" class="btn-danger">🚪 Logout</button>
+                        <button onclick="githubApp.refreshData()" class="btn-primary sk-btn sk-btn-primary">🔄 Refresh</button>
+                        <button onclick="githubApp.showCreateRepo()" class="btn-secondary sk-btn">➕ New Repo</button>
+                        <button onclick="githubApp.showSettings()" class="btn-secondary sk-btn">⚙️ Settings</button>
+                        <button onclick="githubApp.disconnect()" class="btn-danger sk-btn sk-btn-danger">🚪 Logout</button>
                     </div>
                 </div>
                 
@@ -99,7 +99,7 @@ class GitHubApp {
                             <div class="stat-item">
                                 <span>MCP Status:</span>
                                 <span class="stat-value ${this.mcpConnection ? 'connected' : 'disconnected'}">
-                                    ${this.mcpConnection ? '🟢 Connected' : '🔴 Disconnected'}
+                                    <span class="sk-status-dot ${this.mcpConnection ? 'is-ok' : 'is-err'}"></span>${this.mcpConnection ? '🟢 Connected' : '🔴 Disconnected'}
                                 </span>
                             </div>
                         </div>
@@ -139,10 +139,10 @@ class GitHubApp {
                             <p>Use a GitHub Personal Access Token for authentication.</p>
                             <div class="form-group">
                                 <label for="github-token">GitHub Token:</label>
-                                <input type="password" id="github-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+                                <input type="password" id="github-token" class="sk-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
                                 <small>Generate a token at <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings → Developer settings → Personal access tokens</a></small>
                             </div>
-                            <button onclick="githubApp.authenticateWithToken()" class="btn-primary">Connect with Token</button>
+                            <button onclick="githubApp.authenticateWithToken()" class="btn-primary sk-btn sk-btn-primary">Connect with Token</button>
                         </div>
                         
                         <div class="auth-divider">OR</div>
@@ -150,7 +150,7 @@ class GitHubApp {
                         <div class="auth-method">
                             <h3>🔐 OAuth</h3>
                             <p>Sign in with your GitHub account using OAuth (requires OAuth Login app configuration).</p>
-                            <button onclick="githubApp.authenticateWithOAuth()" class="btn-secondary">
+                            <button onclick="githubApp.authenticateWithOAuth()" class="btn-secondary sk-btn">
                                 🔐 Sign in with GitHub
                             </button>
                         </div>
@@ -187,8 +187,8 @@ class GitHubApp {
         switch (this.currentView) {
             case 'repositories':
                 return `
-                    <input type="text" id="repo-search" placeholder="Search repositories..." onkeyup="githubApp.searchRepositories()">
-                    <select id="repo-sort" onchange="githubApp.sortRepositories()">
+                    <input type="text" id="repo-search" class="sk-input" placeholder="Search repositories..." onkeyup="githubApp.searchRepositories()">
+                    <select id="repo-sort" class="sk-select" onchange="githubApp.sortRepositories()">
                         <option value="updated">Recently Updated</option>
                         <option value="created">Recently Created</option>
                         <option value="name">Name</option>
@@ -197,8 +197,8 @@ class GitHubApp {
                 `;
             case 'issues':
                 return `
-                    <input type="text" id="issue-search" placeholder="Search issues..." onkeyup="githubApp.searchIssues()">
-                    <select id="issue-filter" onchange="githubApp.filterIssues()">
+                    <input type="text" id="issue-search" class="sk-input" placeholder="Search issues..." onkeyup="githubApp.searchIssues()">
+                    <select id="issue-filter" class="sk-select" onchange="githubApp.filterIssues()">
                         <option value="all">All Issues</option>
                         <option value="open">Open</option>
                         <option value="closed">Closed</option>
@@ -207,8 +207,8 @@ class GitHubApp {
                 `;
             case 'pulls':
                 return `
-                    <input type="text" id="pr-search" placeholder="Search pull requests..." onkeyup="githubApp.searchPullRequests()">
-                    <select id="pr-filter" onchange="githubApp.filterPullRequests()">
+                    <input type="text" id="pr-search" class="sk-input" placeholder="Search pull requests..." onkeyup="githubApp.searchPullRequests()">
+                    <select id="pr-filter" class="sk-select" onchange="githubApp.filterPullRequests()">
                         <option value="all">All PRs</option>
                         <option value="open">Open</option>
                         <option value="closed">Closed</option>
@@ -243,30 +243,31 @@ class GitHubApp {
     renderRepositories() {
         if (this.repositories.size === 0) {
             return `
-                <div class="empty-state">
+                <div class="empty-state sk-empty">
                     <div class="empty-icon">📚</div>
                     <h3>No repositories found</h3>
                     <p>Create your first repository or check your GitHub token permissions.</p>
-                    <button onclick="githubApp.showCreateRepo()" class="btn-primary">📚 Create Repository</button>
+                    <button onclick="githubApp.showCreateRepo()" class="btn-primary sk-btn sk-btn-primary">📚 Create Repository</button>
                 </div>
             `;
         }
 
+        const visibleRepos = this.filteredRepositories();
         return `
             <div class="repositories-grid">
-                ${Array.from(this.repositories.values()).map(repo => `
-                    <div class="repository-card">
+                ${visibleRepos.map(repo => `
+                    <div class="repository-card sk-card">
                         <div class="repo-header">
                             <div class="repo-info">
                                 <h4>${repo.name}</h4>
                                 <div class="repo-meta">
                                     <span class="repo-owner">${repo.owner.login}</span>
-                                    ${repo.private ? '<span class="private-badge">🔒 Private</span>' : '<span class="public-badge">🌍 Public</span>'}
+                                    ${repo.private ? '<span class="private-badge sk-badge">🔒 Private</span>' : '<span class="public-badge sk-badge">🌍 Public</span>'}
                                 </div>
                             </div>
                             <div class="repo-actions">
-                                <button onclick="githubApp.openRepository('${repo.full_name}')" class="btn-sm btn-primary">📖 Open</button>
-                                <button onclick="githubApp.cloneRepository('${repo.clone_url}')" class="btn-sm btn-secondary">📥 Clone</button>
+                                <button onclick="githubApp.openRepository('${repo.full_name}')" class="btn-sm btn-primary sk-btn sk-btn-primary">📖 Open</button>
+                                <button onclick="githubApp.cloneRepository('${repo.clone_url}')" class="btn-sm btn-secondary sk-btn">📥 Clone</button>
                             </div>
                         </div>
                         
@@ -307,7 +308,7 @@ class GitHubApp {
     renderIssues() {
         if (this.issues.size === 0) {
             return `
-                <div class="empty-state">
+                <div class="empty-state sk-empty">
                     <div class="empty-icon">🐛</div>
                     <h3>No issues found</h3>
                     <p>No issues match your current filter criteria.</p>
@@ -317,7 +318,7 @@ class GitHubApp {
 
         return `
             <div class="issues-list">
-                ${Array.from(this.issues.values()).map(issue => `
+                ${this.filteredIssues().map(issue => `
                     <div class="issue-card ${issue.state}">
                         <div class="issue-header">
                             <div class="issue-info">
@@ -329,14 +330,14 @@ class GitHubApp {
                                 </div>
                             </div>
                             <div class="issue-actions">
-                                <button onclick="githubApp.openIssue('${issue.html_url}')" class="btn-sm btn-primary">📖 Open</button>
-                                <button onclick="githubApp.editIssue(${issue.id})" class="btn-sm btn-secondary">✏️ Edit</button>
+                                <button onclick="githubApp.openIssue('${issue.html_url}')" class="btn-sm btn-primary sk-btn sk-btn-primary">📖 Open</button>
+                                <button onclick="githubApp.editIssue(${issue.id})" class="btn-sm btn-secondary sk-btn">✏️ Edit</button>
                             </div>
                         </div>
                         
                         <div class="issue-labels">
                             ${(issue.labels || []).map(label => `
-                                <span class="label" style="background-color: #${label.color}">
+                                <span class="label sk-badge" style="background-color: #${label.color}">
                                     ${label.name}
                                 </span>
                             `).join('')}
@@ -360,7 +361,7 @@ class GitHubApp {
     renderPullRequests() {
         if (this.pullRequests.size === 0) {
             return `
-                <div class="empty-state">
+                <div class="empty-state sk-empty">
                     <div class="empty-icon">🔀</div>
                     <h3>No pull requests found</h3>
                     <p>No pull requests match your current filter criteria.</p>
@@ -370,7 +371,7 @@ class GitHubApp {
 
         return `
             <div class="pulls-list">
-                ${Array.from(this.pullRequests.values()).map(pr => `
+                ${this.filteredPullRequests().map(pr => `
                     <div class="pull-card ${pr.state}">
                         <div class="pull-header">
                             <div class="pull-info">
@@ -382,9 +383,9 @@ class GitHubApp {
                                 </div>
                             </div>
                             <div class="pull-actions">
-                                <button onclick="githubApp.openPullRequest('${pr.html_url}')" class="btn-sm btn-primary">📖 Open</button>
+                                <button onclick="githubApp.openPullRequest('${pr.html_url}')" class="btn-sm btn-primary sk-btn sk-btn-primary">📖 Open</button>
                                 ${pr.state === 'open' ? `
-                                    <button onclick="githubApp.mergePullRequest(${pr.id})" class="btn-sm btn-success">🔀 Merge</button>
+                                    <button onclick="githubApp.mergePullRequest(${pr.id})" class="btn-sm btn-success sk-btn sk-btn-primary">🔀 Merge</button>
                                 ` : ''}
                             </div>
                         </div>
@@ -415,7 +416,7 @@ class GitHubApp {
     renderOrganizations() {
         return `
             <div class="organizations-grid">
-                <div class="empty-state">
+                <div class="empty-state sk-empty">
                     <div class="empty-icon">🏢</div>
                     <h3>Organizations</h3>
                     <p>Organization management coming soon!</p>
@@ -427,7 +428,7 @@ class GitHubApp {
     renderGists() {
         return `
             <div class="gists-grid">
-                <div class="empty-state">
+                <div class="empty-state sk-empty">
                     <div class="empty-icon">📝</div>
                     <h3>Gists</h3>
                     <p>Gist management coming soon!</p>
@@ -439,7 +440,7 @@ class GitHubApp {
     renderWorkflows() {
         return `
             <div class="workflows-grid">
-                <div class="empty-state">
+                <div class="empty-state sk-empty">
                     <div class="empty-icon">⚡</div>
                     <h3>GitHub Actions</h3>
                     <p>Workflow management coming soon!</p>
@@ -505,8 +506,8 @@ class GitHubApp {
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button onclick="githubApp.createRepository()" class="btn-primary">📚 Create Repository</button>
-                        <button onclick="githubApp.hideCreateRepo()" class="btn-secondary">Cancel</button>
+                        <button onclick="githubApp.createRepository()" class="btn-primary sk-btn sk-btn-primary">📚 Create Repository</button>
+                        <button onclick="githubApp.hideCreateRepo()" class="btn-secondary sk-btn">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -524,7 +525,7 @@ class GitHubApp {
                             <div class="form-group">
                                 <label for="settings-token">GitHub Token:</label>
                                 <input type="password" id="settings-token" value="${this.accessToken || ''}" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-                                <button onclick="githubApp.updateToken()" class="btn-sm btn-primary">Update Token</button>
+                                <button onclick="githubApp.updateToken()" class="btn-sm btn-primary sk-btn sk-btn-primary">Update Token</button>
                             </div>
                         </div>
                         
@@ -535,13 +536,13 @@ class GitHubApp {
                                     ${this.mcpConnection ? '🟢 Connected' : '🔴 Disconnected'}
                                 </span>
                             </div>
-                            <button onclick="githubApp.reconnectMCP()" class="btn-secondary">🔄 Reconnect MCP</button>
+                            <button onclick="githubApp.reconnectMCP()" class="btn-secondary sk-btn">🔄 Reconnect MCP</button>
                         </div>
                         
                         <div class="settings-section">
                             <h4>📊 Data Management</h4>
-                            <button onclick="githubApp.clearCache()" class="btn-secondary">🗑️ Clear Cache</button>
-                            <button onclick="githubApp.exportData()" class="btn-secondary">📤 Export Data</button>
+                            <button onclick="githubApp.clearCache()" class="btn-secondary sk-btn">🗑️ Clear Cache</button>
+                            <button onclick="githubApp.exportData()" class="btn-secondary sk-btn">📤 Export Data</button>
                         </div>
                     </div>
                 </div>
@@ -1018,31 +1019,99 @@ class GitHubApp {
         window.open(htmlUrl, '_blank');
     }
 
-    // Search and filter methods (placeholder implementations)
+    // Real local search/filter/sort over the GitHub API data already
+    // fetched into this.repositories / this.issues / this.pullRequests.
+    refreshViewContent() {
+        const content = document.querySelector('.github-app .view-content, .view-content');
+        if (content) content.innerHTML = this.renderCurrentView();
+    }
+
     searchRepositories() {
-        // Implementation would filter repositories based on search input
-        console.log('Searching repositories...');
+        const input = document.getElementById('repo-search');
+        this.repoQuery = (input?.value || '').toLowerCase();
+        this.refreshViewContent();
     }
 
     sortRepositories() {
-        // Implementation would sort repositories based on selected criteria
-        console.log('Sorting repositories...');
+        const select = document.getElementById('repo-sort');
+        this.repoSort = select?.value || 'updated';
+        this.refreshViewContent();
+    }
+
+    filteredRepositories() {
+        const query = this.repoQuery || '';
+        let repos = Array.from(this.repositories.values());
+        if (query) {
+            repos = repos.filter(repo =>
+                (repo.name || '').toLowerCase().includes(query) ||
+                (repo.description || '').toLowerCase().includes(query) ||
+                (repo.full_name || '').toLowerCase().includes(query));
+        }
+        const sort = this.repoSort || 'updated';
+        const byDate = key => new Date(b[key] || 0) - new Date(a[key] || 0);
+        repos.sort((a, b) => {
+            switch (sort) {
+                case 'created': return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                case 'name': return (a.name || '').localeCompare(b.name || '');
+                case 'stars': return (b.stargazers_count || 0) - (a.stargazers_count || 0);
+                default: return new Date(b.updated_at || 0) - new Date(a.updated_at || 0);
+            }
+        });
+        return repos;
     }
 
     searchIssues() {
-        console.log('Searching issues...');
+        const input = document.getElementById('issue-search');
+        this.issueQuery = (input?.value || '').toLowerCase();
+        this.refreshViewContent();
     }
 
     filterIssues() {
-        console.log('Filtering issues...');
+        const select = document.getElementById('issue-filter');
+        this.issueFilter = select?.value || 'all';
+        this.refreshViewContent();
+    }
+
+    filteredIssues() {
+        const query = this.issueQuery || '';
+        const filter = this.issueFilter || 'all';
+        return Array.from(this.issues.values()).filter(issue => {
+            if (query && !((issue.title || '').toLowerCase().includes(query) ||
+                String(issue.number || '').includes(query))) return false;
+            switch (filter) {
+                case 'open': return issue.state === 'open';
+                case 'closed': return issue.state === 'closed';
+                case 'assigned': return issue.assignee && issue.assignee.login === this.user?.login;
+                default: return true;
+            }
+        });
     }
 
     searchPullRequests() {
-        console.log('Searching pull requests...');
+        const input = document.getElementById('pr-search');
+        this.prQuery = (input?.value || '').toLowerCase();
+        this.refreshViewContent();
     }
 
     filterPullRequests() {
-        console.log('Filtering pull requests...');
+        const select = document.getElementById('pr-filter');
+        this.prFilter = select?.value || 'all';
+        this.refreshViewContent();
+    }
+
+    filteredPullRequests() {
+        const query = this.prQuery || '';
+        const filter = this.prFilter || 'all';
+        return Array.from(this.pullRequests.values()).filter(pr => {
+            if (query && !((pr.title || '').toLowerCase().includes(query) ||
+                String(pr.number || '').includes(query))) return false;
+            switch (filter) {
+                case 'open': return pr.state === 'open';
+                case 'closed': return pr.state === 'closed' && !pr.merged;
+                case 'merged': return pr.merged === true;
+                default: return true;
+            }
+        });
     }
 
     // Settings methods

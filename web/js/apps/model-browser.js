@@ -327,7 +327,7 @@ export class ModelBrowserApp {
         <div class="model-toolbar">
           <div class="toolbar-section">
             <div class="search-box">
-              <input type="text" id="model-search" placeholder="Search models..." value="${this.searchQuery}">
+              <input type="text" id="model-search" class="sk-input" placeholder="Search models..." value="${this.searchQuery}">
               <button class="search-btn">🔍</button>
             </div>
           </div>
@@ -342,8 +342,8 @@ export class ModelBrowserApp {
             </div>
           </div>
           <div class="toolbar-section">
-            <button class="btn btn-primary" id="refresh-models">🔄 Refresh</button>
-            <button class="btn btn-secondary" id="import-model">📥 Import</button>
+            <button class="btn btn-primary sk-btn sk-btn-primary" id="refresh-models">🔄 Refresh</button>
+            <button class="btn btn-secondary sk-btn" id="import-model">📥 Import</button>
           </div>
         </div>
         
@@ -355,7 +355,7 @@ export class ModelBrowserApp {
           </div>
           
           <div class="model-details" id="model-details">
-            <div class="no-selection">
+            <div class="no-selection sk-empty">
               <div class="no-selection-icon">🤖</div>
               <h3>No Model Selected</h3>
               <p>Select a model from the list to see details and options.</p>
@@ -477,11 +477,14 @@ export class ModelBrowserApp {
       }
     }
     
-    // Fallback to example models for demonstration
+    // Fallback to clearly-labeled sample models (offline examples only)
+    this.usingSampleModels = true;
     return this.getFallbackModels();
   }
 
-  getFallbackModels() {
+  getSampleModels() {
+    // Offline example entries only — always presented as samples, never as
+    // live catalog data (see getAvailableModels and usingSampleModels).
     return [
       {
         id: 'microsoft/DialoGPT-medium',
@@ -554,19 +557,56 @@ export class ModelBrowserApp {
     ];
   }
 
+  // Backwards-compatible alias (deprecated): use getSampleModels.
+  getFallbackModels() {
+    return this.getSampleModels();
+  }
+
   async getAvailableModels() {
-    // Try to fetch from real API if available
+    // Real sources first: desktop swissknife models API, then the public
+    // Hugging Face Hub catalog. Sample entries are a last resort and are
+    // flagged as such so they are never mistaken for live catalog data.
     if (this.desktop?.swissknife?.models) {
       try {
         const models = await this.desktop.swissknife.models.list();
-        return models;
+        if (models && models.length) {
+          this.usingSampleModels = false;
+          return models;
+        }
       } catch (error) {
         console.warn('Could not fetch models from API:', error);
       }
     }
-    
-    // Fallback to example models for demonstration
-    return this.getFallbackModels();
+
+    try {
+      const response = await fetch('https://huggingface.co/api/models?limit=50&sort=downloads&direction=-1');
+      if (response.ok) {
+        const items = await response.json();
+        if (Array.isArray(items) && items.length) {
+          this.usingSampleModels = false;
+          return items.map(m => ({
+            id: m.id,
+            name: m.id,
+            description: `Pipeline: ${m.pipeline_tag || 'n/a'} · ⬇ ${m.downloads || 0} · ❤ ${m.likes || 0}`,
+            type: m.pipeline_tag || 'unknown',
+            size: 'n/a',
+            downloads: m.downloads || 0,
+            likes: m.likes || 0,
+            author: (m.id || '').split('/')[0] || 'Unknown',
+            tags: m.tags || [],
+            license: 'see hub',
+            lastModified: m.lastModified || '',
+            requirements: { memory: 'see hub', gpu: 'see hub' }
+          }));
+        }
+      }
+    } catch (error) {
+      console.warn('Hugging Face catalog unreachable:', error);
+    }
+
+    // Fallback to clearly-labeled sample models (offline examples only)
+    this.usingSampleModels = true;
+    return this.getSampleModels();
   }
 
   renderModelList(window) {
@@ -592,10 +632,17 @@ export class ModelBrowserApp {
     }
 
     modelList.innerHTML = '';
+    if (this.usingSampleModels) {
+      const banner = document.createElement('div');
+      banner.className = 'sample-models-banner';
+      banner.style.cssText = 'padding:10px 14px;margin-bottom:12px;background:rgba(255,193,7,.12);border:1px solid rgba(255,193,7,.4);border-radius:8px;font-size:13px;';
+      banner.textContent = '⚠️ Showing built-in sample entries — the live model catalog is unreachable from this browser. These are examples only, not live data.';
+      modelList.appendChild(banner);
+    }
 
     if (filteredModels.length === 0) {
       modelList.innerHTML = `
-        <div class="no-models">
+        <div class="no-models sk-empty">
           <div class="no-models-icon">🤖</div>
           <h3>No Models Found</h3>
           <p>Try adjusting your search or filter criteria.</p>
@@ -607,7 +654,7 @@ export class ModelBrowserApp {
     filteredModels.forEach(model => {
       const isInstalled = this.installedModels.some(installed => installed.id === model.id);
       const modelItem = document.createElement('div');
-      modelItem.className = `model-item ${isInstalled ? 'installed' : ''}`;
+      modelItem.className = `model-item sk-card ${isInstalled ? 'installed' : ''}`;
       modelItem.dataset.modelId = model.id;
 
       modelItem.innerHTML = `
@@ -618,7 +665,7 @@ export class ModelBrowserApp {
             <p class="model-author">by ${model.author}</p>
           </div>
           <div class="model-status">
-            ${isInstalled ? '<span class="installed-badge">Installed</span>' : ''}
+            ${isInstalled ? '<span class="installed-badge sk-badge">Installed</span>' : ''}
           </div>
         </div>
         <div class="model-description">${model.description}</div>
@@ -629,7 +676,7 @@ export class ModelBrowserApp {
           <span class="model-type">${model.type}</span>
         </div>
         <div class="model-tags">
-          ${model.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+          ${model.tags.map(tag => `<span class="tag sk-badge">${tag}</span>`).join('')}
         </div>
       `;
 
@@ -769,49 +816,26 @@ console.log(result);</code></pre>
 
   async installModel(window, model) {
     const downloadModal = window.querySelector('#download-modal');
-    const downloadingModel = window.querySelector('#downloading-model');
-    const downloadStatus = window.querySelector('#download-status');
-    const downloadProgress = window.querySelector('#download-progress');
-    const downloadSpeed = window.querySelector('#download-speed');
-    const downloadEta = window.querySelector('#download-eta');
 
-    downloadingModel.textContent = model.name;
-    downloadModal.style.display = 'flex';
-
+    // Honest: this browser surface cannot download multi-GB model weights.
+    // "Install" records the model in the user's local library (localStorage)
+    // so it can be referenced later — no fake download progress is shown.
     try {
-      // Simulate download progress
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 10;
-        if (progress > 100) progress = 100;
-
-        downloadProgress.style.width = progress + '%';
-        downloadStatus.textContent = `Downloading... ${Math.round(progress)}%`;
-        downloadSpeed.textContent = `${(Math.random() * 10 + 5).toFixed(1)} MB/s`;
-        
-        const eta = Math.max(0, (100 - progress) * 2);
-        downloadEta.textContent = eta > 0 ? `${Math.round(eta)}s remaining` : 'Almost done...';
-
-        if (progress >= 100) {
-          clearInterval(interval);
-          downloadStatus.textContent = 'Installing...';
-          
-          setTimeout(async () => {
-            // Add to installed models
-            this.installedModels.push(model);
-            
-            downloadModal.style.display = 'none';
-            this.renderModelDetails(window);
-            this.renderModelList(window);
-            
-            this.desktop.showNotification(`${model.name} installed successfully`, 'success');
-          }, 2000);
-        }
-      }, 500);
-
+      const key = 'model-browser-library';
+      let library = [];
+      try { library = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { /* ignore */ }
+      if (!library.some(m => m.id === model.id)) {
+        library.push({ id: model.id, name: model.name, savedAt: new Date().toISOString(), sample: !!this.usingSampleModels });
+        localStorage.setItem(key, JSON.stringify(library));
+      }
+      this.installedModels.push(model);
+      if (downloadModal) downloadModal.style.display = 'none';
+      this.renderModelDetails(window);
+      this.renderModelList(window);
+      this.desktop.showNotification(`${model.name} saved to your local library`, 'success');
     } catch (error) {
-      downloadModal.style.display = 'none';
-      this.desktop.showNotification(`Failed to install ${model.name}: ${error.message}`, 'error');
+      if (downloadModal) downloadModal.style.display = 'none';
+      this.desktop.showNotification(`Failed to save ${model.name}: ${error.message}`, 'error');
     }
   }
 
@@ -1205,7 +1229,7 @@ console.log(result);</code></pre>
           <div class="endpoint-item ${endpoint.status}">
             <div class="endpoint-info">
               <strong>${endpoint.name}</strong> (${endpoint.type})
-              <span class="endpoint-status ${endpoint.status}">${endpoint.status}</span>
+              <span class="endpoint-status ${endpoint.status}"><span class="sk-status-dot ${endpoint.status === 'available' ? 'is-ok' : endpoint.status === 'unavailable' ? 'is-err' : 'is-idle'}"></span>${endpoint.status}</span>
             </div>
             <div class="endpoint-metrics">
               Latency: ${endpoint.metrics.latency}ms | 
@@ -1325,7 +1349,7 @@ console.log(result);</code></pre>
         <div class="model-toolbar">
           <div class="toolbar-section">
             <div class="search-box">
-              <input type="text" id="model-search" placeholder="Search models..." value="${this.searchQuery}">
+              <input type="text" id="model-search" class="sk-input" placeholder="Search models..." value="${this.searchQuery}">
               <button class="search-btn">🔍</button>
             </div>
           </div>
@@ -1340,8 +1364,8 @@ console.log(result);</code></pre>
             </div>
           </div>
           <div class="toolbar-section">
-            <button class="btn btn-primary" id="refresh-models">🔄 Refresh</button>
-            <button class="btn btn-secondary" id="import-model">📥 Import</button>
+            <button class="btn btn-primary sk-btn sk-btn-primary" id="refresh-models">🔄 Refresh</button>
+            <button class="btn btn-secondary sk-btn" id="import-model">📥 Import</button>
           </div>
         </div>
         
@@ -1353,7 +1377,7 @@ console.log(result);</code></pre>
           </div>
           
           <div class="model-details" id="model-details">
-            <div class="no-selection">
+            <div class="no-selection sk-empty">
               <div class="no-selection-icon">🤖</div>
               <h3>No Model Selected</h3>
               <p>Select a model from the list to see details and options.</p>

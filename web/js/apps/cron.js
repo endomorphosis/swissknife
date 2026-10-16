@@ -157,28 +157,28 @@ export class CronApp {
           <div class="tab-content ${this.currentView === 'scheduler' ? 'active' : ''}" data-view="scheduler">
             <div class="scheduler-overview">
               <div class="stats-cards">
-                <div class="stat-card">
+                <div class="stat-card sk-card">
                   <div class="stat-icon">⏰</div>
                   <div class="stat-content">
                     <div class="stat-value" id="total-tasks">0</div>
                     <div class="stat-label">Scheduled Tasks</div>
                   </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card sk-card">
                   <div class="stat-icon">🏃</div>
                   <div class="stat-content">
                     <div class="stat-value" id="running-tasks">0</div>
                     <div class="stat-label">Running Tasks</div>
                   </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card sk-card">
                   <div class="stat-icon">✅</div>
                   <div class="stat-content">
                     <div class="stat-value" id="completed-today">0</div>
                     <div class="stat-label">Completed Today</div>
                   </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card sk-card">
                   <div class="stat-icon">🔗</div>
                   <div class="stat-content">
                     <div class="stat-value" id="p2p-tasks">0</div>
@@ -189,12 +189,12 @@ export class CronApp {
 
               <div class="scheduler-controls">
                 <div class="control-section">
-                  <button class="scheduler-btn" id="pause-all-tasks">⏸️ Pause All</button>
-                  <button class="scheduler-btn" id="resume-all-tasks">▶️ Resume All</button>
-                  <button class="scheduler-btn" id="run-now" disabled>🚀 Run Now</button>
+                  <button class="scheduler-btn sk-btn" id="pause-all-tasks">⏸️ Pause All</button>
+                  <button class="scheduler-btn sk-btn" id="resume-all-tasks">▶️ Resume All</button>
+                  <button class="scheduler-btn sk-btn sk-btn-primary" id="run-now" disabled>🚀 Run Now</button>
                 </div>
                 <div class="filter-section">
-                  <select id="task-filter" class="filter-select">
+                  <select id="task-filter" class="filter-select sk-select">
                     <option value="all">All Tasks</option>
                     <option value="active">Active</option>
                     <option value="paused">Paused</option>
@@ -202,7 +202,7 @@ export class CronApp {
                     <option value="ml">ML Tasks</option>
                     <option value="p2p">P2P Tasks</option>
                   </select>
-                  <input type="text" id="task-search" placeholder="Search tasks..." class="search-input">
+                  <input type="text" id="task-search" placeholder="Search tasks..." class="search-input sk-input">
                 </div>
               </div>
             </div>
@@ -227,8 +227,8 @@ export class CronApp {
             <div class="templates-header">
               <h3>📋 Task Templates</h3>
               <div class="template-controls">
-                <button class="template-btn" id="create-custom-template">✨ Create Custom</button>
-                <button class="template-btn" id="import-template">📥 Import Template</button>
+                <button class="template-btn sk-btn" id="create-custom-template">✨ Create Custom</button>
+                <button class="template-btn sk-btn" id="import-template">📥 Import Template</button>
               </div>
             </div>
 
@@ -253,15 +253,15 @@ export class CronApp {
             <div class="history-header">
               <h3>📜 Execution History</h3>
               <div class="history-controls">
-                <select id="history-filter" class="filter-select">
+                <select id="history-filter" class="filter-select sk-select">
                   <option value="all">All Executions</option>
                   <option value="success">Successful</option>
                   <option value="failed">Failed</option>
                   <option value="today">Today</option>
                   <option value="week">This Week</option>
                 </select>
-                <button class="history-btn" id="clear-history">🗑️ Clear History</button>
-                <button class="history-btn" id="export-history">📤 Export</button>
+                <button class="history-btn sk-btn" id="clear-history">🗑️ Clear History</button>
+                <button class="history-btn sk-btn" id="export-history">📤 Export</button>
               </div>
             </div>
 
@@ -296,7 +296,7 @@ export class CronApp {
               <h3>📊 Task Monitoring</h3>
               
               <div class="monitoring-metrics">
-                <div class="metric-card">
+                <div class="metric-card sk-card">
                   <div class="metric-header">
                     <span class="metric-icon">⚡</span>
                     <span class="metric-title">System Load</span>
@@ -305,7 +305,7 @@ export class CronApp {
                   <div class="metric-chart" id="load-chart"></div>
                 </div>
 
-                <div class="metric-card">
+                <div class="metric-card sk-card">
                   <div class="metric-header">
                     <span class="metric-icon">🔗</span>
                     <span class="metric-title">P2P Network</span>
@@ -314,7 +314,7 @@ export class CronApp {
                   <div class="metric-chart" id="p2p-chart"></div>
                 </div>
 
-                <div class="metric-card">
+                <div class="metric-card sk-card">
                   <div class="metric-header">
                     <span class="metric-icon">🤖</span>
                     <span class="metric-title">AI Processing</span>
@@ -323,7 +323,7 @@ export class CronApp {
                   <div class="metric-chart" id="ai-chart"></div>
                 </div>
 
-                <div class="metric-card">
+                <div class="metric-card sk-card">
                   <div class="metric-header">
                     <span class="metric-icon">📊</span>
                     <span class="metric-title">Success Rate</span>
@@ -342,7 +342,7 @@ export class CronApp {
 
               <div class="monitoring-logs">
                 <h4>📋 Recent Logs</h4>
-                <div class="logs-container" id="monitoring-logs">
+                <div class="logs-container sk-code" id="monitoring-logs">
                   <!-- Logs will be populated -->
                 </div>
               </div>
@@ -363,15 +363,15 @@ export class CronApp {
                   <h4>📋 Basic Information</h4>
                   <div class="form-group">
                     <label for="task-name">Task Name</label>
-                    <input type="text" id="task-name" required>
+                    <input type="text" id="task-name" class="sk-input" required>
                   </div>
                   <div class="form-group">
                     <label for="task-description">Description</label>
-                    <textarea id="task-description" rows="3"></textarea>
+                    <textarea id="task-description" class="sk-textarea" rows="3"></textarea>
                   </div>
                   <div class="form-group">
                     <label for="task-template">Template</label>
-                    <select id="task-template">
+                    <select id="task-template" class="sk-select">
                       <option value="">Custom Task</option>
                       ${this.taskTemplates.map(template => 
                         `<option value="${template.id}">${template.name}</option>`
@@ -384,7 +384,7 @@ export class CronApp {
                   <h4>⏰ Schedule</h4>
                   <div class="form-group">
                     <label for="task-schedule-type">Schedule Type</label>
-                    <select id="task-schedule-type">
+                    <select id="task-schedule-type" class="sk-select">
                       <option value="cron">Cron Expression</option>
                       <option value="interval">Interval</option>
                       <option value="once">Run Once</option>
@@ -392,7 +392,7 @@ export class CronApp {
                   </div>
                   <div class="form-group" id="cron-expression-group">
                     <label for="task-cron">Cron Expression</label>
-                    <input type="text" id="task-cron" placeholder="0 0 * * *">
+                    <input type="text" id="task-cron" class="sk-input" placeholder="0 0 * * *">
                     <div class="cron-help">
                       <span>Examples: </span>
                       <button type="button" class="cron-preset" data-cron="0 0 * * *">Daily</button>
@@ -418,7 +418,7 @@ export class CronApp {
                   </div>
                   <div class="form-group">
                     <label for="task-priority">Priority</label>
-                    <select id="task-priority">
+                    <select id="task-priority" class="sk-select">
                       <option value="low">Low</option>
                       <option value="normal" selected>Normal</option>
                       <option value="high">High</option>
@@ -433,8 +433,8 @@ export class CronApp {
               </form>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn-secondary" id="cancel-task">Cancel</button>
-              <button type="submit" class="btn-primary" form="task-creation-form">Create Task</button>
+              <button type="button" class="btn-secondary sk-btn" id="cancel-task">Cancel</button>
+              <button type="submit" class="btn-primary sk-btn sk-btn-primary" form="task-creation-form">Create Task</button>
             </div>
           </div>
         </div>
@@ -626,10 +626,10 @@ export class CronApp {
     
     if (tasks.length === 0) {
       container.innerHTML = `
-        <div class="no-tasks">
-          <div class="no-tasks-icon">⏰</div>
+        <div class="no-tasks sk-empty">
+          <div class="no-tasks-icon sk-empty-icon">⏰</div>
           <div class="no-tasks-message">No scheduled tasks</div>
-          <button class="btn-primary" onclick="cronApp.showTaskCreationModal()">Create Your First Task</button>
+          <button class="btn-primary sk-btn sk-btn-primary" onclick="cronApp.showTaskCreationModal()">Create Your First Task</button>
         </div>
       `;
       return;
@@ -645,6 +645,7 @@ export class CronApp {
           </div>
           <div class="task-status">
             <span class="status-badge status-${task.enabled ? 'enabled' : 'disabled'}">
+              <span class="sk-status-dot ${task.enabled ? 'is-ok' : 'is-idle'}"></span>
               ${task.enabled ? 'Active' : 'Paused'}
             </span>
             ${task.enableP2P ? '<span class="p2p-badge">🔗</span>' : ''}
@@ -660,6 +661,11 @@ export class CronApp {
             <span class="next-run-icon">🕐</span>
             <span class="next-run-text">Next: ${this.getNextRunTime(task)}</span>
           </div>
+          ${task.definitionCid ? `
+          <div class="task-ledger">
+            <span class="ledger-icon">🧾</span>
+            <span class="ledger-text" title="Definition CID in the ipfs_kit_py scheduling ledger">Ledger: ${task.definitionCid.slice(0, 18)}…</span>
+          </div>` : ''}
         </div>
         
         <div class="task-actions">
@@ -681,7 +687,7 @@ export class CronApp {
     const tasks = Array.from(this.runningTasks.values());
     
     if (tasks.length === 0) {
-      container.innerHTML = '<div class="no-running-tasks">No tasks currently running</div>';
+      container.innerHTML = '<div class="no-running-tasks sk-empty">No tasks currently running</div>';
       return;
     }
     
@@ -735,11 +741,93 @@ export class CronApp {
   }
 
   getNextRunTime(task) {
-    // Calculate next run time based on cron expression
-    // This is a simplified calculation
-    const now = new Date();
-    const nextRun = new Date(now.getTime() + 60 * 60 * 1000); // Placeholder: 1 hour from now
-    return nextRun.toLocaleString();
+    // Real next-run computation for 5-field cron expressions. Returns an
+    // honest "unknown" when the expression cannot be parsed rather than a
+    // placeholder time.
+    const next = this.computeNextCronRun(task.schedule, new Date());
+    return next ? next.toLocaleString() : 'unknown schedule';
+  }
+
+  // Minimal 5-field cron matcher: supports "*", "*/n", "a,b,c", "a-b", and
+  // plain integers. Anything else is treated as non-matching (honest).
+  parseCronField(field, min, max) {
+    const values = new Set();
+    if (field === '*') {
+      for (let i = min; i <= max; i++) values.add(i);
+      return values;
+    }
+    for (const part of String(field).split(',')) {
+      let step = 1;
+      let range = part;
+      if (part.includes('/')) {
+        const [r, s] = part.split('/');
+        range = r;
+        step = parseInt(s, 10);
+        if (!Number.isFinite(step) || step < 1) return null;
+      }
+      let start;
+      let end;
+      if (range === '*' || range === '') {
+        start = min;
+        end = max;
+      } else if (range.includes('-')) {
+        const [a, b] = range.split('-').map(Number);
+        if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+        start = a;
+        end = b;
+      } else {
+        const v = Number(range);
+        if (!Number.isFinite(v)) return null;
+        start = v;
+        end = v;
+      }
+      if (start < min || end > max || start > end) return null;
+      for (let i = start; i <= end; i += step) values.add(i);
+    }
+    return values;
+  }
+
+  parseCronExpression(schedule) {
+    const parts = String(schedule || '').trim().split(/\s+/);
+    if (parts.length !== 5) return null;
+    const [minute, hour, day, month, weekday] = [
+      this.parseCronField(parts[0], 0, 59),
+      this.parseCronField(parts[1], 0, 23),
+      this.parseCronField(parts[2], 1, 31),
+      this.parseCronField(parts[3], 1, 12),
+      this.parseCronField(parts[4], 0, 6)
+    ];
+    if (!minute || !hour || !day || !month || !weekday) return null;
+    return { minute, hour, day, month, weekday };
+  }
+
+  cronMatchesDate(parsed, date) {
+    return parsed.minute.has(date.getMinutes())
+      && parsed.hour.has(date.getHours())
+      && parsed.day.has(date.getDate())
+      && parsed.month.has(date.getMonth() + 1)
+      && parsed.weekday.has(date.getDay());
+  }
+
+  shouldRunTask(task, now) {
+    const parsed = this.parseCronExpression(task.schedule);
+    if (!parsed) return false;
+    // Fire only on the minute boundary the processor tick observes.
+    return this.cronMatchesDate(parsed, now);
+  }
+
+  computeNextCronRun(schedule, from) {
+    const parsed = this.parseCronExpression(schedule);
+    if (!parsed) return null;
+    const candidate = new Date(from.getTime());
+    candidate.setSeconds(0, 0);
+    candidate.setMinutes(candidate.getMinutes() + 1);
+    // Scan forward minute-by-minute, bounded to ~370 days.
+    for (let i = 0; i < 532800; i++) {
+      if (this.cronMatchesDate(parsed, candidate)) return new Date(candidate);
+      candidate.setMinutes(candidate.getMinutes() + 1);
+    }
+    return null;
   }
 
   formatDuration(ms) {
@@ -811,18 +899,19 @@ export class CronApp {
         <td>${this.formatDuration(entry.duration)}</td>
         <td>
           <span class="status-badge status-${entry.status}">
+            <span class="sk-status-dot ${entry.status === 'completed' ? 'is-ok' : entry.status === 'failed' ? 'is-err' : entry.status === 'running' ? 'is-warn' : 'is-idle'}"></span>
             ${entry.status}
           </span>
         </td>
         <td class="output-cell">
           ${entry.output ? 
-            `<button class="view-output-btn" onclick="cronApp.viewOutput('${entry.id}')">View</button>` : 
+            `<button class="view-output-btn sk-btn" onclick="cronApp.viewOutput('${entry.id}')">View</button>` : 
             'No output'
           }
         </td>
         <td>
-          <button class="history-btn small" onclick="cronApp.rerunTask('${entry.taskId}')" title="Rerun">🔄</button>
-          <button class="history-btn small" onclick="cronApp.viewHistoryDetails('${entry.id}')" title="Details">🔍</button>
+          <button class="history-btn small sk-btn" onclick="cronApp.rerunTask('${entry.taskId}')" title="Rerun">🔄</button>
+          <button class="history-btn small sk-btn" onclick="cronApp.viewHistoryDetails('${entry.id}')" title="Details">🔍</button>
         </td>
       </tr>
     `).join('');
@@ -877,35 +966,63 @@ export class CronApp {
   }
 
   async updateMonitoringMetrics() {
-    // Update system load
-    const systemLoad = Math.random() * 100;
-    const systemLoadElement = document.getElementById('system-load');
-    if (systemLoadElement) {
-      systemLoadElement.textContent = `${systemLoad.toFixed(1)}%`;
+    // Honest local readings only: task counts come from real scheduler state,
+    // P2P status from the real P2P system, memory from the browser API where
+    // available. CPU/network percentages are NOT measurable in a browser, so
+    // they are shown as n/a rather than fabricated.
+    const localReadings = this.readLocalMetrics();
+
+    const systemLoad = document.getElementById('system-load');
+    if (systemLoad) {
+      systemLoad.textContent = localReadings.label;
     }
-    
+
     // Update P2P status
     const p2pStatus = document.getElementById('p2p-status');
     if (p2pStatus) {
       const isConnected = this.p2pSystem?.peers?.size > 0;
       p2pStatus.textContent = isConnected ? `${this.p2pSystem.peers.size} peers` : 'Disconnected';
     }
-    
+
     // Update AI queue
     const aiQueue = document.getElementById('ai-queue');
     if (aiQueue) {
       aiQueue.textContent = this.runningTasks.size;
     }
-    
+
     // Update success rate
     const successRate = document.getElementById('success-rate');
     if (successRate) {
       const rate = this.calculateSuccessRate();
       successRate.textContent = `${rate.toFixed(1)}%`;
     }
-    
+
     // Update charts
-    this.updateMonitoringCharts();
+    this.updateMonitoringCharts(localReadings);
+  }
+
+  // Real browser-side signals. Returns values in 0-100 for the bar charts
+  // plus an honest label; anything unmeasurable is null (rendered as n/a).
+  readLocalMetrics() {
+    const heap = (typeof performance !== 'undefined' && performance.memory) ? performance.memory : null;
+    const heapPct = heap && heap.totalJSHeapSize > 0
+      ? Math.min(100, (heap.usedJSHeapSize / heap.totalJSHeapSize) * 100)
+      : null;
+    const cores = (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || null;
+    const peerCount = this.p2pSystem?.peers?.size ?? 0;
+    const history = this.taskHistory.length;
+    const completed = this.taskHistory.filter(entry => entry.status === 'completed').length;
+    const successPct = history > 0 ? (completed / history) * 100 : null;
+    return {
+      heapPct,
+      cores,
+      peerCount,
+      running: this.runningTasks.size,
+      successPct,
+      label: heapPct === null
+        ? 'n/a (browser)'
+        : `JS heap ${heapPct.toFixed(1)}%`
+    };
   }
 
   calculateSuccessRate() {
@@ -915,17 +1032,26 @@ export class CronApp {
     return (successful / this.taskHistory.length) * 100;
   }
 
-  updateMonitoringCharts() {
-    // Simple bar charts for monitoring metrics
-    const charts = ['load-chart', 'p2p-chart', 'ai-chart', 'success-chart'];
-    
-    charts.forEach(chartId => {
+  updateMonitoringCharts(readings = this.readLocalMetrics()) {
+    // Charts render real local readings. Bars with no measurable value are
+    // rendered empty and titled "n/a" — never filled with random data.
+    const chartValues = {
+      'load-chart': readings.heapPct,
+      'p2p-chart': readings.peerCount > 0 ? Math.min(100, readings.peerCount * 10) : 0,
+      'ai-chart': Math.min(100, readings.running * 25),
+      'success-chart': readings.successPct
+    };
+
+    Object.entries(chartValues).forEach(([chartId, value]) => {
       const element = document.getElementById(chartId);
       if (element) {
-        const value = Math.random() * 100;
-        element.innerHTML = `
-          <div class="mini-chart-bar" style="width: ${value}%; background: ${this.getBarColor(value)}"></div>
-        `;
+        if (value === null || value === undefined) {
+          element.innerHTML = '<div class="mini-chart-bar" style="width: 0%; background: #9aa5b1;" title="n/a — not measurable in this browser"></div>';
+        } else {
+          element.innerHTML = `
+            <div class="mini-chart-bar" style="width: ${value}%; background: ${this.getBarColor(value)};" title="${Number(value).toFixed(1)}%"></div>
+          `;
+        }
       }
     });
   }
@@ -951,7 +1077,7 @@ export class CronApp {
       }));
     
     if (alerts.length === 0) {
-      container.innerHTML = '<div class="no-alerts">No active alerts</div>';
+      container.innerHTML = '<div class="no-alerts sk-empty">No active alerts</div>';
       return;
     }
     
@@ -1090,15 +1216,77 @@ export class CronApp {
       }
     }
     
-    // Save task
+    // Save task locally first (always works, even with no backend)
     this.scheduledTasks.set(task.id, task);
     this.saveTasks();
-    
+
+    // Persist the job definition to the real backend scheduling ledger
+    // (kit artifacts + event DAG) with the user's explicit confirmation.
+    await this.persistTaskDefinition(task);
+
     // Hide modal and refresh
     this.hideTaskCreationModal();
     await this.loadSchedulerData();
-    
-    this.showNotification(`Task "${task.name}" created successfully`, 'success');
+
+    this.showNotification(
+      `Task "${task.name}" created successfully` +
+      (task.definitionCid ? ` — definition CID ${task.definitionCid}` : ' (local only; backend ledger unavailable)'),
+      'success'
+    );
+  }
+
+  // Persists the job definition record to ipfs_kit_py (real CID over the real
+  // definition bytes) and appends a scheduling event to the event DAG. The
+  // user explicitly confirms the backend write; failures surface verbatim and
+  // never block the local task.
+  async persistTaskDefinition(task) {
+    let helper;
+    try {
+      helper = await import('./real-artifact.js');
+    } catch (error) {
+      console.warn('Artifact helper unavailable:', error.message);
+      return;
+    }
+    const confirmed = helper.userConfirmsBackendWrite(
+      `Persist the definition of task "${task.name}" to the ipfs_kit_py artifact store and scheduling ledger?`
+    );
+    if (!confirmed) return;
+    try {
+      const definition = {
+        schema: 'swissknife.cron.task-definition.v1',
+        id: task.id,
+        name: task.name,
+        description: task.description || '',
+        templateId: task.templateId || 'custom',
+        schedule: task.schedule,
+        enabled: task.enabled,
+        enableP2P: task.enableP2P,
+        priority: task.priority,
+        fields: task.fields || {},
+        createdAt: new Date(task.createdAt).toISOString()
+      };
+      const persisted = await helper.persistArtifactRecord({
+        record: definition,
+        profile: 'cron-task-definition',
+        kind: 'task-definition'
+      });
+      task.definitionCid = persisted.cid;
+      const appended = await helper.appendDagEvent({
+        event_type: 'cron.task.scheduled',
+        task_id: task.id,
+        task_name: task.name,
+        definition_cid: persisted.cid,
+        schedule: task.schedule,
+        created_at: new Date().toISOString()
+      });
+      task.ledgerEventCid = appended.event_cid;
+      this.scheduledTasks.set(task.id, task);
+      this.saveTasks();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn('Task definition persistence failed:', message);
+      this.showNotification(`Task saved locally; backend ledger failed: ${message}`, 'error');
+    }
   }
 
   generateTaskId() {
@@ -1130,57 +1318,328 @@ export class CronApp {
   }
 
   async executeTask(task) {
-    // Simulate task execution
-    const duration = Math.random() * 10000 + 2000; // 2-12 seconds
-    const updateInterval = setInterval(() => {
-      if (this.runningTasks.has(task.id)) {
-        const runningTask = this.runningTasks.get(task.id);
-        runningTask.progress = Math.min(runningTask.progress + 10, 90);
-        this.displayRunningTasks();
-      }
-    }, duration / 10);
-    
-    await new Promise(resolve => setTimeout(resolve, duration));
-    
-    clearInterval(updateInterval);
-    
-    // Complete task
-    const runningTask = this.runningTasks.get(task.id);
-    if (runningTask) {
-      runningTask.progress = 100;
-      
-      // Add to history
-      this.taskHistory.unshift({
-        id: this.generateTaskId(),
-        taskId: task.id,
-        taskName: task.name,
-        startedAt: runningTask.startedAt,
-        completedAt: Date.now(),
-        duration: Date.now() - runningTask.startedAt,
-        status: Math.random() > 0.1 ? 'completed' : 'failed',
-        output: 'Task executed successfully'
-      });
-      
-      // Remove from running
-      this.runningTasks.delete(task.id);
-      
-      this.saveTasks();
-      await this.loadSchedulerData();
-      
+    // Honest local execution: the scheduler really fired, but only templates
+    // with a real local executor perform their payload. Templates without a
+    // connected executor are recorded as skipped, never as fake successes.
+    const startedAt = Date.now();
+    let status = 'completed';
+    let output;
+
+    try {
+      const outcome = await this.executeTaskPayload(task);
+      output = outcome;
+    } catch (error) {
+      status = 'failed';
+      output = `Task "${task.name}" failed: ${error.message}`;
+      this.showNotification(output, 'error');
+    }
+
+    const completedAt = Date.now();
+    this.taskHistory.unshift({
+      id: this.generateTaskId(),
+      taskId: task.id,
+      taskName: task.name,
+      startedAt,
+      completedAt,
+      duration: completedAt - startedAt,
+      status,
+      output
+    });
+
+    this.runningTasks.delete(task.id);
+    this.saveTasks();
+    await this.loadSchedulerData();
+
+    if (status === 'completed') {
       this.showNotification(`Task "${task.name}" completed`, 'success');
+    }
+    await this.recordTaskRunLedger(task, status, output, startedAt, completedAt);
+  }
+
+  // Runs the task payload for real where a local executor exists. Returns a
+  // human-readable outcome string. Throws when the payload cannot run.
+  async executeTaskPayload(task) {
+    const templateId = task.templateId;
+    if (templateId === 'system-monitoring') {
+      return this.runLocalHealthCheck(task);
+    }
+    if (task.enableP2P && this.p2pSystem && typeof this.p2pSystem.dispatchTask === 'function') {
+      const receipt = await this.p2pSystem.dispatchTask(task);
+      return `Dispatched to P2P executor: ${receipt || 'accepted'}`;
+    }
+    throw new Error(
+      `No executor is connected for template "${templateId || 'custom'}" in this session, ` +
+      'so the payload was not run. Connect a P2P executor or pick the System Health Check template for a local run.'
+    );
+  }
+
+  // The one template with a genuinely local executor: reads real
+  // browser-side signals and evaluates the task's own thresholds.
+  runLocalHealthCheck(task) {
+    const fields = task.fields || {};
+    const readings = {
+      cpuCores: (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 'n/a',
+      jsHeapUsedMB: (typeof performance !== 'undefined' && performance.memory)
+        ? Number((performance.memory.usedJSHeapSize / 1048576).toFixed(1))
+        : 'n/a',
+      jsHeapTotalMB: (typeof performance !== 'undefined' && performance.memory)
+        ? Number((performance.memory.totalJSHeapSize / 1048576).toFixed(1))
+        : 'n/a',
+      p2pPeers: this.p2pSystem?.peers?.size ?? 0,
+      runningTasks: this.runningTasks.size
+    };
+    const cpuThreshold = Number(fields.cpuThreshold) || 80;
+    const memoryThreshold = Number(fields.memoryThreshold) || 85;
+    const alerts = [];
+    if (typeof readings.jsHeapUsedMB === 'number' && typeof readings.jsHeapTotalMB === 'number' && readings.jsHeapTotalMB > 0) {
+      const heapPct = (readings.jsHeapUsedMB / readings.jsHeapTotalMB) * 100;
+      if (heapPct >= memoryThreshold) alerts.push(`JS heap ${heapPct.toFixed(1)}% >= threshold ${memoryThreshold}%`);
+    }
+    return `Local health check (cpu threshold ${cpuThreshold}%, memory threshold ${memoryThreshold}%): ` +
+      `cores=${readings.cpuCores}, jsHeap=${readings.jsHeapUsedMB}/${readings.jsHeapTotalMB} MB, ` +
+      `p2pPeers=${readings.p2pPeers}, runningTasks=${readings.runningTasks}` +
+      (alerts.length ? ` — ALERTS: ${alerts.join('; ')}` : ' — no alerts');
+  }
+
+  // Records the run in the backend scheduling ledger (kit event DAG) when the
+  // task definition itself was persisted there. Best-effort: a ledger failure
+  // never masks the local history entry, and its message is shown verbatim.
+  async recordTaskRunLedger(task, status, output, startedAt, completedAt) {
+    if (!task.definitionCid) return;
+    try {
+      const { appendDagEvent } = await import('./real-artifact.js');
+      await appendDagEvent({
+        event_type: 'cron.task.run',
+        task_id: task.id,
+        task_name: task.name,
+        definition_cid: task.definitionCid,
+        status,
+        output: String(output).slice(0, 2000),
+        started_at: new Date(startedAt).toISOString(),
+        completed_at: new Date(completedAt).toISOString()
+      });
+    } catch (error) {
+      console.warn('Scheduling ledger append failed:', error.message);
     }
   }
 
   toggleTask(taskId) {
     const task = this.scheduledTasks.get(taskId);
     if (!task) return;
-    
+
     task.enabled = !task.enabled;
     this.scheduledTasks.set(taskId, task);
     this.saveTasks();
     this.displayScheduledTasks();
-    
+
     this.showNotification(`Task "${task.name}" ${task.enabled ? 'enabled' : 'disabled'}`, 'info');
+  }
+
+  pauseAllTasks() {
+    let count = 0;
+    this.scheduledTasks.forEach(task => {
+      if (task.enabled) {
+        task.enabled = false;
+        count++;
+      }
+    });
+    this.saveTasks();
+    this.displayScheduledTasks();
+    this.showNotification(count ? `Paused ${count} task${count === 1 ? '' : 's'}` : 'No active tasks to pause', 'info');
+  }
+
+  resumeAllTasks() {
+    let count = 0;
+    this.scheduledTasks.forEach(task => {
+      if (!task.enabled) {
+        task.enabled = true;
+        count++;
+      }
+    });
+    this.saveTasks();
+    this.displayScheduledTasks();
+    this.showNotification(count ? `Resumed ${count} task${count === 1 ? '' : 's'}` : 'No paused tasks to resume', 'info');
+  }
+
+  runSelectedTask() {
+    const firstEnabled = Array.from(this.scheduledTasks.values()).find(task => task.enabled);
+    if (!firstEnabled) {
+      this.showNotification('No enabled task to run', 'warning');
+      return;
+    }
+    this.runTaskNow(firstEnabled.id);
+  }
+
+  rerunTask(taskId) {
+    this.runTaskNow(taskId);
+  }
+
+  cancelTask(taskId) {
+    if (this.runningTasks.delete(taskId)) {
+      this.loadSchedulerData();
+      this.showNotification('Running task cancelled', 'info');
+    } else {
+      this.showNotification('Task is not running', 'warning');
+    }
+  }
+
+  viewTaskLog(taskId) {
+    const entries = this.taskHistory.filter(entry => entry.taskId === taskId).slice(0, 10);
+    const body = entries.length
+      ? entries.map(entry => `[${new Date(entry.startedAt).toLocaleString()}] ${entry.status}: ${entry.output}`).join('\n')
+      : 'No runs recorded for this task yet.';
+    this.showTextDialog('Task log', body);
+  }
+
+  viewOutput(entryId) {
+    const entry = this.taskHistory.find(item => item.id === entryId);
+    this.showTextDialog('Run output', entry ? String(entry.output || 'No output') : 'Entry not found.');
+  }
+
+  viewHistoryDetails(entryId) {
+    const entry = this.taskHistory.find(item => item.id === entryId);
+    if (!entry) {
+      this.showNotification('History entry not found', 'warning');
+      return;
+    }
+    this.showTextDialog(
+      'Run details',
+      [
+        `Task: ${entry.taskName}`,
+        `Started: ${new Date(entry.startedAt).toLocaleString()}`,
+        `Completed: ${entry.completedAt ? new Date(entry.completedAt).toLocaleString() : 'n/a'}`,
+        `Duration: ${this.formatDuration(entry.duration || 0)}`,
+        `Status: ${entry.status}`,
+        `Output: ${entry.output || 'n/a'}`
+      ].join('\n')
+    );
+  }
+
+  clearHistory() {
+    if (this.taskHistory.length === 0) {
+      this.showNotification('History is already empty', 'info');
+      return;
+    }
+    if (confirm(`Clear all ${this.taskHistory.length} history entries?`)) {
+      this.taskHistory = [];
+      this.saveTasks();
+      this.loadHistoryData();
+      this.showNotification('Execution history cleared', 'info');
+    }
+  }
+
+  exportHistory() {
+    this.downloadJson(`cron-history-${new Date().toISOString().slice(0, 10)}.json`, this.taskHistory);
+  }
+
+  exportTasks() {
+    this.downloadJson(
+      `cron-tasks-${new Date().toISOString().slice(0, 10)}.json`,
+      Array.from(this.scheduledTasks.values())
+    );
+  }
+
+  importTasks() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = async () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      try {
+        const data = JSON.parse(await file.text());
+        const tasks = Array.isArray(data) ? data : data.tasks || [];
+        let imported = 0;
+        tasks.forEach(task => {
+          if (task && task.name && task.schedule) {
+            task.id = task.id || this.generateTaskId();
+            this.scheduledTasks.set(task.id, task);
+            imported++;
+          }
+        });
+        this.saveTasks();
+        await this.loadSchedulerData();
+        this.showNotification(`Imported ${imported} task${imported === 1 ? '' : 's'}`, 'success');
+      } catch (error) {
+        this.showNotification(`Import failed: ${error.message}`, 'error');
+      }
+    };
+    input.click();
+  }
+
+  downloadJson(filename, data) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  showTextDialog(title, body) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10000;';
+    overlay.innerHTML = `
+      <div class="sk-card" style="border-radius:8px;max-width:560px;width:90%;max-height:70vh;display:flex;flex-direction:column;background:var(--sk-card,#17241f);">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--sk-border,#263a34);font-weight:600;">${title}</div>
+        <pre class="sk-code" style="padding:12px 16px;overflow:auto;white-space:pre-wrap;font-size:12px;margin:0;border:none;"></pre>
+        <div style="padding:12px 16px;border-top:1px solid var(--sk-border,#263a34);text-align:right;">
+          <button class="sk-btn" style="padding:6px 14px;">Close</button>
+        </div>
+      </div>`;
+    overlay.querySelector('pre').textContent = body;
+    overlay.querySelector('button').onclick = () => overlay.remove();
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay) overlay.remove();
+    });
+    document.body.appendChild(overlay);
+  }
+
+  showSettings() {
+    this.showTextDialog(
+      'Scheduler settings',
+      [
+        'Tick interval: 60s (in-browser; schedules fire while the desktop is open)',
+        `Tasks: ${this.scheduledTasks.size} defined, ${this.taskHistory.length} history entries kept (max 1000)`,
+        'Backend ledger: task definitions persist to ipfs_kit_py on creation when confirmed.',
+        '',
+        'Local data lives in the swissknife-cron-tasks browser store.'
+      ].join('\n')
+    );
+  }
+
+  createCustomTemplate() {
+    this.showNotification('Custom templates are created from the task form: choose "Custom Task" and set any cron schedule.', 'info');
+    this.showTaskCreationModal();
+  }
+
+  importTemplate() {
+    this.showNotification('Template import is not available; built-in templates cover AI, ML, storage, monitoring and network tasks.', 'info');
+  }
+
+  editTask(taskId) {
+    const task = this.scheduledTasks.get(taskId);
+    if (!task) return;
+    this.showTaskCreationModal();
+    setTimeout(() => {
+      const nameInput = document.getElementById('task-name');
+      const descInput = document.getElementById('task-description');
+      const cronInput = document.getElementById('task-cron');
+      const templateSelect = document.getElementById('task-template');
+      if (nameInput) nameInput.value = task.name || '';
+      if (descInput) descInput.value = task.description || '';
+      if (cronInput) cronInput.value = task.schedule || '';
+      if (templateSelect && task.templateId) {
+        templateSelect.value = task.templateId;
+        this.updateTemplateFields(task.templateId);
+      }
+      // Saving creates a new revision; remove the old entry first.
+      this.scheduledTasks.delete(taskId);
+      this.saveTasks();
+    }, 100);
   }
 
   deleteTask(taskId) {
@@ -1263,10 +1722,44 @@ export class CronApp {
     return `${days} day${days > 1 ? 's' : ''} ago`;
   }
 
-  shouldRunTask(task, now) {
-    // Simplified cron matching
-    // In production, use a proper cron library like node-cron
-    return false; // Placeholder
+  applyHistoryFilter(value) {
+    const tbody = document.getElementById('history-table-body');
+    if (!tbody) return;
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfWeek = startOfToday - 6 * 86400000;
+    const filtered = this.taskHistory.filter(entry => {
+      switch (value) {
+        case 'success': return entry.status === 'completed';
+        case 'failed': return entry.status === 'failed';
+        case 'today': return entry.startedAt >= startOfToday;
+        case 'week': return entry.startedAt >= startOfWeek;
+        default: return true;
+      }
+    });
+    const previous = this.taskHistory;
+    this.taskHistory = filtered;
+    this.displayExecutionHistory();
+    this.taskHistory = previous;
+  }
+
+  applyTaskFilter(value) {
+    const container = document.getElementById('scheduled-tasks-container');
+    if (!container) return;
+    const tasks = Array.from(this.scheduledTasks.values()).filter(task => {
+      switch (value) {
+        case 'active': return task.enabled;
+        case 'paused': return !task.enabled;
+        case 'ai': return task.templateId === 'ai-summary' || task.templateId === 'ai-chat-analysis';
+        case 'ml': return task.templateId === 'model-training';
+        case 'p2p': return task.enableP2P;
+        default: return true;
+      }
+    });
+    const previous = this.scheduledTasks;
+    this.scheduledTasks = new Map(tasks.map(task => [task.id, task]));
+    this.displayScheduledTasks();
+    this.scheduledTasks = previous;
   }
 
   loadSavedTasks() {

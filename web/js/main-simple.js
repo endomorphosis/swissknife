@@ -1834,61 +1834,61 @@ class SwissKnifeDesktop {
         const datasetId = 'customer-support-intents';
 
         contentElement.innerHTML = `
-            <div class="generated-service-surface generated-mcp-app datasets-browser-workflow"
+            <div class="generated-service-surface generated-mcp-app datasets-browser-workflow sk-app"
                 data-app-id="datasets-browser"
                 data-service="ipfs_datasets_py"
                 data-svd-workflow="datasets-browser.semantic-provenance-preparation"
-                style="height:100%; min-height:0; padding:16px; overflow:auto; background:#101820; color:#f7fafc;">
+                style="height:100%; min-height:0; padding:16px; overflow:auto; background:var(--sk-bg-panel, #101820); color:var(--sk-text, #f7fafc);">
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
                     <div style="min-width:220px; flex:1;">
                         <h2 style="margin:0 0 6px; font-size:22px;">IPFS Datasets Browser</h2>
-                        <p style="margin:0; color:#b6c2cf;">Dataset catalog, semantic search, provenance, preparation jobs, schema filters, error recovery, and progress are invoked through ipfs_datasets_py descriptors via the app capability gateway. Nothing on this surface is pre-computed: every status below reports a gateway envelope returned in this session, or states plainly that the operation has not run yet.</p>
+                        <p class="sk-honest-note">Dataset catalog, semantic search, provenance, preparation jobs, schema filters, error recovery, and progress are invoked through ipfs_datasets_py descriptors via the app capability gateway. Nothing on this surface is pre-computed: every status below reports a gateway envelope returned in this session, or states plainly that the operation has not run yet.</p>
                     </div>
-                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G048</span>
+                    <span class="sk-badge" style="text-transform:uppercase;">VDA-G048</span>
                 </div>
 
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px;">
-                    <section data-svd-vda-marker="dataset-cid" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Dataset</h3>
-                        <div style="display:grid; gap:6px; color:#c6d1dc; font-size:13px;">
-                            <span>Selected dataset: ${datasetId}</span>
-                            <span>Descriptor: ipfs_datasets_py.list_datasets -> ipfs.datasets.operation.list_datasets</span>
+                    <section class="sk-card" data-svd-vda-marker="dataset-cid">
+                        <h3 class="sk-section-head">Dataset</h3>
+                        <div style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
+                            <span>Selected dataset: <code class="sk-code">${datasetId}</code></span>
+                            <span>Descriptor: <code class="sk-code">ipfs_datasets_py.list_datasets -&gt; ipfs.datasets.operation.list_datasets</code></span>
                             <span id="datasets-catalog-status">Catalog identity is reported by gateway envelopes (Search, Provenance, Prepare); this surface asserts no dataset CID of its own.</span>
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="semantic-operation" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Semantic Operation</h3>
-                        <div id="datasets-semantic-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                    <section class="sk-card" data-svd-vda-marker="semantic-operation">
+                        <h3 class="sk-section-head">Semantic Operation</h3>
+                        <div id="datasets-semantic-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
                             semantic_search has not run yet in this session. Search invokes ipfs.datasets.operation.semantic_search ("refund policy escalation", top_k 5) with the staged filters.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="provenance-operation" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Provenance Operation</h3>
-                        <div id="datasets-provenance-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                    <section class="sk-card" data-svd-vda-marker="provenance-operation">
+                        <h3 class="sk-section-head">Provenance Operation</h3>
+                        <div id="datasets-provenance-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
                             record_provenance has not run yet in this session. It is a governed write and is invoked with execution_mode "confirmed" only when Provenance is chosen.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="preparation-job" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Preparation Job</h3>
-                        <div id="datasets-preparation-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                    <section class="sk-card" data-svd-vda-marker="preparation-job">
+                        <h3 class="sk-section-head">Preparation Job</h3>
+                        <div id="datasets-preparation-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
                             No preparation job has been invoked yet in this session. Prepare invokes the descriptor index operation with execution_mode "confirmed".
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="schema-filter-ui" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Schema and Filters</h3>
-                        <div style="display:grid; gap:8px; color:#c6d1dc; font-size:13px;">
-                            <label style="display:grid; gap:4px;">Schema
-                                <select data-datasets-filter="schema" aria-label="Dataset schema selector" style="background:#0f1720; color:#f7fafc; border:1px solid #3b4b5c; border-radius:4px; padding:5px;">
+                    <section class="sk-card" data-svd-vda-marker="schema-filter-ui">
+                        <h3 class="sk-section-head">Schema and Filters</h3>
+                        <div style="display:grid; gap:8px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
+                            <label class="sk-label" style="display:grid; gap:4px;">Schema
+                                <select data-datasets-filter="schema" aria-label="Dataset schema selector" class="sk-select">
                                     <option value="support-intent-v2">support-intent-v2</option>
                                     <option value="chat-transcript-v1">chat-transcript-v1</option>
                                 </select>
                             </label>
-                            <label style="display:grid; gap:4px;">Split
-                                <select data-datasets-filter="split" aria-label="Dataset split filter" style="background:#0f1720; color:#f7fafc; border:1px solid #3b4b5c; border-radius:4px; padding:5px;">
+                            <label class="sk-label" style="display:grid; gap:4px;">Split
+                                <select data-datasets-filter="split" aria-label="Dataset split filter" class="sk-select">
                                     <option value="train">train</option>
                                     <option value="validation">validation</option>
                                 </select>
@@ -1897,16 +1897,16 @@ class SwissKnifeDesktop {
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="error-ui" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Schema Error Recovery</h3>
-                        <div id="datasets-error-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                    <section class="sk-card" data-svd-vda-marker="error-ui">
+                        <h3 class="sk-section-head">Schema Error Recovery</h3>
+                        <div id="datasets-error-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
                             Filter validation runs locally before transport. Recover Error demonstrates the rejection of an unsupported filter field; invalid input is never sent to a backend.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="progress-ui" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Progress</h3>
-                        <div style="display:grid; gap:8px; color:#c6d1dc; font-size:13px;">
+                    <section class="sk-card" data-svd-vda-marker="progress-ui">
+                        <h3 class="sk-section-head">Progress</h3>
+                        <div style="display:grid; gap:8px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
                             <progress id="datasets-progress-bar" max="100" aria-label="Dataset preparation progress" style="width:100%;"></progress>
                             <span id="datasets-progress-status" role="status" aria-live="polite">No sync_status read yet in this session; the bar stays indeterminate until a gateway envelope reports progress.</span>
                         </div>
@@ -1914,17 +1914,17 @@ class SwissKnifeDesktop {
                 </div>
 
                 <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="btn btn-small" data-svd-workflow-action="run-semantic-search" data-action="semantic-search" aria-label="Run primary semantic dataset search">Search</button>
-                    <button class="btn btn-small" data-svd-workflow-action="record-provenance" data-action="record-provenance" aria-label="Record dataset provenance">Provenance</button>
-                    <button class="btn btn-small" data-svd-workflow-action="start-preparation-job" data-action="prepare-dataset" aria-label="Start dataset preparation job">Prepare</button>
-                    <button class="btn btn-small" data-svd-workflow-action="apply-schema-filter" data-action="apply-schema-filter" aria-label="Apply schema and split filters">Apply Filters</button>
-                    <button class="btn btn-small" data-svd-workflow-action="show-schema-error" data-action="show-schema-error" aria-label="Show schema error recovery">Recover Error</button>
-                    <button class="btn btn-small" data-svd-workflow-action="refresh-progress" data-action="refresh-progress" aria-label="Refresh preparation progress">Progress</button>
+                    <button class="sk-btn" data-svd-workflow-action="run-semantic-search" data-action="semantic-search" aria-label="Run primary semantic dataset search">Search</button>
+                    <button class="sk-btn" data-svd-workflow-action="record-provenance" data-action="record-provenance" aria-label="Record dataset provenance">Provenance</button>
+                    <button class="sk-btn" data-svd-workflow-action="start-preparation-job" data-action="prepare-dataset" aria-label="Start dataset preparation job">Prepare</button>
+                    <button class="sk-btn" data-svd-workflow-action="apply-schema-filter" data-action="apply-schema-filter" aria-label="Apply schema and split filters">Apply Filters</button>
+                    <button class="sk-btn" data-svd-workflow-action="show-schema-error" data-action="show-schema-error" aria-label="Show schema error recovery">Recover Error</button>
+                    <button class="sk-btn" data-svd-workflow-action="refresh-progress" data-action="refresh-progress" aria-label="Refresh preparation progress">Progress</button>
                 </div>
 
                 <div id="datasets-envelope-result" style="margin-top:14px;"></div>
-                <ol id="datasets-workflow-log" data-svd-vda-marker="receipts" style="margin:14px 0 0; padding-left:22px; color:#c6d1dc; font-size:13px;">
-                    <li>No gateway operations have run yet in this session; real envelope outcomes will appear here.</li>
+                <ol id="datasets-workflow-log" data-svd-vda-marker="receipts" style="margin:14px 0 0; padding-left:22px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
+                    <li class="sk-empty">No gateway operations have run yet in this session; real envelope outcomes will appear here.</li>
                 </ol>
             </div>
         `;
@@ -2060,82 +2060,82 @@ class SwissKnifeDesktop {
         const selectedOperation = selectedMethod?.method || 'run_inference_job';
 
         contentElement.innerHTML = `
-            <div class="generated-service-surface generated-mcp-app orb-auto-ui-workflow"
+            <div class="generated-service-surface generated-mcp-app orb-auto-ui-workflow sk-app"
                 data-app-id="orb-auto-ui"
                 data-service="orb_auto_ui"
                 data-svd-workflow="orb-auto-ui.generate-governed-auto-ui"
-                style="height:100%; min-height:0; padding:16px; overflow:auto; background:#101820; color:#f7fafc;">
+                style="height:100%; min-height:0; padding:16px; overflow:auto; background:var(--sk-bg-panel, #101820); color:var(--sk-text, #f7fafc);">
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
                     <div style="min-width:220px; flex:1;">
                         <h2 style="margin:0 0 6px; font-size:22px;">ORB Auto UI</h2>
-                        <p style="margin:0; color:#b6c2cf;">Descriptor-backed applications are generated with artifact CIDs, intent policy, dry-run previews, schema rejection, confirmation, and fallback rendering.</p>
+                        <p class="sk-honest-note">Descriptor-backed applications are generated with artifact CIDs, intent policy, dry-run previews, schema rejection, confirmation, and fallback rendering.</p>
                     </div>
-                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G052 ready</span>
+                    <span class="sk-badge" style="text-transform:uppercase;">VDA-G052 ready</span>
                 </div>
 
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap:12px;">
-                    <section data-svd-vda-marker="generated-artifact-cids" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Generated Artifact CIDs</h3>
-                        <div id="orb-artifact-status" role="status" aria-live="polite" style="display:grid; gap:6px; color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            <span>Descriptor pack CID: ${descriptorPackCid}</span>
-                            <span>Layout schema CID: ${layoutSchemaCid}</span>
-                            <span>Renderer bundle CID: ${rendererBundleCid}</span>
-                            <span>Generated descriptors: ${descriptors.map(descriptor => `${escapeHtml(descriptor.id)}:${escapeHtml(descriptor.interface_cid)}`).join(', ')}</span>
-                            <span>${generatedReceipt}</span>
+                    <section class="sk-card" data-svd-vda-marker="generated-artifact-cids">
+                        <h3 class="sk-section-head">Generated Artifact CIDs</h3>
+                        <div id="orb-artifact-status" role="status" aria-live="polite" style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            <span>Descriptor pack CID: <code class="sk-code">${descriptorPackCid}</code></span>
+                            <span>Layout schema CID: <code class="sk-code">${layoutSchemaCid}</code></span>
+                            <span>Renderer bundle CID: <code class="sk-code">${rendererBundleCid}</code></span>
+                            <span>Generated descriptors: <code class="sk-code">${descriptors.map(descriptor => `${escapeHtml(descriptor.id)}:${escapeHtml(descriptor.interface_cid)}`).join(', ')}</code></span>
+                            <span><code class="sk-code">${generatedReceipt}</code></span>
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="intent-schema-policy" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Intent and Schema Policy</h3>
-                        <div style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            intent_policy CID: ${intentPolicyCid}. ${escapeHtml(selectedDescriptorId)}.${escapeHtml(selectedOperation)} maps input_schema, output_schema, permissions, default_deny, confirmation_policy, and receipt_policy before any gateway dispatch. Writes use require_confirmation; reads use no side effects.
+                    <section class="sk-card" data-svd-vda-marker="intent-schema-policy">
+                        <h3 class="sk-section-head">Intent and Schema Policy</h3>
+                        <div style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            intent_policy CID: <code class="sk-code">${intentPolicyCid}</code>. ${escapeHtml(selectedDescriptorId)}.${escapeHtml(selectedOperation)} maps input_schema, output_schema, permissions, default_deny, confirmation_policy, and receipt_policy before any gateway dispatch. Writes use require_confirmation; reads use no side effects.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="execution-preview" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Execution Preview</h3>
-                        <div id="orb-preview-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Execution preview CID: ${executionPreviewCid}. dry_run envelope for ${escapeHtml(selectedDescriptorId)}.${escapeHtml(selectedOperation)} shows capability id ${escapeHtml(selectedMethod?.capability_id || 'ipfs.accelerate.operation.run_inference_job')}, sanitized input, policy decision require_confirmation, and no side effects. ${previewReceipt}.
+                    <section class="sk-card" data-svd-vda-marker="execution-preview">
+                        <h3 class="sk-section-head">Execution Preview</h3>
+                        <div id="orb-preview-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            Execution preview CID: <code class="sk-code">${executionPreviewCid}</code>. dry_run envelope for ${escapeHtml(selectedDescriptorId)}.${escapeHtml(selectedOperation)} shows capability id <code class="sk-code">${escapeHtml(selectedMethod?.capability_id || 'ipfs.accelerate.operation.run_inference_job')}</code>, sanitized input, policy decision require_confirmation, and no side effects. <code class="sk-code">${previewReceipt}</code>.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="schema-error" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Schema Error</h3>
-                        <div id="orb-schema-error-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Schema error CID: ${schemaErrorCid}. Invalid input rejected before transport: model must be string, input is required, max_tokens must be number. ${schemaErrorReceipt}.
+                    <section class="sk-card" data-svd-vda-marker="schema-error">
+                        <h3 class="sk-section-head">Schema Error</h3>
+                        <div id="orb-schema-error-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            Schema error CID: <code class="sk-code">${schemaErrorCid}</code>. Invalid input rejected before transport: model must be string, input is required, max_tokens must be number. <code class="sk-code">${schemaErrorReceipt}</code>.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="confirmation" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Confirmation</h3>
-                        <div id="orb-confirmation-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Confirmation CID: ${confirmationCid}. ${escapeHtml(selectedOperation)} requires user confirmation and records confirm_governed policy receipt before execution. ${confirmationReceipt}. ${executionReceipt}.
+                    <section class="sk-card" data-svd-vda-marker="confirmation">
+                        <h3 class="sk-section-head">Confirmation</h3>
+                        <div id="orb-confirmation-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            Confirmation CID: <code class="sk-code">${confirmationCid}</code>. ${escapeHtml(selectedOperation)} requires user confirmation and records confirm_governed policy receipt before execution. <code class="sk-code">${confirmationReceipt}</code>. <code class="sk-code">${executionReceipt}</code>.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="fallback-renderer" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Fallback Renderer</h3>
-                        <div id="orb-fallback-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Fallback renderer CID: ${fallbackRendererCid}. Renderer order is descriptor-fallback, mobile-card, then audio-summary when generated controls are unavailable. ${fallbackReceipt}.
+                    <section class="sk-card" data-svd-vda-marker="fallback-renderer">
+                        <h3 class="sk-section-head">Fallback Renderer</h3>
+                        <div id="orb-fallback-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            Fallback renderer CID: <code class="sk-code">${fallbackRendererCid}</code>. Renderer order is descriptor-fallback, mobile-card, then audio-summary when generated controls are unavailable. <code class="sk-code">${fallbackReceipt}</code>.
                         </div>
                         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; font-size:12px;">
                             ${['descriptor-fallback', 'mobile-card', 'audio-summary'].map(renderer => `
-                                <span data-orb-fallback-renderer="${renderer}" style="border:1px solid #4b6584; border-radius:6px; padding:5px 8px; color:#d7e6f5; background:#0f1b27;">${renderer}</span>
+                                <span data-orb-fallback-renderer="${renderer}" class="sk-badge">${renderer}</span>
                             `).join('')}
                         </div>
                     </section>
                 </div>
 
                 <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="btn btn-small" data-svd-workflow-action="generate-auto-ui-artifacts" data-action="generate-auto-ui-artifacts" aria-label="Generate Auto UI artifacts">Generate Artifacts</button>
-                    <button class="btn btn-small" data-svd-workflow-action="preview-execution-envelope" data-action="preview-execution-envelope" aria-label="Preview execution envelope">Preview</button>
-                    <button class="btn btn-small" data-svd-workflow-action="validate-schema-error" data-action="validate-schema-error" aria-label="Validate schema error">Schema Error</button>
-                    <button class="btn btn-small" data-svd-workflow-action="confirm-governed-execution" data-action="confirm-governed-execution" aria-label="Confirm governed execution">Confirm</button>
-                    <button class="btn btn-small" data-svd-workflow-action="render-fallback-surface" data-action="render-fallback-surface" aria-label="Render fallback surface">Fallback</button>
+                    <button class="sk-btn" data-svd-workflow-action="generate-auto-ui-artifacts" data-action="generate-auto-ui-artifacts" aria-label="Generate Auto UI artifacts">Generate Artifacts</button>
+                    <button class="sk-btn" data-svd-workflow-action="preview-execution-envelope" data-action="preview-execution-envelope" aria-label="Preview execution envelope">Preview</button>
+                    <button class="sk-btn" data-svd-workflow-action="validate-schema-error" data-action="validate-schema-error" aria-label="Validate schema error">Schema Error</button>
+                    <button class="sk-btn" data-svd-workflow-action="confirm-governed-execution" data-action="confirm-governed-execution" aria-label="Confirm governed execution">Confirm</button>
+                    <button class="sk-btn" data-svd-workflow-action="render-fallback-surface" data-action="render-fallback-surface" aria-label="Render fallback surface">Fallback</button>
                 </div>
 
                 <div id="orb-envelope-result" style="margin-top:14px;"></div>
-                <ol id="orb-workflow-log" style="margin:14px 0 0; padding-left:22px; color:#c6d1dc; font-size:13px;">
+                <ol id="orb-workflow-log" style="margin:14px 0 0; padding-left:22px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
                     <li>${generatedReceipt} ${descriptorPackCid} ${layoutSchemaCid} ${rendererBundleCid}</li>
                     <li>${previewReceipt} ${executionPreviewCid} dry_run no side effects</li>
                     <li>${schemaErrorReceipt} ${schemaErrorCid} rejected before transport</li>
@@ -2234,91 +2234,91 @@ class SwissKnifeDesktop {
         const fallbackReceipt = 'receipt:glasses-preview:g051:fallback:mobile-card';
 
         contentElement.innerHTML = `
-            <div class="generated-service-surface generated-mcp-app glasses-preview-workflow"
+            <div class="generated-service-surface generated-mcp-app glasses-preview-workflow sk-app"
                 data-app-id="glasses-preview"
                 data-service="meta_glasses"
                 data-svd-workflow="glasses-preview.replay-orb-handoff"
-                style="height:100%; min-height:0; padding:16px; overflow:auto; background:#101820; color:#f7fafc;">
+                style="height:100%; min-height:0; padding:16px; overflow:auto; background:var(--sk-bg-panel, #101820); color:var(--sk-text, #f7fafc);">
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
                     <div style="min-width:220px; flex:1;">
                         <h2 style="margin:0 0 6px; font-size:22px;">Meta Glasses Preview</h2>
-                        <p style="margin:0; color:#b6c2cf;">ORB handoff packets are replayed through the supported device simulator with privacy policy, denied device states, analysis, and fallback evidence visible.</p>
+                        <p class="sk-honest-note">ORB handoff packets are replayed through the supported device simulator with privacy policy, denied device states, analysis, and fallback evidence visible.</p>
                     </div>
-                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G051 ready</span>
+                    <span class="sk-badge" style="text-transform:uppercase;">VDA-G051 ready</span>
                 </div>
 
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap:12px;">
-                    <section data-svd-vda-marker="replay-bundle" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Simulator Replay Bundle</h3>
-                        <div id="glasses-replay-status" role="status" aria-live="polite" style="display:grid; gap:6px; color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            <span>Replay bundle CID: ${replayBundleCid}</span>
-                            <span>Packet IDs: handoff:app:glasses-preview:primary:87acee7931c44321, svd-071:glasses-preview:display.output:f124143761c4</span>
-                            <span>Packet CIDs: ${displayPacketCid}, ${cameraPacketCid}, ${microphonePacketCid}, ${speakerPacketCid}</span>
-                            <span>${replayReceipt}</span>
+                    <section class="sk-card" data-svd-vda-marker="replay-bundle">
+                        <h3 class="sk-section-head">Simulator Replay Bundle</h3>
+                        <div id="glasses-replay-status" role="status" aria-live="polite" style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            <span>Replay bundle CID: <code class="sk-code">${replayBundleCid}</code></span>
+                            <span>Packet IDs: <code class="sk-code">handoff:app:glasses-preview:primary:87acee7931c44321, svd-071:glasses-preview:display.output:f124143761c4</code></span>
+                            <span>Packet CIDs: <code class="sk-code">${displayPacketCid}, ${cameraPacketCid}, ${microphonePacketCid}, ${speakerPacketCid}</code></span>
+                            <span><code class="sk-code">${replayReceipt}</code></span>
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="privacy-policy" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Privacy Policy</h3>
-                        <div style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Policy CID: ${privacyPolicyCid}. Camera, microphone, display, and speaker requests default to denied in desktop replay. Raw media capture is false, transcript text is redacted, rollback mode is no-mutation, and receipts are preserved through denial and recovery.
+                    <section class="sk-card" data-svd-vda-marker="privacy-policy">
+                        <h3 class="sk-section-head">Privacy Policy</h3>
+                        <div style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            Policy CID: <code class="sk-code">${privacyPolicyCid}</code>. Camera, microphone, display, and speaker requests default to denied in desktop replay. Raw media capture is false, transcript text is redacted, rollback mode is no-mutation, and receipts are preserved through denial and recovery.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="display-denial" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Display State</h3>
-                        <div id="glasses-display-state" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            display state denied for meta_glasses.display.render. Fallback target mobile-card via display-webapp bridge. ${displayReceipt}.
+                    <section class="sk-card" data-svd-vda-marker="display-denial">
+                        <h3 class="sk-section-head">Display State</h3>
+                        <div id="glasses-display-state" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            display state denied for <code class="sk-code">meta_glasses.display.render</code>. Fallback target mobile-card via display-webapp bridge. <code class="sk-code">${displayReceipt}</code>.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="camera-denial" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Camera State</h3>
-                        <div id="glasses-camera-state" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            camera state denied for meta_glasses.camera.photo and meta_glasses.camera.video. Raw media captured: false. Fallback target mobile-card. ${cameraReceipt}.
+                    <section class="sk-card" data-svd-vda-marker="camera-denial">
+                        <h3 class="sk-section-head">Camera State</h3>
+                        <div id="glasses-camera-state" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            camera state denied for <code class="sk-code">meta_glasses.camera.photo</code> and <code class="sk-code">meta_glasses.camera.video</code>. Raw media captured: false. Fallback target mobile-card. <code class="sk-code">${cameraReceipt}</code>.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="microphone-denial" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Microphone State</h3>
-                        <div id="glasses-microphone-state" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            microphone state denied for meta_glasses.microphone.capture. Redacted transcript fallback routes to audio-summary and mobile-card. ${microphoneReceipt}.
+                    <section class="sk-card" data-svd-vda-marker="microphone-denial">
+                        <h3 class="sk-section-head">Microphone State</h3>
+                        <div id="glasses-microphone-state" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            microphone state denied for <code class="sk-code">meta_glasses.microphone.capture</code>. Redacted transcript fallback routes to audio-summary and mobile-card. <code class="sk-code">${microphoneReceipt}</code>.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="speaker-denial" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Speaker State</h3>
-                        <div id="glasses-speaker-state" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            speaker state denied for meta_glasses.audio.playback. Audio playback uses audio-summary fallback with mobile-card target. ${speakerReceipt}.
+                    <section class="sk-card" data-svd-vda-marker="speaker-denial">
+                        <h3 class="sk-section-head">Speaker State</h3>
+                        <div id="glasses-speaker-state" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            speaker state denied for <code class="sk-code">meta_glasses.audio.playback</code>. Audio playback uses audio-summary fallback with mobile-card target. <code class="sk-code">${speakerReceipt}</code>.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="display-audio-analysis" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Display and Audio Analysis</h3>
-                        <div id="glasses-analysis-state" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Analysis CID: ${analysisCid}. Display projection is safe_display_fallback_projection; microphone transcript and speaker playback are summarized without raw media. ${analysisReceipt}.
+                    <section class="sk-card" data-svd-vda-marker="display-audio-analysis">
+                        <h3 class="sk-section-head">Display and Audio Analysis</h3>
+                        <div id="glasses-analysis-state" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            Analysis CID: <code class="sk-code">${analysisCid}</code>. Display projection is <code class="sk-code">safe_display_fallback_projection</code>; microphone transcript and speaker playback are summarized without raw media. <code class="sk-code">${analysisReceipt}</code>.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="fallback-proof" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Fallback Proof</h3>
-                        <div id="glasses-fallback-state" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Fallback proof CID: ${fallbackProofCid}. Selected fallback target mobile-card remains visible for display, camera, mic, and speaker denial. ${fallbackReceipt}.
+                    <section class="sk-card" data-svd-vda-marker="fallback-proof">
+                        <h3 class="sk-section-head">Fallback Proof</h3>
+                        <div id="glasses-fallback-state" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            Fallback proof CID: <code class="sk-code">${fallbackProofCid}</code>. Selected fallback target mobile-card remains visible for display, camera, mic, and speaker denial. <code class="sk-code">${fallbackReceipt}</code>.
                         </div>
                     </section>
                 </div>
 
                 <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="btn btn-small" data-svd-workflow-action="replay-simulator-bundle" data-action="replay-simulator-bundle" aria-label="Replay simulator bundle">Replay Bundle</button>
-                    <button class="btn btn-small" data-svd-workflow-action="deny-display" data-action="deny-display" aria-label="Replay display denial">Display Denial</button>
-                    <button class="btn btn-small" data-svd-workflow-action="deny-camera" data-action="deny-camera" aria-label="Replay camera denial">Camera Denial</button>
-                    <button class="btn btn-small" data-svd-workflow-action="deny-microphone" data-action="deny-microphone" aria-label="Replay microphone denial">Mic Denial</button>
-                    <button class="btn btn-small" data-svd-workflow-action="deny-speaker" data-action="deny-speaker" aria-label="Replay speaker denial">Speaker Denial</button>
-                    <button class="btn btn-small" data-svd-workflow-action="run-display-audio-analysis" data-action="run-display-audio-analysis" aria-label="Run display and audio analysis">Analysis</button>
-                    <button class="btn btn-small" data-svd-workflow-action="prove-fallback" data-action="prove-fallback" aria-label="Prove fallback target">Fallback</button>
+                    <button class="sk-btn" data-svd-workflow-action="replay-simulator-bundle" data-action="replay-simulator-bundle" aria-label="Replay simulator bundle">Replay Bundle</button>
+                    <button class="sk-btn" data-svd-workflow-action="deny-display" data-action="deny-display" aria-label="Replay display denial">Display Denial</button>
+                    <button class="sk-btn" data-svd-workflow-action="deny-camera" data-action="deny-camera" aria-label="Replay camera denial">Camera Denial</button>
+                    <button class="sk-btn" data-svd-workflow-action="deny-microphone" data-action="deny-microphone" aria-label="Replay microphone denial">Mic Denial</button>
+                    <button class="sk-btn" data-svd-workflow-action="deny-speaker" data-action="deny-speaker" aria-label="Replay speaker denial">Speaker Denial</button>
+                    <button class="sk-btn" data-svd-workflow-action="run-display-audio-analysis" data-action="run-display-audio-analysis" aria-label="Run display and audio analysis">Analysis</button>
+                    <button class="sk-btn" data-svd-workflow-action="prove-fallback" data-action="prove-fallback" aria-label="Prove fallback target">Fallback</button>
                 </div>
 
-                <ol id="glasses-workflow-log" data-svd-vda-marker="fallback-proof" style="margin:14px 0 0; padding-left:22px; color:#c6d1dc; font-size:13px;">
+                <ol id="glasses-workflow-log" data-svd-vda-marker="fallback-proof" style="margin:14px 0 0; padding-left:22px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
                     <li>${replayReceipt} ${replayBundleCid}</li>
                     <li>${displayReceipt} ${displayPacketCid}</li>
                     <li>${cameraReceipt} ${cameraPacketCid}</li>
@@ -2409,64 +2409,64 @@ class SwissKnifeDesktop {
         const selectedMethod = selectedInspection?.method_schemas?.find(method => method.method === 'browse') || selectedInspection?.method_schemas?.[0];
 
         contentElement.innerHTML = `
-            <div class="generated-service-surface generated-mcp-app idl-explorer-workflow"
+            <div class="generated-service-surface generated-mcp-app idl-explorer-workflow sk-app"
                 data-app-id="idl-explorer"
                 data-service="orb_idl"
                 data-svd-workflow="idl-explorer.inspect-governed-descriptors"
-                style="height:100%; min-height:0; padding:16px; overflow:auto; background:#101820; color:#f7fafc;">
+                style="height:100%; min-height:0; padding:16px; overflow:auto; background:var(--sk-bg-panel, #101820); color:var(--sk-text, #f7fafc);">
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
                     <div style="min-width:220px; flex:1;">
                         <h2 style="margin:0 0 6px; font-size:22px;">ORB IDL Explorer</h2>
-                        <p style="margin:0; color:#b6c2cf;">Descriptor CIDs, method schemas, policy decisions, transport routes, compatibility fixtures, and receipts are inspected from the shared MCP/MCP++ registry.</p>
+                        <p class="sk-honest-note">Descriptor CIDs, method schemas, policy decisions, transport routes, compatibility fixtures, and receipts are inspected from the shared MCP/MCP++ registry.</p>
                     </div>
-                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G050 ready</span>
+                    <span class="sk-badge" style="text-transform:uppercase;">VDA-G050 ready</span>
                 </div>
 
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px;">
-                    <section data-svd-vda-marker="descriptor-cids" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Descriptor CIDs</h3>
-                        <div style="display:grid; gap:6px; color:#c6d1dc; font-size:13px;">
+                    <section class="sk-card" data-svd-vda-marker="descriptor-cids">
+                        <h3 class="sk-section-head">Descriptor CIDs</h3>
+                        <div style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
                             ${descriptors.map(descriptor => `
-                                <span>${descriptor.name}: ${descriptorCidMap[descriptor.id] || descriptor.interface_cid} (${descriptor.interface_cid})</span>
+                                <span>${descriptor.name}: <code class="sk-code">${descriptorCidMap[descriptor.id] || descriptor.interface_cid}</code> (<code class="sk-code">${descriptor.interface_cid}</code>)</span>
                             `).join('')}
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="schema-policy" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Schema and Policy</h3>
-                        <div style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            ${selectedInspection?.name || 'descriptor'} ${selectedMethod?.method || 'method'} exposes input_schema, output_schema, permissions, default_deny policy, confirmation_policy, and receipt_policy. Policy CID: ${policyCid}. Read methods avoid confirmation; write and destructive methods require governed receipts.
+                    <section class="sk-card" data-svd-vda-marker="schema-policy">
+                        <h3 class="sk-section-head">Schema and Policy</h3>
+                        <div style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            ${selectedInspection?.name || 'descriptor'} ${selectedMethod?.method || 'method'} exposes input_schema, output_schema, permissions, default_deny policy, confirmation_policy, and receipt_policy. Policy CID: <code class="sk-code">${policyCid}</code>. Read methods avoid confirmation; write and destructive methods require governed receipts.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="compatibility-fixture" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Compatibility Fixture</h3>
-                        <div id="idl-compatibility-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Fixture ${fixtureCid} targets ipfs_datasets_py.browse with root_cid bafyidlg050datasetroot, limit 5, and ${compatibilityReceipt}.
+                    <section class="sk-card" data-svd-vda-marker="compatibility-fixture">
+                        <h3 class="sk-section-head">Compatibility Fixture</h3>
+                        <div id="idl-compatibility-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            Fixture <code class="sk-code">${fixtureCid}</code> targets <code class="sk-code">ipfs_datasets_py.browse</code> with root_cid <code class="sk-code">bafyidlg050datasetroot</code>, limit 5, and <code class="sk-code">${compatibilityReceipt}</code>.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="invalid-input" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Invalid Input</h3>
-                        <div id="idl-invalid-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
-                            Fixture ${invalidFixtureCid} rejects root_cid number and limit string before transport dispatch. ${invalidReceipt}.
+                    <section class="sk-card" data-svd-vda-marker="invalid-input">
+                        <h3 class="sk-section-head">Invalid Input</h3>
+                        <div id="idl-invalid-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            Fixture <code class="sk-code">${invalidFixtureCid}</code> rejects root_cid number and limit string before transport dispatch. <code class="sk-code">${invalidReceipt}</code>.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="transport-badges" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Transport Badges</h3>
+                    <section class="sk-card" data-svd-vda-marker="transport-badges">
+                        <h3 class="sk-section-head">Transport Badges</h3>
                         <div style="display:flex; gap:6px; flex-wrap:wrap; font-size:12px;">
                             ${['browser-gateway', 'mcp_remote', 'mcp_plus_plus_remote', 'descriptor-fallback'].map(transport => `
-                                <span data-transport-badge="${transport}" style="border:1px solid #4b6584; border-radius:6px; padding:5px 8px; color:#d7e6f5; background:#0f1b27;">${transport}</span>
+                                <span data-transport-badge="${transport}" class="sk-badge">${transport}</span>
                             `).join('')}
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="receipt-drill-down" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Receipt Drill-Down</h3>
+                    <section class="sk-card" data-svd-vda-marker="receipt-drill-down">
+                        <h3 class="sk-section-head">Receipt Drill-Down</h3>
                         <details id="idl-receipt-drilldown" open>
-                            <summary style="cursor:pointer; color:#f7fafc;">${drilldownReceipt}</summary>
-                            <pre style="white-space:pre-wrap; overflow:auto; background:#0f172a; color:#dbeafe; padding:8px; border-radius:4px; font-size:11px;">${JSON.stringify({
+                            <summary style="cursor:pointer; color:var(--sk-text, #f7fafc);">${drilldownReceipt}</summary>
+                            <pre class="sk-code" style="white-space:pre-wrap; overflow:auto; font-size:11px; padding:8px;">${JSON.stringify({
                                 receipt_cid: drilldownReceipt,
                                 descriptor_cids: Object.values(descriptorCidMap),
                                 policy_cid: policyCid,
@@ -2479,14 +2479,14 @@ class SwissKnifeDesktop {
                 </div>
 
                 <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="btn btn-small" data-svd-workflow-action="run-compatibility-fixture" data-action="run-compatibility-fixture" aria-label="Run IDL compatibility fixture">Run Fixture</button>
-                    <button class="btn btn-small" data-svd-workflow-action="validate-invalid-input" data-action="validate-invalid-input" aria-label="Validate invalid IDL input">Invalid Input</button>
-                    <button class="btn btn-small" data-svd-workflow-action="open-receipt-drilldown" data-action="open-receipt-drilldown" aria-label="Open receipt drill-down">Receipt</button>
-                    <button class="btn btn-small" data-svd-workflow-action="refresh-transport-badges" data-action="refresh-transport-badges" aria-label="Refresh transport badges">Transports</button>
+                    <button class="sk-btn" data-svd-workflow-action="run-compatibility-fixture" data-action="run-compatibility-fixture" aria-label="Run IDL compatibility fixture">Run Fixture</button>
+                    <button class="sk-btn" data-svd-workflow-action="validate-invalid-input" data-action="validate-invalid-input" aria-label="Validate invalid IDL input">Invalid Input</button>
+                    <button class="sk-btn" data-svd-workflow-action="open-receipt-drilldown" data-action="open-receipt-drilldown" aria-label="Open receipt drill-down">Receipt</button>
+                    <button class="sk-btn" data-svd-workflow-action="refresh-transport-badges" data-action="refresh-transport-badges" aria-label="Refresh transport badges">Transports</button>
                 </div>
 
                 <div id="idl-envelope-result" style="margin-top:14px;"></div>
-                <ol id="idl-workflow-log" style="margin:14px 0 0; padding-left:22px; color:#c6d1dc; font-size:13px;">
+                <ol id="idl-workflow-log" style="margin:14px 0 0; padding-left:22px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
                     <li>${compatibilityReceipt} ${fixtureCid}</li>
                     <li>${invalidReceipt} ${invalidFixtureCid}</li>
                     <li>${drilldownReceipt} ${policyCid}</li>
@@ -2552,75 +2552,76 @@ class SwissKnifeDesktop {
         let lastJobId = null;
 
         contentElement.innerHTML = `
-            <div class="generated-service-surface generated-mcp-app accelerate-panel-workflow"
+            <div class="generated-service-surface generated-mcp-app accelerate-panel-workflow sk-app"
                 data-app-id="accelerate-panel"
                 data-service="ipfs_accelerate_py"
                 data-svd-workflow="accelerate-panel.hardware-model-queue-recovery"
-                style="height:100%; min-height:0; padding:16px; overflow:auto; background:#101820; color:#f7fafc;">
+                style="height:100%; min-height:0; padding:16px; overflow:auto; background:var(--sk-bg-panel, #101820); color:var(--sk-text, #f7fafc);">
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
                     <div style="min-width:220px; flex:1;">
                         <h2 style="margin:0 0 6px; font-size:22px;">IPFS Accelerate Panel</h2>
-                        <p style="margin:0; color:#b6c2cf;">Model artifacts, evaluation policy, hardware fit, primary execution, queue state, and recovery probes are invoked through ipfs_accelerate_py descriptors via the app capability gateway. Every status below reports a gateway envelope returned in this session, or states plainly that the operation has not run yet; this surface asserts no run result of its own.</p>
+                        <p class="sk-honest-note">Model artifacts, evaluation policy, hardware fit, primary execution, queue state, and recovery probes are invoked through ipfs_accelerate_py descriptors via the app capability gateway. Every status below reports a gateway envelope returned in this session, or states plainly that the operation has not run yet; this surface asserts no run result of its own.</p>
                     </div>
-                    <span style="padding:6px 10px; border:1px solid #3ddc97; border-radius:6px; color:#3ddc97; font-size:12px; text-transform:uppercase;">VDA-G049</span>
+                    <span class="sk-badge" style="text-transform:uppercase;">VDA-G049</span>
                 </div>
 
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap:12px;">
-                    <section data-svd-vda-marker="model-artifacts" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Model Artifacts</h3>
-                        <div style="display:grid; gap:6px; color:#c6d1dc; font-size:13px;">
-                            <span>Selected model: ${model} (panel selection)</span>
+                    <section class="sk-card" data-svd-vda-marker="model-artifacts">
+                        <h3 class="sk-section-head">Model Artifacts</h3>
+                        <div style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
+                            <span>Selected model: <code class="sk-code">${model}</code> (panel selection)</span>
                             <span id="accelerate-model-status">list_models has not run yet in this session. Artifacts reports the registered models from the gateway envelope; this surface asserts no artifact CIDs.</span>
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="evaluation-policy" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Evaluation Policy</h3>
-                        <div style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                    <section class="sk-card" data-svd-vda-marker="evaluation-policy">
+                        <h3 class="sk-section-head">Evaluation Policy</h3>
+                        <div style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
                             Governed executions run under the descriptor's policy class with a confirmed execution mode; the gateway enforces policy and confirmation and reports the outcome envelope for every invocation.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="hardware-fit" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Hardware Fit</h3>
-                        <div id="accelerate-hardware-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                    <section class="sk-card" data-svd-vda-marker="hardware-fit">
+                        <h3 class="sk-section-head">Hardware Fit</h3>
+                        <div id="accelerate-hardware-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
                             hardware_profile has not run yet in this session; no fit score or memory figure is asserted before the gateway responds.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="primary-execution" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Primary Execution</h3>
-                        <div id="accelerate-primary-status" role="status" aria-live="polite" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                    <section class="sk-card" data-svd-vda-marker="primary-execution">
+                        <h3 class="sk-section-head">Primary Execution</h3>
+                        <div id="accelerate-primary-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
                             run_inference_job has not run yet in this session. Run Inference invokes it with execution_mode "confirmed" and then polls job_status for the returned job; the outcome shown is the gateway's envelope, never a locally claimed completion.
                         </div>
+                        <progress id="accelerate-inference-progress" max="100" value="0" aria-label="Inference request progress" style="width:100%; margin-top:8px;"></progress>
                     </section>
 
-                    <section data-svd-vda-marker="queue-log-cancel" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">Queue, Log, Cancel</h3>
-                        <div id="accelerate-queue-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                    <section class="sk-card" data-svd-vda-marker="queue-log-cancel">
+                        <h3 class="sk-section-head">Queue, Log, Cancel</h3>
+                        <div id="accelerate-queue-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
                             Queue state is reported by run_inference_job and job_status envelopes in this session. The ipfs_accelerate_py descriptor exposes no cancellation operation, so Cancel reports that declared disposition instead of fabricating a cancellation.
                         </div>
                     </section>
 
-                    <section data-svd-vda-marker="no-capacity-recovery" style="border:1px solid #26384a; border-radius:6px; padding:12px; background:#162331;">
-                        <h3 style="margin:0 0 8px; font-size:15px;">No-Capacity Recovery</h3>
-                        <div id="accelerate-recovery-status" style="color:#c6d1dc; font-size:13px; line-height:1.45;">
+                    <section class="sk-card" data-svd-vda-marker="no-capacity-recovery">
+                        <h3 class="sk-section-head">No-Capacity Recovery</h3>
+                        <div id="accelerate-recovery-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
                             Recovery probes read live telemetry through the gateway; no recovery outcome is asserted before an envelope returns.
                         </div>
                     </section>
                 </div>
 
                 <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="btn btn-small" data-svd-workflow-action="launch-primary-execution" data-action="run-primary-inference" aria-label="Run primary governed inference job">Run Inference</button>
-                    <button class="btn btn-small" data-svd-workflow-action="inspect-model-artifacts" data-action="inspect-artifacts" aria-label="Inspect model artifacts">Artifacts</button>
-                    <button class="btn btn-small" data-svd-workflow-action="refresh-hardware-fit" data-action="refresh-hardware" aria-label="Refresh hardware fit">Hardware</button>
-                    <button class="btn btn-small" data-svd-workflow-action="cancel-queued-job" data-action="cancel-job" aria-label="Cancel queued inference job">Cancel</button>
-                    <button class="btn btn-small" data-svd-workflow-action="recover-no-capacity" data-action="recover-capacity" aria-label="Recover from no capacity state">Recover</button>
+                    <button class="sk-btn" data-svd-workflow-action="launch-primary-execution" data-action="run-primary-inference" aria-label="Run primary governed inference job">Run Inference</button>
+                    <button class="sk-btn" data-svd-workflow-action="inspect-model-artifacts" data-action="inspect-artifacts" aria-label="Inspect model artifacts">Artifacts</button>
+                    <button class="sk-btn" data-svd-workflow-action="refresh-hardware-fit" data-action="refresh-hardware" aria-label="Refresh hardware fit">Hardware</button>
+                    <button class="sk-btn" data-svd-workflow-action="cancel-queued-job" data-action="cancel-job" aria-label="Cancel queued inference job">Cancel</button>
+                    <button class="sk-btn" data-svd-workflow-action="recover-no-capacity" data-action="recover-capacity" aria-label="Recover from no capacity state">Recover</button>
                 </div>
 
                 <div id="accelerate-envelope-result" style="margin-top:14px;"></div>
-                <ol id="accelerate-workflow-log" data-svd-vda-marker="receipts" style="margin:14px 0 0; padding-left:22px; color:#c6d1dc; font-size:13px;">
-                    <li>No gateway operations have run yet in this session; real envelope outcomes will appear here.</li>
+                <ol id="accelerate-workflow-log" data-svd-vda-marker="receipts" style="margin:14px 0 0; padding-left:22px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
+                    <li class="sk-empty">No gateway operations have run yet in this session; real envelope outcomes will appear here.</li>
                 </ol>
             </div>
         `;
@@ -2630,6 +2631,7 @@ class SwissKnifeDesktop {
         const primaryStatus = contentElement.querySelector('#accelerate-primary-status');
         const queueStatus = contentElement.querySelector('#accelerate-queue-status');
         const recoveryStatus = contentElement.querySelector('#accelerate-recovery-status');
+        const inferenceProgress = contentElement.querySelector('#accelerate-inference-progress');
         const result = contentElement.querySelector('#accelerate-envelope-result');
         const log = contentElement.querySelector('#accelerate-workflow-log');
 
@@ -2665,6 +2667,9 @@ class SwissKnifeDesktop {
         };
 
         contentElement.querySelector('[data-svd-workflow-action="launch-primary-execution"]')?.addEventListener('click', async () => {
+            // Progress bar mirrors only the request lifecycle: indeterminate while the
+            // gateway call is in flight, complete when the request cycle finishes.
+            if (inferenceProgress) inferenceProgress.removeAttribute('value');
             const envelope = await runOperation('run_inference_job', {
                 model,
                 input: 'accelerate panel governed inference',
@@ -2677,6 +2682,7 @@ class SwissKnifeDesktop {
             } else if (queueStatus) {
                 queueStatus.textContent = 'The run_inference_job envelope returned no job_id, so there is no job to poll; queue state is whatever that envelope reported.';
             }
+            if (inferenceProgress) inferenceProgress.value = 100;
         });
         contentElement.querySelector('[data-svd-workflow-action="inspect-model-artifacts"]')?.addEventListener('click', async () => {
             await runOperation('list_models', { task: 'embedding' }, { statusEl: modelStatus });

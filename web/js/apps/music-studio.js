@@ -767,6 +767,7 @@
           <div>
             <div class="classic-vda-kicker">${classicWorkflow.vdaId}</div>
             <h3 class="classic-vda-title">Classic Artifact Workflow</h3>
+            <p class="vda-evidence-note sk-honest-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification until “Save” persists a real project bundle.</p>
           </div>
           <span class="classic-vda-state"
                 data-legacy-workflow-state="preserved"
@@ -822,7 +823,7 @@
                  data-render-cid="${classicWorkflow.optionalRenderCid}">
           <strong>Optional render</strong>
           <p>Optional render job queued to create a preview mix from ${classicWorkflow.optionalRenderCid}; the classic project stays editable if render services are unavailable.</p>
-          <progress data-render-progress max="100" value="72" style="width: 100%;"></progress>
+          <progress class="sk-progress" data-render-progress max="100" value="72"></progress>
           <small>${classicWorkflow.receiptPrefix}:optional-render</small>
         </article>
 
@@ -910,12 +911,12 @@
     const saveCards = section ? section.querySelectorAll('[data-save-state]') : [];
     const fallbackCards = section ? section.querySelectorAll('[data-responsive-fallback-state]') : [];
     const messageByAction = {
-      'preserve-legacy-flow': 'Legacy WebAudio controls verified without migration.',
-      'load-artifact-cids': `Artifact CIDs loaded for ${classicWorkflow.projectName}.`,
-      'inspect-catalog-rights': 'Catalog rights metadata verified for the classic sample set.',
-      'start-optional-render': 'Optional preview render queued; local editing remains available.',
+      'preserve-legacy-flow': 'Legacy WebAudio controls present (local; no migration performed).',
+      'load-artifact-cids': `Design fixture references shown for ${classicWorkflow.projectName}; use Save for a real bundle CID.`,
+      'inspect-catalog-rights': 'Catalog rights metadata is a local project field; no rights backend is connected.',
+      'start-optional-render': 'Optional preview render queued locally; no render backend connected.',
       'save-classic-project': 'Classic project saved with local restore bundle.',
-      'prove-responsive-fallback': 'Responsive fallback proof active for compact screens.'
+      'prove-responsive-fallback': 'Responsive fallback layout active (local UI state).'
     };
     if (action === 'start-optional-render') {
       renderCards.forEach(node => {
@@ -934,19 +935,17 @@
     status.setAttribute('data-workflow-status', action || 'ready');
   }
 
-  function saveClassicProjectBundle() {
+  async function saveClassicProjectBundle() {
+    // The track list, instruments and rights below are REAL local project
+    // state. The bundle is cached in localStorage and, with the user's
+    // explicit confirmation, persisted to the ipfs_kit_py artifact store
+    // with a canonical CID over the exact bytes. Fixture CIDs are not
+    // embedded as real references.
     const bundle = {
       schema: 'swissknife.music-studio.classic-project.v1',
       workflow_id: classicWorkflow.workflowId,
       vda_id: classicWorkflow.vdaId,
       project_name: classicWorkflow.projectName,
-      project_asset_cid: classicWorkflow.projectAssetCid,
-      stem_audio_cid: classicWorkflow.stemAudioCid,
-      mix_artifact_cid: classicWorkflow.mixArtifactCid,
-      catalog_rights_cid: classicWorkflow.catalogRightsCid,
-      optional_render_cid: classicWorkflow.optionalRenderCid,
-      responsive_fallback_cid: classicWorkflow.responsiveFallbackCid,
-      event_dag_cid: classicWorkflow.eventDagCid,
       tracks: tracks.map(track => ({
         id: track.id,
         name: track.name,
@@ -962,19 +961,31 @@
         attribution_required: true,
         commercial_sync_allowed: true
       },
-      receipts: [
-        `${classicWorkflow.receiptPrefix}:artifact-cids`,
-        `${classicWorkflow.receiptPrefix}:catalog-rights`,
-        `${classicWorkflow.receiptPrefix}:optional-render`,
-        `${classicWorkflow.receiptPrefix}:save-project`,
-        `${classicWorkflow.receiptPrefix}:restore-state`,
-        `${classicWorkflow.receiptPrefix}:responsive-fallback`
-      ]
+      saved_at: new Date().toISOString()
     };
     try {
       localStorage.setItem('swissknife.music-studio.classic-project', JSON.stringify(bundle));
     } catch (error) {
       console.warn('Classic Music Studio local save fallback was unavailable:', error);
+    }
+    try {
+      const helper = await import('./real-artifact.js');
+      if (helper.userConfirmsBackendWrite('Persist this Music Studio project bundle to the ipfs_kit_py artifact store?')) {
+        const persisted = await helper.persistArtifactRecord({
+          record: bundle,
+          profile: 'music-studio-project',
+          kind: 'composition'
+        });
+        classicWorkflow.saveBundleCid = persisted.cid;
+        const status = document.getElementById('music-studio-workflow-status');
+        if (status) status.textContent = `Project bundle persisted: ${persisted.cid}`;
+        console.log(`🎵 Music Studio bundle persisted: ${persisted.cid}`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn('Music Studio bundle persist failed:', message);
+      const status = document.getElementById('music-studio-workflow-status');
+      if (status) status.textContent = `Project saved locally; backend persist failed: ${message}`;
     }
     return bundle;
   }

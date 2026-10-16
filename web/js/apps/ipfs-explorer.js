@@ -149,7 +149,7 @@ export class IPFSExplorerApp {
             <div class="explorer-main">
               <div class="explorer-sidebar">
                 <div class="sidebar-section">
-                  <h4>🔗 Quick Access</h4>
+                  <h4 class="sk-section-head">🔗 Quick Access <span class="sk-label">(public examples)</span></h4>
                   <div class="quick-links">
                     <div class="quick-link" data-hash="QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn">
                       <span class="link-icon">📂</span>
@@ -340,28 +340,28 @@ export class IPFSExplorerApp {
                 <div class="summary-card">
                   <div class="summary-icon">📈</div>
                   <div class="summary-content">
-                    <div class="summary-value">1.2 GB</div>
+                    <div class="summary-value" id="data-retrieved">—</div>
                     <div class="summary-label">Data Retrieved</div>
                   </div>
                 </div>
                 <div class="summary-card">
                   <div class="summary-icon">📤</div>
                   <div class="summary-content">
-                    <div class="summary-value">456 MB</div>
+                    <div class="summary-value" id="data-shared">—</div>
                     <div class="summary-label">Data Shared</div>
                   </div>
                 </div>
                 <div class="summary-card">
                   <div class="summary-icon">🔄</div>
                   <div class="summary-content">
-                    <div class="summary-value">89%</div>
+                    <div class="summary-value" id="cache-hit-rate">—</div>
                     <div class="summary-label">Cache Hit Rate</div>
                   </div>
                 </div>
                 <div class="summary-card">
                   <div class="summary-icon">⚡</div>
                   <div class="summary-content">
-                    <div class="summary-value">245ms</div>
+                    <div class="summary-value" id="avg-latency">—</div>
                     <div class="summary-label">Avg Latency</div>
                   </div>
                 </div>
@@ -805,22 +805,51 @@ export class IPFSExplorerApp {
 
   async initializeIPFSConnection(window) {
     try {
-      // Simulate IPFS connection
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Update status
-      window.querySelector('#peer-count').textContent = Math.floor(Math.random() * 50) + 10;
-      
+      // Real connection check: query the live MCP++ kit backend for its
+      // peer set. No fabricated peer counts — failures are reported honestly.
+      let peerCount = null;
+      let backend = null;
+      try {
+        const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
+        const client = clientModule.getMCPPlusPlusDesktopClient();
+        const peers = await client.discoverPeers('ipfs_kit_py');
+        const list = Array.isArray(peers?.peers) ? peers.peers : (Array.isArray(peers) ? peers : []);
+        peerCount = list.length;
+        backend = 'ipfs_kit_py';
+      } catch (clientError) {
+        console.warn('MCP++ peer discovery unavailable:', clientError);
+      }
+
+      if (peerCount == null && this.swissknife?.ipfs?.swarm?.peers) {
+        try {
+          const swarmPeers = await this.swissknife.ipfs.swarm.peers();
+          peerCount = Array.isArray(swarmPeers) ? swarmPeers.length : 0;
+          backend = 'swissknife-ipfs';
+        } catch (swarmError) {
+          console.warn('swissknife ipfs swarm unavailable:', swarmError);
+        }
+      }
+
+      const peerCountEl = window.querySelector('#peer-count');
+      if (peerCountEl) {
+        peerCountEl.textContent = peerCount == null ? 'not connected' : String(peerCount);
+      }
+
       // Load initial content
       await this.loadIPFSContent(window, this.currentPath);
-      
-      // Emit IPFS ready event
+
+      // Emit IPFS ready event with only real data
       eventBus.emit('ipfs:ready', {
-        gateway: this.gateway,
-        acceleration: this.acceleration,
-        peers: window.querySelector('#peer-count').textContent
+        gateway: this.currentGateway,
+        backend,
+        connected: peerCount != null,
+        peers: peerCount
       });
-      
+
+      if (peerCount == null) {
+        this.showNotification?.('IPFS backend not reachable — showing local state only.');
+      }
+
     } catch (error) {
       this.showError(window, `Failed to connect to IPFS: ${error.message}`);
     }
@@ -867,26 +896,26 @@ export class IPFSExplorerApp {
   }
 
   getFallbackIPFSListing(path) {
-    // Fallback example listing when IPFS API not available
-    const fallbackItems = [
-      { name: 'README.md', type: 'file', size: '2.1 KB', hash: 'QmX...abc123' },
-      { name: 'images', type: 'directory', size: '15 items', hash: 'QmY...def456' },
-      { name: 'documents', type: 'directory', size: '8 items', hash: 'QmZ...ghi789' },
-      { name: 'config.json', type: 'file', size: '834 B', hash: 'QmA...jkl012' },
-      { name: 'data.csv', type: 'file', size: '45.2 KB', hash: 'QmB...mno345' },
-      { name: 'video.mp4', type: 'file', size: '128.5 MB', hash: 'QmC...pqr678' }
-    ];
-    
-    return fallbackItems.map(item => ({
-      ...item,
-      isPinned: this.pinned.has(item.hash),
-      modified: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
-    }));
+    // Honest empty state: with no IPFS backend connected, this surface shows
+    // no content rather than invented example files with fake hashes.
+    console.info(`No IPFS backend connected for path ${path}; showing empty listing.`);
+    return [];
   }
 
   renderFileBrowser(window, items) {
     const browser = window.querySelector('#file-browser');
-    
+
+    if (!items || items.length === 0) {
+      browser.innerHTML = `
+        <div class="empty-state sk-empty">
+          <div class="sk-empty-icon">📂</div>
+          <p><strong>No content to show.</strong></p>
+          <p class="sk-empty-text">No IPFS backend is connected, so there is no directory listing to display.<br>Upload a file to persist it as a real content-addressed artifact.</p>
+        </div>
+      `;
+      return;
+    }
+
     const itemsHTML = items.map(item => `
       <div class="file-item" data-hash="${item.hash}" data-type="${item.type}">
         <div class="file-icon">
@@ -990,43 +1019,45 @@ export class IPFSExplorerApp {
   async startUpload(window) {
     const fileInput = window.querySelector('#file-input');
     const files = fileInput.files;
-    
+
     if (files.length === 0) {
       alert('Please select files to upload');
       return;
     }
-    
+
     try {
-      // Simulate file upload to IPFS
+      // Real upload path: each file is persisted as a content-addressed
+      // artifact via the kit backend; the CID shown is the verified one.
+      const results = [];
       for (const file of files) {
-        const hash = `Qm${Math.random().toString(36).substring(2, 46)}`;
-        
-        // Emit file added event
-        eventBus.emit('ipfs:file-added', {
-          filename: file.name,
-          hash: hash,
-          size: file.size
-        });
+        const cid = await this.uploadFileToIPFS(file);
+        results.push({ name: file.name, cid });
       }
-      
+
       this.hideUploadModal(window);
       this.refreshCurrentView();
-      
-      alert(`Successfully added ${files.length} file(s) to IPFS`);
-      
+
+      alert(`Successfully added ${files.length} file(s) to IPFS:\n` +
+        results.map(r => `${r.name}: ${r.cid}`).join('\n'));
+
     } catch (error) {
       alert(`Upload failed: ${error.message}`);
     }
   }
 
   async togglePin(hash) {
+    // Honestly local: the pin set is a local list in this session. Pinning
+    // to the backend happens at upload time via the artifact store
+    // (pin:true); there is no separate remote pin route on this surface,
+    // so the UI labels the list as local rather than claiming backend pins.
     if (this.pinned.has(hash)) {
       this.pinned.delete(hash);
-      eventBus.emit('ipfs:unpin-complete', { hash });
+      eventBus.emit('ipfs:unpin-complete', { hash, scope: 'local' });
     } else {
       this.pinned.add(hash);
-      eventBus.emit('ipfs:pin-complete', { hash });
+      eventBus.emit('ipfs:pin-complete', { hash, scope: 'local' });
     }
+    this.showNotification?.(`Pin list updated (local): ${hash.slice(0, 20)}…`);
   }
 
   refreshCurrentView() {
@@ -1038,7 +1069,7 @@ export class IPFSExplorerApp {
     const browser = window.querySelector('#file-browser');
     browser.innerHTML = `
       <div class="loading-message">
-        <p style="color: red;">❌ ${message}</p>
+        <p class="sk-code" style="color: var(--sk-err, #ff6b6b); border-left: 3px solid var(--sk-err, #ff6b6b); padding-left: 8px;">❌ ${message}</p>
       </div>
     `;
   }
@@ -1046,6 +1077,8 @@ export class IPFSExplorerApp {
   // Enhanced methods for the improved IPFS Explorer
 
   async initialize() {
+    // Live instance for inline handlers (one desktop window per app).
+    if (typeof window !== 'undefined') window.ipfsExplorer = this;
     await this.initializeIntegrations();
     this.setupEventListeners();
     await this.loadInitialData();
@@ -1476,13 +1509,17 @@ export class IPFSExplorerApp {
       }
     }
     
-    // Fallback to example peers if none available
+    // Honest empty state when no backend is reachable: no invented peers.
     if (peers.length === 0) {
-      peers = [
-        { id: 'example-12D3KooWGRREjJc...', location: 'N/A', latency: 'N/A', bandwidth: 'N/A' }
-      ];
+      table.innerHTML = `
+        <div class="empty-state sk-empty">
+          <p>🔌 No IPFS backend connected — no peer data available.</p>
+          <p class="sk-empty-text">Peer discovery runs against the live MCP++ kit backend when it is reachable.</p>
+        </div>
+      `;
+      return;
     }
-    
+
     table.innerHTML = `
       <table class="data-table">
         <thead>
@@ -1579,19 +1616,14 @@ export class IPFSExplorerApp {
   generateUsageInsights() {
     const container = document.getElementById('insights-list');
     if (!container) return;
-    
-    const insights = [
-      '📈 Your IPFS usage has increased 23% this week',
-      '🏃 Most content is retrieved within 200ms average',
-      '📌 Consider pinning frequently accessed content for better performance',
-      '🌐 Your node is well-connected with 45+ peers'
-    ];
-    
-    container.innerHTML = insights.map(insight => `
+
+    // Honest: this surface tracks no usage analytics, so it states that
+    // instead of inventing growth percentages and peer counts.
+    container.innerHTML = `
       <div class="insight-item">
-        <span class="insight-text">${insight}</span>
+        <span class="insight-text">ℹ️ Usage analytics are not tracked on this surface — no fabricated statistics are shown. Connect an IPFS backend to see live data.</span>
       </div>
-    `).join('');
+    `;
   }
 
   // Navigation methods
@@ -1783,27 +1815,41 @@ export class IPFSExplorerApp {
       }
     }
     
-    // Fallback: simulate upload for demo
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const hash = 'example-Qm' + Math.random().toString(36).substring(2, 46);
-        
-        // Add to pinned content if option is selected
-        const pinAfterUpload = document.getElementById('pin-after-upload');
-        if (pinAfterUpload?.checked) {
-          this.pinnedContent.set(hash, {
-            hash,
-            name: file.name,
-            size: file.size,
-            type: this.getFileType(file.name),
-            pinnedAt: Date.now(),
-            status: 'pinned'
-          });
-        }
-        
-        resolve(hash);
-      }, 1000);
+    // Final route: persist the file bytes as a real content-addressed
+    // artifact in the ipfs_kit_py store. The CID is computed over the exact
+    // bytes via contentCidForBytes and verified by the backend — no
+    // fabricated hashes. Governed write: explicit user confirmation first,
+    // failures surface verbatim.
+    if (!confirm(`Upload "${file.name}" (${this.formatBytes(file.size)}) to the IPFS artifact store via ipfs_kit_py?`)) {
+      throw new Error('Upload cancelled by user.');
+    }
+    const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
+    const client = clientModule.getMCPPlusPlusDesktopClient();
+    const { contentCidForBytes, base64ForBytes } = clientModule;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const cid = await contentCidForBytes(bytes);
+    const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+      cid,
+      bytes_base64: base64ForBytes(bytes),
+      profile: 'ipfs-explorer-upload',
+      kind: 'file-upload',
+      service: 'ipfs_kit_py',
+      pin: document.getElementById('pin-after-upload')?.checked !== false
     });
+    if (!result || result.persisted !== true || result.cid !== cid) {
+      throw new Error(result?.error || 'ipfs_kit_py did not verify the uploaded artifact.');
+    }
+    this.pinnedContent.set(cid, {
+      hash: cid,
+      name: file.name,
+      size: file.size,
+      type: this.getFileType(file.name),
+      pinnedAt: Date.now(),
+      status: 'pinned',
+      verified: result.verified === true
+    });
+    eventBus.emit('ipfs:file-added', { filename: file.name, hash: cid, size: file.size });
+    return cid;
   }
 
   // Utility methods

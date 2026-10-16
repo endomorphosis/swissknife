@@ -235,7 +235,7 @@ export class AIChatApp {
 
           <!-- Messages Area -->
           <div class="chat-messages" id="${this.instanceId}-messages">
-            <div class="welcome-message">
+            <div class="welcome-message sk-empty">
               <div class="welcome-icon">🤖</div>
               <h3>Enhanced AI Assistant</h3>
               <p>I'm your intelligent assistant with access to your desktop context, files, and system information.</p>
@@ -306,8 +306,8 @@ export class AIChatApp {
         .ai-chat-container {
           display: flex;
           height: 100%;
-          background: linear-gradient(135deg, #1a1a2e, #16213e);
-          color: #e8eaed;
+          background: linear-gradient(135deg, var(--sk-bg-deep, #0e1412), var(--sk-bg-panel, #101b18));
+          color: var(--sk-text, #edf7f2);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', roboto, sans-serif;
         }
 
@@ -334,15 +334,15 @@ export class AIChatApp {
           height: 32px;
           border-radius: 8px;
           border: none;
-          background: rgba(74, 144, 226, 0.3);
-          color: white;
+          background: rgba(139, 216, 189, 0.25);
+          color: var(--sk-text, #edf7f2);
           cursor: pointer;
           font-size: 16px;
           transition: all 0.2s ease;
         }
 
         .new-chat-btn:hover {
-          background: rgba(74, 144, 226, 0.5);
+          background: rgba(139, 216, 189, 0.4);
           transform: scale(1.05);
         }
 
@@ -414,7 +414,8 @@ export class AIChatApp {
         }
 
         .context-source.enabled {
-          background: rgba(34, 139, 34, 0.2);
+          background: rgba(94, 227, 161, 0.18);
+          border: 1px solid rgba(94, 227, 161, 0.4);
         }
 
         .context-icon {
@@ -520,7 +521,7 @@ export class AIChatApp {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: #4ade80;
+          background: var(--sk-ok, #5ee3a1);
           animation: pulse 2s infinite;
         }
 
@@ -652,8 +653,8 @@ export class AIChatApp {
           height: 36px;
           border-radius: 50%;
           border: none;
-          background: linear-gradient(135deg, #4ade80, #22c55e);
-          color: white;
+          background: var(--sk-accent, #8bd8bd);
+          color: #0e1412;
           cursor: pointer;
           transition: all 0.2s ease;
           display: flex;
@@ -663,7 +664,7 @@ export class AIChatApp {
 
         .send-btn:hover {
           transform: scale(1.05);
-          box-shadow: 0 4px 20px rgba(74, 222, 128, 0.3);
+          box-shadow: 0 4px 20px rgba(139, 216, 189, 0.3);
         }
 
         .send-btn:disabled {
@@ -709,11 +710,13 @@ export class AIChatApp {
         }
 
         .message.user .message-avatar {
-          background: linear-gradient(135deg, #60a5fa, #3b82f6);
+          background: var(--sk-bg-inset, #17241f);
+          border: 1px solid var(--sk-accent, #8bd8bd);
         }
 
         .message.assistant .message-avatar {
-          background: linear-gradient(135deg, #34d399, #10b981);
+          background: var(--sk-bg-inset, #17241f);
+          border: 1px solid var(--sk-ok, #5ee3a1);
         }
 
         .message-content {
@@ -767,7 +770,7 @@ export class AIChatApp {
 
         .recording {
           animation: pulse 1s infinite;
-          background: rgba(239, 68, 68, 0.3) !important;
+          background: rgba(255, 107, 107, 0.3) !important;
         }
 
         /* Responsive */
@@ -1383,7 +1386,7 @@ For testing, you can:
     const container = this.getContainer();
     const messagesContainer = container.querySelector('#chat-messages');
     messagesContainer.innerHTML = `
-      <div class="welcome-message">
+      <div class="welcome-message sk-empty">
         <div class="welcome-icon">🤖</div>
         <h3>New Conversation Started</h3>
         <p>I'm ready to help! What would you like to discuss?</p>

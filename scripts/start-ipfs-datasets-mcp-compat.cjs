@@ -57,6 +57,473 @@ const profileH = createProfileHAdapter({ service: "ipfs_datasets_py" });
 const profileG = createDatasetsProfileGAdapter({ datasetsRoot });
 let profileAPersistence;
 
+// ---------------------------------------------------------------------------
+// Contract-operation direct execution.
+//
+// The GUI descriptor contract (web/js/core/app-capability-gateway.js
+// CAPABILITY_DEFINITIONS) promises 12 ipfs.datasets.operation.* operations.
+// The module-basename tool discovery above cannot address function-level
+// tools (e.g. semantic_search() inside search_tools.py), and dispatch()
+// executes through a dashboard that is not part of the runtime stack.
+// This table wires each contracted operation to its genuine Python
+// implementation in the pinned ipfs_datasets_py source and executes it
+// directly via a persistent Python worker. Operations with no genuine
+// implementation (null) return an honest capability error instead of the
+// misleading "Unknown tool" routing failure.
+// ---------------------------------------------------------------------------
+const CONTRACT_OP_IMPLEMENTATIONS = {
+  // Read operations (side-effect free).
+  get: {
+    module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.load_dataset",
+    func: "load_dataset",
+    argMap: { dataset_id: "source", cid: "source", path: "source" },
+    note: "loads a dataset record from a source identifier",
+  },
+  embed: {
+    module: "ipfs_datasets_py.embeddings.generation_engine",
+    func: "generate_batch_embeddings",
+    argMap: {},
+    note: "batch text embedding via the real generation engine (takes the GUI's texts array directly)",
+  },
+  vector_search: {
+    module: "ipfs_datasets_py.mcp_server.tools.vector_tools.vector_store_management",
+    func: "search_vector_index",
+    argMap: { collection: "index_name" },
+    note: "text-query vector search; collection maps to index_name",
+  },
+  semantic_search: {
+    module: "ipfs_datasets_py.mcp_server.tools.search_tools.search_tools",
+    func: "semantic_search",
+    argMap: {},
+    note: "genuine MCP semantic_search tool (query, top_k, filters, collection) — matches the GUI call shape",
+  },
+  // Write operations (confirmation-gated in the UI; executed honestly here).
+  vector_index: {
+    module: "ipfs_datasets_py.mcp_server.tools.vector_tools.vector_store_management",
+    func: "create_vector_index",
+    argMap: { collection: "index_name" },
+    // The GUI supplies a single text content + metadata; this backend takes a
+    // documents list. The manager embeds internally, so no pre-embed is needed.
+    documentsFrom: ["content", "metadata"],
+    note: "creates a vector index via the vector-store manager (same manager as vector_search)",
+  },
+  index: {
+    module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.process_dataset",
+    func: "process_dataset",
+    argMap: { dataset_id: "dataset_source" },
+    note: "dataset preparation pipeline (closest genuine implementation of the preparation-job operation)",
+  },
+  pin: {
+    module: "ipfs_datasets_py.mcp_server.tools.ipfs_tools.pin_to_ipfs",
+    func: "pin_to_ipfs",
+    argMap: { cid: "content_source", path: "content_source", data: "content_source" },
+    note: "pins content to IPFS via the real pinner",
+  },
+  publish: {
+    module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.save_dataset",
+    func: "save_dataset",
+    argMap: {},
+    // save_dataset requires dataset_data; the GUI supplies dataset_id + metadata,
+    // so they are combined into the dataset_data payload (destination stays unset).
+    combineInto: { dataset_data: ["dataset_id", "metadata"] },
+    // save_dataset requires a destination; default to the workspace published-datasets
+    // directory (interpolated with the GUI's dataset_id), JSON format.
+    defaults: { format: "json" },
+    destinationTemplate: "/home/hatch/workspace/published_datasets/{dataset_id}.json",
+    note: "saves/publishes a dataset (GUI dataset_id+metadata combined into dataset_data)",
+  },
+  // Operations whose pinned backend implementation is a mock, stub, or broken:
+  // routing to them would present fabricated results as real, so the adapter
+  // reports them honestly unavailable instead.
+  semantic_search:
+    "the pinned semantic_search returns fabricated results ('Mock result N for query: …') when no vector service is configured, and no vector service is available in this environment",
+  index:
+    "the pinned process_dataset is a self-described mock implementation that fabricates record counts without processing data",
+  pin: "the pinned pin_to_ipfs fabricates Qm{hash(…)} CIDs when ipfs_kit_py is absent (it is not installed here) and no IPFS daemon is reachable",
+  publish:
+    "the pinned save_dataset performs a self-described 'mock save' for dataset payloads: it reports success without writing anything",
+  record_provenance:
+    "the pinned record_provenance tool is broken: it imports the nonexistent module ipfs_datasets_py.data_provenance_enhanced",
+  // No genuine implementation exists in the pinned source for these three.
+  browse: "no implementation exists in the pinned ipfs_datasets_py source",
+  list_datasets: "no implementation exists in the pinned ipfs_datasets_py source",
+  sync_status: "no implementation exists in the pinned ipfs_datasets_py source",
+};
+
+const CONTRACT_OP_TIMEOUT_MS = 120000;
+
+let contractWorkerState = null;
+
+function contractWorkerPython() {
+  // The contract worker imports the real ipfs_datasets_py data stack
+  // (numpy, embeddings, vector tools). Pick the first candidate interpreter
+  // that can actually import it — an explicit env override wins, then we
+  // probe candidates with a numpy canary so a bare venv can never silently
+  // become the worker and fail every call with ModuleNotFoundError.
+  const { execFileSync } = require("node:child_process");
+  const workspaceRoot = path.resolve(datasetsRoot, "..", "..");
+  const candidates = [
+    process.env.IPFS_DATASETS_CONTRACT_PYTHON,
+    process.env.PYTHON,
+    path.join(workspaceRoot, ".venv", "bin", "python"),
+    path.join(process.env.HOME || "/home/hatch", "workspace", "venvs", "scraping", "bin", "python"),
+    "python3",
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    try {
+      execFileSync(candidate, ["-c", "import numpy"], { timeout: 30000, stdio: "ignore" });
+      return candidate;
+    } catch (_error) {
+      // not usable; try the next candidate
+    }
+  }
+  return "python3";
+}
+
+const CONTRACT_WORKER_CODE = `
+import asyncio
+import importlib
+import inspect
+import json
+import sys
+import time
+import traceback
+import types
+
+# Compatibility shim: the pinned generation_engine imports
+# ipfs_datasets_py.embeddings.core.IPFSEmbeddings, but that module does not
+# exist upstream (the real class lives under ml/embeddings with an
+# incompatible constructor), so HAVE_EMBEDDINGS is always False and every
+# embedding call takes the self-labeled [0.1, 0.2, 0.3, 0.4] fallback.
+# Provide the missing module here backed by sentence_transformers so the
+# genuine backend code path executes with real model embeddings.
+try:
+    importlib.import_module("ipfs_datasets_py.embeddings.core")
+except ImportError:
+    try:
+        from sentence_transformers import SentenceTransformer
+
+        _st_models = {}
+
+        class IPFSEmbeddings:
+            def __init__(self, model="sentence-transformers/all-MiniLM-L6-v2",
+                         batch_size=32, use_gpu=False, **kwargs):
+                self.model_name = model
+                self.batch_size = batch_size
+                self.device = "cuda" if use_gpu else "cpu"
+
+            def _model(self):
+                key = (self.model_name, self.device)
+                if key not in _st_models:
+                    _st_models[key] = SentenceTransformer(self.model_name, device=self.device)
+                return _st_models[key]
+
+            async def generate_embeddings(self, texts):
+                started = time.time()
+                model = self._model()
+                vectors = model.encode(
+                    list(texts), batch_size=self.batch_size,
+                    normalize_embeddings=True, convert_to_numpy=True,
+                )
+                return {
+                    "embeddings": [v.tolist() for v in vectors],
+                    "processing_time": time.time() - started,
+                    "memory_usage": 0,
+                }
+
+        _core_mod = types.ModuleType("ipfs_datasets_py.embeddings.core")
+        _core_mod.IPFSEmbeddings = IPFSEmbeddings
+        sys.modules["ipfs_datasets_py.embeddings.core"] = _core_mod
+        # Ensure the parent package attribute resolves as well.
+        # NOTE: do NOT do a trial from-import here -- empirically, performing
+        # the from-import before generation_engine is imported breaks its own
+        # identical from-import (HAVE_EMBEDDINGS stays False). Just set sys.modules
+        # and the parent attribute, then force the flag on the already-imported
+        # generation_engine module (import-system caching can otherwise leave the
+        # flag False even though the class is genuinely present).
+        try:
+            _parent = importlib.import_module("ipfs_datasets_py.embeddings")
+            setattr(_parent, "core", _core_mod)
+            _ge = importlib.import_module("ipfs_datasets_py.embeddings.generation_engine")
+            if not _ge.HAVE_EMBEDDINGS:
+                _ge.IPFSEmbeddings = _core_mod.IPFSEmbeddings
+                _ge.HAVE_EMBEDDINGS = True
+        except ImportError:
+            pass
+    except ImportError:
+        pass
+
+# Compatibility shim: faiss>=1.15 SWIG bindings require float32 contiguous
+# arrays, but the backend's embedding engine returns float64. Older faiss
+# coerced implicitly; restore that behavior so the genuine backend index
+# creation works. (faiss operates in float32 internally regardless.)
+try:
+    import faiss
+    import numpy as _np
+
+    _orig_normalize_L2 = faiss.normalize_L2
+
+    def _normalize_L2_compat(x):
+        x = _np.ascontiguousarray(x, dtype=_np.float32)
+        return _orig_normalize_L2(x)
+
+    faiss.normalize_L2 = _normalize_L2_compat
+
+    for _cls_name in ("IndexFlatIP", "IndexFlatL2"):
+        _cls = getattr(faiss, _cls_name, None)
+        if _cls is not None and not getattr(_cls.add, "_faiss_compat_patched", False):
+            _orig_add = _cls.add
+
+            def _add_compat(self, x, _orig_add=_orig_add):
+                return _orig_add(self, _np.ascontiguousarray(x, dtype=_np.float32))
+
+            _add_compat._faiss_compat_patched = True
+            _cls.add = _add_compat
+except ImportError:
+    pass
+
+def execute(module_path, func_name, args):
+    module = importlib.import_module(module_path)
+    func = getattr(module, func_name)
+    params = dict(args or {})
+    try:
+        sig = inspect.signature(func)
+        accepted = sig.parameters
+        has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in accepted.values())
+        if not has_var_kw:
+            params = {k: v for k, v in params.items() if k in accepted}
+    except (TypeError, ValueError):
+        pass
+    result = func(**params)
+    if inspect.isawaitable(result):
+        result = asyncio.run(result)
+    return result
+
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        request = json.loads(line)
+    except Exception as exc:
+        sys.stdout.write(json.dumps({"id": None, "ok": False, "error": "bad request: " + str(exc)}) + "\\n")
+        sys.stdout.flush()
+        continue
+    try:
+        result = execute(request["module"], request["func"], request.get("args") or {})
+        sys.stdout.write(json.dumps({"id": request.get("id"), "ok": True, "result": result}, default=str) + "\\n")
+    except Exception as exc:
+        sys.stdout.write(json.dumps({
+            "id": request.get("id"),
+            "ok": False,
+            "error": type(exc).__name__ + ": " + str(exc),
+            "traceback": traceback.format_exc(limit=8),
+        }, default=str) + "\\n")
+    sys.stdout.flush()
+`;
+
+function ensureContractWorker() {
+  if (contractWorkerState?.child && !contractWorkerState.child.killed) {
+    return contractWorkerState;
+  }
+  const { spawn } = require("node:child_process");
+  const workspaceRoot = path.resolve(datasetsRoot, "..", "..");
+  const child = spawn(contractWorkerPython(), ["-u", "-c", CONTRACT_WORKER_CODE], {
+    cwd: workspaceRoot,
+    env: {
+      ...process.env,
+      // httpx (used by huggingface_hub/sentence_transformers) chokes on the
+      // bracketed IPv6 entries in the ambient no_proxy; override for the worker
+      // so model downloads work through the egress proxy.
+      no_proxy: "localhost,127.0.0.1",
+      NO_PROXY: "localhost,127.0.0.1",
+      PYTHONPATH: [datasetsRoot, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter),
+    },
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  const state = { child, nextId: 1, pending: new Map(), buffer: "" };
+  child.stdout.on("data", (chunk) => {
+    state.buffer += chunk.toString("utf8");
+    let idx;
+    while ((idx = state.buffer.indexOf("\n")) >= 0) {
+      const line = state.buffer.slice(0, idx).trim();
+      state.buffer = state.buffer.slice(idx + 1);
+      if (!line) continue;
+      let msg;
+      try {
+        msg = JSON.parse(line);
+      } catch (_error) {
+        continue;
+      }
+      const waiter = state.pending.get(msg.id);
+      if (waiter) {
+        state.pending.delete(msg.id);
+        clearTimeout(waiter.timer);
+        waiter.resolve(msg);
+      }
+    }
+  });
+  child.stderr.on("data", (chunk) => {
+    console.error(`[datasets-contract-worker] ${chunk.toString("utf8").trim()}`);
+  });
+  child.on("exit", (code) => {
+    for (const waiter of state.pending.values()) {
+      clearTimeout(waiter.timer);
+      waiter.resolve({ id: waiter.id, ok: false, error: `contract worker exited (code ${code})` });
+    }
+    state.pending.clear();
+    if (contractWorkerState === state) contractWorkerState = null;
+  });
+  contractWorkerState = state;
+  return state;
+}
+
+function callContractPython(impl, args) {
+  const state = ensureContractWorker();
+  const id = state.nextId++;
+  // Apply explicit argument renames (first present source wins).
+  const renamed = { ...(args || {}) };
+  for (const [from, to] of Object.entries(impl.argMap || {})) {
+    if (renamed[from] !== undefined && renamed[to] === undefined) {
+      renamed[to] = renamed[from];
+    }
+    if (from !== to) delete renamed[from];
+  }
+  // Combine listed source keys into a single object target (e.g. publish's
+  // dataset_id+metadata -> dataset_data). Sources are consumed.
+  for (const [target, sources] of Object.entries(impl.combineInto || {})) {
+    if (renamed[target] === undefined) {
+      const combined = {};
+      let found = false;
+      for (const src of sources || []) {
+        if (renamed[src] !== undefined) {
+          combined[src] = renamed[src];
+          delete renamed[src];
+          found = true;
+        }
+      }
+      if (found) renamed[target] = combined;
+    }
+  }
+  // Wrap listed keys in an array when they are not already (e.g. a single
+  // artifact_cid string becomes the inputs list for record_provenance).
+  for (const key of impl.listify || []) {
+    if (renamed[key] !== undefined && !Array.isArray(renamed[key])) {
+      renamed[key] = [renamed[key]];
+    }
+  }
+  // Build a documents list for vector-index creation from GUI content+metadata
+  // (the vector-store manager takes documents:[{text, metadata}]).
+  if (impl.documentsFrom && renamed.documents === undefined) {
+    const doc = {};
+    if (renamed.content !== undefined) {
+      doc.text = renamed.content;
+      delete renamed.content;
+    }
+    if (renamed.metadata !== undefined) {
+      doc.metadata = renamed.metadata;
+      delete renamed.metadata;
+    }
+    if (doc.text !== undefined) renamed.documents = [doc];
+  }
+  // Fill defaults for parameters the GUI contract does not supply (e.g. the
+  // required operation name for record_provenance). A destinationTemplate may
+  // interpolate {arg} placeholders from the (renamed) arguments.
+  for (const [key, value] of Object.entries(impl.defaults || {})) {
+    if (renamed[key] === undefined) renamed[key] = value;
+  }
+  if (impl.destinationTemplate && renamed.destination === undefined) {
+    renamed.destination = String(impl.destinationTemplate).replace(/\{(\w+)\}/g, (_, k) =>
+      renamed[k] !== undefined ? String(renamed[k]).replace(/[^a-zA-Z0-9._-]/g, "_") : "unknown"
+    );
+  }
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      state.pending.delete(id);
+      resolve({ id, ok: false, error: `contract worker timed out after ${CONTRACT_OP_TIMEOUT_MS}ms` });
+    }, CONTRACT_OP_TIMEOUT_MS);
+    state.pending.set(id, { id, resolve, timer });
+    try {
+      state.child.stdin.write(JSON.stringify({ id, module: impl.module, func: impl.func, args: renamed }) + "\n");
+    } catch (error) {
+      clearTimeout(timer);
+      state.pending.delete(id);
+      resolve({ id, ok: false, error: `contract worker write failed: ${error.message}` });
+    }
+  });
+}
+
+async function callContractOperation(name, args) {
+  const impl = CONTRACT_OP_IMPLEMENTATIONS[name];
+  if (impl === undefined) return null; // not a contract operation; use normal dispatch
+  // A string value means "honestly unavailable": either no implementation exists
+  // or the pinned implementation is a mock/stub/broken. Report the reason
+  // instead of routing to fabricated results.
+  if (typeof impl === "string") {
+    const unavailable = {
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: `Operation '${name}' is unavailable: ${impl}.`,
+        },
+      ],
+      receipt: receipt(name, { status: "not_implemented", backend: "ipfs_datasets_py" }),
+    };
+    if (args?.dry_run === true) {
+      unavailable.receipt = receipt(name, {
+        status: "not_implemented",
+        backend: "ipfs_datasets_py",
+        dry_run: true,
+      });
+    }
+    return unavailable;
+  }
+  if (args?.dry_run === true) {
+    return {
+      content: [
+        {
+          type: "json",
+          json: {
+            ok: true,
+            dry_run: true,
+            tool: name,
+            module: impl.module,
+            func: impl.func,
+            policy: "adapter-enforced-no-side-effects",
+          },
+        },
+      ],
+      receipt: receipt(name, { status: "dry_run", backend: "ipfs_datasets_py", dry_run: true }),
+    };
+  }
+  const effectiveArgs = { ...(args || {}) };
+  const outcome = await callContractPython(impl, effectiveArgs);
+  if (!outcome.ok) {
+    return {
+      isError: true,
+      content: [{ type: "text", text: outcome.error }],
+      receipt: receipt(name, {
+        status: "backend_error",
+        backend: "ipfs_datasets_py",
+        module: impl.module,
+        func: impl.func,
+        ...(outcome.traceback ? { traceback: outcome.traceback } : {}),
+      }),
+    };
+  }
+  return {
+    content: [{ type: "json", json: outcome.result }],
+    receipt: receipt(name, {
+      status: "ok",
+      backend: "ipfs_datasets_py",
+      module: impl.module,
+      func: impl.func,
+      note: impl.note,
+    }),
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   let url;
   let rpcRequestId = null;
@@ -550,6 +1017,10 @@ async function callDatasetTool(payload) {
     payload.arguments ??
     payload.args ??
     {};
+  // Contract operations (GUI descriptor contract) resolve before the
+  // module-basename tool registry so function-level tools are addressable.
+  const contractResult = await callContractOperation(name, args);
+  if (contractResult !== null) return contractResult;
   if (args?.dry_run === true) {
     const tool = findTool(null, name);
     return tool

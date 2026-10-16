@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
-  "generatedDate": "2026-07-22",
+  "generatedDate": "2026-10-16",
   "taskId": "SWR-137",
   "source": {
     "manifestPath": "src/module-ownership.json",
     "serviceRoot": "src/services",
     "auditScript": "scripts/audit-source-modules.mjs",
     "phase16CleanupEvidence": "implementation_plan/docs/38-swissknife-repository-refactoring-plan-2026-07-08.todo.md#phase-16",
-    "sourceRevision": "e7d2d6f0de1e3eea296707d1a7503deae77014a1",
+    "sourceRevision": "a17eafde17ec7e1cde94787ed8797fe10b8bd049",
     "recoveryProvenance": {
       "path": "docs/phase-21-recovery-provenance.json",
       "available": false
@@ -336,7 +336,7 @@
     "indexShadowCopies": 0,
     "duplicateContentHashes": 1,
     "unapprovedDuplicateContentHashes": 0,
-    "executableServiceFiles": 447,
+    "executableServiceFiles": 473,
     "basenameCollisions": 1,
     "indexEntrypointBasenameCollisions": 1,
     "unclassifiedBasenameCollisions": 0,
@@ -344,8 +344,8 @@
     "unclassifiedNormalizedContentCollisions": 0,
     "behavioralEquivalenceGroups": 0,
     "unclassifiedBehavioralEquivalenceGroups": 0,
-    "totalImporters": 1958,
-    "uniqueImporterFiles": 624
+    "totalImporters": 2116,
+    "uniqueImporterFiles": 674
   },
   "serviceFiles": [
     {
@@ -631,6 +631,12 @@
           "specifier": "../../src/services/apps/all-app-executable-backend-contract"
         },
         {
+          "file": "test/browser/verified-gui-optimizer-agent-supervisor-boundary.test.ts",
+          "line": 29,
+          "kind": "static-import",
+          "specifier": "../../src/services/apps/all-app-executable-backend-contract"
+        },
+        {
           "file": "test/browser/virtual-desktop-live-gateway.test.ts",
           "line": 1,
           "kind": "static-import",
@@ -667,7 +673,7 @@
           "specifier": "../../src/services/apps/all-app-executable-backend-contract"
         }
       ],
-      "importerCount": 20,
+      "importerCount": 21,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -702,25 +708,25 @@
       "path": "src/services/apps/all-app-live-tool-bindings.ts",
       "basename": "all-app-live-tool-bindings.ts",
       "extension": ".ts",
-      "sizeBytes": 7996,
-      "lineCount": 193,
+      "sizeBytes": 8118,
+      "lineCount": 196,
       "contentKind": "service-implementation",
-      "sha256": "652e17bba1e9450efef13dd3bd5d3d49b83bc3cba0419cb54bd22ac0f5a0ed38",
+      "sha256": "49a18c5f25651703c2b4df47c81b676dc06c46e687a22f2eeb5b17ca70b56e40",
       "contentHash": {
         "algorithm": "sha256",
-        "value": "652e17bba1e9450efef13dd3bd5d3d49b83bc3cba0419cb54bd22ac0f5a0ed38"
+        "value": "49a18c5f25651703c2b4df47c81b676dc06c46e687a22f2eeb5b17ca70b56e40"
       },
       "normalizedContentHash": {
         "algorithm": "sha256",
         "normalization": "lexical-v1-comments-and-trivia-elided",
-        "value": "dc60a76a4b9a2d6313bd17ffa9b0df3e063c045751cb4047bf19118740301dab",
-        "tokenCount": 1119
+        "value": "c850ab04ecff42abe94a512cfd7f397c757bbec70c5a7597ade16185e3e79045",
+        "tokenCount": 1129
       },
       "behaviorHash": {
         "algorithm": "sha256",
         "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-        "value": "f251dcfa53f4c22d853ecf6a1104cec2dc57b5042f61ca773b812c0f7eb3f779",
-        "tokenCount": 1119
+        "value": "f02bc7cf62166c17d2982ff81faa743e500aafd15736d6f3cc1545bc238e10d4",
+        "tokenCount": 1129
       },
       "importers": [
         {
@@ -1669,6 +1675,62 @@
       "collisionIds": []
     },
     {
+      "path": "src/services/apps/deterministic-png.ts",
+      "basename": "deterministic-png.ts",
+      "extension": ".ts",
+      "sizeBytes": 3037,
+      "lineCount": 92,
+      "contentKind": "service-implementation",
+      "sha256": "3d60d7a3275eef166aed5bf93a09eed2919fa484339e378150f35dee322eace5",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "3d60d7a3275eef166aed5bf93a09eed2919fa484339e378150f35dee322eace5"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "d8aa2be2a8da02021cd65f99742858052ce3e2c85e05316b3066a49d97748ff6",
+        "tokenCount": 575
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "9be5f4d864abbfcea79f9bf805575b5b4d583c873705d24545ff91985cafb42f",
+        "tokenCount": 575
+      },
+      "importers": [
+        {
+          "file": "src/services/apps/virtual-desktop-app-audit-runner.ts",
+          "line": 4,
+          "kind": "static-import",
+          "specifier": "./deterministic-png.js"
+        }
+      ],
+      "importerCount": 1,
+      "publicEntrypoints": [],
+      "runtimeClass": "universal",
+      "runtimeClassification": "universal",
+      "browserClassification": "runtime-neutral-module",
+      "declaredOwner": {
+        "module": "service-apps",
+        "owner": "app-surface-runtime",
+        "runtimeClassification": "universal",
+        "browserReachability": "allowed through app manifest and capability contract modules",
+        "browserClassification": "runtime-neutral-module"
+      },
+      "canonicalOwner": {
+        "module": "service-apps",
+        "owner": "app-surface-runtime",
+        "runtimeClassification": "universal",
+        "browserReachability": "allowed through app manifest and capability contract modules",
+        "browserClassification": "runtime-neutral-module"
+      },
+      "module": "service-apps",
+      "owner": "app-surface-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
       "path": "src/services/apps/index.ts",
       "basename": "index.ts",
       "extension": ".ts",
@@ -2219,6 +2281,130 @@
       "collisionIds": []
     },
     {
+      "path": "src/services/apps/virtual-desktop-app-audit-playwright-driver.ts",
+      "basename": "virtual-desktop-app-audit-playwright-driver.ts",
+      "extension": ".ts",
+      "sizeBytes": 8243,
+      "lineCount": 203,
+      "contentKind": "service-implementation",
+      "sha256": "afca6dda82b2cf5af5ec0319142f52a22ac6f0ad064e2ac85457121b307d33a8",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "afca6dda82b2cf5af5ec0319142f52a22ac6f0ad064e2ac85457121b307d33a8"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "63bdef71e45a8dbe761b3807564bf5455e2d6e498c1f41c733bc9fdfdd340db2",
+        "tokenCount": 1392
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "52fab2ab3e41c3adf9c5f9e42626b20e355256760dcef84891c6483ec36de54d",
+        "tokenCount": 1392
+      },
+      "importers": [
+        {
+          "file": "test/e2e/virtual-desktop-app-audit-runner.spec.ts",
+          "line": 4,
+          "kind": "static-import",
+          "specifier": "../../src/services/apps/virtual-desktop-app-audit-playwright-driver"
+        }
+      ],
+      "importerCount": 1,
+      "publicEntrypoints": [],
+      "runtimeClass": "universal",
+      "runtimeClassification": "universal",
+      "browserClassification": "runtime-neutral-module",
+      "declaredOwner": {
+        "module": "service-apps",
+        "owner": "app-surface-runtime",
+        "runtimeClassification": "universal",
+        "browserReachability": "allowed through app manifest and capability contract modules",
+        "browserClassification": "runtime-neutral-module"
+      },
+      "canonicalOwner": {
+        "module": "service-apps",
+        "owner": "app-surface-runtime",
+        "runtimeClassification": "universal",
+        "browserReachability": "allowed through app manifest and capability contract modules",
+        "browserClassification": "runtime-neutral-module"
+      },
+      "module": "service-apps",
+      "owner": "app-surface-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/apps/virtual-desktop-app-audit-runner.ts",
+      "basename": "virtual-desktop-app-audit-runner.ts",
+      "extension": ".ts",
+      "sizeBytes": 20769,
+      "lineCount": 609,
+      "contentKind": "service-implementation",
+      "sha256": "60b96323d1b78241a1489025a45cc1cb029337e56e25b86811df1e0773c36bff",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "60b96323d1b78241a1489025a45cc1cb029337e56e25b86811df1e0773c36bff"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "924b86a21e0f813837dd3b634d79458953ada0a4a2532e73933054af84814845",
+        "tokenCount": 3060
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "2db01d4ea0042675d0bb05daed6596e1adc85b63bf885076bb2d7d1980c0809d",
+        "tokenCount": 3060
+      },
+      "importers": [
+        {
+          "file": "src/services/apps/virtual-desktop-app-audit-playwright-driver.ts",
+          "line": 3,
+          "kind": "static-import",
+          "specifier": "./virtual-desktop-app-audit-runner.js"
+        },
+        {
+          "file": "test/e2e/virtual-desktop-app-audit-runner.spec.ts",
+          "line": 5,
+          "kind": "static-import",
+          "specifier": "../../src/services/apps/virtual-desktop-app-audit-runner"
+        },
+        {
+          "file": "test/mcp-plus-plus/virtual-desktop-app-manifest.test.ts",
+          "line": 17,
+          "kind": "static-import",
+          "specifier": "../../src/services/apps/virtual-desktop-app-audit-runner"
+        }
+      ],
+      "importerCount": 3,
+      "publicEntrypoints": [],
+      "runtimeClass": "universal",
+      "runtimeClassification": "universal",
+      "browserClassification": "runtime-neutral-module",
+      "declaredOwner": {
+        "module": "service-apps",
+        "owner": "app-surface-runtime",
+        "runtimeClassification": "universal",
+        "browserReachability": "allowed through app manifest and capability contract modules",
+        "browserClassification": "runtime-neutral-module"
+      },
+      "canonicalOwner": {
+        "module": "service-apps",
+        "owner": "app-surface-runtime",
+        "runtimeClassification": "universal",
+        "browserReachability": "allowed through app manifest and capability contract modules",
+        "browserClassification": "runtime-neutral-module"
+      },
+      "module": "service-apps",
+      "owner": "app-surface-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
       "path": "src/services/apps/virtual-desktop-app-manifest-validator.ts",
       "basename": "virtual-desktop-app-manifest-validator.ts",
       "extension": ".ts",
@@ -2244,13 +2430,19 @@
       },
       "importers": [
         {
+          "file": "src/services/apps/virtual-desktop-app-audit-runner.ts",
+          "line": 11,
+          "kind": "static-import",
+          "specifier": "./virtual-desktop-app-manifest-validator.js"
+        },
+        {
           "file": "test/mcp-plus-plus/virtual-desktop-app-manifest.test.ts",
-          "line": 15,
+          "line": 16,
           "kind": "static-import",
           "specifier": "../../src/services/apps/virtual-desktop-app-manifest-validator"
         }
       ],
-      "importerCount": 1,
+      "importerCount": 2,
       "publicEntrypoints": [],
       "runtimeClass": "universal",
       "runtimeClassification": "universal",
@@ -2362,6 +2554,18 @@
         {
           "file": "src/services/apps/ipfs-app-capability-registry.ts",
           "line": 31,
+          "kind": "static-import",
+          "specifier": "./virtual-desktop-app-manifest.js"
+        },
+        {
+          "file": "src/services/apps/virtual-desktop-app-audit-playwright-driver.ts",
+          "line": 10,
+          "kind": "static-import",
+          "specifier": "./virtual-desktop-app-manifest.js"
+        },
+        {
+          "file": "src/services/apps/virtual-desktop-app-audit-runner.ts",
+          "line": 5,
           "kind": "static-import",
           "specifier": "./virtual-desktop-app-manifest.js"
         },
@@ -2493,12 +2697,12 @@
         },
         {
           "file": "test/mcp-plus-plus/virtual-desktop-app-manifest.test.ts",
-          "line": 3,
+          "line": 4,
           "kind": "static-import",
           "specifier": "../../src/services/apps/virtual-desktop-app-manifest"
         }
       ],
-      "importerCount": 33,
+      "importerCount": 35,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -5024,6 +5228,1733 @@
       "collisionIds": []
     },
     {
+      "path": "src/services/glasses/ui-ux-ir-glasses-adapter.ts",
+      "basename": "ui-ux-ir-glasses-adapter.ts",
+      "extension": ".ts",
+      "sizeBytes": 32866,
+      "lineCount": 1108,
+      "contentKind": "service-implementation",
+      "sha256": "893eb246354040596cca1e62c4f5d2ed22d50bd2f111cef00f29d7f2b5108cd9",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "893eb246354040596cca1e62c4f5d2ed22d50bd2f111cef00f29d7f2b5108cd9"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "99e0a3b8f0c47ee61b02b6a6f12c6652cfbfe5655f33af4f99e6b7260fb49029",
+        "tokenCount": 4831
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "a764b106a1d97fbd092f48f3b64ccd9bdbcb7da266f215d2b08bbc4eae23903f",
+        "tokenCount": 4831
+      },
+      "importers": [
+        {
+          "file": "test/mcp-plus-plus/ui-ux-ir-glasses-adapter.test.ts",
+          "line": 5,
+          "kind": "static-import",
+          "specifier": "../../src/services/glasses/ui-ux-ir-glasses-adapter"
+        }
+      ],
+      "importerCount": 1,
+      "publicEntrypoints": [],
+      "runtimeClass": "split",
+      "runtimeClassification": "split",
+      "browserClassification": "split-runtime-requires-entrypoint-review",
+      "declaredOwner": {
+        "module": "service-glasses",
+        "owner": "glasses-surface-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through display, widget, and mobile ORB browser-safe adapters",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "canonicalOwner": {
+        "module": "service-glasses",
+        "owner": "glasses-surface-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through display, widget, and mobile ORB browser-safe adapters",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "module": "service-glasses",
+      "owner": "glasses-surface-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/accessibility.ts",
+      "basename": "accessibility.ts",
+      "extension": ".ts",
+      "sizeBytes": 78310,
+      "lineCount": 2525,
+      "contentKind": "service-implementation",
+      "sha256": "f72cee57c3425f4a0acccd92cf001731fda8508f6ef9ed2d7f9db0716b0f02d8",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "f72cee57c3425f4a0acccd92cf001731fda8508f6ef9ed2d7f9db0716b0f02d8"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "9ed460842d018aee352e48aef5ea39bf81ea60ba7d93f347547c9366b6bb5cd5",
+        "tokenCount": 4371
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "846d8d5340717919cd28418d26db5e140f39d777bdde39540849354b6b6d87f0",
+        "tokenCount": 4371
+      },
+      "importers": [
+        {
+          "file": "test/e2e/verified-gui-optimizer-agent-supervisor-baseline.spec.ts",
+          "line": 12,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/accessibility.js"
+        },
+        {
+          "file": "test/e2e/verified-gui-optimizer-fixtures.spec.ts",
+          "line": 19,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/accessibility.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/accessibility.test.ts",
+          "line": 15,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/accessibility.js"
+        }
+      ],
+      "importerCount": 3,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/accessibility.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/accessibility.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/baseline.ts",
+      "basename": "baseline.ts",
+      "extension": ".ts",
+      "sizeBytes": 24862,
+      "lineCount": 759,
+      "contentKind": "service-implementation",
+      "sha256": "599f8ad5c2c8ff323d8bb08b4ac8705f85e74fa29090ecf32996ead7cdb934f9",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "599f8ad5c2c8ff323d8bb08b4ac8705f85e74fa29090ecf32996ead7cdb934f9"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "426a6d950918b210d251af43e1edced11c3f35a80e5c2161348ff588104251b1",
+        "tokenCount": 3312
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "7c2cbddb881395d1c3e1755edee70bec83b412c18ba61b4b897ea3ac7e870118",
+        "tokenCount": 3312
+      },
+      "importers": [
+        {
+          "file": "src/services/gui-optimizer/cli.ts",
+          "line": 12,
+          "kind": "static-import",
+          "specifier": "./baseline.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/evaluator.ts",
+          "line": 19,
+          "kind": "static-import",
+          "specifier": "./baseline.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/evaluator.ts",
+          "line": 1446,
+          "kind": "export-from",
+          "specifier": "./baseline.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/targets/agent-supervisor.ts",
+          "line": 27,
+          "kind": "static-import",
+          "specifier": "../baseline.js"
+        },
+        {
+          "file": "test/e2e/verified-gui-optimizer-agent-supervisor-baseline.spec.ts",
+          "line": 20,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/baseline.js"
+        },
+        {
+          "file": "test/e2e/verified-gui-optimizer-fixtures.spec.ts",
+          "line": 27,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/baseline.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/evaluator.test.ts",
+          "line": 19,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/baseline.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/identity-vectors.test.ts",
+          "line": 17,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/baseline.js"
+        }
+      ],
+      "importerCount": 8,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/baseline.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/baseline.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/cli.ts",
+      "basename": "cli.ts",
+      "extension": ".ts",
+      "sizeBytes": 24233,
+      "lineCount": 858,
+      "contentKind": "service-implementation",
+      "sha256": "49edd2c3db38abcb3df36ae2395f35da33e2d94f1d6388a80c3db85e21b21655",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "49edd2c3db38abcb3df36ae2395f35da33e2d94f1d6388a80c3db85e21b21655"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "14b9601e559725b82e28b6b425f7930f3333146378fe5f4cfe2decff75aa7d3e",
+        "tokenCount": 704
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "b2fd49f0dfcbee0b7f0c55747c308235f8ba0cbf154d092a15200180c9be0ec3",
+        "tokenCount": 704
+      },
+      "importers": [
+        {
+          "file": "test/unit/services/gui-optimizer/cli.test.ts",
+          "line": 11,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/cli.js"
+        }
+      ],
+      "importerCount": 1,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/cli.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/cli.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/component-graph.ts",
+      "basename": "component-graph.ts",
+      "extension": ".ts",
+      "sizeBytes": 44620,
+      "lineCount": 1364,
+      "contentKind": "service-implementation",
+      "sha256": "ab992e0f1903c3bcbcf058d316a8a618141d2615a1c3b1c9b6d1f2ffc0f71f0f",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "ab992e0f1903c3bcbcf058d316a8a618141d2615a1c3b1c9b6d1f2ffc0f71f0f"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "4d19cd0ff5dcce38aab7e2d5ea00b47a1de33fc64c445d5ed7f72662b4b54c7a",
+        "tokenCount": 6069
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "3791d9093c8bf5e56d7dc3ac2f91d7ab8bcb8f4b3651a4b7f65fb6f2527c95fa",
+        "tokenCount": 6069
+      },
+      "importers": [
+        {
+          "file": "src/services/gui-optimizer/targets/agent-supervisor.ts",
+          "line": 37,
+          "kind": "static-import",
+          "specifier": "../component-graph.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/component-graph.test.ts",
+          "line": 35,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/component-graph.js"
+        }
+      ],
+      "importerCount": 2,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/component-graph.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/component-graph.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/context-pack.ts",
+      "basename": "context-pack.ts",
+      "extension": ".ts",
+      "sizeBytes": 107777,
+      "lineCount": 3221,
+      "contentKind": "service-implementation",
+      "sha256": "daacd62198d94d7d49f6479543ddf7775835994250a8a238e96af4fe2a95605d",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "daacd62198d94d7d49f6479543ddf7775835994250a8a238e96af4fe2a95605d"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "95dedabd5e7e2767618e7c69c32882e4536085f4b4b9d9b08fd5f6141f8f860a",
+        "tokenCount": 16285
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "6730e5b4769ff9210745163e1149b21b255cfa1b75581f5e5bf8cddcb7cf955e",
+        "tokenCount": 16285
+      },
+      "importers": [
+        {
+          "file": "src/services/gui-optimizer/cli.ts",
+          "line": 13,
+          "kind": "static-import",
+          "specifier": "./context-pack.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/context-pack.test.ts",
+          "line": 35,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/context-pack.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/static-impact-context.test.ts",
+          "line": 18,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/context-pack.js"
+        }
+      ],
+      "importerCount": 3,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/context-pack.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/context-pack.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/evaluator.ts",
+      "basename": "evaluator.ts",
+      "extension": ".ts",
+      "sizeBytes": 47984,
+      "lineCount": 1461,
+      "contentKind": "service-implementation",
+      "sha256": "918066707ece50460a5b86bd9534cc20ca1382a0c2fbd33e0515424221eedde8",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "918066707ece50460a5b86bd9534cc20ca1382a0c2fbd33e0515424221eedde8"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "d50bdaf849c208f7bc44ebbd2823106eb86be31fe03dee9fb09503e4610dedf8",
+        "tokenCount": 6753
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "18bdfdf26de0f717fa36789396f7f34a8c273976555d481c15ec6d05152cbe8a",
+        "tokenCount": 6753
+      },
+      "importers": [
+        {
+          "file": "src/services/gui-optimizer/cli.ts",
+          "line": 14,
+          "kind": "static-import",
+          "specifier": "./evaluator.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/targets/agent-supervisor.ts",
+          "line": 46,
+          "kind": "static-import",
+          "specifier": "../evaluator.js"
+        },
+        {
+          "file": "test/e2e/verified-gui-optimizer-fixtures.spec.ts",
+          "line": 28,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/evaluator.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/evaluator.test.ts",
+          "line": 40,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/evaluator.js"
+        }
+      ],
+      "importerCount": 4,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/evaluator.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/evaluator.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/identity.ts",
+      "basename": "identity.ts",
+      "extension": ".ts",
+      "sizeBytes": 37819,
+      "lineCount": 1165,
+      "contentKind": "service-implementation",
+      "sha256": "53b40e8d5847dbf187eb25a5f9a0c44a50be8944677f444b168b8caef23b7763",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "53b40e8d5847dbf187eb25a5f9a0c44a50be8944677f444b168b8caef23b7763"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "7e806e1dc2ce7b388f7d33fd00a4f5c9bb9e0cfe7b1d842e1703291597753559",
+        "tokenCount": 5849
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "8d328fed5c9ba1e8c0ff785fad9871b048100db8c0e007f292b6f0ad25a1f9bb",
+        "tokenCount": 5849
+      },
+      "importers": [
+        {
+          "file": "src/services/gui-optimizer/baseline.ts",
+          "line": 18,
+          "kind": "static-import",
+          "specifier": "./identity.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/cli.ts",
+          "line": 15,
+          "kind": "static-import",
+          "specifier": "./identity.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/evaluator.ts",
+          "line": 42,
+          "kind": "static-import",
+          "specifier": "./identity.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/targets/agent-supervisor.ts",
+          "line": 63,
+          "kind": "static-import",
+          "specifier": "../identity.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/ui-capsule.ts",
+          "line": 18,
+          "kind": "static-import",
+          "specifier": "./identity.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/visual-regression.ts",
+          "line": 21,
+          "kind": "static-import",
+          "specifier": "./identity.js"
+        },
+        {
+          "file": "test/e2e/verified-gui-optimizer-agent-supervisor-baseline.spec.ts",
+          "line": 25,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/identity.js"
+        },
+        {
+          "file": "test/e2e/verified-gui-optimizer-fixtures.spec.ts",
+          "line": 29,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/identity.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/context-pack.test.ts",
+          "line": 15,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/identity.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/evaluator.test.ts",
+          "line": 53,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/identity.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/identity-vectors.test.ts",
+          "line": 21,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/identity.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/identity.test.ts",
+          "line": 18,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/identity.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/static-impact-context.test.ts",
+          "line": 31,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/identity.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/ui-capsule.test.ts",
+          "line": 29,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/identity.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/visual-regression.test.ts",
+          "line": 14,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/identity.js"
+        }
+      ],
+      "importerCount": 15,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/identity.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/identity.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/interaction-runner.ts",
+      "basename": "interaction-runner.ts",
+      "extension": ".ts",
+      "sizeBytes": 48860,
+      "lineCount": 1397,
+      "contentKind": "service-implementation",
+      "sha256": "e38055682e23963b553daa7ba8c6f993a6bd577a99f8af1dacf5234a12f34af0",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "e38055682e23963b553daa7ba8c6f993a6bd577a99f8af1dacf5234a12f34af0"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "df2a4c73c559298c0bc9ae3467069db60b42780f23a031bb662fa8aa18ab45d6",
+        "tokenCount": 6425
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "e5de06277d73a3014b90c26645c38a0a2065491be68aa508edfdf43deade762c",
+        "tokenCount": 6425
+      },
+      "importers": [
+        {
+          "file": "test/e2e/verified-gui-optimizer-agent-supervisor-baseline.spec.ts",
+          "line": 31,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/interaction-runner.js"
+        },
+        {
+          "file": "test/e2e/verified-gui-optimizer-fixtures.spec.ts",
+          "line": 35,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/interaction-runner.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/interaction-runner.test.ts",
+          "line": 16,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/interaction-runner.js"
+        }
+      ],
+      "importerCount": 3,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/interaction-runner.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/interaction-runner.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/invalidation.ts",
+      "basename": "invalidation.ts",
+      "extension": ".ts",
+      "sizeBytes": 53686,
+      "lineCount": 1668,
+      "contentKind": "service-implementation",
+      "sha256": "bf4b877d98bbcf4e57156129ddba1b496fc80720258839d6f9db00027bf3a824",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "bf4b877d98bbcf4e57156129ddba1b496fc80720258839d6f9db00027bf3a824"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "8a40d09a091160384ce4fb10a66757447be02087e68f1f8f73fe85b07e33478e",
+        "tokenCount": 8259
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "9de2144c7f9ff7fb6cd0069a4e8992ea13313cddb4ade267d88b9edaaf345273",
+        "tokenCount": 8259
+      },
+      "importers": [
+        {
+          "file": "src/services/gui-optimizer/cli.ts",
+          "line": 16,
+          "kind": "static-import",
+          "specifier": "./invalidation.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/context-pack.ts",
+          "line": 52,
+          "kind": "static-import",
+          "specifier": "./invalidation.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/targets/agent-supervisor.ts",
+          "line": 54,
+          "kind": "static-import",
+          "specifier": "../invalidation.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/context-pack.test.ts",
+          "line": 19,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/invalidation.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/invalidation.test.ts",
+          "line": 17,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/invalidation.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/static-impact-context.test.ts",
+          "line": 35,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/invalidation.js"
+        }
+      ],
+      "importerCount": 6,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/invalidation.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/invalidation.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/models.ts",
+      "basename": "models.ts",
+      "extension": ".ts",
+      "sizeBytes": 33592,
+      "lineCount": 1048,
+      "contentKind": "service-implementation",
+      "sha256": "ce0ba0e826ee90958bb950f6a0db98aa65489007567d582b5140374c851cb4ea",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "ce0ba0e826ee90958bb950f6a0db98aa65489007567d582b5140374c851cb4ea"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "8a76fc9ad6bcc2bdbe4c5921aff5f7766c098759bdaa80a5151343d353198dfa",
+        "tokenCount": 4581
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "b46e3b00a2491d83750c278d687cfeff378b7f0a70a9edf375cf7da74a5c8d7b",
+        "tokenCount": 4581
+      },
+      "importers": [
+        {
+          "file": "src/services/gui-optimizer/accessibility.ts",
+          "line": 19,
+          "kind": "static-import",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/component-graph.ts",
+          "line": 17,
+          "kind": "static-import",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/context-pack.ts",
+          "line": 24,
+          "kind": "static-import",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/evaluator.ts",
+          "line": 46,
+          "kind": "static-import",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/identity.ts",
+          "line": 15,
+          "kind": "static-import",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/interaction-runner.ts",
+          "line": 21,
+          "kind": "static-import",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/invalidation.ts",
+          "line": 21,
+          "kind": "static-import",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/policy-validator.ts",
+          "line": 26,
+          "kind": "static-import",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/scanner.ts",
+          "line": 12,
+          "kind": "static-import",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/scanner.ts",
+          "line": 2633,
+          "kind": "export-from",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/scenario-catalog.ts",
+          "line": 17,
+          "kind": "static-import",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/state-machine.ts",
+          "line": 19,
+          "kind": "static-import",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/targets/agent-supervisor.ts",
+          "line": 68,
+          "kind": "static-import",
+          "specifier": "../models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/ui-capsule.ts",
+          "line": 23,
+          "kind": "static-import",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/visual-regression.ts",
+          "line": 30,
+          "kind": "static-import",
+          "specifier": "./models.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/accessibility.test.ts",
+          "line": 14,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/models.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/agent-supervisor-baseline.test.ts",
+          "line": 17,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/models.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/agent-supervisor-fixtures.test.ts",
+          "line": 19,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/models.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/component-graph.test.ts",
+          "line": 13,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/models.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/identity-vectors.test.ts",
+          "line": 49,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/models.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/identity.test.ts",
+          "line": 13,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/models.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/interaction-runner.test.ts",
+          "line": 15,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/models.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/policy-validator.test.ts",
+          "line": 14,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/models.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/scanner.test.ts",
+          "line": 12,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/models.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/scenario-catalog.test.ts",
+          "line": 18,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/models.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/state-machine.test.ts",
+          "line": 16,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/models.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/ui-capsule.test.ts",
+          "line": 15,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/models.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/visual-regression.test.ts",
+          "line": 19,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/models.js"
+        }
+      ],
+      "importerCount": 28,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/models.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/models.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/policy-validator.ts",
+      "basename": "policy-validator.ts",
+      "extension": ".ts",
+      "sizeBytes": 46783,
+      "lineCount": 1426,
+      "contentKind": "service-implementation",
+      "sha256": "2662a0f6acbb3715dd2b478d370fc9c29e14def42043ee97ab91a2150bb5100b",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "2662a0f6acbb3715dd2b478d370fc9c29e14def42043ee97ab91a2150bb5100b"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "add6dc25916a86d677707bdc44191a66049cfd2366f508475f1397065ae386ee",
+        "tokenCount": 5497
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "9c629e3fd1d5afed15e1af8df5974ce044c57bc068ef59175ddb3bbac2ef7f3f",
+        "tokenCount": 5497
+      },
+      "importers": [
+        {
+          "file": "src/services/gui-optimizer/context-pack.ts",
+          "line": 33,
+          "kind": "static-import",
+          "specifier": "./policy-validator.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/interaction-runner.ts",
+          "line": 32,
+          "kind": "static-import",
+          "specifier": "./policy-validator.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/targets/agent-supervisor.ts",
+          "line": 95,
+          "kind": "static-import",
+          "specifier": "../policy-validator.js"
+        },
+        {
+          "file": "test/e2e/verified-gui-optimizer-fixtures.spec.ts",
+          "line": 43,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/policy-validator.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/context-pack.test.ts",
+          "line": 23,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/policy-validator.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/interaction-runner.test.ts",
+          "line": 41,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/policy-validator.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/policy-validator.test.ts",
+          "line": 18,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/policy-validator.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/static-impact-context.test.ts",
+          "line": 47,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/policy-validator.js"
+        }
+      ],
+      "importerCount": 8,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/policy-validator.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/policy-validator.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/scanner.ts",
+      "basename": "scanner.ts",
+      "extension": ".ts",
+      "sizeBytes": 80533,
+      "lineCount": 2635,
+      "contentKind": "service-implementation",
+      "sha256": "66b5830bac8bb35e88395da24444564429fecc32539502bed2876a8f2c7d2ab5",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "66b5830bac8bb35e88395da24444564429fecc32539502bed2876a8f2c7d2ab5"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "4c7889459f68889f2d80de3cbd6690733ae0bbf14ac12a7ca189f78951259451",
+        "tokenCount": 10462
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "d72cc561074903eb4d27482ff173eb4b92c7dea50cfea7ff42ed54ae87b1ad30",
+        "tokenCount": 10462
+      },
+      "importers": [
+        {
+          "file": "src/services/gui-optimizer/cli.ts",
+          "line": 25,
+          "kind": "static-import",
+          "specifier": "./scanner.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/targets/agent-supervisor.ts",
+          "line": 107,
+          "kind": "static-import",
+          "specifier": "../scanner.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/component-graph.test.ts",
+          "line": 31,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/scanner.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/scanner.test.ts",
+          "line": 35,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/scanner.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/static-impact-context.test.ts",
+          "line": 48,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/scanner.js"
+        }
+      ],
+      "importerCount": 5,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/scanner.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/scanner.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/scenario-catalog.ts",
+      "basename": "scenario-catalog.ts",
+      "extension": ".ts",
+      "sizeBytes": 48204,
+      "lineCount": 1445,
+      "contentKind": "service-implementation",
+      "sha256": "50d19d3bcfc3656863b5c341bb98d4e4d9cec910c6105e3bfbb39da2dc94bd84",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "50d19d3bcfc3656863b5c341bb98d4e4d9cec910c6105e3bfbb39da2dc94bd84"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "9e8dad49e485a0a8a7b3dc57a445c8ff69d25514165f0bdc98f8e25f1f6f28a3",
+        "tokenCount": 6515
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "e628ad389323b4ddb941b6ca5505ad596d6daa3494fc05d342c83cb9c5dbee70",
+        "tokenCount": 6515
+      },
+      "importers": [
+        {
+          "file": "src/services/gui-optimizer/cli.ts",
+          "line": 20,
+          "kind": "static-import",
+          "specifier": "./scenario-catalog.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/invalidation.ts",
+          "line": 29,
+          "kind": "static-import",
+          "specifier": "./scenario-catalog.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/targets/agent-supervisor.ts",
+          "line": 108,
+          "kind": "static-import",
+          "specifier": "../scenario-catalog.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/visual-regression.ts",
+          "line": 36,
+          "kind": "static-import",
+          "specifier": "./scenario-catalog.js"
+        },
+        {
+          "file": "test/e2e/verified-gui-optimizer-agent-supervisor-baseline.spec.ts",
+          "line": 39,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/scenario-catalog.js"
+        },
+        {
+          "file": "test/e2e/verified-gui-optimizer-fixtures.spec.ts",
+          "line": 44,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/scenario-catalog.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/agent-supervisor-baseline.test.ts",
+          "line": 18,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/scenario-catalog.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/agent-supervisor-fixtures.test.ts",
+          "line": 20,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/scenario-catalog.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/invalidation.test.ts",
+          "line": 16,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/scenario-catalog.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/scenario-catalog.test.ts",
+          "line": 19,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/scenario-catalog.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/static-impact-context.test.ts",
+          "line": 49,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/scenario-catalog.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/visual-regression.test.ts",
+          "line": 20,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/scenario-catalog.js"
+        }
+      ],
+      "importerCount": 12,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/scenario-catalog.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/scenario-catalog.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/state-machine.ts",
+      "basename": "state-machine.ts",
+      "extension": ".ts",
+      "sizeBytes": 46406,
+      "lineCount": 1430,
+      "contentKind": "service-implementation",
+      "sha256": "9df77a005aba7708345d3902afafebb6399d6324f35a01e318452c955845c5e7",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "9df77a005aba7708345d3902afafebb6399d6324f35a01e318452c955845c5e7"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "6bf67a35227fd24adef964146a52896c53c3926f381cdde312ed345515c248f4",
+        "tokenCount": 7620
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "d7d1e9ce84d2a1573d1e9421a53974c10957c62de3f74c0c490c784fe9141b19",
+        "tokenCount": 7620
+      },
+      "importers": [
+        {
+          "file": "src/services/gui-optimizer/cli.ts",
+          "line": 29,
+          "kind": "static-import",
+          "specifier": "./state-machine.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/context-pack.ts",
+          "line": 37,
+          "kind": "static-import",
+          "specifier": "./state-machine.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/interaction-runner.ts",
+          "line": 28,
+          "kind": "static-import",
+          "specifier": "./state-machine.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/targets/agent-supervisor.ts",
+          "line": 113,
+          "kind": "static-import",
+          "specifier": "../state-machine.js"
+        },
+        {
+          "file": "test/e2e/verified-gui-optimizer-agent-supervisor-baseline.spec.ts",
+          "line": 49,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/state-machine.js"
+        },
+        {
+          "file": "test/e2e/verified-gui-optimizer-fixtures.spec.ts",
+          "line": 49,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/state-machine.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/context-pack.test.ts",
+          "line": 24,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/state-machine.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/interaction-runner.test.ts",
+          "line": 44,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/state-machine.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/state-machine.test.ts",
+          "line": 24,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/state-machine.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/static-impact-context.test.ts",
+          "line": 50,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/state-machine.js"
+        }
+      ],
+      "importerCount": 10,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/state-machine.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/state-machine.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/targets/agent-supervisor.ts",
+      "basename": "agent-supervisor.ts",
+      "extension": ".ts",
+      "sizeBytes": 83337,
+      "lineCount": 2330,
+      "contentKind": "service-implementation",
+      "sha256": "505fa271fdd7768d8b4dc3858f2b70e21dc653ee653ed62a83ffa4d8085cb788",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "505fa271fdd7768d8b4dc3858f2b70e21dc653ee653ed62a83ffa4d8085cb788"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "8685ee4cca17e78f3b29d03387110a1cda6f67c97ecfe31ef16b611e3b255e57",
+        "tokenCount": 5301
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "f648411d1cdbdcbc5523a8e5f538e80b2b55f580f20d7fc69eaf38ca91d59195",
+        "tokenCount": 5301
+      },
+      "importers": [
+        {
+          "file": "test/unit/services/gui-optimizer/agent-supervisor-baseline.test.ts",
+          "line": 22,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/targets/agent-supervisor.js"
+        }
+      ],
+      "importerCount": 1,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/targets/agent-supervisor.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/targets/agent-supervisor.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/ui-capsule.ts",
+      "basename": "ui-capsule.ts",
+      "extension": ".ts",
+      "sizeBytes": 56089,
+      "lineCount": 1642,
+      "contentKind": "service-implementation",
+      "sha256": "99fde86639483c7afb6d6cbaf4c076ca0092c8d7fc130e8434a33b5f9606d840",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "99fde86639483c7afb6d6cbaf4c076ca0092c8d7fc130e8434a33b5f9606d840"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "db36d8d99cd3878e470681c61a40170a8b430073b5218f9f34e74f943f59d007",
+        "tokenCount": 8130
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "a24c505145759e4f62ce4bf4cb0aa2f914cae5bef9515fcc8cacc86f7f29568b",
+        "tokenCount": 8130
+      },
+      "importers": [
+        {
+          "file": "src/services/gui-optimizer/context-pack.ts",
+          "line": 46,
+          "kind": "static-import",
+          "specifier": "./ui-capsule.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/targets/agent-supervisor.ts",
+          "line": 121,
+          "kind": "static-import",
+          "specifier": "../ui-capsule.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/context-pack.test.ts",
+          "line": 29,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/ui-capsule.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/static-impact-context.test.ts",
+          "line": 55,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/ui-capsule.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/ui-capsule.test.ts",
+          "line": 33,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/ui-capsule.js"
+        }
+      ],
+      "importerCount": 5,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/ui-capsule.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/ui-capsule.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/gui-optimizer/visual-regression.ts",
+      "basename": "visual-regression.ts",
+      "extension": ".ts",
+      "sizeBytes": 56665,
+      "lineCount": 1727,
+      "contentKind": "service-implementation",
+      "sha256": "31e9d5ad5e29facbef34a0d17575f4e655b66c5f231fcc014395b042b372f02b",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "31e9d5ad5e29facbef34a0d17575f4e655b66c5f231fcc014395b042b372f02b"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "9f3c574bdada152a57dede1b954d7b9b3a2b5c19c45196359df9aec202658ff7",
+        "tokenCount": 8192
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "5045689f3e2112cd7d83f84c82ff04a252b077a1bb7adae89c8d701cb8c97fef",
+        "tokenCount": 8192
+      },
+      "importers": [
+        {
+          "file": "test/e2e/verified-gui-optimizer-agent-supervisor-baseline.spec.ts",
+          "line": 55,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/visual-regression.js"
+        },
+        {
+          "file": "test/e2e/verified-gui-optimizer-fixtures.spec.ts",
+          "line": 55,
+          "kind": "static-import",
+          "specifier": "../../src/services/gui-optimizer/visual-regression.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/visual-regression.test.ts",
+          "line": 25,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/gui-optimizer/visual-regression.js"
+        }
+      ],
+      "importerCount": 3,
+      "publicEntrypoints": [
+        {
+          "kind": "module-manifest",
+          "name": "src/services/gui-optimizer/visual-regression.ts",
+          "conditions": [],
+          "target": "src/services/gui-optimizer/visual-regression.ts"
+        }
+      ],
+      "runtimeClass": "host-only",
+      "runtimeClassification": "host-only",
+      "browserClassification": "host-only",
+      "declaredOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "canonicalOwner": {
+        "module": "service-gui-optimizer",
+        "owner": "verified-gui-optimizer-runtime",
+        "runtimeClassification": "host-only",
+        "browserReachability": "not imported by browser bundles; consumed by host CLI, unit, and dedicated Playwright fixtures",
+        "browserClassification": "host-only"
+      },
+      "module": "service-gui-optimizer",
+      "owner": "verified-gui-optimizer-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
       "path": "src/services/integrations/ergoai-wrapper.ts",
       "basename": "ergoai-wrapper.ts",
       "extension": ".ts",
@@ -6987,9 +8918,15 @@
           "line": 14,
           "kind": "static-import",
           "specifier": "../../src/services/ipfs/mcp-ipfs-ui-descriptors"
+        },
+        {
+          "file": "test/mcp-plus-plus/ui-ux-ir-orb-mediation.test.ts",
+          "line": 41,
+          "kind": "static-import",
+          "specifier": "../../src/services/ipfs/mcp-ipfs-ui-descriptors"
         }
       ],
-      "importerCount": 16,
+      "importerCount": 17,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -22232,6 +24169,55 @@
       "collisionIds": []
     },
     {
+      "path": "src/services/mcp/admissionTokenClient.ts",
+      "basename": "admissionTokenClient.ts",
+      "extension": ".ts",
+      "sizeBytes": 28630,
+      "lineCount": 950,
+      "contentKind": "service-implementation",
+      "sha256": "e025110deda76926a4d2e5c189f0c9e155076b6f59bc5eeb353884a7cd174794",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "e025110deda76926a4d2e5c189f0c9e155076b6f59bc5eeb353884a7cd174794"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "8ef3092db5b5b05fbf2e5220a0437d5ab370500cc4c9be8bb53fada374d6ac9f",
+        "tokenCount": 4175
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "6c60f5e464f369f12d30a5b94977adbd11f858ad5cb1265fdf92b1ec38d78880",
+        "tokenCount": 4175
+      },
+      "importers": [],
+      "importerCount": 0,
+      "publicEntrypoints": [],
+      "runtimeClass": "split",
+      "runtimeClassification": "split",
+      "browserClassification": "split-runtime-requires-entrypoint-review",
+      "declaredOwner": {
+        "module": "service-mcp",
+        "owner": "mcp-protocol-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through browser-safe protocol and transport modules",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "canonicalOwner": {
+        "module": "service-mcp",
+        "owner": "mcp-protocol-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through browser-safe protocol and transport modules",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "module": "service-mcp",
+      "owner": "mcp-protocol-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
       "path": "src/services/mcp/agent-supervisor-console-gateway.ts",
       "basename": "agent-supervisor-console-gateway.ts",
       "extension": ".ts",
@@ -22481,7 +24467,7 @@
         },
         {
           "file": "src/services/apps/all-app-live-tool-bindings.ts",
-          "line": 9,
+          "line": 10,
           "kind": "static-import",
           "specifier": "../mcp/all-app-tool-gateway.js"
         },
@@ -22526,9 +24512,15 @@
           "line": 12,
           "kind": "static-import",
           "specifier": "../../src/services/mcp/all-app-tool-gateway"
+        },
+        {
+          "file": "test/browser/verified-gui-optimizer-agent-supervisor-boundary.test.ts",
+          "line": 25,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/all-app-tool-gateway"
         }
       ],
-      "importerCount": 9,
+      "importerCount": 10,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -22819,9 +24811,15 @@
           "line": 2,
           "kind": "static-import",
           "specifier": "../../src/services/mcp/browser-mcp"
+        },
+        {
+          "file": "test/browser/verified-gui-optimizer-agent-supervisor-boundary.test.ts",
+          "line": 19,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/browser-mcp"
         }
       ],
-      "importerCount": 2,
+      "importerCount": 3,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -22878,6 +24876,62 @@
         "runtimeClassification": "split",
         "browserReachability": "allowed through browser-safe protocol and transport modules",
         "browserClassification": "browser-safe-service-file"
+      },
+      "module": "service-mcp",
+      "owner": "mcp-protocol-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/mcp/formalAssuranceGateway.ts",
+      "basename": "formalAssuranceGateway.ts",
+      "extension": ".ts",
+      "sizeBytes": 25890,
+      "lineCount": 816,
+      "contentKind": "service-implementation",
+      "sha256": "02b740dbfc3ffcd6d2d8f87f7b9c41c479a9599b501efe9689e538692a4c3d4e",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "02b740dbfc3ffcd6d2d8f87f7b9c41c479a9599b501efe9689e538692a4c3d4e"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "8da2b7f4cb93378ba29914c69846331dfba17451626b2d8f591e6cc0a4a44f09",
+        "tokenCount": 3358
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "34e06f05094da9297842c8c82dc6fc3784cba49d585703def136e6ed5797dc05",
+        "tokenCount": 3358
+      },
+      "importers": [
+        {
+          "file": "test/formal-assurance/host-admission-projection.test.ts",
+          "line": 16,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/formalAssuranceGateway.js"
+        }
+      ],
+      "importerCount": 1,
+      "publicEntrypoints": [],
+      "runtimeClass": "split",
+      "runtimeClassification": "split",
+      "browserClassification": "split-runtime-requires-entrypoint-review",
+      "declaredOwner": {
+        "module": "service-mcp",
+        "owner": "mcp-protocol-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through browser-safe protocol and transport modules",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "canonicalOwner": {
+        "module": "service-mcp",
+        "owner": "mcp-protocol-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through browser-safe protocol and transport modules",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
       },
       "module": "service-mcp",
       "owner": "mcp-protocol-runtime",
@@ -23322,24 +25376,24 @@
       "path": "src/services/mcp/ipfs-datasets-bucket-vfs-interop-descriptor.ts",
       "basename": "ipfs-datasets-bucket-vfs-interop-descriptor.ts",
       "extension": ".ts",
-      "sizeBytes": 14423,
-      "lineCount": 382,
+      "sizeBytes": 14332,
+      "lineCount": 384,
       "contentKind": "service-implementation",
-      "sha256": "1c72cf77e4e9334d511de2ca1cb952de9e91e2f352261f95e8fcd829b1e5fff8",
+      "sha256": "3be812fa2f18abdaaf99e32c826fc4a4a4246979d4b2057731611c3819ba38dd",
       "contentHash": {
         "algorithm": "sha256",
-        "value": "1c72cf77e4e9334d511de2ca1cb952de9e91e2f352261f95e8fcd829b1e5fff8"
+        "value": "3be812fa2f18abdaaf99e32c826fc4a4a4246979d4b2057731611c3819ba38dd"
       },
       "normalizedContentHash": {
         "algorithm": "sha256",
         "normalization": "lexical-v1-comments-and-trivia-elided",
-        "value": "e63a6728c0aa4b0c030a1d0ebee7c47e5d2fd3a656f31cfca0c2c0189c497fd0",
+        "value": "f7d4ec7c866fe9137de15b7461c901a94d091c799b4ab3779ab0d524914abe57",
         "tokenCount": 1160
       },
       "behaviorHash": {
         "algorithm": "sha256",
         "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-        "value": "4a0091f26af21899e2f0f71a369536bf3cc9f0e863cd86eea1ab3a0f6f07a047",
+        "value": "298a8b6dce10e300865d96354c4d6a27e777f24247d6455707713a7a8910848b",
         "tokenCount": 1160
       },
       "importers": [],
@@ -23442,6 +25496,18 @@
       },
       "importers": [
         {
+          "file": "src/services/mcp/admissionTokenClient.ts",
+          "line": 16,
+          "kind": "static-import",
+          "specifier": "./ipld-cid.js"
+        },
+        {
+          "file": "src/services/mcp/formalAssuranceGateway.ts",
+          "line": 13,
+          "kind": "static-import",
+          "specifier": "./ipld-cid.js"
+        },
+        {
           "file": "src/services/mcp/profile-d-policy.ts",
           "line": 3,
           "kind": "static-import",
@@ -23454,7 +25520,7 @@
           "specifier": "../../src/services/mcp/ipld-cid"
         }
       ],
-      "importerCount": 2,
+      "importerCount": 4,
       "publicEntrypoints": [],
       "runtimeClass": "split",
       "runtimeClassification": "split",
@@ -23708,25 +25774,25 @@
       "path": "src/services/mcp/mcp-control-surface-mediator.ts",
       "basename": "mcp-control-surface-mediator.ts",
       "extension": ".ts",
-      "sizeBytes": 56643,
-      "lineCount": 1603,
+      "sizeBytes": 66911,
+      "lineCount": 1877,
       "contentKind": "service-implementation",
-      "sha256": "4d95b3ae1f61731695bcbec38ddbf51f6fdaf393347ba6711ec147f7392f2a6d",
+      "sha256": "d522c38f626ac961998f05ae5535d0843fe5e70a544f5fd29cac898d8e67a5d9",
       "contentHash": {
         "algorithm": "sha256",
-        "value": "4d95b3ae1f61731695bcbec38ddbf51f6fdaf393347ba6711ec147f7392f2a6d"
+        "value": "d522c38f626ac961998f05ae5535d0843fe5e70a544f5fd29cac898d8e67a5d9"
       },
       "normalizedContentHash": {
         "algorithm": "sha256",
         "normalization": "lexical-v1-comments-and-trivia-elided",
-        "value": "18e460e45d1bea5b029c5fb7bbacc7f835e291145c9a5163bab052c005132d23",
-        "tokenCount": 8626
+        "value": "796cbd2a6f10afb4bf0f36090edd21347bc051b62603155a5e83e36c2a14cdba",
+        "tokenCount": 9901
       },
       "behaviorHash": {
         "algorithm": "sha256",
         "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-        "value": "227803360f534eb201eb641d5e46573ed0957a6e75b78952017c1630c7b9b516",
-        "tokenCount": 8626
+        "value": "92f8882bdf3e135a01e057a4ad7bba87ae636809237d34ea6e187ea14ece0f6d",
+        "tokenCount": 9901
       },
       "importers": [
         {
@@ -23830,9 +25896,15 @@
           "line": 19,
           "kind": "static-import",
           "specifier": "../../src/services/mcp/mcp-control-surface-mediator.js"
+        },
+        {
+          "file": "test/mcp-plus-plus/ui-ux-ir-orb-mediation.test.ts",
+          "line": 28,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/mcp-control-surface-mediator"
         }
       ],
-      "importerCount": 17,
+      "importerCount": 18,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -23923,25 +25995,25 @@
       "path": "src/services/mcp/mcp-deontic-interface-broker.ts",
       "basename": "mcp-deontic-interface-broker.ts",
       "extension": ".ts",
-      "sizeBytes": 23983,
-      "lineCount": 637,
+      "sizeBytes": 32999,
+      "lineCount": 878,
       "contentKind": "service-implementation",
-      "sha256": "bdaefa7954c5ab5e6aeff5246a3f6967627b6d0bbd290c8e87535d70535950c5",
+      "sha256": "0c3b7c811564db8fede867770bcc513cf1da240b7f7f3488ba6467b98766e0b7",
       "contentHash": {
         "algorithm": "sha256",
-        "value": "bdaefa7954c5ab5e6aeff5246a3f6967627b6d0bbd290c8e87535d70535950c5"
+        "value": "0c3b7c811564db8fede867770bcc513cf1da240b7f7f3488ba6467b98766e0b7"
       },
       "normalizedContentHash": {
         "algorithm": "sha256",
         "normalization": "lexical-v1-comments-and-trivia-elided",
-        "value": "417998f34a8cd80cfbad54365f54674570e40d66816e00a72c7fdcc617fd7cd6",
-        "tokenCount": 2427
+        "value": "c9be091e84033a03ae9f87d528c5709ff612bf4bb2062b4fb02c01087f2546e0",
+        "tokenCount": 3516
       },
       "behaviorHash": {
         "algorithm": "sha256",
         "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-        "value": "713c5fcc09acffbd5c429497ffff4e5eb8a84bd2a05a5515c093aec6331f8090",
-        "tokenCount": 2427
+        "value": "8b1df71fe5b6644ede7bbae6631215f0b4929ef3d0c7806270635748f19d75a3",
+        "tokenCount": 3516
       },
       "importers": [
         {
@@ -23979,9 +26051,15 @@
           "line": 21,
           "kind": "static-import",
           "specifier": "../../src/services/mcp/mcp-deontic-interface-broker"
+        },
+        {
+          "file": "test/mcp-plus-plus/ui-ux-ir-orb-mediation.test.ts",
+          "line": 15,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/mcp-deontic-interface-broker"
         }
       ],
-      "importerCount": 6,
+      "importerCount": 7,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -24890,13 +26968,13 @@
         },
         {
           "file": "src/services/mcp/mcp-orb-capability-router.ts",
-          "line": 9,
+          "line": 11,
           "kind": "static-import",
           "specifier": "./mcp-idl.js"
         },
         {
           "file": "src/services/mcp/mcp-orb-capability-router.ts",
-          "line": 10,
+          "line": 12,
           "kind": "static-import",
           "specifier": "./mcp-idl.js"
         },
@@ -25031,9 +27109,15 @@
           "line": 1,
           "kind": "static-import",
           "specifier": "../../src/services/mcp/mcp-idl"
+        },
+        {
+          "file": "test/mcp-plus-plus/ui-ux-ir-orb-mediation.test.ts",
+          "line": 42,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/mcp-idl"
         }
       ],
-      "importerCount": 63,
+      "importerCount": 64,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -25109,7 +27193,7 @@
         },
         {
           "file": "src/services/mcp/mcp-orb-capability-router.ts",
-          "line": 11,
+          "line": 13,
           "kind": "static-import",
           "specifier": "./mcp-interface-registry.js"
         },
@@ -25394,25 +27478,25 @@
       "path": "src/services/mcp/mcp-orb-capability-router.ts",
       "basename": "mcp-orb-capability-router.ts",
       "extension": ".ts",
-      "sizeBytes": 44299,
-      "lineCount": 1335,
+      "sizeBytes": 53314,
+      "lineCount": 1561,
       "contentKind": "service-implementation",
-      "sha256": "a4950b9bbd350c9d21b031e622dcc81295b075e1a3888f26c0b1917e7fff22df",
+      "sha256": "e67aeef0f13c52172e9b9a39f61147ba40fcfcef3f994054c3958d361b63593e",
       "contentHash": {
         "algorithm": "sha256",
-        "value": "a4950b9bbd350c9d21b031e622dcc81295b075e1a3888f26c0b1917e7fff22df"
+        "value": "e67aeef0f13c52172e9b9a39f61147ba40fcfcef3f994054c3958d361b63593e"
       },
       "normalizedContentHash": {
         "algorithm": "sha256",
         "normalization": "lexical-v1-comments-and-trivia-elided",
-        "value": "84d3d6deed1bbebd2aa4bcf70b6980b64ad00eed7e370ebee2a2995e707e97bd",
-        "tokenCount": 7167
+        "value": "0c45b897f0cdd29f60c2dc847dbfc41e7893d3283c1dde24e93d1136fcefd860",
+        "tokenCount": 8129
       },
       "behaviorHash": {
         "algorithm": "sha256",
         "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-        "value": "b39861884eb4bab6c409d171a6924d0af83ba3beebbf385c142c317f4d019b54",
-        "tokenCount": 7167
+        "value": "456b5f0fe55120ba08bdeb52246f5452b02c77939d3c3c153eb524d4e3de1170",
+        "tokenCount": 8129
       },
       "importers": [
         {
@@ -25474,9 +27558,15 @@
           "line": 1,
           "kind": "static-import",
           "specifier": "../../src/services/mcp/mcp-orb-capability-router"
+        },
+        {
+          "file": "test/mcp-plus-plus/ui-ux-ir-orb-mediation.test.ts",
+          "line": 35,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/mcp-orb-capability-router"
         }
       ],
-      "importerCount": 10,
+      "importerCount": 11,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -25612,6 +27702,62 @@
         }
       ],
       "importerCount": 13,
+      "publicEntrypoints": [],
+      "runtimeClass": "split",
+      "runtimeClassification": "split",
+      "browserClassification": "split-runtime-requires-entrypoint-review",
+      "declaredOwner": {
+        "module": "service-mcp",
+        "owner": "mcp-protocol-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through browser-safe protocol and transport modules",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "canonicalOwner": {
+        "module": "service-mcp",
+        "owner": "mcp-protocol-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through browser-safe protocol and transport modules",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "module": "service-mcp",
+      "owner": "mcp-protocol-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/mcp/mcp-plus-plus-a2a.ts",
+      "basename": "mcp-plus-plus-a2a.ts",
+      "extension": ".ts",
+      "sizeBytes": 55719,
+      "lineCount": 1840,
+      "contentKind": "service-implementation",
+      "sha256": "2f6f8ecff9246f97948649243c72758a9a0f0e1585aee4ee12c216d23bd7798d",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "2f6f8ecff9246f97948649243c72758a9a0f0e1585aee4ee12c216d23bd7798d"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "e47c26a16b7802c9c569cd6ec7ed92896783cd2bf5474298783835d8b8f0938a",
+        "tokenCount": 397
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "7d8fd8e5222ecdff571725def68cc97ac1490d3366fdd9293ade526ff0be2895",
+        "tokenCount": 397
+      },
+      "importers": [
+        {
+          "file": "test/mcp-plus-plus/a2a-adapter.test.ts",
+          "line": 9,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/mcp-plus-plus-a2a.js"
+        }
+      ],
+      "importerCount": 1,
       "publicEntrypoints": [],
       "runtimeClass": "split",
       "runtimeClassification": "split",
@@ -25944,7 +28090,7 @@
         },
         {
           "file": "src/services/mcp/ipfs-datasets-bucket-vfs-interop-descriptor.ts",
-          "line": 26,
+          "line": 28,
           "kind": "static-import",
           "specifier": "./mcp-plus-plus.js"
         },
@@ -26863,13 +29009,19 @@
         },
         {
           "file": "src/services/mcp/mcp-orb-capability-router.ts",
-          "line": 12,
+          "line": 14,
           "kind": "static-import",
           "specifier": "./mcp-ui-profile.js"
         },
         {
           "file": "src/services/mcp/mcp-schema-ui-generator.ts",
           "line": 1,
+          "kind": "static-import",
+          "specifier": "./mcp-ui-profile.js"
+        },
+        {
+          "file": "src/services/mcp/ui-ux-ir-codec.ts",
+          "line": 13,
           "kind": "static-import",
           "specifier": "./mcp-ui-profile.js"
         },
@@ -26962,9 +29114,21 @@
           "line": 18,
           "kind": "static-import",
           "specifier": "../../src/services/mcp/mcp-ui-profile"
+        },
+        {
+          "file": "test/mcp-plus-plus/ui-ux-ir-codec.test.ts",
+          "line": 27,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/mcp-ui-profile"
+        },
+        {
+          "file": "test/mcp-plus-plus/ui-ux-ir-orb-mediation.test.ts",
+          "line": 43,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/mcp-ui-profile"
         }
       ],
-      "importerCount": 36,
+      "importerCount": 39,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
@@ -27239,25 +29403,25 @@
       "path": "src/services/mcp/meta-wearables-dat-ios-display-interop-descriptor.ts",
       "basename": "meta-wearables-dat-ios-display-interop-descriptor.ts",
       "extension": ".ts",
-      "sizeBytes": 15371,
-      "lineCount": 392,
+      "sizeBytes": 18846,
+      "lineCount": 466,
       "contentKind": "service-implementation",
-      "sha256": "08caabc4fefa8efb781b74cb92a1f57e2ab430e0a549ca533a037e5114ad4a0c",
+      "sha256": "1fa9327ab6e1465ece92f13982085c246c0590a9960edefafb5eea1072359913",
       "contentHash": {
         "algorithm": "sha256",
-        "value": "08caabc4fefa8efb781b74cb92a1f57e2ab430e0a549ca533a037e5114ad4a0c"
+        "value": "1fa9327ab6e1465ece92f13982085c246c0590a9960edefafb5eea1072359913"
       },
       "normalizedContentHash": {
         "algorithm": "sha256",
         "normalization": "lexical-v1-comments-and-trivia-elided",
-        "value": "5ec8bf432e13d8ae75833459e85541129f6fa65d4115068b3f90be2703314924",
-        "tokenCount": 1342
+        "value": "30f014b160e881b00cfd111e05bf06137d10cd47fbd833dd71db1d819598a572",
+        "tokenCount": 1676
       },
       "behaviorHash": {
         "algorithm": "sha256",
         "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
-        "value": "8b829d816cfdb60692867574436359def216e1b44546f720d94eb3e0f20e6597",
-        "tokenCount": 1342
+        "value": "bc5860330823349d579b0fbd4f61a2cb32283e26500b131472571d90fa0251c4",
+        "tokenCount": 1676
       },
       "importers": [],
       "importerCount": 0,
@@ -27409,6 +29573,124 @@
         }
       ],
       "importerCount": 3,
+      "publicEntrypoints": [],
+      "runtimeClass": "split",
+      "runtimeClassification": "split",
+      "browserClassification": "split-runtime-requires-entrypoint-review",
+      "declaredOwner": {
+        "module": "service-mcp",
+        "owner": "mcp-protocol-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through browser-safe protocol and transport modules",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "canonicalOwner": {
+        "module": "service-mcp",
+        "owner": "mcp-protocol-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through browser-safe protocol and transport modules",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "module": "service-mcp",
+      "owner": "mcp-protocol-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/mcp/ui-ux-ir-codec.ts",
+      "basename": "ui-ux-ir-codec.ts",
+      "extension": ".ts",
+      "sizeBytes": 79051,
+      "lineCount": 2519,
+      "contentKind": "service-implementation",
+      "sha256": "567f3c9a78666f5475fc5afc9f495f1bf51be662aeccccc5b64cb5ccd34a02d9",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "567f3c9a78666f5475fc5afc9f495f1bf51be662aeccccc5b64cb5ccd34a02d9"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "739115584273d49fe1c310140e0cfd20b31733930161cbfc42de6efda18a68a3",
+        "tokenCount": 12626
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "890367368beda813763c9710a6ce04c4cabdf7f9765a6a788032b964d3874f14",
+        "tokenCount": 12626
+      },
+      "importers": [
+        {
+          "file": "test/mcp-plus-plus/ui-ux-ir-codec.test.ts",
+          "line": 10,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/ui-ux-ir-codec"
+        },
+        {
+          "file": "test/mcp-plus-plus/ui-ux-ir-cross-language.test.ts",
+          "line": 14,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/ui-ux-ir-codec.js"
+        }
+      ],
+      "importerCount": 2,
+      "publicEntrypoints": [],
+      "runtimeClass": "split",
+      "runtimeClassification": "split",
+      "browserClassification": "split-runtime-requires-entrypoint-review",
+      "declaredOwner": {
+        "module": "service-mcp",
+        "owner": "mcp-protocol-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through browser-safe protocol and transport modules",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "canonicalOwner": {
+        "module": "service-mcp",
+        "owner": "mcp-protocol-runtime",
+        "runtimeClassification": "split",
+        "browserReachability": "allowed through browser-safe protocol and transport modules",
+        "browserClassification": "split-runtime-requires-entrypoint-review"
+      },
+      "module": "service-mcp",
+      "owner": "mcp-protocol-runtime",
+      "disposition": "canonical-implementation",
+      "collisionIds": []
+    },
+    {
+      "path": "src/services/mcp/ui-ux-ir-web-renderer.ts",
+      "basename": "ui-ux-ir-web-renderer.ts",
+      "extension": ".ts",
+      "sizeBytes": 52460,
+      "lineCount": 1798,
+      "contentKind": "service-implementation",
+      "sha256": "b3ec7097c9a73f1efe17818c2a5861a8abb67b4a500d4d380ee72b3413675557",
+      "contentHash": {
+        "algorithm": "sha256",
+        "value": "b3ec7097c9a73f1efe17818c2a5861a8abb67b4a500d4d380ee72b3413675557"
+      },
+      "normalizedContentHash": {
+        "algorithm": "sha256",
+        "normalization": "lexical-v1-comments-and-trivia-elided",
+        "value": "f536f783e7ba09a213227465ee141bd1b8fbbd1e41db07fea14212023e35321f",
+        "tokenCount": 9918
+      },
+      "behaviorHash": {
+        "algorithm": "sha256",
+        "normalization": "behavior-structure-v2-identifiers-canonicalized-and-dependency-literals-contextual",
+        "value": "a55fdfa84164abaead1b54f23c8e42df61d5b2d43a81c0a63c80fe186bafe763",
+        "tokenCount": 9918
+      },
+      "importers": [
+        {
+          "file": "test/mcp-plus-plus/ui-ux-ir-web-renderer.test.ts",
+          "line": 5,
+          "kind": "static-import",
+          "specifier": "../../src/services/mcp/ui-ux-ir-web-renderer"
+        }
+      ],
+      "importerCount": 1,
       "publicEntrypoints": [],
       "runtimeClass": "split",
       "runtimeClassification": "split",
@@ -32974,6 +35256,66 @@
       },
       "importers": [
         {
+          "file": "src/services/gui-optimizer/accessibility.ts",
+          "line": 18,
+          "kind": "static-import",
+          "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/component-graph.ts",
+          "line": 16,
+          "kind": "static-import",
+          "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/context-pack.ts",
+          "line": 23,
+          "kind": "static-import",
+          "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/identity.ts",
+          "line": 14,
+          "kind": "static-import",
+          "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/interaction-runner.ts",
+          "line": 20,
+          "kind": "static-import",
+          "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/invalidation.ts",
+          "line": 20,
+          "kind": "static-import",
+          "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/policy-validator.ts",
+          "line": 25,
+          "kind": "static-import",
+          "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/scenario-catalog.ts",
+          "line": 16,
+          "kind": "static-import",
+          "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/state-machine.ts",
+          "line": 18,
+          "kind": "static-import",
+          "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
+          "file": "src/services/gui-optimizer/ui-capsule.ts",
+          "line": 17,
+          "kind": "static-import",
+          "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
           "file": "src/services/integrations/flogic-proof-cache.ts",
           "line": 7,
           "kind": "static-import",
@@ -33136,8 +35478,20 @@
           "specifier": "../../shared/shared-browser-crypto.js"
         },
         {
+          "file": "src/services/mcp/admissionTokenClient.ts",
+          "line": 17,
+          "kind": "static-import",
+          "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
           "file": "src/services/mcp/all-app-tool-mediator.ts",
           "line": 10,
+          "kind": "static-import",
+          "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
+          "file": "src/services/mcp/formalAssuranceGateway.ts",
+          "line": 14,
           "kind": "static-import",
           "specifier": "../shared/shared-browser-crypto.js"
         },
@@ -33156,6 +35510,12 @@
         {
           "file": "src/services/mcp/policy-audit-log.ts",
           "line": 13,
+          "kind": "static-import",
+          "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
+          "file": "src/services/mcp/ui-ux-ir-codec.ts",
+          "line": 12,
           "kind": "static-import",
           "specifier": "../shared/shared-browser-crypto.js"
         },
@@ -33296,9 +35656,15 @@
           "line": 15,
           "kind": "static-import",
           "specifier": "../shared/shared-browser-crypto.js"
+        },
+        {
+          "file": "test/unit/services/gui-optimizer/identity.test.ts",
+          "line": 12,
+          "kind": "static-import",
+          "specifier": "../../../../src/services/shared/shared-browser-crypto.js"
         }
       ],
-      "importerCount": 54,
+      "importerCount": 68,
       "publicEntrypoints": [
         {
           "kind": "module-manifest",
