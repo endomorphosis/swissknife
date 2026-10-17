@@ -1038,6 +1038,9 @@ class SwissKnifeDesktop {
         await fileManager.initialize();
         const html = await fileManager.render();
         contentElement.innerHTML = html;
+        if (typeof fileManager.setupEventListeners === 'function') {
+            fileManager.setupEventListeners(contentElement);
+        }
         return fileManager;
     }
 
@@ -1339,6 +1342,7 @@ class SwissKnifeDesktop {
             await todo.initialize();
             const html = await todo.createWindowConfig();
             contentElement.innerHTML = html;
+            todo.setupEventListeners(contentElement);
             return todo;
         } catch (error) {
             console.error('Failed to load Todo app:', error);
