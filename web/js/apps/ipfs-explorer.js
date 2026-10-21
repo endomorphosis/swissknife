@@ -1,7 +1,47 @@
 /**
  * Enhanced IPFS Explorer App for SwissKnife Web Desktop
- * Advanced IPFS file management with P2P integration, content pinning, and network analytics
+ * Advanced IPFS file management with P2P integration, content pinning, and network analytics.
+ * Artifact reads and confirmed writes use POST /mcp/tools/call (IDL method request_action).
  */
+
+async function parseToolResponse(response) {
+  const raw = await response.text();
+  let payload = null;
+  if (raw) {
+    try {
+      payload = JSON.parse(raw);
+    } catch (parseError) {
+      payload = null;
+    }
+  }
+  if (!response.ok) {
+    const message = payload && typeof payload === 'object'
+      ? (payload.error?.message || payload.error || payload.message || raw)
+      : (raw || ('HTTP ' + response.status));
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && payload.error) {
+    const message = payload.error.message || payload.error;
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
+    return payload.result;
+  }
+  return payload;
+}
+
+async function callMcpTool(tool, toolArguments) {
+  const response = await fetch('/mcp/tools/call', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      method: 'request_action',
+      tool,
+      arguments: toolArguments
+    })
+  });
+  return parseToolResponse(response);
+}
 
 export class IPFSExplorerApp {
   constructor(desktop) {
@@ -1131,6 +1171,20 @@ export class IPFSExplorerApp {
         buttonHandlers[e.target.id]();
       }
 
+      const viewButton = e.target.closest?.('.view-btn');
+      if (viewButton) {
+        const mode = viewButton.dataset.view;
+        if (mode === 'list' || mode === 'grid') {
+          this.viewMode = mode;
+          document.querySelectorAll('.view-btn').forEach((node) => {
+            node.classList.toggle('active', node === viewButton);
+          });
+          const browser = document.getElementById('content-browser');
+          if (browser) browser.dataset.viewMode = mode;
+          this.showNotification(mode === 'grid' ? 'Grid view' : 'List view', 'info');
+        }
+      }
+
       // Quick links
       if (e.target.classList.contains('quick-link')) {
         const hash = e.target.dataset.hash;
@@ -1255,12 +1309,7 @@ export class IPFSExplorerApp {
       }
     }
     
-    // Fallback to example content
-    return [
-      { name: 'readme.md', type: 'document', size: 1024, hash: 'example-QmXxYyZz...' },
-      { name: 'images', type: 'directory', size: 0, hash: 'example-QmAaBbCc...' },
-      { name: 'data.json', type: 'json', size: 512, hash: 'example-QmDdEeFf...' }
-    ];
+    throw new Error('No local IPFS node is connected. This desktop did not list that CID.');
   }
 
   displayContent(items) {
@@ -1364,8 +1413,8 @@ export class IPFSExplorerApp {
     const stats = {
       'total-pins': this.pinnedContent.size,
       'pinned-size': this.calculatePinnedSize(),
-      'sync-status': 'Synced',
-      'pin-speed': '5/s'
+      'sync-status': 'not measured',
+      'pin-speed': '—'
     };
     
     Object.entries(stats).forEach(([id, value]) => {
@@ -1418,6 +1467,14 @@ export class IPFSExplorerApp {
     this.testGatewayPerformance();
   }
 
+  testGatewayPerformance() {
+    const host = document.getElementById('gateway-tests');
+    const gateway = this.currentGateway || '(none)';
+    if (host) {
+      host.textContent = `No gateway timing sample. Selected gateway ${gateway}. This desktop did not invent a latency.`;
+    }
+  }
+
   async updateNetworkMetrics() {
     // Try to get real network metrics from IPFS
     let metrics = {
@@ -1465,10 +1522,7 @@ export class IPFSExplorerApp {
     charts.forEach(chartId => {
       const element = document.getElementById(chartId);
       if (element) {
-        const value = Math.random() * 100;
-        element.innerHTML = `
-          <div class="mini-chart-bar" style="width: ${value}%; background: ${this.getBarColor(value)}"></div>
-        `;
+        element.textContent = 'not measured';
       }
     });
   }
@@ -1824,11 +1878,10 @@ export class IPFSExplorerApp {
       throw new Error('Upload cancelled by user.');
     }
     const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
-    const client = clientModule.getMCPPlusPlusDesktopClient();
     const { contentCidForBytes, base64ForBytes } = clientModule;
     const bytes = new Uint8Array(await file.arrayBuffer());
     const cid = await contentCidForBytes(bytes);
-    const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+    const result = await callMcpTool('mcp++:ipfs_kit_py/artifacts/put', {
       cid,
       bytes_base64: base64ForBytes(bytes),
       profile: 'ipfs-explorer-upload',
@@ -2041,6 +2094,98 @@ export class IPFSExplorerApp {
     } catch (error) {
       console.error('Error loading settings:', error);
     }
+  }
+
+  createFolder() {
+    const name = window.prompt('Enter folder name:');
+    if (!name || !String(name).trim()) {
+      this.showNotification('Folder creation cancelled', 'info');
+      return;
+    }
+    const folderName = String(name).trim();
+    const browser = document.getElementById('content-browser');
+    if (browser) {
+      const row = document.createElement('div');
+      row.className = 'ipfs-local-entry';
+      row.textContent = `📁 ${folderName}`;
+      browser.prepend(row);
+    }
+    this.showNotification(`Created folder ${folderName}`, 'success');
+  }
+
+  showSettings() {
+    const host = document.querySelector('.ipfs-explorer-container');
+    if (host) {
+      let panel = host.querySelector('#ipfs-settings-panel');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'ipfs-settings-panel';
+        host.prepend(panel);
+      }
+      panel.textContent = `Gateway: ${this.currentGateway || 'unset'}. Settings stay on this desktop.`;
+    }
+    this.showNotification('IPFS Explorer settings are local to this desktop', 'info');
+  }
+
+  toggleAutoPinning() {
+    this.autoPin = !this.autoPin;
+    const button = document.getElementById('auto-pin');
+    if (button) button.setAttribute('aria-pressed', this.autoPin ? 'true' : 'false');
+    this.showNotification(this.autoPin ? 'Auto pin is on for this session' : 'Auto pin is off', 'info');
+  }
+
+  showBulkPinDialog() {
+    const pins = [...(this.pinnedContent?.keys?.() || [])];
+    const list = document.getElementById('pins-list');
+    if (list) {
+      list.textContent = pins.length
+        ? `Local pins: ${pins.join(', ')}`
+        : 'No local pins yet. Upload a file with pin-after-upload to record one.';
+    }
+    this.showNotification(pins.length ? `Bulk pin list has ${pins.length} local pin(s)` : 'No local pins to bulk-pin', 'info');
+  }
+
+  exportPinList() {
+    const pins = [...(this.pinnedContent?.entries?.() || [])].map(([hash, meta]) => `${hash} ${meta?.name || ''}`.trim());
+    const list = document.getElementById('pins-list');
+    const text = pins.length ? pins.join('\n') : 'No local pins to export';
+    if (list) list.textContent = text;
+    this.showNotification(pins.length ? `Exported ${pins.length} local pin(s) into the pin list` : 'No local pins to export', 'info');
+  }
+
+  importPinList() {
+    const input = document.getElementById('file-input');
+    if (input) {
+      input.click();
+      this.showNotification('Choose a pin list file', 'info');
+      return;
+    }
+    this.showNotification('Pin import needs a file input', 'warning');
+  }
+
+  discoverPeers() {
+    const table = document.getElementById('peers-table');
+    if (table) {
+      table.textContent = 'Peer discovery is not bound to one MCP tool on this desktop. No peer list was invented.';
+    }
+    this.showNotification('Peer discovery has no single bound tool', 'info');
+  }
+
+  testConnectivity() {
+    const host = document.getElementById('gateway-tests');
+    const gateway = this.currentGateway || '(none)';
+    if (host) host.textContent = `Connectivity check is local: selected gateway ${gateway}. No tool call was sent.`;
+    this.showNotification(`Gateway selection: ${gateway}`, 'info');
+  }
+
+  optimizeRouting() {
+    this.showNotification('Routing optimization is not bound to a tool. The current gateway stays selected.', 'info');
+  }
+
+  runNetworkDiagnostics() {
+    const note = document.getElementById('gateway-tests');
+    if (note) note.textContent = 'Diagnostics: this surface has no live peer sample. Counts stay at the measured zero.';
+    this.showNotification('Network diagnostics: no live peer sample on this surface', 'info');
   }
 
   showNotification(message, type = 'info') {

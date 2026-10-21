@@ -1342,6 +1342,67 @@ export class DeviceManagerApp {
     });
   }
 
+  showSettings() {
+    this.showNotification('Device settings stay on this desktop. No backend call was made.', 'info');
+  }
+
+  scanWiFiNetworks() {
+    const link = navigator.connection && navigator.connection.downlink;
+    this.showNotification(link
+      ? `Browser link sample: ${link} Mbps. This desktop did not scan Wi-Fi radios.`
+      : 'No Wi-Fi scan. This desktop did not enumerate radios.', 'info');
+  }
+
+  discoverP2PPeers() {
+    this.showNotification('No peer sample is bound on this surface.', 'info');
+  }
+
+  scanBluetoothDevices() {
+    this.showNotification('Bluetooth scan was not started. This desktop did not list radios.', 'info');
+  }
+
+  runNetworkDiagnostics() {
+    this.showNotification(navigator.onLine
+      ? 'Browser reports online. No route or latency sample was taken.'
+      : 'Browser reports offline. No route sample was taken.', 'info');
+  }
+
+  async runStorageBenchmark() {
+    if (navigator.storage && navigator.storage.estimate) {
+      const estimate = await navigator.storage.estimate();
+      const used = estimate.usage == null ? 'unknown' : this.formatBytes(estimate.usage);
+      this.showNotification(`Browser storage estimate: ${used} used. This is not a disk benchmark.`, 'info');
+      return;
+    }
+    this.showNotification('Storage benchmark was not measured on this desktop.', 'info');
+  }
+
+  runNetworkBenchmark() {
+    const link = navigator.connection && navigator.connection.downlink;
+    this.showNotification(link
+      ? `Browser downlink hint: ${link} Mbps. This desktop did not run a throughput test.`
+      : 'Network benchmark was not measured on this desktop.', 'info');
+  }
+
+  scanDrivers() {
+    const drivers = typeof this.getFallbackDriverInfo === 'function' ? this.getFallbackDriverInfo() : [];
+    this.showNotification(drivers.length
+      ? `Browser-visible drivers: ${drivers.length}. OS driver inventory was not read.`
+      : 'No browser-visible driver. OS driver inventory was not read.', 'info');
+  }
+
+  updateAllDrivers() {
+    this.showNotification('Driver updates are managed by the OS. This desktop did not change any driver.', 'info');
+  }
+
+  backupDrivers() {
+    this.showNotification('Driver backup is not available from this desktop.', 'info');
+  }
+
+  restoreDrivers() {
+    this.showNotification('Driver restore is not available from this desktop.', 'info');
+  }
+
   showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;

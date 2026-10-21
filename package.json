@@ -206,6 +206,7 @@
     "test:e2e:app-improvement": "node scripts/run-virtual-desktop-app-improvement.mjs",
     "test:e2e:accessibility": "node scripts/run_playwright_test.mjs test -c playwright.config.ts test/e2e/all-app-ui-ux-accessibility.spec.ts --reporter=line",
     "evidence:live-gateway": "node scripts/ensure-ipfs-mcp-compat-adapters.cjs && node scripts/ensure-ipfs-mcp-libp2p-bridges.cjs && npm run test:e2e:live-gateway",
+    "evidence:live-click": "node scripts/run-live-click.mjs",
     "evidence:release-baseline": "node scripts/capture-swissknife-all-tools-peer-evidence.cjs && node --import tsx scripts/capture-all-app-live-tool-bindings.ts && node --import tsx scripts/capture-all-tools-disposition-catalog.ts && node scripts/build-all-app-live-binding-gap-ledger.cjs",
     "evidence:all-app-tool-matrix": "node --import tsx scripts/build-all-app-tool-matrix.ts",
     "evidence:app-improvement-release": "npm run test:e2e:app-improvement -- --all --viewport-matrix --require-live-receipts && npm run test:e2e:accessibility",

@@ -485,6 +485,10 @@ class SwissKnifeDesktop {
     }
     
     setupEventListeners() {
+        if (this._desktopListenersBound) {
+            return;
+        }
+        this._desktopListenersBound = true;
         console.log('🎯 Setting up event listeners...');
         
         // Desktop icon clicks - changed to single click
@@ -586,6 +590,10 @@ class SwissKnifeDesktop {
             const existingWindow = Array.from(this.windows.values())
                 .find(w => w.appId === appId);
             if (existingWindow) {
+                if (existingWindow.minimized && existingWindow.element) {
+                    existingWindow.element.style.display = 'block';
+                    existingWindow.minimized = false;
+                }
                 this.focusWindow(existingWindow.element);
                 return;
             }
@@ -671,9 +679,9 @@ class SwissKnifeDesktop {
                 <span class="window-icon">${options.icon}</span>
                 <span class="window-title">${options.title}</span>
                 <div class="window-controls">
-                    <button class="window-control minimize" title="Minimize">−</button>
-                    <button class="window-control maximize" title="Maximize">□</button>
-                    <button class="window-control close" title="Close">×</button>
+                    <button class="window-control minimize" data-action="minimize" title="Minimize" aria-label="Minimize">−</button>
+                    <button class="window-control maximize" data-action="maximize" title="Maximize" aria-label="Maximize">□</button>
+                    <button class="window-control close" data-action="close" title="Close" aria-label="Close">×</button>
                 </div>
             </div>
             <div class="window-content">
@@ -786,7 +794,7 @@ class SwissKnifeDesktop {
                     break;
 
                 case 'GlassesPreviewApp':
-                    this.createGlassesPreviewSurface(contentElement);
+                    await this.createGlassesPreviewSurface(contentElement);
                     break;
 
                 case 'ORBAutoUILauncher':
@@ -1007,6 +1015,7 @@ class SwissKnifeDesktop {
         await vibeCode.initialize();
         const html = await vibeCode.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return vibeCode;
     }
 
@@ -1016,6 +1025,7 @@ class SwissKnifeDesktop {
         await strudelAI.initialize();
         const html = await strudelAI.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         // Ensure the component wires up events and audio after content is in DOM
         if (typeof strudelAI.mount === 'function') {
             await strudelAI.mount(contentElement);
@@ -1029,6 +1039,7 @@ class SwissKnifeDesktop {
         await aiChat.initialize();
         const html = await aiChat.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return aiChat;
     }
 
@@ -1038,6 +1049,7 @@ class SwissKnifeDesktop {
         await fileManager.initialize();
         const html = await fileManager.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         if (typeof fileManager.setupEventListeners === 'function') {
             fileManager.setupEventListeners(contentElement);
         }
@@ -1050,6 +1062,7 @@ class SwissKnifeDesktop {
         await taskManager.initialize();
         const html = await taskManager.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return taskManager;
     }
 
@@ -1089,6 +1102,7 @@ class SwissKnifeDesktop {
             await huggingFace.initialize();
             const html = huggingFace.render();
             contentElement.innerHTML = html;
+        this.setupEventListeners();
             
             // Setup event handlers
             if (huggingFace.setupEventListeners) {
@@ -1116,6 +1130,7 @@ class SwissKnifeDesktop {
             await openRouter.initialize();
             const html = openRouter.render();
             contentElement.innerHTML = html;
+        this.setupEventListeners();
             
             // Setup event handlers
             if (openRouter.setupEventListeners) {
@@ -1151,6 +1166,13 @@ class SwissKnifeDesktop {
                 const config = await ipfsExplorer.render();
                 contentElement.innerHTML = config.content || 'IPFS Explorer loading...';
             }
+            if (typeof ipfsExplorer.setupEventListeners === 'function') {
+                ipfsExplorer.setupEventListeners(contentElement);
+            } else if (typeof ipfsExplorer.mount === 'function') {
+                await ipfsExplorer.mount(contentElement);
+            } else {
+                this.setupEventListeners();
+            }
             return ipfsExplorer;
         } catch (error) {
             console.error('Failed to load IPFS Explorer app:', error);
@@ -1177,6 +1199,13 @@ class SwissKnifeDesktop {
             } else {
                 contentElement.innerHTML = 'Device Manager loading...';
             }
+            if (typeof deviceManager.setupEventListeners === 'function') {
+                deviceManager.setupEventListeners(contentElement);
+            } else if (typeof deviceManager.mount === 'function') {
+                await deviceManager.mount(contentElement);
+            } else {
+                this.setupEventListeners();
+            }
             return deviceManager;
         } catch (error) {
             console.error('Failed to load Device Manager app:', error);
@@ -1197,6 +1226,7 @@ class SwissKnifeDesktop {
         await settings.initialize();
         const html = await settings.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return settings;
     }
 
@@ -1205,6 +1235,7 @@ class SwissKnifeDesktop {
         const mcpControl = new MCPControlApp();
         const html = await mcpControl.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         // Store global reference for other apps to use
         window.mcpControlApp = mcpControl;
         return mcpControl;
@@ -1224,6 +1255,7 @@ class SwissKnifeDesktop {
                 }
                 const html = await apiKeys.render();
                 contentElement.innerHTML = html;
+        this.setupEventListeners();
                 return apiKeys;
             } else {
                 throw new Error('APIKeysApp not found on window object');
@@ -1246,6 +1278,7 @@ class SwissKnifeDesktop {
         const github = new GitHubApp();
         const html = await github.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         // Store global reference for OAuth integration
         window.githubApp = github;
         return github;
@@ -1256,6 +1289,7 @@ class SwissKnifeDesktop {
         const oauth = new OAuthLoginSystem();
         const html = await oauth.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         // Store global reference for other apps to use
         window.oauthSystem = oauth;
         return oauth;
@@ -1267,6 +1301,7 @@ class SwissKnifeDesktop {
         await cron.initialize();
         const html = await cron.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return cron;
     }
 
@@ -1281,6 +1316,13 @@ class SwissKnifeDesktop {
                 contentElement.innerHTML = windowContent;
             } else {
                 contentElement.innerHTML = 'NAVI loading...';
+            }
+            if (typeof navi.setupEventListeners === 'function') {
+                navi.setupEventListeners(contentElement);
+            } else if (typeof navi.mount === 'function') {
+                await navi.mount(contentElement);
+            } else {
+                this.setupEventListeners();
             }
             return navi;
         } catch (error) {
@@ -1302,6 +1344,7 @@ class SwissKnifeDesktop {
         await calculator.initialize();
         const html = await calculator.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return calculator;
     }
 
@@ -1311,6 +1354,7 @@ class SwissKnifeDesktop {
         await clock.initialize();
         const html = await clock.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return clock;
     }
 
@@ -1321,6 +1365,7 @@ class SwissKnifeDesktop {
             await calendar.initialize();
             const html = await calendar.render();
             contentElement.innerHTML = html;
+        this.setupEventListeners();
             return calendar;
         } catch (error) {
             console.error('Failed to load Calendar app:', error);
@@ -1342,6 +1387,7 @@ class SwissKnifeDesktop {
             await todo.initialize();
             const html = await todo.createWindowConfig();
             contentElement.innerHTML = html;
+        this.setupEventListeners();
             todo.setupEventListeners(contentElement);
             return todo;
         } catch (error) {
@@ -1382,6 +1428,7 @@ class SwissKnifeDesktop {
         await imageViewer.initialize();
         const html = await imageViewer.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return imageViewer;
     }
 
@@ -1391,6 +1438,7 @@ class SwissKnifeDesktop {
         await notes.initialize();
         const html = await notes.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return notes;
     }
 
@@ -1400,6 +1448,7 @@ class SwissKnifeDesktop {
         await systemMonitor.initialize();
         const html = await systemMonitor.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return systemMonitor;
     }
 
@@ -1418,6 +1467,7 @@ class SwissKnifeDesktop {
                 contentElement.innerHTML = html.content;
             } else if (typeof html === 'string') {
                 contentElement.innerHTML = html;
+        this.setupEventListeners();
             } else {
                 // Create a professional interface directly
                 contentElement.innerHTML = `
@@ -1508,7 +1558,14 @@ class SwissKnifeDesktop {
                     </div>
                 `;
             }
-            
+            if (typeof neuralPhotoshop.setupEventListeners === 'function') {
+                neuralPhotoshop.setupEventListeners(contentElement);
+            } else if (typeof neuralPhotoshop.mount === 'function') {
+                await neuralPhotoshop.mount(contentElement);
+            } else {
+                this.setupEventListeners();
+            }
+
             console.log('✅ Neural Photoshop app initialized successfully');
             return neuralPhotoshop;
         } catch (error) {
@@ -1541,6 +1598,7 @@ class SwissKnifeDesktop {
         await cinema.initialize();
         const html = await cinema.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return cinema;
     }
 
@@ -1588,6 +1646,7 @@ class SwissKnifeDesktop {
                 await p2pApp.initialize();
                 const html = await p2pApp.render();
                 contentElement.innerHTML = html;
+        this.setupEventListeners();
                 return p2pApp;
             } else if (window.createP2PNetworkApp) {
                 // Fall back to function-based creation
@@ -1598,6 +1657,7 @@ class SwissKnifeDesktop {
                 if (p2pApp.render) {
                     const html = await p2pApp.render();
                     contentElement.innerHTML = html;
+        this.setupEventListeners();
                 } else if (p2pApp.init) {
                     await p2pApp.init(contentElement);
                 }
@@ -1623,6 +1683,7 @@ class SwissKnifeDesktop {
         await neuralNetworkDesigner.initialize();
         const html = await neuralNetworkDesigner.createWindow();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return neuralNetworkDesigner;
     }
     
@@ -1648,6 +1709,7 @@ class SwissKnifeDesktop {
             await training.initialize();
             const html = await training.render();
             contentElement.innerHTML = html;
+        this.setupEventListeners();
             return training;
         }
     }
@@ -1699,6 +1761,7 @@ class SwissKnifeDesktop {
         } else {
             console.error('GrandmaStrudelDAW not found in module');
             contentElement.innerHTML = '<div style="padding: 20px;">Error: Could not load Strudel app</div>';
+            this.setupEventListeners();
         }
     }
     
@@ -1709,6 +1772,7 @@ class SwissKnifeDesktop {
             await musicStudio.initialize();
             const html = await musicStudio.render();
             contentElement.innerHTML = html;
+        this.setupEventListeners();
             return musicStudio;
         }
     }
@@ -1720,6 +1784,7 @@ class SwissKnifeDesktop {
             window.renderMusicStudioApp(contentElement);
         } else {
             contentElement.innerHTML = '<div style="padding: 20px;">Music Studio Classic loading...</div>';
+            this.setupEventListeners();
         }
     }
     
@@ -1729,6 +1794,7 @@ class SwissKnifeDesktop {
         await p2pChat.initialize();
         const html = await p2pChat.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return p2pChat;
     }
 
@@ -1831,6 +1897,7 @@ class SwissKnifeDesktop {
                 </div>
             </div>
         `;
+        this.setupEventListeners();
     }
 
     async createDatasetsBrowserSurface(contentElement) {
@@ -1932,6 +1999,7 @@ class SwissKnifeDesktop {
                 </ol>
             </div>
         `;
+        this.setupEventListeners();
 
         const semanticStatus = contentElement.querySelector('#datasets-semantic-status');
         const provenanceStatus = contentElement.querySelector('#datasets-provenance-status');
@@ -2029,6 +2097,11 @@ class SwissKnifeDesktop {
         const app = new MCPPlusPlusExplorerApp(this);
         await app.initialize();
         contentElement.innerHTML = await app.render();
+        if (typeof app.setupEventListeners === 'function') {
+            app.setupEventListeners(contentElement);
+        } else if (typeof app.mount === 'function') {
+            await app.mount(contentElement);
+        }
         app.bind(contentElement);
         contentElement.__mcpPlusPlusExplorerApp = app;
     }
@@ -2149,6 +2222,7 @@ class SwissKnifeDesktop {
                 </ol>
             </div>
         `;
+        this.setupEventListeners();
 
         const root = contentElement.querySelector('.orb-auto-ui-workflow');
         const artifactStatus = contentElement.querySelector('#orb-artifact-status');
@@ -2220,7 +2294,7 @@ class SwissKnifeDesktop {
         });
     }
 
-    createGlassesPreviewSurface(contentElement) {
+    async createGlassesPreviewSurface(contentElement) {
         const replayBundleCid = 'bafyglassg051simulatorreplaybundle';
         const displayPacketCid = 'bafyglassg051displaypacket';
         const cameraPacketCid = 'bafyglassg051camerapacket';
@@ -2333,6 +2407,7 @@ class SwissKnifeDesktop {
                 </ol>
             </div>
         `;
+        this.setupEventListeners();
 
         const root = contentElement.querySelector('.glasses-preview-workflow');
         const replayStatus = contentElement.querySelector('#glasses-replay-status');
@@ -2497,6 +2572,7 @@ class SwissKnifeDesktop {
                 </ol>
             </div>
         `;
+        this.setupEventListeners();
 
         const root = contentElement.querySelector('.idl-explorer-workflow');
         const compatibilityStatus = contentElement.querySelector('#idl-compatibility-status');
@@ -2629,6 +2705,7 @@ class SwissKnifeDesktop {
                 </ol>
             </div>
         `;
+        this.setupEventListeners();
 
         const modelStatus = contentElement.querySelector('#accelerate-model-status');
         const hardwareStatus = contentElement.querySelector('#accelerate-hardware-status');
@@ -2738,6 +2815,11 @@ class SwissKnifeDesktop {
         const app = new AgentSupervisorConsole(this);
         await app.initialize();
         contentElement.innerHTML = await app.render();
+        if (typeof app.setupEventListeners === 'function') {
+            app.setupEventListeners(contentElement);
+        } else if (typeof app.mount === 'function') {
+            await app.mount(contentElement);
+        }
         app.bind?.(contentElement);
         return app;
     }
@@ -2751,6 +2833,7 @@ class SwissKnifeDesktop {
                 <button onclick="this.closest('.window').remove()">Close</button>
             </div>
         `;
+        this.setupEventListeners();
     }
 
     createErrorApp(contentElement, componentName, error) {
@@ -2762,6 +2845,7 @@ class SwissKnifeDesktop {
                 <button onclick="this.closest('.window').remove()">Close</button>
             </div>
         `;
+        this.setupEventListeners();
     }
     
     setupWindowControls(windowElement) {

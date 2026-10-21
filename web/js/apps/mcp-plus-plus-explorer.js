@@ -9,6 +9,20 @@ import {
 
 const TABS = ['overview', 'tools', 'protocol', 'diagnostics', 'events', 'policy', 'artifacts'];
 
+const DESKTOP_IDL_METHODS = Object.freeze([
+  'read_status',
+  'read_receipts',
+  'request_action',
+  'request_fallback',
+]);
+
+function idlMethodsForSurface(surfaceId) {
+  if (surfaceId === 'agent-supervisor') {
+    return Object.freeze([...DESKTOP_IDL_METHODS, 'request_prompt_steering']);
+  }
+  return DESKTOP_IDL_METHODS;
+}
+
 const PROTOCOL_OPERATIONS = Object.freeze([
   { profile: 'A', method: 'interfaces/list', description: 'List CID-addressed MCP-IDL interfaces.', params: {} },
   { profile: 'A', method: 'interfaces/get', description: 'Read one canonical interface descriptor.', params: { interface_cid: '' } },
@@ -64,6 +78,7 @@ export class MCPPlusPlusExplorerApp {
     this.state = {
       activeTab: 'overview',
       selectedService: this.services[0]?.id || '',
+      idlSurface: 'desktop',
       snapshots: new Map(),
       status: 'idle',
       message: 'Refresh to inspect the configured MCP++ services.',
@@ -200,7 +215,26 @@ export class MCPPlusPlusExplorerApp {
           <button type="button" data-action="open-diagnostics">Inspect diagnostics</button>
         </div>
       </section>
+      ${this.renderIdlMethods()}
       ${this.renderVdaG053Workflow()}
+    `;
+  }
+
+  renderIdlMethods() {
+    const surface = this.state.idlSurface === 'agent-supervisor' ? 'agent-supervisor' : 'desktop';
+    const methods = idlMethodsForSurface(surface);
+    return `
+      <section class="mcppp-section" aria-label="IDL methods">
+        <div class="mcppp-section-heading"><h3>IDL methods</h3><span>${escapeHtml(surface)}</span></div>
+        <label for="mcppp-idl-surface">Surface</label>
+        <select id="mcppp-idl-surface">
+          <option value="desktop" ${surface === 'desktop' ? 'selected' : ''}>Desktop</option>
+          <option value="agent-supervisor" ${surface === 'agent-supervisor' ? 'selected' : ''}>agent-supervisor</option>
+        </select>
+        <ul class="mcppp-idl-methods">
+          ${methods.map(method => `<li data-idl-method="${escapeAttribute(method)}"><code>${escapeHtml(method)}</code></li>`).join('')}
+        </ul>
+      </section>
     `;
   }
 
@@ -270,7 +304,7 @@ export class MCPPlusPlusExplorerApp {
     return `
       <section class="mcppp-section" aria-label="Confirm evidence persist">
         <div class="mcppp-section-heading"><h3>Confirm evidence persist</h3></div>
-        <p class="mcppp-note">This will POST the evidence bundle (${pending.bytes} bytes, CID ${escapeHtml(pending.expectedCid)}) to <code>ipfs_kit_py /mcp/artifacts/put</code> with pin=true. The store verifies the CID over the exact bytes sent.</p>
+        <p class="mcppp-note">This will POST the evidence bundle (${pending.bytes} bytes, CID ${escapeHtml(pending.expectedCid)}) through POST /mcp/tools/call with IDL method request_action and pin=true. The store verifies the CID over the exact bytes sent.</p>
         <div class="mcppp-actions">
           <button type="button" data-action="confirm-evidence-persist">Confirm persist</button>
           <button type="button" data-action="cancel-evidence-persist">Cancel</button>
@@ -465,7 +499,7 @@ export class MCPPlusPlusExplorerApp {
     try {
       const bytes = new TextEncoder().encode(stableStringifyValue(pending.bundle));
       const cid = await contentCidForBytes(bytes);
-      const res = await this.client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+      const res = await callExplorerMcpTool('request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
         cid,
         bytes_base64: base64ForBytes(bytes),
         profile: 'mcppp-explorer-artifact',
@@ -491,7 +525,7 @@ export class MCPPlusPlusExplorerApp {
     const availability = snapshot?.available ? 'available' : snapshot ? 'unavailable' : 'unknown';
     const profiles = snapshot?.profiles?.length ? snapshot.profiles.join(', ') : 'not negotiated';
     return `
-      <button type="button" class="mcppp-service-card ${this.state.selectedService === service.id ? 'is-selected' : ''}" data-service="${service.id}">
+      <button type="button" class="mcppp-service-card ${this.state.selectedService === service.id ? 'is-selected' : ''}" data-service="${service.id}" aria-label="${escapeAttribute(service.label)}">
         <span class="mcppp-dot is-${availability}"></span>
         <strong>${escapeHtml(service.label)}</strong>
         <span>${snapshot ? `${snapshot.toolCount} tools` : 'not inspected'}</span>
@@ -652,6 +686,10 @@ export class MCPPlusPlusExplorerApp {
       this.ensureSelectedTool();
       this.update();
     }));
+    this.container.querySelector('#mcppp-idl-surface')?.addEventListener('change', event => {
+      this.state.idlSurface = event.target.value === 'agent-supervisor' ? 'agent-supervisor' : 'desktop';
+      this.update();
+    });
     this.container.querySelectorAll('.mcppp-service-selector select').forEach(select => select.addEventListener('change', event => {
       this.state.selectedService = event.target.value;
       this.state.eventHistory = [];
@@ -800,6 +838,37 @@ export class MCPPlusPlusExplorerApp {
       @media (max-width: 760px) { .mcp-plus-plus-explorer { padding: 12px; } .mcppp-header, .mcppp-coverage-row, .mcppp-section-heading { align-items: flex-start; flex-direction: column; } .mcppp-actions, .mcppp-vda-actions { align-items: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .mcppp-actions button, .mcppp-section button { min-width: 0; overflow-wrap: anywhere; } .mcppp-summary-grid, .mcppp-split, .mcppp-diagnostic-grid, .mcppp-vda-grid { grid-template-columns: 1fr; } .mcppp-event-list article { grid-template-columns: 1fr; } }
     </style>`;
   }
+}
+
+async function callExplorerMcpTool(method, tool, toolArguments) {
+  const response = await fetch('/mcp/tools/call', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ method, tool, arguments: toolArguments }),
+  });
+  const raw = await response.text();
+  let payload = null;
+  if (raw) {
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      payload = null;
+    }
+  }
+  if (!response.ok) {
+    const message = payload && typeof payload === 'object'
+      ? (payload.error?.message || payload.error || payload.message || raw)
+      : (raw || ('HTTP ' + response.status));
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && payload.error) {
+    const message = payload.error.message || payload.error;
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
+    return payload.result;
+  }
+  return payload;
 }
 
 function tabLabel(tab) { return tab.charAt(0).toUpperCase() + tab.slice(1); }

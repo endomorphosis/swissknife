@@ -1188,7 +1188,7 @@ export class TaskManagerApp {
     // Load view-specific data
     switch (view) {
       case 'processes':
-        this.loadProcessData();
+        this.loadProcesses();
         break;
       case 'performance':
         this.loadPerformanceData();
@@ -1236,7 +1236,7 @@ export class TaskManagerApp {
   }
 
   refreshProcesses() {
-    this.loadProcessData();
+    this.loadProcesses();
     this.showNotification('Process list refreshed', 'success');
   }
 

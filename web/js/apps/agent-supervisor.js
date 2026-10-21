@@ -976,8 +976,8 @@ export class AgentSupervisorApp {
           <div class="as-subtitle">Goals, task queue, receipts, and MCP++ health</div>
         </div>
         <div class="as-actions" aria-label="Supervisor actions">
-          <a class="as-link" href="${CONTRACT_SCHEMA_REF}" data-testid="contract-link">Contract</a>
-          <a class="as-link" href="docs/agent-supervisor-console-security-model.md" data-testid="security-link">Security</a>
+          <a class="as-link" href="${CONTRACT_SCHEMA_REF}" data-testid="contract-link" target="_blank" rel="noopener">Contract</a>
+          <a class="as-link" href="docs/agent-supervisor-console-security-model.md" data-testid="security-link" target="_blank" rel="noopener">Security</a>
           <button type="button" data-action="refresh" data-supervisor-focusable>Refresh</button>
           <button type="button" data-action="empty" data-supervisor-focusable>Empty</button>
           <button type="button" data-action="error" data-supervisor-focusable>Error</button>

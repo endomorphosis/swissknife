@@ -462,7 +462,7 @@ export class NeuralPhotoshopApp {
           <div class="left-panel ${this.panels.tools ? 'visible' : 'hidden'}">
             <div class="panel-header">
               <h3>🛠️ Tools</h3>
-              <button class="panel-toggle" data-panel="tools">−</button>
+              <button class="panel-toggle" data-panel="tools" aria-label="Collapse tools panel">−</button>
             </div>
             <div class="tools-panel">
               ${this.renderToolsPanel()}
@@ -470,7 +470,7 @@ export class NeuralPhotoshopApp {
             
             <div class="panel-header">
               <h3>⚙️ Properties</h3>
-              <button class="panel-toggle" data-panel="properties">−</button>
+              <button class="panel-toggle" data-panel="properties" aria-label="Collapse properties panel">−</button>
             </div>
             <div class="properties-panel ${this.panels.properties ? 'visible' : 'hidden'}">
               ${this.renderPropertiesPanel()}
@@ -504,7 +504,7 @@ export class NeuralPhotoshopApp {
             <div class="panel-section">
               <div class="panel-header">
                 <h3>🎭 Layers</h3>
-                <button class="panel-toggle" data-panel="layers">−</button>
+                <button class="panel-toggle" data-panel="layers" aria-label="Collapse layers panel">−</button>
               </div>
               <div class="layers-panel ${this.panels.layers ? 'visible' : 'hidden'}">
                 ${this.renderLayersPanel()}
@@ -515,7 +515,7 @@ export class NeuralPhotoshopApp {
             <div class="panel-section">
               <div class="panel-header">
                 <h3>🤖 AI Tools</h3>
-                <button class="panel-toggle" data-panel="ai">−</button>
+                <button class="panel-toggle" data-panel="ai" aria-label="Collapse AI panel">−</button>
               </div>
               <div class="ai-panel ${this.panels.ai ? 'visible' : 'hidden'}">
                 ${this.renderAIPanel()}
@@ -526,7 +526,7 @@ export class NeuralPhotoshopApp {
             <div class="panel-section">
               <div class="panel-header">
                 <h3>📋 History</h3>
-                <button class="panel-toggle" data-panel="history">−</button>
+                <button class="panel-toggle" data-panel="history" aria-label="Collapse history panel">−</button>
               </div>
               <div class="history-panel ${this.panels.history ? 'visible' : 'hidden'}">
                 ${this.renderHistoryPanel()}

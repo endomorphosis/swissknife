@@ -7,17 +7,60 @@
  * p2p-chat-unified). When no P2P transport exists, messages are honestly
  * marked unsent — never simulated. Chat history persists through the genuine
  * MCP++ desktop client to the ipfs_kit_py artifact store
- * (POST /mcp/artifacts/put) behind an explicit user confirmation; backend
- * failures surface verbatim.
+ * (POST /mcp/tools/call) behind an explicit user confirmation; backend
+ * failures surface verbatim. A chat send confirms, then invokes, and stays
+ * a dry run unless the policy outcome is an explicit allow for a read.
  */
 
 import { contentCidForBytes, stableStringifyValue, base64ForBytes } from '../core/mcp-plus-plus-desktop-client.js';
 
 const PUBSUB_TOPIC = '/swissknife/chat/g047';
 
-async function backendClient() {
-  const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
-  return clientModule.getMCPPlusPlusDesktopClient();
+const MCP_TOOLS_CALL_PATH = '/mcp/tools/call';
+
+function chatPolicyAllowsRead(policy) {
+  return Boolean(policy)
+    && policy.outcome === 'allow'
+    && (policy.operation === 'read' || policy.class === 'read');
+}
+
+async function parseChatToolResponse(response) {
+  const raw = await response.text();
+  let payload = null;
+  if (raw) {
+    try {
+      payload = JSON.parse(raw);
+    } catch (_parseError) {
+      payload = null;
+    }
+  }
+  if (!response.ok) {
+    const message = payload && typeof payload === 'object'
+      ? (payload.error?.message || payload.error || payload.message || raw)
+      : (raw || ('HTTP ' + response.status));
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && payload.error) {
+    const message = payload.error.message || payload.error;
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
+    return payload.result;
+  }
+  return payload;
+}
+
+async function callChatMcpTool(method, tool, toolArguments) {
+  const response = await fetch(MCP_TOOLS_CALL_PATH, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      method,
+      tool,
+      arguments: toolArguments
+    })
+  });
+  return parseChatToolResponse(response);
 }
 
 function bytesFromBase64(b64) {
@@ -1330,10 +1373,9 @@ export class P2PChatApp {
     });
     if (!confirmed) return;
     try {
-      const client = await backendClient();
       const bytes = new TextEncoder().encode(stableStringifyValue(record));
       const cid = await contentCidForBytes(bytes);
-      const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+      const result = await callChatMcpTool('request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
         cid,
         bytes_base64: base64ForBytes(bytes),
         profile: 'p2p-chat-provenance',
@@ -1421,10 +1463,9 @@ export class P2PChatApp {
     });
     if (!confirmed) return;
     try {
-      const client = await backendClient();
       const bytes = new TextEncoder().encode(stableStringifyValue(record));
       const cid = await contentCidForBytes(bytes);
-      const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+      const result = await callChatMcpTool('request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
         cid,
         bytes_base64: base64ForBytes(bytes),
         profile: 'p2p-chat-history',
@@ -1437,7 +1478,7 @@ export class P2PChatApp {
       }
       let dagNote = '';
       try {
-        const dagResult = await client.post('ipfs_kit_py', '/mcp/dag/append', {
+        const dagResult = await callChatMcpTool('request_action', 'mcp++:ipfs_kit_py/dag/append', {
           event: {
             event_type: 'p2p-chat.history.saved',
             history_cid: cid,
@@ -1465,8 +1506,7 @@ export class P2PChatApp {
     );
     if (!cid) return;
     try {
-      const client = await backendClient();
-      const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(cid));
+      const artifact = await callChatMcpTool('request_action', 'mcp++:ipfs_kit_py/artifacts/get', { cid });
       if (!artifact || artifact.found !== true) {
         throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
       }
@@ -1499,7 +1539,7 @@ export class P2PChatApp {
         <div class="pc-governed-confirm-dialog" role="dialog" aria-modal="true" aria-label="${this.escapeHtml(title)}">
           <h3>${this.escapeHtml(title)}</h3>
           <p>${this.escapeHtml(description)}</p>
-          <p class="pc-governed-target">Target: ipfs_kit_py · POST /mcp/artifacts/put (pinned)</p>
+          <p class="pc-governed-target">Target: ipfs_kit_py · POST /mcp/tools/call (pinned)</p>
           <label class="pc-governed-check">
             <input type="checkbox">
             <span>I confirm this governed write. I have reviewed the data being persisted.</span>
@@ -1596,14 +1636,36 @@ export class P2PChatApp {
     }
   }
 
-  broadcastMessage() {
-    if (this.connectionStatus === 'connected' && this.peers.size > 0) {
-      const message = prompt('Enter message to broadcast to all peers:');
-      if (message) {
-        this.p2pManager.broadcast(message);
-        this.showNotification('📢 Message broadcasted!', 'success');
-      }
+  async broadcastMessage() {
+    if (!(this.connectionStatus === 'connected' && this.peers.size > 0)) return;
+    const message = prompt('Enter message to broadcast to all peers:');
+    if (!message) return;
+    const policy = { outcome: 'require_confirmation', operation: 'write', consent: 'granted' };
+    const confirmed = await this.confirmGovernedWrite({
+      title: 'Broadcast message',
+      description: 'Send this broadcast to connected peers? The invoke stays a dry run unless policy explicitly allows a read.',
+      confirmLabel: 'Send'
+    });
+    if (!confirmed) return;
+    const dryRun = !chatPolicyAllowsRead(policy);
+    try {
+      await callChatMcpTool('request_action', 'mcp++:ipfs_kit_py/ipfs_pubsub_publish', {
+        topic: PUBSUB_TOPIC,
+        content: message,
+        dry_run: dryRun,
+        policy
+      });
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+      this.showNotification(`Broadcast invoke failed: ${text}`, 'error');
+      return;
     }
+    if (dryRun) {
+      this.showNotification('Broadcast confirmed and invoked as a dry run.', 'info');
+      return;
+    }
+    await this.p2pManager.broadcast(message);
+    this.showNotification('📢 Message broadcasted!', 'success');
   }
 
   selectPeer(peerId) {
@@ -1625,20 +1687,57 @@ export class P2PChatApp {
     }
   }
 
-  sendMessage() {
+  async sendMessage() {
     const input = document.getElementById(`${this.instanceId}-message-input`);
-    const message = input.value.trim();
-    
+    const message = input?.value.trim();
     if (!message || !this.currentChatPeer) return;
 
-    // Send message through P2P manager
-    this.p2pManager.sendMessage(this.currentChatPeer, message);
-    
-    // Clear input
+    const policy = { outcome: 'require_confirmation', operation: 'write', consent: 'granted' };
+    const confirmed = await this.confirmGovernedWrite({
+      title: 'Send message',
+      description: `Send this message to ${this.currentChatPeer}? The invoke stays a dry run unless policy explicitly allows a read.`,
+      confirmLabel: 'Send'
+    });
+    if (!confirmed) return;
+    const sent = await this.invokeConfirmedSend(this.currentChatPeer, message, policy);
+    if (!sent) return;
     input.value = '';
-    
-    // Update display
     this.updateDisplay();
+  }
+
+  // Confirm already happened. The tools/call stays dry-run unless policy
+  // outcome is an explicit allow for a read; only that case publishes.
+  async invokeConfirmedSend(peerId, content, policy) {
+    const dryRun = !chatPolicyAllowsRead(policy);
+    try {
+      await callChatMcpTool('request_action', 'mcp++:ipfs_kit_py/ipfs_pubsub_publish', {
+        topic: PUBSUB_TOPIC,
+        peer_id: peerId,
+        content,
+        dry_run: dryRun,
+        policy
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.lastSendOutcome = { status: 'failed', error: message, at: new Date() };
+      this.showNotification(`Send invoke failed: ${message}`, 'error');
+      return;
+    }
+    if (dryRun) {
+      this.addMessageToConversation(peerId, {
+        id: `g047-dry-${Date.now()}`,
+        content,
+        sender: 'self',
+        timestamp: new Date(),
+        type: 'text',
+        transport: 'dry-run'
+      });
+      this.lastSendOutcome = { status: 'dry-run', at: new Date() };
+      this.showNotification('Send confirmed and invoked as a dry run.', 'info');
+      return true;
+    }
+    await this.p2pManager.sendMessage(peerId, content);
+    return true;
   }
 
   addMessageToConversation(peerId, message) {

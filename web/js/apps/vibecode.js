@@ -1,7 +1,68 @@
 /**
  * VibeCode App - Fixed version with working functionality
  * Simplified but functional AI-Powered Streamlit Development Environment
+ *
+ * Artifact writes use POST /mcp/tools/call (IDL method request_action).
  */
+
+async function vibecodeParseToolResponse(response) {
+  const raw = await response.text();
+  let payload = null;
+  if (raw) {
+    try {
+      payload = JSON.parse(raw);
+    } catch (_parseError) {
+      payload = null;
+    }
+  }
+  if (!response.ok) {
+    const message = payload && typeof payload === 'object'
+      ? (payload.error?.message || payload.error || payload.message || raw)
+      : (raw || ('HTTP ' + response.status));
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && payload.error) {
+    const message = payload.error.message || payload.error;
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
+    return payload.result;
+  }
+  return payload;
+}
+
+function vibecodeDatasetIdInsideDatasetData(dataset_data) {
+  if (!dataset_data || typeof dataset_data !== 'object' || Array.isArray(dataset_data)) {
+    return undefined;
+  }
+  return dataset_data.dataset_id;
+}
+
+function vibecodeArgumentsForDatasetPublish(tool, toolArguments) {
+  const publishTool = tool === 'publish' || tool === 'save_dataset' || tool === 'dataset_tools.save_dataset';
+  if (!publishTool || !toolArguments || typeof toolArguments !== 'object') {
+    return toolArguments;
+  }
+  const args = { ...toolArguments };
+  const dataset_id = vibecodeDatasetIdInsideDatasetData(args.dataset_data);
+  if (args.dataset_id === undefined && dataset_id !== undefined) {
+    args.dataset_id = dataset_id;
+  }
+  return args;
+}
+
+async function vibecodeCallMcpTool(tool, toolArguments) {
+  const response = await fetch('/mcp/tools/call', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      method: 'request_action',
+      tool,
+      arguments: vibecodeArgumentsForDatasetPublish(tool, toolArguments)
+    })
+  });
+  return vibecodeParseToolResponse(response);
+}
 
 class VibeCodeApp {
   constructor(desktop) {
@@ -433,7 +494,6 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
         return;
       }
       const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
-      const client = clientModule.getMCPPlusPlusDesktopClient();
       const { contentCidForBytes, stableStringifyValue, base64ForBytes } = clientModule;
       const record = {
         app: 'vibecode',
@@ -444,7 +504,7 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
       };
       const bytes = new TextEncoder().encode(stableStringifyValue(record));
       const cid = await contentCidForBytes(bytes);
-      const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+      const result = await vibecodeCallMcpTool('mcp++:ipfs_kit_py/artifacts/put', {
         cid,
         bytes_base64: base64ForBytes(bytes),
         profile: 'vibecode-artifact',

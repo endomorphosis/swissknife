@@ -19,6 +19,48 @@ const VDA_G031_WORKFLOW = 'neural-network-designer.design-compile-train';
 const VDA_G031_ID = 'VDA-G031';
 const GRAPH_SCHEMA = 'swissknife.neural-network-designer.graph.v1';
 
+// GUI calls use POST /mcp/tools/call. Model and training reads use read_status.
+// Writes use request_action and stay behind explicit confirmation.
+const MCP_TOOLS_CALL_PATH = '/mcp/tools/call';
+
+async function parseDesignerToolResponse(response) {
+  const raw = await response.text();
+  let payload = null;
+  if (raw) {
+    try {
+      payload = JSON.parse(raw);
+    } catch (_parseError) {
+      payload = null;
+    }
+  }
+  if (!response.ok) {
+    const message = payload && typeof payload === 'object'
+      ? (payload.error?.message || payload.error || payload.message || raw)
+      : (raw || ('HTTP ' + response.status));
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && payload.error) {
+    const message = payload.error.message || payload.error;
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
+    return payload.result;
+  }
+  return payload;
+}
+
+function callDesignerMcpTool(method, tool, toolArguments) {
+  return fetch(MCP_TOOLS_CALL_PATH, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      method,
+      tool,
+      arguments: toolArguments,
+    }),
+  }).then(parseDesignerToolResponse);
+}
+
 export class NeuralNetworkDesignerApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -187,8 +229,14 @@ export class NeuralNetworkDesignerApp {
 
     // Execution goes through the real ipfs_accelerate_py descriptor, which
     // exposes inference jobs — not training. There is no simulated training
-    // backend anywhere in this app.
+    // backend anywhere in this app. Training availability is a read_status read.
     this.designArtifacts.trainingAvailable = false;
+    try {
+      const training = await this.readTrainingStatus({ task: 'training' });
+      this.designArtifacts.trainingAvailable = training?.available === true || training?.training_available === true;
+    } catch (_trainingError) {
+      this.designArtifacts.trainingAvailable = false;
+    }
     this.designArtifacts.backendStatus = this.mlBackendMode === 'tensorflow-local'
       ? 'Local TensorFlow.js is available for browser-local compute. Model execution runs through the real ipfs_accelerate_py inference job queue.'
       : 'No local ML engine is loaded. Model execution runs through the real ipfs_accelerate_py inference job queue; training is not exposed by that backend.';
@@ -200,6 +248,16 @@ export class NeuralNetworkDesignerApp {
   mcp() {
     if (!this.mcpClient) this.mcpClient = getMCPPlusPlusDesktopClient();
     return this.mcpClient;
+  }
+
+  // Model catalog read. IDL method is read_status on POST /mcp/tools/call.
+  readModelStatus(input) {
+    return callDesignerMcpTool('read_status', 'mcp++:ipfs_accelerate_py/list_models', input || {});
+  }
+
+  // Training status read. IDL method is read_status on POST /mcp/tools/call.
+  readTrainingStatus(input) {
+    return callDesignerMcpTool('read_status', 'mcp++:ipfs_accelerate_py/job_status', input || { task: 'training' });
   }
 
   // Real content addressing: CIDv1-raw+sha2-256 over the canonical bytes,
@@ -215,7 +273,7 @@ export class NeuralNetworkDesignerApp {
   async persistArtifact(record, kind) {
     const bytes = new TextEncoder().encode(stableStringifyValue(record));
     const cid = await contentCidForBytes(bytes);
-    const res = await this.mcp().post('ipfs_kit_py', '/mcp/artifacts/put', {
+    const res = await callDesignerMcpTool('request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
       cid,
       bytes_base64: base64ForBytes(bytes),
       profile: 'neural-designer-artifact',
@@ -230,7 +288,7 @@ export class NeuralNetworkDesignerApp {
   }
 
   async retrieveArtifact(cid) {
-    const artifact = await this.mcp().get('ipfs_kit_py', `/mcp/artifacts/${encodeURIComponent(cid)}`);
+    const artifact = await callDesignerMcpTool('read_status', 'mcp++:ipfs_kit_py/artifacts/get', { cid });
     if (!artifact || artifact.found !== true) {
       throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
     }
@@ -458,14 +516,10 @@ export class NeuralNetworkDesignerApp {
     this.designArtifacts.inference = { status: 'running', detail: 'Submitting inference job…' };
     this.updateWorkflowPanel();
     try {
-      const modelsEnvelope = await invokeDescriptorOperation({
-        descriptor_id: 'ipfs_accelerate_py',
-        operation: 'list_models',
-        input: { task: 'inference' },
-        app_id: 'neural-network-designer',
-        desktop: this.desktop,
-      });
-      const models = modelsEnvelope?.output?.models || [];
+      const modelsEnvelope = await this.readModelStatus({ task: 'inference' });
+      const models = Array.isArray(modelsEnvelope)
+        ? modelsEnvelope
+        : (modelsEnvelope?.output?.models || modelsEnvelope?.models || []);
       if (models.length === 0) {
         throw new Error(`list_models returned no models (${modelsEnvelope?.status || 'unknown status'}); nothing to run inference against.`);
       }
@@ -481,13 +535,7 @@ export class NeuralNetworkDesignerApp {
       const jobId = envelope?.output?.job_id || null;
       let statusEnvelope = null;
       if (jobId) {
-        statusEnvelope = await invokeDescriptorOperation({
-          descriptor_id: 'ipfs_accelerate_py',
-          operation: 'job_status',
-          input: { job_id: jobId },
-          app_id: 'neural-network-designer',
-          desktop: this.desktop,
-        });
+        statusEnvelope = await callDesignerMcpTool('read_status', 'mcp++:ipfs_accelerate_py/job_status', { job_id: jobId });
       }
       this.designArtifacts.inference = {
         status: 'complete', model: String(model), graph_cid: cid, job_id: jobId,
@@ -863,7 +911,7 @@ export class NeuralNetworkDesignerApp {
       <div class="vda-g031-confirm" role="alert" aria-label="Confirm backend write">
         <div>
           <strong>Confirm backend write</strong>
-          <p>This will POST ${what} (${pending.bytes} bytes, CID <code>${pending.expectedCid}</code>) to <code>ipfs_kit_py /mcp/artifacts/put</code> with pin=true. The store verifies the CID over the exact bytes sent; a mismatch fails the write and is reported verbatim.</p>
+          <p>This will POST ${what} (${pending.bytes} bytes, CID <code>${pending.expectedCid}</code>) to <code>ipfs_kit_py</code> through <code>/mcp/tools/call</code> with pin=true. The store verifies the CID over the exact bytes sent; a mismatch fails the write and is reported verbatim.</p>
         </div>
         <div class="vda-g031-confirm-actions">
           <button class="btn btn-primary btn-sm sk-btn sk-btn-primary" onclick="window.neuralDesignerApp?.confirmBackendWrite()">Confirm persist</button>

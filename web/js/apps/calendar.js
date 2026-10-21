@@ -5,76 +5,7 @@
 
 const VDA_G035_WORKFLOW = 'calendar.artifact-backed-scheduling';
 
-// --- Real backend wiring (ipfs_kit_py / ipfs_datasets_py over the MCP++
-// desktop client). No fixture CIDs or receipt strings are kept anywhere in
-// this app: every CID shown is computed from real record bytes (canonical
-// CIDv1-raw+sha2-256, same semantics as the supervisor gateway) or returned
-// by a live backend call. Backend-mutating calls are always
-// confirmation-gated and surface failures verbatim.
-
-async function calendarKitClient() {
-  const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
-  const client = clientModule.getMCPPlusPlusDesktopClient();
-  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
-  return client;
-}
-
-async function calendarCanonicalCid(record) {
-  const { contentCidForBytes, stableStringifyValue } = await import('../core/mcp-plus-plus-desktop-client.js');
-  return contentCidForBytes(new TextEncoder().encode(stableStringifyValue(record)));
-}
-
-async function calendarCanonicalBytesBase64(record) {
-  const { base64ForBytes, stableStringifyValue } = await import('../core/mcp-plus-plus-desktop-client.js');
-  return base64ForBytes(new TextEncoder().encode(stableStringifyValue(record)));
-}
-
-// The stable, content-addressed form of a calendar event.
-function calendarCanonicalRecord(event) {
-  return {
-    schema: 'swissknife.calendar.event.v1',
-    id: event.id,
-    title: event.title || '',
-    description: event.description || '',
-    date: event.date instanceof Date ? event.date.toISOString() : (event.date || null),
-    end_date: event.endDate instanceof Date ? event.endDate.toISOString() : (event.endDate || null),
-    category: event.category || 'work',
-    location: event.location || '',
-    reminder: Number(event.reminder) || 0,
-    recurring: event.recurring || 'none',
-    attendees: [...(event.attendees || [])].sort()
-  };
-}
-
-async function calendarPersistArtifact(client, record, { kind, profile }) {
-  const cid = await calendarCanonicalCid(record);
-  const bytesBase64 = await calendarCanonicalBytesBase64(record);
-  const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
-    cid,
-    bytes_base64: bytesBase64,
-    profile,
-    kind,
-    service: 'ipfs_kit_py',
-    pin: true
-  });
-  if (!result || result.persisted !== true || result.cid !== cid) {
-    throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted artifact.');
-  }
-  return { cid, result };
-}
-
-async function calendarAppendDagEvent(client, event) {
-  const appended = await client.post('ipfs_kit_py', '/mcp/dag/append', { event });
-  if (!appended?.event_cid) {
-    throw new Error(appended?.error || 'ipfs_kit_py event DAG did not return an event CID.');
-  }
-  return appended.event_cid;
-}
-
-function calendarConfirmBackendWrite(message) {
-  if (typeof window === 'undefined') return false;
-  return window.confirm(message);
-}
+// Visible calendar controls stay in the browser. They do not call a tool.
 
 export class CalendarApp {
   constructor(desktop) {
@@ -926,9 +857,7 @@ export class CalendarApp {
   }
 
   buildDefaultEvents() {
-    // Sample events for a first-run calendar. They are local sample
-    // content — artifactCid stays null until the event is really persisted
-    // to ipfs_kit_py ("Persist artifact").
+    // Sample events for a first-run calendar. They stay in browser storage.
     return [
       {
         id: 1,
@@ -1013,8 +942,7 @@ export class CalendarApp {
     return {
       workflowId: VDA_G035_WORKFLOW,
       status: 'ready',
-      // Real backend CIDs collected as actions complete; null/empty means
-      // "not performed yet" — never fixture strings.
+      // Local workflow fields. Null means the browser has not recorded that step.
       eventManifestCid: null,
       eventManifestReadback: null,
       reminderPolicyCid: null,
@@ -1030,11 +958,11 @@ export class CalendarApp {
       reminders,
       conflicts,
       conflictResolution: conflicts.length > 0
-        ? 'Unresolved overlaps detected locally — run "Resolve conflict" to evaluate and persist the resolution (confirmation-gated).'
+        ? 'Unresolved overlaps detected locally — run "Resolve conflict" to evaluate them in the browser.'
         : 'No conflicts detected.',
       mobileSummary: this.buildMobileSummary([], conflicts, reminders),
       actionLog: [
-        'workflow ready — events are local until persisted; each backend write asks for confirmation first'
+        'workflow ready — events and controls stay local-only'
       ]
     };
   }
@@ -1046,7 +974,7 @@ export class CalendarApp {
     const persistedCount = this.events.filter(event => event.artifactCid).length;
     const semanticSummary = state.semanticBackend
       ? `${state.semanticResults.length} result(s) from ${this.escapeHtml(state.semanticBackend)}`
-      : 'not run yet — results come from ipfs_datasets_py semantic_search';
+      : 'not run yet — local event text search';
     const receiptList = state.receiptRefs.length > 0
       ? state.receiptRefs.map(ref => this.escapeHtml(ref)).join(' ')
       : 'none yet';
@@ -1058,7 +986,7 @@ export class CalendarApp {
         <div class="workflow-head">
           <div>
             <h3>VDA-G035 governed calendar workflow</h3>
-            <p>Events are stored locally in your browser (local UI) until persisted. Backend writes — event artifacts, reminder policy, conflict resolution, event-DAG checkpoints — are confirmation-gated and surface backend failures verbatim. Month/week/day/agenda grid rendering, navigation, and time formatting are local UI with no backend claim.</p>
+            <p>Events, reminders, conflict checks, search, and the mobile summary stay in this browser. Every visible control is local-only and calls no tool. Month, week, day, and agenda rendering use the local clock.</p>
           </div>
           <span class="workflow-status" role="status" aria-live="polite" id="vda-g035-status">Status: ${this.escapeHtml(state.status)}</span>
         </div>
@@ -1072,7 +1000,7 @@ export class CalendarApp {
           </article>
           <article class="workflow-card" data-svd-vda-marker="semantic-search">
             <strong>Semantic search</strong>
-            <p>semantic_search query "${this.escapeHtml(state.semanticQuery)}": ${semanticSummary}.</p>
+            <p>Local search "${this.escapeHtml(state.semanticQuery)}": ${semanticSummary}.</p>
             ${(state.semanticResults || []).map(result => `<code>${this.escapeHtml(result.artifactCid || result.title || 'hit')}</code>`).join('')}
           </article>
           <article class="workflow-card" data-svd-vda-marker="reminders">
@@ -1131,130 +1059,48 @@ export class CalendarApp {
     }
   }
 
-  // Confirmation-gated persist of every calendar event as a real
-  // artifact, plus a manifest artifact and an event-DAG checkpoint. The
-  // manifest CID is the shareable reference for the event set. Backend
-  // failures surface verbatim.
-  async persistVdaG035EventArtifact() {
+  // Local event list only. This control does not call a tool.
+  persistVdaG035EventArtifact() {
     if (this.events.length === 0) {
-      this.vdaG035.status = 'no events to persist';
+      this.vdaG035.status = 'no events to keep';
       this.updateVdaG035Status();
       return;
     }
-    if (!calendarConfirmBackendWrite(
-      `Persist ${this.events.length} event(s) to the ipfs_kit_py artifact store?\n\nPins one artifact per event, publishes an event manifest, and appends a sync checkpoint to the event DAG.`
-    )) {
-      this.vdaG035.status = 'persist cancelled — events stay local-only';
-      this.updateVdaG035Status();
-      return;
-    }
-    this.vdaG035.status = `persisting ${this.events.length} event artifact(s)…`;
-    this.updateVdaG035Status();
-    try {
-      const client = await calendarKitClient();
-      for (const event of this.events) {
-        const record = calendarCanonicalRecord(event);
-        const persisted = await calendarPersistArtifact(client, record, { kind: 'calendar-event', profile: 'calendar-artifact' });
-        event.artifactCid = persisted.cid;
-        event.receiptRef = persisted.cid;
-      }
-      const manifestRecord = {
-        schema: 'swissknife.calendar.event-manifest.v1',
-        workflow: VDA_G035_WORKFLOW,
-        published_at: new Date().toISOString(),
-        events: this.events.map(event => ({
-          id: event.id,
-          title: event.title,
-          date: event.date instanceof Date ? event.date.toISOString() : event.date,
-          cid: event.artifactCid || null
-        }))
-      };
-      const manifest = await calendarPersistArtifact(client, manifestRecord, { kind: 'calendar-event-manifest', profile: 'calendar-artifact' });
-      this.vdaG035.eventManifestCid = manifest.cid;
-      const eventCid = await calendarAppendDagEvent(client, {
-        event_type: 'calendar.sync.checkpoint',
-        event_manifest_cid: manifest.cid,
-        event_count: this.events.length,
-        parents: []
-      });
-      this.vdaG035.eventDagCid = eventCid;
-      this.vdaG035.receiptRefs = [...new Set([...this.vdaG035.receiptRefs, eventCid])];
-      this.vdaG035.eventRefs = [...new Set([...this.vdaG035.eventRefs, 'calendar.sync.checkpoint'])];
-      let readbackNote = 'manifest persisted';
-      try {
-        const fetched = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(manifest.cid));
-        const b64 = fetched?.bytes_base64;
-        if (typeof b64 === 'string' && b64) {
-          const parsed = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), ch => ch.charCodeAt(0))));
-          const listed = Array.isArray(parsed?.events) ? parsed.events : [];
-          readbackNote = `manifest read back: ${listed.length} event(s) listed`;
-        }
-      } catch (readError) {
-        readbackNote = `manifest persisted; readback failed: ${readError.message}`;
-      }
-      this.vdaG035.eventManifestReadback = readbackNote;
-      this.vdaG035.status = `events persisted; manifest ${manifest.cid}; ${readbackNote}`;
-      this.vdaG035.actionLog.push(`persist-event-artifact:${manifest.cid}`);
-      this.saveEventsToStorage();
-    } catch (error) {
-      this.vdaG035.status = `persist failed: ${error.message}`;
-      this.vdaG035.actionLog.push(`persist-event-artifact:failed:${error.message}`);
-    }
+    this.saveEventsToStorage();
+    this.vdaG035.eventManifestReadback = `local event list: ${this.events.length} event(s)`;
+    this.vdaG035.status = `events kept local-only (${this.events.length})`;
+    this.vdaG035.actionLog.push('persist-event-artifact:local');
     this.saveVdaG035EvidenceToStorage();
     this.refreshVdaG035WorkflowPanel();
   }
 
-  // Real semantic search over ipfs_datasets_py via the descriptor
-  // registry. Degraded envelopes and backend errors surface verbatim and
-  // clear results — fallback output is never presented as real.
-  async runVdaG035SemanticSearch(query = null) {
+  // Local text match over events already in the browser.
+  runVdaG035SemanticSearch(query = null) {
     const searchInput = document.querySelector('#calendarSemanticSearch');
-    const searchText = String(query || searchInput?.value || this.vdaG035.semanticQuery || 'policy reminder').trim();
+    const searchText = String(query || searchInput?.value || this.vdaG035.semanticQuery || '').trim();
+    const needle = searchText.toLowerCase();
     this.vdaG035.semanticQuery = searchText;
-    this.vdaG035.status = `semantic_search running: "${searchText}"…`;
-    this.updateVdaG035Status();
-    try {
-      const { invokeDescriptorOperation } = await import('../core/mcp-descriptor-registry.js');
-      const envelope = await invokeDescriptorOperation({
-        descriptor_id: 'ipfs_datasets_py',
-        operation: 'semantic_search',
-        input: { query: searchText, top_k: 5, filters: { corpus: 'swissknife-calendar' } },
-        app_id: 'calendar',
-        desktop: this.desktop
-      });
-      if (!envelope || (envelope.status !== 'ok' && envelope.status !== 'success')) {
-        throw new Error(envelope?.error?.message || envelope?.summary || 'semantic_search did not return a successful result.');
-      }
-      const output = envelope.output || {};
-      if (output.fallback === true) {
-        throw new Error(`semantic_search degraded: ${output.reason || 'no live ipfs_datasets_py transport in this runtime'}.`);
-      }
-      const results = Array.isArray(output.results) ? output.results : [];
-      const byCid = new Map(this.events.map(event => [event.artifactCid, event]));
-      this.vdaG035.semanticResults = results.map(hit => ({
-        event: byCid.get(hit.cid) || null,
-        id: byCid.get(hit.cid)?.id ?? null,
-        title: hit.title || hit.event_title || hit.cid || 'untitled hit',
-        score: hit.score ?? null,
-        artifactCid: hit.cid || null,
-        receiptRef: null
-      }));
-      this.vdaG035.semanticBackend = 'ipfs_datasets_py';
-      this.vdaG035.status = `semantic_search complete: ${results.length} result(s) from ipfs_datasets_py`;
-      this.vdaG035.actionLog.push(`run-semantic-search:${searchText}:${results.length}`);
-    } catch (error) {
-      this.vdaG035.semanticResults = [];
-      this.vdaG035.semanticBackend = null;
-      this.vdaG035.status = `semantic_search failed: ${error.message}`;
-      this.vdaG035.actionLog.push(`run-semantic-search:failed:${error.message}`);
-    }
+    const results = this.events.filter(event => {
+      const haystack = `${event.title || ''} ${event.description || ''} ${event.location || ''} ${event.category || ''}`.toLowerCase();
+      return needle.length === 0 || haystack.includes(needle);
+    });
+    this.vdaG035.semanticResults = results.map(event => ({
+      event,
+      id: event.id,
+      title: event.title,
+      score: null,
+      artifactCid: null,
+      receiptRef: null
+    }));
+    this.vdaG035.semanticBackend = 'local';
+    this.vdaG035.status = `local search complete: ${results.length} result(s)`;
+    this.vdaG035.actionLog.push(`run-semantic-search:local:${searchText}:${results.length}`);
     this.saveVdaG035EvidenceToStorage();
     this.refreshVdaG035WorkflowPanel();
   }
 
-  // Reminder list is computed locally; the reminder-policy artifact and
-  // its DAG event are confirmation-gated backend writes yielding real CIDs.
-  async scheduleVdaG035Reminder() {
+  // Reminder list is computed from events already in the browser.
+  scheduleVdaG035Reminder() {
     this.vdaG035.reminders = this.events
       .filter(event => Number(event.reminder) > 0)
       .map(event => ({
@@ -1264,128 +1110,30 @@ export class CalendarApp {
         receiptRef: null,
         fallback: 'in-app reminder banner when notifications are denied'
       }));
-    if (!calendarConfirmBackendWrite(
-      `Persist the reminder policy for ${this.vdaG035.reminders.length} reminder(s)?\n\nWrites a reminder-policy artifact and a reminder-scheduled event to the ipfs_kit_py backend.`
-    )) {
-      this.vdaG035.status = `reminders computed locally (${this.vdaG035.reminders.length}) — policy not persisted`;
-      this.vdaG035.actionLog.push('schedule-reminder:local-only');
-      this.saveVdaG035EvidenceToStorage();
-      this.refreshVdaG035WorkflowPanel();
-      return;
-    }
-    this.vdaG035.status = 'persisting reminder policy…';
-    this.updateVdaG035Status();
-    try {
-      const client = await calendarKitClient();
-      const policyRecord = {
-        schema: 'swissknife.calendar.reminder-policy.v1',
-        policy: 'notification-first with in-app banner fallback, quiet hours honored',
-        default_reminder_minutes: this.settings.defaultReminder,
-        updated_at: new Date().toISOString(),
-        reminders: this.vdaG035.reminders.map(reminder => ({
-          event_id: reminder.eventId,
-          title: reminder.title,
-          minutes_before: reminder.minutesBefore
-        }))
-      };
-      const persisted = await calendarPersistArtifact(client, policyRecord, { kind: 'reminder-policy', profile: 'calendar-artifact' });
-      const eventCid = await calendarAppendDagEvent(client, {
-        event_type: 'calendar.reminder.scheduled',
-        reminder_policy_cid: persisted.cid,
-        reminder_count: this.vdaG035.reminders.length,
-        parents: []
-      });
-      this.vdaG035.reminderPolicyCid = persisted.cid;
-      this.vdaG035.reminderEventCid = eventCid;
-      this.vdaG035.receiptRefs = [...new Set([...this.vdaG035.receiptRefs, eventCid])];
-      this.vdaG035.eventRefs = [...new Set([...this.vdaG035.eventRefs, 'calendar.reminder.scheduled'])];
-      this.vdaG035.status = `reminders scheduled: ${this.vdaG035.reminders.length}; policy ${persisted.cid}`;
-      this.vdaG035.actionLog.push(`schedule-reminder:${persisted.cid}`);
-    } catch (error) {
-      this.vdaG035.status = `reminder persist failed: ${error.message} (reminders remain local)`;
-      this.vdaG035.actionLog.push(`schedule-reminder:failed:${error.message}`);
-    }
+    this.vdaG035.status = `reminders computed locally (${this.vdaG035.reminders.length})`;
+    this.vdaG035.actionLog.push('schedule-reminder:local-only');
     this.saveVdaG035EvidenceToStorage();
     this.refreshVdaG035WorkflowPanel();
   }
 
-  // Conflict detection is a local computation (labeled as such); the
-  // resolution record persist is confirmation-gated and yields a real CID.
-  async resolveVdaG035Conflict() {
+  // Conflict detection compares event times already in the browser.
+  resolveVdaG035Conflict() {
     this.vdaG035.conflicts = this.detectEventConflicts();
     const conflicts = this.vdaG035.conflicts;
     this.vdaG035.conflictResolution = conflicts.length > 0
       ? `Detected ${conflicts.length} overlap(s) locally: ${conflicts.map(conflict => conflict.events.join(' ↔ ')).join('; ')}.`
       : 'No conflicts detected.';
-    if (!calendarConfirmBackendWrite(
-      `Persist the conflict resolution record?\n\n${this.vdaG035.conflictResolution}`
-    )) {
-      this.vdaG035.status = `conflict handling ${conflicts.length > 0 ? 'detected (local)' : 'clear'} — resolution not persisted`;
-      this.vdaG035.actionLog.push('resolve-conflict:local-only');
-      this.saveVdaG035EvidenceToStorage();
-      this.refreshVdaG035WorkflowPanel();
-      return;
-    }
-    this.vdaG035.status = 'persisting conflict resolution…';
-    this.updateVdaG035Status();
-    try {
-      const client = await calendarKitClient();
-      const resolutionRecord = {
-        schema: 'swissknife.calendar.conflict-resolution.v1',
-        resolved_at: new Date().toISOString(),
-        conflicts: conflicts.map(conflict => ({
-          events: conflict.events,
-          state: conflict.state || 'detected'
-        })),
-        resolution: conflicts.length > 0
-          ? 'Kept the earlier event primary; flagged the later event for manual rescheduling.'
-          : 'No conflicts detected.'
-      };
-      const persisted = await calendarPersistArtifact(client, resolutionRecord, { kind: 'conflict-resolution', profile: 'calendar-artifact' });
-      this.vdaG035.conflictResolutionCid = persisted.cid;
-      this.vdaG035.receiptRefs = [...new Set([...this.vdaG035.receiptRefs, persisted.cid])];
-      this.vdaG035.status = `conflict handling ${conflicts.length > 0 ? 'recorded' : 'clear'}: ${persisted.cid}`;
-      this.vdaG035.actionLog.push(`resolve-conflict:${persisted.cid}`);
-    } catch (error) {
-      this.vdaG035.status = `conflict resolution persist failed: ${error.message}`;
-      this.vdaG035.actionLog.push(`resolve-conflict:failed:${error.message}`);
-    }
+    this.vdaG035.status = `conflict handling ${conflicts.length > 0 ? 'detected (local)' : 'clear'}`;
+    this.vdaG035.actionLog.push('resolve-conflict:local-only');
     this.saveVdaG035EvidenceToStorage();
     this.refreshVdaG035WorkflowPanel();
   }
 
-  // The mobile summary is rendered locally (local UI, labeled); its
-  // artifact persist is confirmation-gated and yields a real CID.
-  async refreshVdaG035MobileSummary() {
+  // The mobile summary is rendered from local calendar state.
+  refreshVdaG035MobileSummary() {
     this.vdaG035.mobileSummary = this.buildMobileSummary(this.vdaG035.semanticResults, this.vdaG035.conflicts, this.vdaG035.reminders);
-    if (!calendarConfirmBackendWrite(
-      `Persist the mobile summary as an artifact?\n\n"${this.vdaG035.mobileSummary.slice(0, 140)}…"`
-    )) {
-      this.vdaG035.status = 'mobile summary refreshed (local UI) — not persisted';
-      this.vdaG035.actionLog.push('refresh-mobile-summary:local');
-      this.saveVdaG035EvidenceToStorage();
-      this.updateVdaG035Status();
-      return;
-    }
-    this.vdaG035.status = 'persisting mobile summary…';
-    this.updateVdaG035Status();
-    try {
-      const client = await calendarKitClient();
-      const summaryRecord = {
-        schema: 'swissknife.calendar.mobile-summary.v1',
-        summary: this.vdaG035.mobileSummary,
-        event_count: this.events.length,
-        generated_at: new Date().toISOString()
-      };
-      const persisted = await calendarPersistArtifact(client, summaryRecord, { kind: 'mobile-summary', profile: 'calendar-artifact' });
-      this.vdaG035.mobileSummaryCid = persisted.cid;
-      this.vdaG035.receiptRefs = [...new Set([...this.vdaG035.receiptRefs, persisted.cid])];
-      this.vdaG035.status = `mobile summary persisted: ${persisted.cid}`;
-      this.vdaG035.actionLog.push(`refresh-mobile-summary:${persisted.cid}`);
-    } catch (error) {
-      this.vdaG035.status = `mobile summary persist failed: ${error.message} (summary remains local)`;
-      this.vdaG035.actionLog.push(`refresh-mobile-summary:failed:${error.message}`);
-    }
+    this.vdaG035.status = 'mobile summary refreshed (local UI)';
+    this.vdaG035.actionLog.push('refresh-mobile-summary:local');
     this.saveVdaG035EvidenceToStorage();
     this.refreshVdaG035WorkflowPanel();
   }
@@ -1892,37 +1640,14 @@ export class CalendarApp {
     };
 
     this.events.push(eventData);
-    try {
-      eventData.artifactCid = await calendarCanonicalCid(calendarCanonicalRecord(eventData));
-    } catch (error) {
-      console.warn('Failed to compute canonical event CID:', error);
-    }
     this.vdaG035 = this.buildVdaG035State();
+    this.vdaG035.status = 'event saved locally';
+    this.vdaG035.actionLog.push('save-event:local');
     this.saveEventsToStorage();
+    this.saveVdaG035EvidenceToStorage();
     this.hideEventModal();
     this.updateView();
-
-    // The explicit save action offers a confirmation-gated backend persist
-    // of the new event artifact.
-    if (calendarConfirmBackendWrite(
-      `Persist the new event "${eventData.title}" as a pinned IPFS artifact?\n\nCID: ${eventData.artifactCid || '(still computing)'}`
-    )) {
-      try {
-        const client = await calendarKitClient();
-        const persisted = await calendarPersistArtifact(client, calendarCanonicalRecord(eventData), { kind: 'calendar-event', profile: 'calendar-artifact' });
-        eventData.artifactCid = persisted.cid;
-        eventData.receiptRef = persisted.cid;
-        this.vdaG035.receiptRefs = [...new Set([...this.vdaG035.receiptRefs, persisted.cid])];
-        this.vdaG035.status = `event persisted: ${persisted.cid}`;
-        this.vdaG035.actionLog.push(`save-event:${persisted.cid}`);
-        this.saveEventsToStorage();
-      } catch (error) {
-        this.vdaG035.status = `event saved locally; backend persist failed: ${error.message}`;
-        this.vdaG035.actionLog.push(`save-event:failed:${error.message}`);
-      }
-      this.saveVdaG035EvidenceToStorage();
-      this.refreshVdaG035WorkflowPanel();
-    }
+    this.refreshVdaG035WorkflowPanel();
 
     console.log('Event saved:', eventData);
   }

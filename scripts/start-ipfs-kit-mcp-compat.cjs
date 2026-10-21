@@ -31,6 +31,7 @@ const {
 const { getEventDagService } = require("./mcpplusplus-event-dag.cjs");
 const { PROFILE_H_METHODS, ProfileHAdapterError, createProfileHAdapter } = require("./mcpplusplus-profile-h-adapter.cjs");
 const { PROFILE_G_METHODS, PROFILE_G_REST_PATH, ProfileGAdapterError, createKitProfileGAdapter } = require("./mcpplusplus-profile-g-adapter.cjs");
+const { createKitToolExecutor } = require("./ipfs-kit-artifact-cat.cjs");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 const WORKSPACE_ROOT = path.resolve(REPO_ROOT, "..");
@@ -58,6 +59,7 @@ const artifactStore = createArtifactStore({
   service: "ipfs_kit_py",
   isKitService: true,
 });
+const executeKitTool = createKitToolExecutor({ artifactStore, callKitWorker });
 const profileCService = getProfileCService("ipfs_kit_py");
 const eventDag = getEventDagService("ipfs_kit_py");
 const profileH = createProfileHAdapter({ service: "ipfs_kit_py" });
@@ -652,7 +654,7 @@ async function callKitTool(payload) {
       };
     }
     try {
-      const result = await callKitWorker(found.name, params);
+      const result = await executeKitTool(found.name, params);
       if (!result.ok) {
         return {
           isError: true,
@@ -680,11 +682,11 @@ async function callKitTool(payload) {
       receipt: receipt(name, { status: "not_found" }),
     };
   }
-  // Execute the genuine backend implementation via the persistent Python
-  // worker. Never fabricate success: the worker invokes the real
-  // ipfs_kit_py tool and returns its actual result or honest error.
+  // Read verified artifacts for ipfs_cat, otherwise execute the genuine
+  // backend via its persistent Python worker. Both paths return actual
+  // content or an honest error, including when dry_run is requested.
   try {
-    const result = await callKitWorker(name, args);
+    const result = await executeKitTool(name, args);
     if (!result.ok) {
       return {
         isError: true,

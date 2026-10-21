@@ -10,6 +10,52 @@ const APP_ID = 'p2p-chat-unified';
 const WORKFLOW_ID = 'p2p-chat-unified.pubsub-offline-recovery';
 const VDA_ID = 'VDA-G030';
 const PUBSUB_TOPIC = '/swissknife/chat/unified/g030';
+const MCP_TOOLS_CALL_PATH = '/mcp/tools/call';
+
+function unifiedPolicyAllowsRead(policy) {
+  return Boolean(policy)
+    && policy.outcome === 'allow'
+    && (policy.operation === 'read' || policy.class === 'read');
+}
+
+async function parseUnifiedToolResponse(response) {
+  const raw = await response.text();
+  let payload = null;
+  if (raw) {
+    try {
+      payload = JSON.parse(raw);
+    } catch (_parseError) {
+      payload = null;
+    }
+  }
+  if (!response.ok) {
+    const message = payload && typeof payload === 'object'
+      ? (payload.error?.message || payload.error || payload.message || raw)
+      : (raw || ('HTTP ' + response.status));
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && payload.error) {
+    const message = payload.error.message || payload.error;
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
+    return payload.result;
+  }
+  return payload;
+}
+
+async function callUnifiedMcpTool(method, tool, toolArguments) {
+  const response = await fetch(MCP_TOOLS_CALL_PATH, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      method,
+      tool,
+      arguments: toolArguments
+    })
+  });
+  return parseUnifiedToolResponse(response);
+}
 const DEFAULT_PEERS = [
   { id: 'peer-alice-g030', name: 'Alice', status: 'online', trust: 'verified', avatar: 'A' },
   { id: 'peer-bob-g030', name: 'Bob', status: 'offline', trust: 'known', avatar: 'B' },
@@ -215,7 +261,7 @@ export class UnifiedP2PChatApp {
   async persistArtifact(record, kind) {
     const bytes = new TextEncoder().encode(stableStringifyValue(record));
     const cid = await contentCidForBytes(bytes);
-    const res = await this.mcp().post('ipfs_kit_py', '/mcp/artifacts/put', {
+    const res = await callUnifiedMcpTool('request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
       cid,
       bytes_base64: base64ForBytes(bytes),
       profile: 'p2p-chat-artifact',
@@ -773,8 +819,8 @@ export class UnifiedP2PChatApp {
   renderConfirmCard() {
     if (!this.pendingConfirm) return '';
     const detail = this.pendingConfirm.action === 'persist-channel'
-      ? `This will POST the channel archive (${this.pendingConfirm.bytes} bytes, ${this.pendingConfirm.messages} messages) to ipfs_kit_py /mcp/artifacts/put with pin=true.`
-      : `This will POST the receipt ledger (${this.pendingConfirm.bytes} bytes, ${this.pendingConfirm.count} receipts) to ipfs_kit_py /mcp/artifacts/put with pin=true.`;
+      ? `This will POST the channel archive (${this.pendingConfirm.bytes} bytes, ${this.pendingConfirm.messages} messages) to ipfs_kit_py through POST /mcp/tools/call with pin=true.`
+      : `This will POST the receipt ledger (${this.pendingConfirm.bytes} bytes, ${this.pendingConfirm.count} receipts) to ipfs_kit_py through POST /mcp/tools/call with pin=true.`;
     return `
       <section class="workflow-card" aria-label="Confirm backend write">
         <h4>Confirm backend write</h4>
@@ -814,7 +860,7 @@ export class UnifiedP2PChatApp {
     } else if (action === 'switch-mode') {
       this.switchChatMode(target?.dataset.mode || 'online');
     } else if (action === 'send-pubsub') {
-      await this.publishPubsubDelivery(this.draft || 'VDA-G030 pubsub delivery probe');
+      await this.confirmThenInvokeSend(this.draft || 'VDA-G030 pubsub delivery probe');
     } else if (action === 'queue-offline') {
       await this.queueOfflineDelivery(this.draft || 'VDA-G030 offline delivery probe');
     } else if (action === 'review-moderation') {
@@ -857,6 +903,56 @@ export class UnifiedP2PChatApp {
     if (!content || !peer) return null;
     if (this.chatMode === 'offline' || peer.status === 'offline') {
       return this.queueOfflineDelivery(content, peerId);
+    }
+    return this.confirmThenInvokeSend(content, peerId);
+  }
+
+  // Send is confirm-then-invoke. The tools/call stays a dry run unless the
+  // policy outcome is an explicit allow for a read.
+  async confirmThenInvokeSend(content, peerId = this.selectedConversation) {
+    const peer = this.peers.get(peerId) || this.peers.get(DEFAULT_PEERS[0].id);
+    if (!content || !peer) return null;
+    const policy = { outcome: 'require_confirmation', operation: 'write', consent: 'granted' };
+    const confirmed = window.confirm(`Send this message to ${peer.name}?`);
+    if (!confirmed) {
+      this.backendStatus = 'Send cancelled before invoke.';
+      return null;
+    }
+    return this.invokeConfirmedSend(content, peer.id, policy);
+  }
+
+  async invokeConfirmedSend(content, peerId, policy) {
+    const dryRun = !unifiedPolicyAllowsRead(policy);
+    let toolResult = null;
+    try {
+      toolResult = await callUnifiedMcpTool('request_action', 'mcp++:ipfs_kit_py/ipfs_pubsub_publish', {
+        topic: PUBSUB_TOPIC,
+        peer_id: peerId,
+        content,
+        dry_run: dryRun,
+        policy,
+      });
+    } catch (error) {
+      const message = messageFromError(error);
+      this.notifications.push(`Send invoke failed: ${message}`);
+      this.backendStatus = `Send invoke failed: ${message}`;
+      return null;
+    }
+    if (dryRun) {
+      const message = this.createMessage({
+        content,
+        peerId,
+        offline: false,
+        delivered: false,
+        moderation: this.buildModerationContext(content, peerId),
+      });
+      message.delivery = 'dry-run';
+      message.delivered = false;
+      message.ack = { acknowledged: 'dry-run', dry_run: true, tool: toolResult || null };
+      this.appendMessage(peerId, message);
+      this.backendStatus = 'Send confirmed and invoked as a dry run. No delivery side effect.';
+      await this.saveMessageHistory();
+      return message;
     }
     return this.publishPubsubDelivery(content, peerId);
   }
@@ -1105,7 +1201,9 @@ export class UnifiedP2PChatApp {
       return;
     }
     try {
-      const artifact = await this.mcp().get('ipfs_kit_py', `/mcp/artifacts/${encodeURIComponent(this.persistedChannelCid)}`);
+      const artifact = await callUnifiedMcpTool('request_action', 'mcp++:ipfs_kit_py/artifacts/get', {
+        cid: this.persistedChannelCid,
+      });
       if (!artifact || artifact.found !== true) {
         throw new Error(artifact?.error || `Artifact ${this.persistedChannelCid} was not found in ipfs_kit_py.`);
       }

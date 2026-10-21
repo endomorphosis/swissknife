@@ -71,10 +71,51 @@ async function friendsCanonicalBytesBase64(record) {
   return base64ForBytes(new TextEncoder().encode(stableStringifyValue(record)));
 }
 
+async function friendsParseToolResponse(response) {
+  const raw = await response.text();
+  let payload = null;
+  if (raw) {
+    try {
+      payload = JSON.parse(raw);
+    } catch (_parseError) {
+      payload = null;
+    }
+  }
+  if (!response.ok) {
+    const message = payload && typeof payload === 'object'
+      ? (payload.error?.message || payload.error || payload.message || raw)
+      : (raw || ('HTTP ' + response.status));
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && payload.error) {
+    const message = payload.error.message || payload.error;
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
+    return payload.result;
+  }
+  return payload;
+}
+
+// GUI calls use POST /mcp/tools/call. Writes use request_action after confirm.
+async function friendsCallMcpTool(method, tool, toolArguments) {
+  const response = await fetch('/mcp/tools/call', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      method,
+      tool,
+      arguments: toolArguments
+    })
+  });
+  return friendsParseToolResponse(response);
+}
+
 async function friendsPersistArtifact(client, record, { kind, profile }) {
+  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
   const cid = await friendsCanonicalCid(record);
   const bytesBase64 = await friendsCanonicalBytesBase64(record);
-  const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+  const result = await friendsCallMcpTool('request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
     cid,
     bytes_base64: bytesBase64,
     profile,
@@ -89,7 +130,8 @@ async function friendsPersistArtifact(client, record, { kind, profile }) {
 }
 
 async function friendsAppendDagEvent(client, event) {
-  const appended = await client.post('ipfs_kit_py', '/mcp/dag/append', { event });
+  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
+  const appended = await friendsCallMcpTool('request_action', 'mcp++:ipfs_kit_py/dag/append', { event });
   if (!appended?.event_cid) {
     throw new Error(appended?.error || 'ipfs_kit_py event DAG did not return an event CID.');
   }
@@ -532,11 +574,11 @@ export class FriendsListApp {
         
         <!-- Navigation Tabs -->
         <div class="nav-tabs">
-          <button class="nav-tab active" data-tab="friends">
+          <button class="nav-tab active" data-tab="friends" aria-label="Friends">
             <span class="tab-icon">👥</span>
             Friends (<span id="friends-count">0</span>)
           </button>
-          <button class="nav-tab" data-tab="pending">
+          <button class="nav-tab" data-tab="pending" aria-label="Pending">
             <span class="tab-icon">⏰</span>
             Pending (<span id="pending-count">0</span>)
           </button>
@@ -2206,8 +2248,11 @@ export class FriendsListApp {
   async refreshFreshness() {
     this.setVdaG037ActionState('refresh-freshness: reading event DAG…');
     try {
-      const client = await friendsKitClient();
-      const history = await client.getDagHistory('ipfs_kit_py', 10);
+      await friendsKitClient();
+      const history = await friendsCallMcpTool('read_status', 'mcp++:ipfs_kit_py/dag/history', {
+        service: 'ipfs_kit_py',
+        limit: 10
+      });
       const events = Array.isArray(history) ? history : (history?.events || history?.items || []);
       this.vdaG037.generatedAt = new Date();
       this.vdaG037.freshnessState = 'fresh';
@@ -2574,18 +2619,22 @@ export class FriendsListApp {
       addedDate: new Date(),
       inviteMessage: String(friendMessage?.value || '')
     };
+    // Send is confirm-then-invoke: nothing is stored or written until the
+    // user confirms, then the contact write goes through POST /mcp/tools/call.
+    if (!friendsConfirmBackendWrite(
+      `Send a friend request to "${friend.name}"?\n\nConfirm to create the contact and invoke the pinned artifact write.`
+    )) {
+      this.setVdaG037ActionState('send-friend-request: cancelled');
+      this.refreshVdaG037WorkflowPanel();
+      return;
+    }
     this.friends.set(id, friend);
     document.querySelector('#add-friend-form')?.classList.add('hidden');
     if (friendInput) friendInput.value = '';
     this.renderFriendsList();
-    // Confirmation-gated backend persist of the new contact artifact; the
-    // returned CID is the shareable reference for this contact.
-    if (friendsConfirmBackendWrite(
-      `Persist the new contact "${friend.name}" as a pinned IPFS artifact?\n\nWrites a contact artifact to the ipfs_kit_py backend.`
-    )) {
-      try {
-        const client = await friendsKitClient();
-        const persisted = await friendsPersistArtifact(client, friendsCanonicalContactRecord(friend), { kind: 'contact', profile: 'friends-artifact' });
+    try {
+      const client = await friendsKitClient();
+      const persisted = await friendsPersistArtifact(client, friendsCanonicalContactRecord(friend), { kind: 'contact', profile: 'friends-artifact' });
         friend.provenance = {
           source: 'ipfs_kit_py.artifact.put',
           cid: persisted.cid,
@@ -2604,10 +2653,6 @@ export class FriendsListApp {
       }
       this.refreshVdaG037WorkflowPanel();
       this.renderFriendsList();
-    } else {
-      this.setVdaG037ActionState('add-contact: local-only');
-      this.refreshVdaG037WorkflowPanel();
-    }
   }
 
   showAddFriendForm(method) {

@@ -5,18 +5,53 @@
  * Supports audio and video playback with comprehensive playlist management.
  *
  * Backend contract: playback itself is honestly local (Web Audio/Video).
- * Playlists and track metadata persist through the genuine MCP++ desktop
- * client to the ipfs_kit_py artifact store (POST /mcp/artifacts/put) and are
- * read back via GET /mcp/artifacts/<cid>. Every backend-mutating POST sits
- * behind an explicit user confirmation step; backend failures surface
- * verbatim and never fall back to fixtures or simulated success.
+ * Playlists and track metadata persist through POST /mcp/tools/call
+ * (IDL method request_action, tool mcp++:ipfs_kit_py/artifacts/put) and are
+ * read back the same way (tool mcp++:ipfs_kit_py/artifacts/get). Every
+ * backend-mutating call sits behind an explicit user confirmation step;
+ * backend failures surface verbatim and never fall back to fixtures or
+ * simulated success.
  */
 
 import { contentCidForBytes, stableStringifyValue, base64ForBytes } from '../core/mcp-plus-plus-desktop-client.js';
 
-async function backendClient() {
-    const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
-    return clientModule.getMCPPlusPlusDesktopClient();
+async function parseToolResponse(response) {
+    const raw = await response.text();
+    let payload = null;
+    if (raw) {
+        try {
+            payload = JSON.parse(raw);
+        } catch (parseError) {
+            payload = null;
+        }
+    }
+    if (!response.ok) {
+        const message = payload && typeof payload === 'object'
+            ? (payload.error?.message || payload.error || payload.message || raw)
+            : (raw || ('HTTP ' + response.status));
+        throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+    }
+    if (payload && typeof payload === 'object' && payload.error) {
+        const message = payload.error.message || payload.error;
+        throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+    }
+    if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
+        return payload.result;
+    }
+    return payload;
+}
+
+async function callMcpTool(tool, toolArguments) {
+    const response = await fetch('/mcp/tools/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            method: 'request_action',
+            tool,
+            arguments: toolArguments
+        })
+    });
+    return parseToolResponse(response);
 }
 
 function bytesFromBase64(b64) {
@@ -1171,6 +1206,8 @@ class MediaPlayer {
             if (!isNaN(vol)) this.setVolume(vol);
         }
 
+        mediaPlayer = this;
+        if (typeof window !== 'undefined') window.mediaPlayer = this;
         console.log('🎵 Media Player initialized successfully');
     }
 
@@ -1309,16 +1346,13 @@ class MediaPlayer {
         this.currentTrack = index;
         
         try {
-            // Show loading state
-            this.container.classList.add('loading');
-            
-            // For demo purposes, we'll create a simple audio tone
-            // In a real implementation, this would load the actual file
-            if (track.url && track.url !== 'data:audio/wav;base64,') {
-                this.currentElement.src = track.url;
-            } else {
-                // Create a demo audio file (simple tone)
-                this.generateDemoAudio(track);
+            this.container?.classList.add('loading');
+            if (this.currentElement) {
+                if (track.url && track.url !== 'data:audio/wav;base64,') {
+                    this.currentElement.src = track.url;
+                } else {
+                    this.generateDemoAudio(track);
+                }
             }
             
             this.updateDisplay();
@@ -1333,7 +1367,7 @@ class MediaPlayer {
             console.error('Error loading track:', error);
             this.showNotification('Error loading track', 'error');
         } finally {
-            this.container.classList.remove('loading');
+            this.container?.classList.remove('loading');
         }
     }
 
@@ -1395,7 +1429,7 @@ class MediaPlayer {
      */
     toggleShuffle() {
         this.isShuffle = !this.isShuffle;
-        const btn = this.container.querySelector('#shuffleBtn');
+        const btn = this.container?.querySelector('#shuffleBtn');
         if (btn) {
             btn.classList.toggle('active', this.isShuffle);
         }
@@ -1406,7 +1440,7 @@ class MediaPlayer {
      */
     toggleRepeat() {
         this.isRepeat = !this.isRepeat;
-        const btn = this.container.querySelector('#repeatBtn');
+        const btn = this.container?.querySelector('#repeatBtn');
         if (btn) {
             btn.classList.toggle('active', this.isRepeat);
         }
@@ -1443,10 +1477,12 @@ class MediaPlayer {
      * 📁 Load file(s)
      */
     loadFile() {
-        const fileInput = this.container.querySelector('#fileInput');
+        const fileInput = this.container?.querySelector('#fileInput');
         if (fileInput) {
             fileInput.click();
+            return;
         }
+        this.showNotification('Choose a media file from the player once a file input is available', 'info');
     }
 
     /**
@@ -1504,7 +1540,7 @@ class MediaPlayer {
      * 🎛️ Show/hide equalizer
      */
     showEqualizer() {
-        const panel = this.container.querySelector('#equalizerPanel');
+        const panel = this.container?.querySelector('#equalizerPanel');
         if (panel) {
             panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
             if (panel.style.display === 'block') {
@@ -1602,7 +1638,7 @@ class MediaPlayer {
      * ▶️ Update play button
      */
     updatePlayButton() {
-        const btn = this.container.querySelector('#playButton');
+        const btn = this.container?.querySelector('#playButton');
         if (btn) {
             btn.textContent = this.isPlaying ? '⏸' : '▶';
             btn.classList.toggle('active', this.isPlaying);
@@ -1613,7 +1649,7 @@ class MediaPlayer {
      * 🔊 Update volume button
      */
     updateVolumeButton() {
-        const btn = this.container.querySelector('.volume-btn');
+        const btn = this.container?.querySelector('.volume-btn');
         if (btn) {
             if (this.isMuted || this.volume === 0) {
                 btn.textContent = '🔇';
@@ -1687,10 +1723,9 @@ class MediaPlayer {
         });
         if (!confirmed) return;
         try {
-            const client = await backendClient();
             const bytes = new TextEncoder().encode(stableStringifyValue(record));
             const cid = await contentCidForBytes(bytes);
-            const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+            const result = await callMcpTool('mcp++:ipfs_kit_py/artifacts/put', {
                 cid,
                 bytes_base64: base64ForBytes(bytes),
                 profile: 'media-player-playlist',
@@ -1737,9 +1772,8 @@ class MediaPlayer {
         }
         const cid = choice.cid;
         try {
-            const client = await backendClient();
             const started = performance.now();
-            const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(cid));
+            const artifact = await callMcpTool('mcp++:ipfs_kit_py/artifacts/get', { cid });
             const ms = Math.round(performance.now() - started);
             if (!artifact || artifact.found !== true) {
                 throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
@@ -1870,7 +1904,7 @@ class MediaPlayer {
     }
 
     /**
-     * 🛰️ Retrieve CID media: real GET /mcp/artifacts/<cid> from ipfs_kit_py.
+     * 🛰️ Retrieve CID media via POST /mcp/tools/call (request_action, tool mcp++:ipfs_kit_py/artifacts/get).
      * Bytes are decoded, turned into a blob URL and appended to the playlist;
      * playback of those bytes stays honestly local. Retrieval time is measured,
      * never fabricated. Failures surface verbatim.
@@ -1883,9 +1917,52 @@ class MediaPlayer {
         if (!cid) return;
         this.setWorkflowLine('cid-media', `Retrieving ${cid} from ipfs_kit_py…`);
         const started = performance.now();
+        const dryRun = globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true;
+        if (dryRun) {
+            const toolId = 'ipfs_cat';
+            const bindingId = 'media-player.ipfs_kit_py.retrieve_content';
+            const correlationId = `media-player:cid:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+            this.setWorkflowLine('cid-media', `${toolId} ${correlationId}`);
+            const response = await fetch('/mcp/tools/call', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    protocol: 'swissknife.all-app-tool-gateway.v1',
+                    route: '/mcp/tools/call',
+                    binding_id: bindingId,
+                    app_id: 'media-player',
+                    intent_id: bindingId,
+                    owner: 'ipfs_kit_py',
+                    tool_id: toolId,
+                    transport: 'http',
+                    correlation_id: correlationId,
+                    receipt_required: true,
+                    input: {
+                        correlation_id: correlationId,
+                        payload: { cid, scope: bindingId, limit: 1 },
+                        policy: {
+                            decision_id: `desktop-policy:${bindingId}`,
+                            outcome: 'require_confirmation',
+                            reason: 'Media player CID retrieval is a dry run while the desktop gateway forces dry run.',
+                            consent: 'not_required',
+                            dry_run: true,
+                        },
+                    },
+                }),
+            });
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text.slice(0, 180) || `gateway ${response.status}`);
+            }
+            // Read the mediator body. Leaving it unread lets the browser cancel the
+            // stream before the click harness can record receipt and outcome.
+            await response.json().catch(() => undefined);
+            this.setWorkflowLine('cid-media', `${toolId} ${correlationId}`);
+            this.appendReceiptLog(`dry run ${toolId} ${correlationId}`);
+            return;
+        }
         try {
-            const client = await backendClient();
-            const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(cid));
+            const artifact = await callMcpTool('mcp++:ipfs_kit_py/artifacts/get', { cid });
             const ms = Math.round(performance.now() - started);
             if (!artifact || artifact.found !== true) {
                 throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
@@ -1936,6 +2013,11 @@ class MediaPlayer {
             this.showNotification('No track selected', 'info');
             return;
         }
+        if (globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true) {
+            this.setWorkflowLine('captions-metadata', 'Dry run: captions metadata was not written.');
+            this.showNotification('Dry run: metadata write skipped', 'info');
+            return;
+        }
         const el = this.currentElement;
         const record = {
             schema: 'swissknife.media-player.track-metadata.v1',
@@ -1965,11 +2047,10 @@ class MediaPlayer {
         });
         if (!confirmed) return;
         try {
-            const client = await backendClient();
             const bytes = new TextEncoder().encode(stableStringifyValue(record));
             const cid = await contentCidForBytes(bytes);
             const started = performance.now();
-            const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+            const result = await callMcpTool('mcp++:ipfs_kit_py/artifacts/put', {
                 cid,
                 bytes_base64: base64ForBytes(bytes),
                 profile: 'media-player-metadata',
@@ -2015,8 +2096,7 @@ class MediaPlayer {
         this.setWorkflowLine('diagnostics', `Re-reading ${target.cid} from ipfs_kit_py…`);
         const started = performance.now();
         try {
-            const client = await backendClient();
-            const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(target.cid));
+            const artifact = await callMcpTool('mcp++:ipfs_kit_py/artifacts/get', { cid: target.cid });
             const ms = Math.round(performance.now() - started);
             if (!artifact || artifact.found !== true) {
                 throw new Error(artifact?.error || `Artifact ${target.cid} was not found in ipfs_kit_py.`);
@@ -2159,7 +2239,7 @@ class MediaPlayer {
                 <div class="mp-governed-confirm-dialog" role="dialog" aria-modal="true" aria-label="${escapeHtmlMp(title)}">
                     <h3>${escapeHtmlMp(title)}</h3>
                     <p>${escapeHtmlMp(description)}</p>
-                    <p class="mp-governed-target">Target: ipfs_kit_py · POST /mcp/artifacts/put (pinned)</p>
+                    <p class="mp-governed-target">Target: ipfs_kit_py · POST /mcp/tools/call (pinned)</p>
                     <label class="mp-governed-check">
                         <input type="checkbox">
                         <span>I confirm this governed write. I have reviewed the data being persisted.</span>

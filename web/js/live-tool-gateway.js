@@ -38,6 +38,7 @@ export async function mountLiveToolGateway(container, appId) {
         : "No currently advertised owner tool matches this application binding.";
     const output = document.createElement("output");
     output.dataset.liveGatewayResult = control.binding_id;
+    output.dataset.gatewayStatus = control.binding_id;
     output.textContent =
       control.status === "available" ? "ready" : "unavailable";
     row.append(button, output);
@@ -130,7 +131,7 @@ async function invokeControl(button, output, control) {
     });
     const result = await response.json();
     const receipt = result?.receipt ?? {};
-    output.textContent = `${result.outcome ?? "failed"}; ${result.correlation_id ?? correlationId}; receipt=${receipt.receipt_id ?? "unavailable"}; event=${receipt.event_dag_refs?.[0] ?? "unavailable"}`;
+    output.textContent = `${control.selected_tool_id} ${result.correlation_id ?? correlationId}; ${result.outcome ?? "failed"}; receipt=${receipt.receipt_id ?? "unavailable"}; event=${receipt.event_dag_refs?.[0] ?? "unavailable"}`;
     button.closest(".live-tool-gateway-panel")?.dispatchEvent(
       new CustomEvent("swissknife:live-gateway-result", {
         bubbles: true,

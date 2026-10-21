@@ -3,9 +3,9 @@
  * CID-backed image viewing, metadata, enhancement workflow, and accessible
  * image state handling.
  *
- * Backend contract: image bytes and metadata persist through the genuine
- * MCP++ desktop client to the ipfs_kit_py artifact store
- * (POST /mcp/artifacts/put) and are read back via GET /mcp/artifacts/<cid>.
+ * Backend contract: image bytes and metadata persist through
+ * POST /mcp/tools/call using IDL method request_action.
+ * Retrieval tool id: mcp++:ipfs_kit_py/artifacts/get.
  * Every backend-mutating POST sits behind an explicit user confirmation step;
  * backend failures surface verbatim and never fall back to fixtures or
  * simulated success. Zoom, pan, filters and alt text are honestly local.
@@ -44,6 +44,32 @@ function guessImageMime(artifact, bytes) {
   if (/\.webp$/.test(name)) return 'image/webp';
   if (/\.svg$/.test(name)) return 'image/svg+xml';
   return 'application/octet-stream';
+}
+
+async function parseToolResponse(response) {
+  const raw = await response.text();
+  let payload = null;
+  if (raw) {
+    try {
+      payload = JSON.parse(raw);
+    } catch (parseError) {
+      payload = null;
+    }
+  }
+  if (!response.ok) {
+    const message = payload && typeof payload === 'object'
+      ? (payload.error?.message || payload.error || payload.message || raw)
+      : (raw || ('HTTP ' + response.status));
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && payload.error) {
+    const message = payload.error.message || payload.error;
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
+    return payload.result;
+  }
+  return payload;
 }
 
 const APP_ID = 'image-viewer';
@@ -105,10 +131,11 @@ export class ImageViewerApp {
   getWindowContent() {
     return `
       <div class="image-viewer-container" data-image-viewer-instance="${escapeHTML(this.instanceId)}">
+        <p class="iv-gateway-status" data-gateway-status="true">${escapeHTML(this.vdaG038.gatewayStatus || '')}</p>
         <div class="image-toolbar" aria-label="Image Viewer toolbar">
           <div class="toolbar-section">
             <button class="toolbar-btn primary-action" id="open-files-btn" type="button" title="Open image files" aria-label="Open image files">Open</button>
-            <button class="toolbar-btn" id="retrieve-cid-btn" type="button" data-live-gateway-binding="mcp++:ipfs_kit_py/artifacts/get" data-action="retrieve-cid-image" aria-label="Retrieve CID-backed image">Retrieve CID</button>
+            <button class="toolbar-btn" id="retrieve-cid-btn" type="button" data-live-gateway-binding="image-viewer.ipfs_kit_py.retrieve_content" data-action="retrieve-cid-image" aria-label="Retrieve CID-backed image">Retrieve CID</button>
             <input type="file" id="image-file-input" accept="image/*" multiple hidden>
           </div>
           <div class="toolbar-section">
@@ -126,7 +153,7 @@ export class ImageViewerApp {
           <div class="toolbar-section">
             <button class="toolbar-btn" id="rotate-left-btn" type="button" aria-label="Rotate left">Rotate -</button>
             <button class="toolbar-btn" id="rotate-right-btn" type="button" aria-label="Rotate right">Rotate +</button>
-            <button class="toolbar-btn" id="edit-mode-btn" type="button" aria-pressed="${this.editMode ? 'true' : 'false'}">Edit</button>
+            <button class="toolbar-btn" id="edit-mode-btn" type="button" aria-label="Edit" aria-pressed="${this.editMode ? 'true' : 'false'}">Edit</button>
             <button class="toolbar-btn" id="sidebar-toggle-btn" type="button" aria-label="Toggle sidebar">Sidebar</button>
           </div>
         </div>
@@ -180,7 +207,7 @@ export class ImageViewerApp {
     }
 
     return this.images.map((image, index) => `
-      <button class="image-list-item ${index === this.currentImageIndex ? 'active' : ''}" type="button" data-index="${index}" aria-label="Open ${escapeHTML(image.name)}">
+      <button class="image-list-item ${index === this.currentImageIndex ? 'active' : ''}" type="button" data-action="open-listed-image" data-index="${index}" aria-label="Open ${escapeHTML(image.name)}">
         <span class="image-thumbnail" aria-hidden="true"></span>
         <span class="image-list-info">
           <span class="image-list-name">${escapeHTML(image.name)}</span>
@@ -215,8 +242,8 @@ export class ImageViewerApp {
       ${this.slider('saturation', 'Saturation', 0, 200, this.filters.saturation)}
       ${this.slider('hue', 'Hue', -180, 180, this.filters.hue)}
       ${this.slider('blur', 'Blur', 0, 10, this.filters.blur)}
-      <button class="secondary-btn" id="reset-filters-btn" type="button">Reset filters</button>
-      <button class="secondary-btn" id="auto-adjust-btn" type="button">Auto adjust</button>
+      <button class="secondary-btn" id="reset-filters-btn" type="button" aria-label="Reset filters">Reset filters</button>
+      <button class="secondary-btn" id="auto-adjust-btn" type="button" aria-label="Auto adjust">Auto adjust</button>
     `;
   }
 
@@ -243,7 +270,7 @@ export class ImageViewerApp {
       <div class="welcome-screen">
         <h2>SwissKnife Image Viewer</h2>
         <p>Open local images or retrieve a CID-backed image with metadata, OCR, enhancement, and fallback states.</p>
-        <button class="welcome-btn" id="welcome-retrieve-cid" type="button" data-svd-workflow-action="retrieve-cid-image">Retrieve CID image</button>
+        <button class="welcome-btn" id="welcome-retrieve-cid" type="button" data-action="retrieve-cid-image" data-svd-workflow-action="retrieve-cid-image">Retrieve CID image</button>
       </div>
     `;
   }
@@ -832,8 +859,8 @@ export class ImageViewerApp {
   }
 
   /**
-   * 🛰️ Retrieve a CID-backed image: real GET /mcp/artifacts/<cid> from
-   * ipfs_kit_py. Bytes are decoded, sniffed for a real MIME type and shown
+   * 🛰️ Retrieve a CID-backed image via POST /mcp/tools/call
+   * (request_action, tool mcp++:ipfs_kit_py/artifacts/get). Bytes are decoded, sniffed for a real MIME type and shown
    * from a blob URL. Retrieval time is measured, never fabricated. Backend
    * failures surface verbatim — never a fixture gallery entry.
    */
@@ -843,54 +870,113 @@ export class ImageViewerApp {
       'Enter the CID of an image artifact stored in ipfs_kit_py. Its real bytes will be fetched and added to the gallery.'
     );
     if (!cid) return;
+    const toolId = 'ipfs_cat';
+    const bindingId = 'image-viewer.ipfs_kit_py.retrieve_content';
+    const correlationId = `image-viewer:retrieve:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+    const dryRun = globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true;
     this.vdaG038.retrievalState = 'retrieving';
+    this.vdaG038.gatewayStatus = `${toolId} ${correlationId}`;
     this.vdaG038.lastRetrievedInfo = `Retrieving ${cid} from ipfs_kit_py…`;
-    this.appendWorkflowLog(`retrieving ${cid} from ipfs_kit_py…`);
+    this.appendWorkflowLog(`retrieving ${cid} via ${toolId} ${correlationId}`);
     this.refreshContent();
     const started = performance.now();
     try {
-      const client = await backendClient();
-      const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(cid));
+      const response = await fetch('/mcp/tools/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          protocol: 'swissknife.all-app-tool-gateway.v1',
+          route: '/mcp/tools/call',
+          binding_id: bindingId,
+          app_id: 'image-viewer',
+          intent_id: bindingId,
+          owner: 'ipfs_kit_py',
+          tool_id: toolId,
+          transport: 'http',
+          correlation_id: correlationId,
+          receipt_required: true,
+          input: {
+            correlation_id: correlationId,
+            payload: { cid, scope: bindingId, limit: 1 },
+            policy: {
+              decision_id: `desktop-policy:${bindingId}`,
+              outcome: 'require_confirmation',
+              reason: dryRun
+                ? 'Image retrieval runs as a no-side-effect dry run while the desktop gateway forces dry run.'
+                : 'Image retrieval reads one CID through the mediated ipfs_kit_py gateway.',
+              consent: dryRun ? 'not_required' : 'granted',
+              dry_run: dryRun,
+            },
+          },
+        }),
+      });
+      const artifact = await parseToolResponse(response);
       const ms = Math.round(performance.now() - started);
-      if (!artifact || artifact.found !== true) {
-        throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
+      const bytes = bytesFromBase64(artifact?.bytes_base64 || artifact?.result?.bytes_base64 || '');
+      if (dryRun) {
+        this.vdaG038.retrievalState = 'retrieved';
+        this.vdaG038.lastRetrievedCid = cid;
+        this.vdaG038.gatewayStatus = `${toolId} ${correlationId}`;
+        this.vdaG038.lastRetrievedInfo = `dry run ${toolId} ${correlationId}`;
+        this.appendWorkflowLog(this.vdaG038.lastRetrievedInfo);
+      } else if (bytes.length > 0) {
+        const mime = guessImageMime(artifact, bytes);
+        const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+        const image = {
+          name: artifact.name || artifact.filename || `cid-${cid.slice(0, 12)}`,
+          url,
+          cid,
+          size: bytes.length,
+          dimensions: 'measuring…',
+          format: (mime.split('/')[1] || 'image').toUpperCase(),
+          location: 'ipfs_kit_py artifact',
+          altText: `Image retrieved from ipfs_kit_py artifact ${cid}.`,
+          bytes,
+        };
+        this.images.push(image);
+        this.currentImageIndex = this.images.length - 1;
+        this.currentImage = image;
+        this.measureImageDimensions(image);
+        this.vdaG038.retrievalState = 'retrieved';
+        this.vdaG038.lastRetrievedCid = cid;
+        this.vdaG038.gatewayStatus = `${toolId} ${correlationId}`;
+        this.vdaG038.lastRetrievedInfo = `${bytes.length.toLocaleString()} bytes, measured ${ms} ms, ${toolId} ${correlationId}`;
+        this.appendWorkflowLog(this.vdaG038.lastRetrievedInfo);
+      } else {
+        throw new Error(artifact?.error || `Artifact ${cid} returned no bytes from ipfs_kit_py.`);
       }
-      const bytes = bytesFromBase64(artifact.bytes_base64 || '');
-      if (bytes.length === 0) throw new Error(`Artifact ${cid} returned no bytes from ipfs_kit_py.`);
-      const mime = guessImageMime(artifact, bytes);
-      const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
-      const image = {
-        name: artifact.name || artifact.filename || `cid-${cid.slice(0, 12)}`,
-        url,
-        cid,
-        size: bytes.length,
-        dimensions: 'measuring…',
-        format: (mime.split('/')[1] || 'image').toUpperCase(),
-        location: 'ipfs_kit_py artifact',
-        altText: `Image retrieved from ipfs_kit_py artifact ${cid}.`,
-        bytes,
-      };
-      this.images.push(image);
-      this.currentImageIndex = this.images.length - 1;
-      this.currentImage = image;
-      this.measureImageDimensions(image);
-      this.vdaG038.retrievalState = 'retrieved';
-      this.vdaG038.lastRetrievedCid = cid;
-      this.vdaG038.lastRetrievedInfo = `${bytes.length.toLocaleString()} bytes, verified=${artifact.verified === true}, measured ${ms} ms`;
-      this.appendWorkflowLog(`retrieved ${cid} (${bytes.length.toLocaleString()} bytes, verified=${artifact.verified === true}, ${ms} ms)`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.vdaG038.retrievalState = 'failed';
+      this.vdaG038.gatewayStatus = `${toolId} ${correlationId} error`;
       this.vdaG038.lastRetrievedInfo = message;
-      this.appendWorkflowLog(`retrieval failed for ${cid}: ${message}`);
+      this.appendWorkflowLog(`retrieval failed for ${cid}: ${message}; ${toolId} ${correlationId}`);
     }
     this.refreshContent();
+  }
+
+  /**
+   * POST /mcp/tools/call with IDL method request_action.
+   * Publish sends ipfs_kit_py artifact and provenance actions through this route.
+   */
+  async publish(tool, toolArguments) {
+    const response = await fetch('/mcp/tools/call', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'request_action',
+        tool,
+        arguments: toolArguments
+      })
+    });
+    return parseToolResponse(response);
   }
 
   /**
    * 📤 Publish the current image: persists real bytes plus a metadata record
    * to ipfs_kit_py behind an explicit user confirmation. Returns real CIDs
    * and records a real provenance event in the Event DAG.
+   * Transport is POST /mcp/tools/call (IDL method request_action).
    */
   async publishCurrentImage() {
     const image = this.currentImage;
@@ -910,9 +996,8 @@ export class ImageViewerApp {
     });
     if (!confirmed) return;
     try {
-      const client = await backendClient();
       const imageCid = await contentCidForBytes(bytes);
-      const putResult = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+      const putResult = await this.publish('mcp++:ipfs_kit_py/artifacts/put', {
         cid: imageCid,
         bytes_base64: base64ForBytes(bytes),
         profile: 'image-viewer-image',
@@ -936,7 +1021,7 @@ export class ImageViewerApp {
       };
       const metaBytes = new TextEncoder().encode(stableStringifyValue(metadata));
       const metaCid = await contentCidForBytes(metaBytes);
-      const metaResult = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+      const metaResult = await this.publish('mcp++:ipfs_kit_py/artifacts/put', {
         cid: metaCid,
         bytes_base64: base64ForBytes(metaBytes),
         profile: 'image-viewer-image-metadata',
@@ -949,7 +1034,7 @@ export class ImageViewerApp {
       }
       let dagNote = '';
       try {
-        const dagResult = await client.post('ipfs_kit_py', '/mcp/dag/append', {
+        const dagResult = await this.publish('mcp++:ipfs_kit_py/dag/append', {
           event: {
             event_type: 'image-viewer.image.published',
             image_cid: imageCid,
@@ -1148,7 +1233,9 @@ export class ImageViewerApp {
       grayscale: 0,
     };
     this.editMode = false;
-    this.refreshContent();
+    // Replacing the window inside the click detaches the button and the
+    // click action retries until the row budget closes the page.
+    setTimeout(() => this.refreshContent(), 0);
   }
 
   autoAdjust() {
@@ -1198,6 +1285,7 @@ export class ImageViewerApp {
       retrievalState: 'none',
       lastRetrievedCid: '',
       lastRetrievedInfo: 'No CID retrieved yet.',
+      gatewayStatus: '',
       metadataState: 'none',
       metadataSummary: 'No metadata measured yet.',
       lastPublishedCid: '',
@@ -1266,7 +1354,7 @@ export class ImageViewerApp {
         <div class="iv-governed-confirm-dialog" role="dialog" aria-modal="true" aria-label="${escapeHTML(title)}">
           <h3>${escapeHTML(title)}</h3>
           <p>${escapeHTML(description)}</p>
-          <p class="iv-governed-target">Target: ipfs_kit_py · POST /mcp/artifacts/put (pinned)</p>
+          <p class="iv-governed-target">Target: ipfs_kit_py · POST /mcp/tools/call (pinned)</p>
           <label class="iv-governed-check">
             <input type="checkbox">
             <span>I confirm this governed write. I have reviewed the data being persisted.</span>

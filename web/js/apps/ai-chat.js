@@ -279,7 +279,7 @@ export class AIChatApp {
                           oninput="window.aiChatInstances?.['${this.instanceId}']?.handleInputChange(this.value)"
                           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.aiChatInstances?.['${this.instanceId}']?.sendMessage();}"></textarea>
                 <button class="input-btn voice-input" onclick="window.aiChatInstances?.['${this.instanceId}']?.startVoiceInput()" title="Voice Input">🎤</button>
-                <button class="send-btn" id="${this.instanceId}-send-btn" onclick="window.aiChatInstances?.['${this.instanceId}']?.sendMessage()" title="Send Message">
+                <button class="send-btn" id="ai-chat-send-btn" onclick="window.aiChatInstances?.['${this.instanceId}']?.sendMessage()" title="Send Message">
                   <span class="send-icon">➤</span>
                 </button>
               </div>
@@ -880,7 +880,7 @@ export class AIChatApp {
     }
 
     // Enable/disable send button
-    const sendBtn = container.querySelector(`#${this.instanceId}-send-btn`);
+    const sendBtn = container.querySelector('#ai-chat-send-btn') || container.querySelector(`#${this.instanceId}-send-btn`);
     if (sendBtn) {
       sendBtn.disabled = !value.trim();
     }
@@ -1123,25 +1123,28 @@ export class AIChatApp {
 
   handleInputChange(value) {
     const container = this.getContainer();
-    const charCount = container.querySelector('#char-count');
-    const tokenCount = container.querySelector('#estimated-tokens');
-    
-    charCount.textContent = value.length;
-    tokenCount.textContent = `~${Math.ceil(value.length / 4)} tokens`;
+    if (!container) return;
+    const text = String(value || '');
+    const charCount = container.querySelector(`#${this.instanceId}-char-count`) || container.querySelector('#char-count');
+    const tokenCount = container.querySelector(`#${this.instanceId}-estimated-tokens`) || container.querySelector('#estimated-tokens');
+    if (charCount) charCount.textContent = String(text.length);
+    if (tokenCount) tokenCount.textContent = `~${Math.ceil(text.length / 4)} tokens`;
 
-    // Auto-resize textarea
-    const textarea = container.querySelector('#chat-input');
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    const textarea = container.querySelector(`#${this.instanceId}-input`) || container.querySelector('#chat-input');
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    }
 
-    // Enable/disable send button
-    const sendBtn = container.querySelector('#send-btn');
-    sendBtn.disabled = !value.trim();
+    const sendBtn = container.querySelector('#ai-chat-send-btn') || container.querySelector('#send-btn');
+    if (sendBtn) sendBtn.disabled = !text.trim();
   }
 
   async sendMessage() {
     const container = this.getContainer();
-    const input = container.querySelector('#chat-input');
+    if (!container) return;
+    const input = container.querySelector(`#${this.instanceId}-input`) || container.querySelector('#chat-input');
+    if (!input) return;
     const message = input.value.trim();
     
     if (!message) return;
@@ -1188,7 +1191,9 @@ export class AIChatApp {
 
   addMessage(type, content, timestamp = Date.now()) {
     const container = this.getContainer();
-    const messagesContainer = container.querySelector('#chat-messages');
+    if (!container) return;
+    const messagesContainer = container.querySelector(`#${this.instanceId}-messages`) || container.querySelector('#chat-messages') || container.querySelector('.chat-messages');
+    if (!messagesContainer) return;
 
     // Remove welcome message
     const welcomeMessage = messagesContainer.querySelector('.welcome-message');
@@ -1230,7 +1235,9 @@ export class AIChatApp {
 
   showTypingIndicator() {
     const container = this.getContainer();
-    const messagesContainer = container.querySelector('#chat-messages');
+    if (!container) return;
+    const messagesContainer = container.querySelector(`#${this.instanceId}-messages`) || container.querySelector('#chat-messages') || container.querySelector('.chat-messages');
+    if (!messagesContainer) return;
     
     const typingElement = document.createElement('div');
     typingElement.className = 'message assistant typing';
@@ -1318,8 +1325,8 @@ For testing, you can:
 
   updateUsageStats() {
     const container = this.getContainer();
-    const messageCountElement = container.querySelector('#message-count');
-    const tokenCountElement = container.querySelector('#token-count');
+    const messageCountElement = container?.querySelector(`#${this.instanceId}-message-count`) || container?.querySelector('#message-count');
+    const tokenCountElement = container?.querySelector(`#${this.instanceId}-token-count`) || container?.querySelector('#token-count');
 
     if (messageCountElement) {
       messageCountElement.textContent = this.messageCount;
@@ -1336,23 +1343,29 @@ For testing, you can:
       this.recognition.start();
       
       const container = this.getContainer();
-      const voiceBtn = container.querySelector('#voice-input-btn');
-      voiceBtn.classList.add('recording');
-      voiceBtn.textContent = '🔴';
+      if (!container) return;
+      const voiceBtn = container.querySelector('#voice-input-btn') || container.querySelector('.voice-input');
+      if (voiceBtn) {
+        voiceBtn.classList.add('recording');
+        voiceBtn.textContent = '🔴';
+      }
     }
   }
 
   handleVoiceInput(transcript) {
     const container = this.getContainer();
-    const input = container.querySelector('#chat-input');
-    input.value = transcript;
+    if (!container) return;
+    const input = container.querySelector(`#${this.instanceId}-input`) || container.querySelector('#chat-input');
+    if (input) input.value = transcript;
     this.handleInputChange(transcript);
 
     // Stop recording
     this.voiceEnabled = false;
-    const voiceBtn = container.querySelector('#voice-input-btn');
-    voiceBtn.classList.remove('recording');
-    voiceBtn.textContent = '🎤';
+    const voiceBtn = container.querySelector('#voice-input-btn') || container.querySelector('.voice-input');
+    if (voiceBtn) {
+      voiceBtn.classList.remove('recording');
+      voiceBtn.textContent = '🎤';
+    }
   }
 
   getContainer() {
@@ -1384,8 +1397,10 @@ For testing, you can:
     
     // Clear current chat
     const container = this.getContainer();
-    const messagesContainer = container.querySelector('#chat-messages');
-    messagesContainer.innerHTML = `
+    const messagesContainer = container?.querySelector(`#${this.instanceId}-messages`)
+      || container?.querySelector('#chat-messages')
+      || container?.querySelector('.chat-messages');
+    if (messagesContainer) messagesContainer.innerHTML = `
       <div class="welcome-message sk-empty">
         <div class="welcome-icon">🤖</div>
         <h3>New Conversation Started</h3>
@@ -1398,8 +1413,9 @@ For testing, you can:
 
   updateConversationList() {
     const container = this.getContainer();
-    const listContainer = container.querySelector('#conversation-list');
-    
+    const listContainer = container?.querySelector('#conversation-list') || container?.querySelector('.conversation-list');
+    if (!listContainer) return;
+
     listContainer.innerHTML = this.conversations.map(conv => `
       <div class="conversation-item ${conv.id === this.currentConversation?.id ? 'active' : ''}" 
            data-id="${conv.id}">

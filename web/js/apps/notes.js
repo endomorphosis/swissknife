@@ -45,13 +45,74 @@ function notesCanonicalRecord(note) {
   };
 }
 
+// Backend reads and writes use POST /mcp/tools/call (IDL method request_action).
+async function notesParseToolResponse(response) {
+  const raw = await response.text();
+  let payload = null;
+  if (raw) {
+    try {
+      payload = JSON.parse(raw);
+    } catch (_parseError) {
+      payload = null;
+    }
+  }
+  if (!response.ok) {
+    const message = payload && typeof payload === 'object'
+      ? (payload.error?.message || payload.error || payload.message || raw)
+      : (raw || ('HTTP ' + response.status));
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && payload.error) {
+    const message = payload.error.message || payload.error;
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
+    return payload.result;
+  }
+  return payload;
+}
+
+function notesDatasetIdInsideDatasetData(dataset_data) {
+  if (!dataset_data || typeof dataset_data !== 'object' || Array.isArray(dataset_data)) {
+    return undefined;
+  }
+  return dataset_data.dataset_id;
+}
+
+function notesArgumentsForDatasetPublish(tool, toolArguments) {
+  const publishTool = tool === 'publish' || tool === 'save_dataset' || tool === 'dataset_tools.save_dataset';
+  if (!publishTool || !toolArguments || typeof toolArguments !== 'object') {
+    return toolArguments;
+  }
+  const args = { ...toolArguments };
+  const dataset_id = notesDatasetIdInsideDatasetData(args.dataset_data);
+  if (args.dataset_id === undefined && dataset_id !== undefined) {
+    args.dataset_id = dataset_id;
+  }
+  return args;
+}
+
+async function notesCallMcpTool(tool, toolArguments) {
+  const response = await fetch('/mcp/tools/call', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      method: 'request_action',
+      tool,
+      arguments: notesArgumentsForDatasetPublish(tool, toolArguments)
+    })
+  });
+  return notesParseToolResponse(response);
+}
+
 // Artifact persist for a confirmation-gated flow (callers collect the
 // explicit user confirmation first). Throws on any backend failure —
 // callers surface the message verbatim and never fall back to a fixture.
 async function notesPersistArtifact(client, record, { kind, profile }) {
+  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
   const cid = await notesCanonicalCid(record);
   const bytesBase64 = await notesCanonicalBytesBase64(record);
-  const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+  const result = await notesCallMcpTool('mcp++:ipfs_kit_py/artifacts/put', {
     cid,
     bytes_base64: bytesBase64,
     profile,
@@ -66,7 +127,8 @@ async function notesPersistArtifact(client, record, { kind, profile }) {
 }
 
 async function notesAppendDagEvent(client, event) {
-  const appended = await client.post('ipfs_kit_py', '/mcp/dag/append', { event });
+  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
+  const appended = await notesCallMcpTool('mcp++:ipfs_kit_py/dag/append', { event });
   if (!appended?.event_cid) {
     throw new Error(appended?.error || 'ipfs_kit_py event DAG did not return an event CID.');
   }
@@ -1526,7 +1588,7 @@ This sample note demonstrates the provenance-rich sync workflow:
       // Listing readback: retrieve the manifest and verify the note is listed.
       let readbackNote = 'manifest persisted';
       try {
-        const fetched = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(manifest.cid));
+        const fetched = await notesCallMcpTool('mcp++:ipfs_kit_py/artifacts/get', { cid: manifest.cid });
         const parsed = notesDecodeArtifactJson(fetched);
         const listed = Array.isArray(parsed?.notes) ? parsed.notes : [];
         readbackNote = listed.some(entry => entry.cid === persisted.cid)
@@ -1741,7 +1803,7 @@ This sample note demonstrates the provenance-rich sync workflow:
     this.updateVdaG039Status();
     try {
       const client = await notesKitClient();
-      const fetched = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(baseCid));
+      const fetched = await notesCallMcpTool('mcp++:ipfs_kit_py/artifacts/get', { cid: baseCid });
       const remoteRecord = notesDecodeArtifactJson(fetched);
       const localRecord = notesCanonicalRecord(note);
       const localCid = await notesCanonicalCid(localRecord);
