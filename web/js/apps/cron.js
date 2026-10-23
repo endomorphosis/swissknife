@@ -3,8 +3,12 @@
  * Visual scheduling interface with AI task automation and P2P distribution
  */
 
+let nextCronInstance = 0;
+
 export class CronApp {
   constructor(desktop) {
+    this.instanceId = `cron-instance-${++nextCronInstance}`;
+    this.textDialog = null;
     this.desktop = desktop;
     this.swissknife = null;
     this.scheduledTasks = new Map();
@@ -128,7 +132,7 @@ export class CronApp {
 
   createWindow() {
     const content = `
-      <div class="cron-app-container">
+      <div class="cron-app-container" data-cron-instance="${this.instanceId}">
         <div class="cron-header">
           <div class="header-tabs">
             <button class="tab-btn ${this.currentView === 'scheduler' ? 'active' : ''}" data-view="scheduler">
@@ -1580,8 +1584,17 @@ export class CronApp {
   }
 
   showTextDialog(title, body) {
+    const app = document.querySelector(`.cron-app-container[data-cron-instance="${this.instanceId}"]`);
+    if (!app?.isConnected) return;
+    const host = app.closest('.window-content') || app;
+    if (!host.style.position || host.style.position === 'static') host.style.position = 'relative';
+    this.closeTextDialog();
     const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10000;';
+    overlay.dataset.cronDialog = this.instanceId;
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', title);
+    overlay.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10000;';
     overlay.innerHTML = `
       <div class="sk-card" style="border-radius:8px;max-width:560px;width:90%;max-height:70vh;display:flex;flex-direction:column;background:var(--sk-card,#17241f);">
         <div style="padding:12px 16px;border-bottom:1px solid var(--sk-border,#263a34);font-weight:600;">${title}</div>
@@ -1591,11 +1604,19 @@ export class CronApp {
         </div>
       </div>`;
     overlay.querySelector('pre').textContent = body;
-    overlay.querySelector('button').onclick = () => overlay.remove();
+    overlay.querySelector('button').onclick = () => this.closeTextDialog();
     overlay.addEventListener('click', event => {
-      if (event.target === overlay) overlay.remove();
+      if (event.target === overlay) this.closeTextDialog();
     });
-    document.body.appendChild(overlay);
+    overlay.addEventListener('keydown', event => { if (event.key === 'Escape') this.closeTextDialog(); });
+    this.textDialog = overlay;
+    host.appendChild(overlay);
+    overlay.querySelector('button').focus();
+  }
+
+  closeTextDialog() {
+    this.textDialog?.remove();
+    this.textDialog = null;
   }
 
   showSettings() {
@@ -1812,6 +1833,7 @@ export class CronApp {
   }
 
   onDestroy() {
+    this.closeTextDialog();
     if (this.cronJobInterval) {
       clearInterval(this.cronJobInterval);
     }

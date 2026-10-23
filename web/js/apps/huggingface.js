@@ -1,14 +1,87 @@
 // SwissKnife Dedicated Hugging Face App
 // Professional AI Model Hub, Dataset Management & Inference Platform
 
+const HF_CATALOG_CACHE_TTL_MS = 10 * 60 * 1000;
+const HF_CATALOG_ERROR_RETRY_MS = 30 * 1000;
+const HF_CATALOG_CACHE_LIMIT = 32;
+// Exact query and authentication scope matter: a search/page or another token
+// must never receive a different request's catalog. Only actual Hub responses
+// are retained, in memory, for this browser session.
+const hubCatalogSession = new Map();
+
+function hubCatalogSnapshot(entry, source, cache) {
+    return {
+        items: structuredClone(entry.items),
+        metadata: {
+            source,
+            observed_at: entry.observed_at,
+            attempted_at: entry.attempted_at,
+            cache,
+            cache_age_ms: entry.observed_at === null ? null : Math.max(0, Date.now() - Date.parse(entry.observed_at)),
+            cache_ttl_ms: HF_CATALOG_CACHE_TTL_MS,
+            retry_at: new Date(entry.refresh_at).toISOString(),
+            stale: Boolean(entry.error && entry.observed_at),
+            error: entry.error,
+        },
+    };
+}
+
+async function readHubCatalog(app, url, label, force = false) {
+    const key = JSON.stringify([url, app.apiToken || '']);
+    let entry = hubCatalogSession.get(key);
+    if (entry?.request) return hubCatalogSnapshot(await entry.request, url, 'coalesced');
+    if (!force && entry && Date.now() < entry.refresh_at) {
+        hubCatalogSession.delete(key);
+        hubCatalogSession.set(key, entry);
+        return hubCatalogSnapshot(entry, url, 'session');
+    }
+    if (!entry) {
+        if (hubCatalogSession.size >= HF_CATALOG_CACHE_LIMIT) {
+            const settled = [...hubCatalogSession].find(([, value]) => !value.request);
+            if (settled) hubCatalogSession.delete(settled[0]);
+            else return hubCatalogSnapshot({
+                items: [], observed_at: null, attempted_at: new Date(Date.now()).toISOString(),
+                error: 'Hugging Face catalog request capacity reached; retry after the current reads finish.',
+                refresh_at: Date.now() + HF_CATALOG_ERROR_RETRY_MS,
+            }, url, 'capacity');
+        }
+        entry = { items: [], observed_at: null };
+        hubCatalogSession.set(key, entry);
+    }
+    const request = (async () => {
+        const attempted_at = new Date(Date.now()).toISOString();
+        try {
+            const items = await app.hubCatalogJson(url, label);
+            if (!Array.isArray(items) || items.some(item => !item || typeof item !== 'object' || typeof item.id !== 'string' || !item.id)) {
+                throw new Error(`${label} returned an invalid catalog.`);
+            }
+            Object.assign(entry, {
+                items: structuredClone(items), observed_at: new Date(Date.now()).toISOString(),
+                attempted_at, error: null, refresh_at: Date.now() + HF_CATALOG_CACHE_TTL_MS,
+            });
+        } catch (error) {
+            Object.assign(entry, {
+                attempted_at, error: String(error.message || error),
+                refresh_at: Date.now() + HF_CATALOG_ERROR_RETRY_MS,
+            });
+        }
+        return entry;
+    })();
+    entry.request = request;
+    try { return hubCatalogSnapshot(await request, url, 'network'); }
+    finally { if (entry.request === request) delete entry.request; }
+}
+
 class HuggingFaceApp {
-    constructor() {
+    constructor({ requestTimeoutMs = 8000 } = {}) {
         this.name = 'Hugging Face Hub';
+        this.requestTimeoutMs = Number.isFinite(requestTimeoutMs) && requestTimeoutMs > 0 ? Math.min(requestTimeoutMs, 30000) : 8000;
         // Single live instance for inline handlers (one desktop window per app).
         if (typeof window !== 'undefined') window.huggingFaceApp = this;
         this.currentTab = 'models';
         this.models = new Map();
         this.datasets = new Map();
+        this.catalogMetadata = { models: null, datasets: null };
         this.deployments = new Map();
         this.inferenceHistory = [];
         this.isAuthenticated = false;
@@ -22,7 +95,7 @@ class HuggingFaceApp {
             defaultModel: 'gpt2',
             inferenceMethod: 'auto',
             cacheEnabled: true,
-            cacheTTL: 3600000 // 1 hour
+            cacheTTL: HF_CATALOG_CACHE_TTL_MS
         };
     }
 
@@ -116,7 +189,7 @@ class HuggingFaceApp {
                 <div class="status-right">
                     <span class="status-item">
                         <span class="status-icon">⏱️</span>
-                        <span id="hf-last-refresh">Last refresh: Never</span>
+                        <span id="hf-last-refresh">Last catalog observation: ${this.cache.lastRefresh ? new Date(this.cache.lastRefresh).toISOString() : 'Never'}</span>
                     </span>
                 </div>
             </div>
@@ -180,6 +253,7 @@ class HuggingFaceApp {
             <div class="models-grid" id="models-grid">
                 ${this.renderModelsGrid()}
             </div>
+            <p class="hf-catalog-status" role="status">${this.escapeCatalogStatus(this.catalogStatusText('models'))}</p>
 
             <div class="pagination">
                 <button class="pagination-btn" onclick="window.huggingFaceApp.previousModelsPage()">← Previous</button>
@@ -200,7 +274,7 @@ class HuggingFaceApp {
                 <div class="empty-title">No Models Loaded</div>
                 <div class="empty-description">
                     ${this.modelsError
-                        ? `The Hub catalog could not be reached: ${this.modelsError}`
+                        ? `The Hub catalog could not be reached: ${this.escapeCatalogStatus(this.modelsError)}`
                         : 'The public Hub catalog returned no models for this query.'}
                 </div>
                 <button class="hf-btn hf-btn-primary sk-btn sk-btn-primary" onclick="window.huggingFaceApp.refreshModels()">
@@ -296,6 +370,7 @@ class HuggingFaceApp {
             <div class="datasets-grid" id="datasets-grid">
                 ${this.renderDatasetsGrid()}
             </div>
+            <p class="hf-catalog-status" role="status">${this.escapeCatalogStatus(this.catalogStatusText('datasets'))}</p>
 
             <div class="pagination">
                 <button class="pagination-btn" onclick="window.huggingFaceApp.previousDatasetsPage()">← Previous</button>
@@ -312,13 +387,10 @@ class HuggingFaceApp {
                 <div class="empty-icon">📊</div>
                 <div class="empty-title">No Datasets Loaded</div>
                 <div class="empty-description">
-                    ${this.isAuthenticated ? 
-                        'Click refresh to load datasets from Hugging Face Hub' : 
-                        'Connect your Hugging Face account to browse datasets'
-                    }
+                    ${this.datasetsError ? `The Hub catalog could not be reached: ${this.escapeCatalogStatus(this.datasetsError)}` : 'The public Hub catalog returned no datasets for this query.'}
                 </div>
-                <button class="hf-btn hf-btn-primary sk-btn sk-btn-primary" onclick="window.huggingFaceApp.${this.isAuthenticated ? 'refreshDatasets' : 'showAuthentication'}()">
-                    ${this.isAuthenticated ? '🔄 Refresh Datasets' : '🔑 Connect Account'}
+                <button class="hf-btn hf-btn-primary sk-btn sk-btn-primary" onclick="window.huggingFaceApp.refreshDatasets()">
+                    🔄 Retry Datasets
                 </button>
             </div>`;
         }
@@ -882,7 +954,38 @@ class HuggingFaceApp {
         return headers;
     }
 
-    async fetchModels() {
+    escapeCatalogStatus(value) {
+        return String(value).replace(/[&<>"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[character]);
+    }
+
+    catalogStatusText(resource) {
+        const metadata = this.catalogMetadata[resource];
+        if (!metadata) return `Hugging Face ${resource} have not been requested in this window.`;
+        if (metadata.error) {
+            return `${metadata.stale ? `Retaining the actual catalog observed ${metadata.observed_at} (age ${metadata.cache_age_ms} ms). ` : 'No live catalog observation is available. '}Hugging Face ${resource} unavailable: ${metadata.error} Retry after ${metadata.retry_at}.`;
+        }
+        return `Actual Hugging Face ${resource} observed ${metadata.observed_at}; ${metadata.cache} response, age ${metadata.cache_age_ms} ms. Complete response retained for up to ${metadata.cache_ttl_ms / 60000} minutes.`;
+    }
+
+    async hubCatalogJson(url, label) {
+        const controller = new AbortController();
+        let timer;
+        try {
+            const deadline = new Promise((_, reject) => {
+                timer = setTimeout(() => {
+                    controller.abort();
+                    reject(new Error(`${label} timed out after ${this.requestTimeoutMs} ms; the external provider is unavailable.`));
+                }, this.requestTimeoutMs);
+            });
+            return await Promise.race([deadline, (async () => {
+                const response = await fetch(url, { headers: this.hfHeaders(), signal: controller.signal });
+                if (!response.ok) throw new Error(`${label} request failed: ${response.status}`);
+                return response.json();
+            })()]);
+        } finally { clearTimeout(timer); }
+    }
+
+    async fetchModels({ force = false } = {}) {
         const params = new URLSearchParams({
             limit: '24',
             skip: String(this.modelSkip || 0),
@@ -892,12 +995,12 @@ class HuggingFaceApp {
         });
         if (this.modelSearch) params.set('search', this.modelSearch);
         try {
-            const response = await fetch(`https://huggingface.co/api/models?${params}`, { headers: this.hfHeaders() });
-            if (!response.ok) throw new Error(`HF models request failed: ${response.status}`);
-            const items = await response.json();
+            const { items, metadata } = await readHubCatalog(this, `https://huggingface.co/api/models?${params}`, 'HF models', force || !this.settings.cacheEnabled);
+            this.catalogMetadata.models = metadata;
             this.models.clear();
             for (const m of items) {
                 this.models.set(m.id, {
+                    ...m,
                     id: m.id,
                     name: m.id,
                     author: (m.id || '').split('/')[0] || 'Unknown',
@@ -908,14 +1011,16 @@ class HuggingFaceApp {
                     likes: m.likes || 0
                 });
             }
-            this.modelsError = '';
+            this.modelsError = metadata.error || '';
+            this.cache.models = new Map(this.models);
+            if (metadata.observed_at) this.cache.lastRefresh = Math.max(this.cache.lastRefresh, Date.parse(metadata.observed_at));
         } catch (error) {
             this.modelsError = String(error.message || error);
             console.warn('HF models fetch failed:', error);
         }
     }
 
-    async fetchDatasets() {
+    async fetchDatasets({ force = false } = {}) {
         const params = new URLSearchParams({
             limit: '24',
             skip: String(this.datasetSkip || 0),
@@ -925,12 +1030,12 @@ class HuggingFaceApp {
         });
         if (this.datasetSearch) params.set('search', this.datasetSearch);
         try {
-            const response = await fetch(`https://huggingface.co/api/datasets?${params}`, { headers: this.hfHeaders() });
-            if (!response.ok) throw new Error(`HF datasets request failed: ${response.status}`);
-            const items = await response.json();
+            const { items, metadata } = await readHubCatalog(this, `https://huggingface.co/api/datasets?${params}`, 'HF datasets', force || !this.settings.cacheEnabled);
+            this.catalogMetadata.datasets = metadata;
             this.datasets.clear();
             for (const d of items) {
                 this.datasets.set(d.id, {
+                    ...d,
                     id: d.id,
                     name: d.id,
                     author: (d.id || '').split('/')[0] || 'Unknown',
@@ -942,7 +1047,9 @@ class HuggingFaceApp {
                     language: d.language || []
                 });
             }
-            this.datasetsError = '';
+            this.datasetsError = metadata.error || '';
+            this.cache.datasets = new Map(this.datasets);
+            if (metadata.observed_at) this.cache.lastRefresh = Math.max(this.cache.lastRefresh, Date.parse(metadata.observed_at));
         } catch (error) {
             this.datasetsError = String(error.message || error);
             console.warn('HF datasets fetch failed:', error);
@@ -999,7 +1106,7 @@ class HuggingFaceApp {
         this.modelSearch = '';
         const input = document.getElementById('models-search');
         if (input) input.value = '';
-        await this.fetchModels();
+        await this.fetchModels({ force: true });
         this.refresh();
     }
 
@@ -1007,7 +1114,7 @@ class HuggingFaceApp {
         this.datasetSearch = '';
         const input = document.getElementById('datasets-search');
         if (input) input.value = '';
-        await this.fetchDatasets();
+        await this.fetchDatasets({ force: true });
         this.refresh();
     }
 

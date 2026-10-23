@@ -42,7 +42,7 @@ function matchExpectedInvocation({ appId, expectedToolId, selector, observation,
   if (!binding.tool_selection?.preferred_tool_ids?.includes(call.tool_id)) return fail('executable-exact-tool-mismatch');
   if (!binding.transport_policy?.allowed_transports?.includes(call.transport)) return fail('executable-transport-mismatch');
 
-  const selectorBinding = String(selector || '').match(/\[data-live-gateway-binding\s*=\s*['"]([^'"]+)['"]\]/)?.[1];
+  const selectorBinding = String(selector || '').match(/\[data-(?:live|native)-gateway-binding\s*=\s*['"]([^'"]+)['"]\]/)?.[1];
   if (selectorBinding && selectorBinding !== binding.binding_id) return fail('originating-control-binding-mismatch');
   if (!expectedToolId) return { matches: true, reason: 'reviewed-executable-binding' };
   const projected = app.backend_bindings.find(item => expectedToolId === `mcp++:${item.binding_id}` || expectedToolId === item.binding_id);

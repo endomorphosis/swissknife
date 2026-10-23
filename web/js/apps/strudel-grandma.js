@@ -48,7 +48,7 @@ class GrandmaStrudelDAW {
             {
                 id: 'my-creation',
                 name: '✨ My Creation',
-                description: 'Create your own music with AI help',
+                description: 'Create and play your own local melody',
                 emoji: '🎨',
                 type: 'creation'
             }
@@ -106,6 +106,9 @@ class GrandmaStrudelDAW {
 
         // Track user progress
         this.hasPlayedBefore = false;
+        this.creation = { pattern: 'c4 e4 g4 c5', tempo: 120 };
+        this.disposed = false;
+        this.tutorialTimer = null;
         
         // Cleanup tracking
         this.currentOscillators = [];
@@ -121,6 +124,7 @@ class GrandmaStrudelDAW {
      */
     async start(container) {
         try {
+            this.container = container;
             console.log('🎵 Setting up your music studio...');
             
             // Initialize music parser if available
@@ -276,7 +280,7 @@ class GrandmaStrudelDAW {
                 mutations.forEach((mutation) => {
                     if (mutation.type === 'childList') {
                         mutation.removedNodes.forEach((node) => {
-                            if (node === container || node.contains(container)) {
+                            if (!container.isConnected && (node === container || node.contains(container))) {
                                 console.log('🧹 App container removed, cleaning up...');
                                 this.cleanup();
                             }
@@ -285,7 +289,7 @@ class GrandmaStrudelDAW {
                 });
             });
             
-            observer.observe(container.parentNode, { childList: true, subtree: true });
+            observer.observe(container.ownerDocument.documentElement, { childList: true, subtree: true });
             this.containerObserver = observer;
         }
     }
@@ -294,10 +298,17 @@ class GrandmaStrudelDAW {
      * 🧹 Comprehensive cleanup
      */
     cleanup() {
+        if (this.disposed) return;
+        this.disposed = true;
+        clearTimeout(this.tutorialTimer);
+        this.help.isActive = false;
         try {
             // Stop any playing music
             if (this.state.isPlaying) {
-                this.stopMusic();
+                // The titlebar has already detached the window. Stop audio
+                // directly instead of rendering into removed UI elements.
+                this.state.isPlaying = false;
+                this.stopRealAudioPlayback();
             }
             
             // Stop all audio oscillators
@@ -339,6 +350,10 @@ class GrandmaStrudelDAW {
         } catch (error) {
             console.warn('⚠️ Cleanup had issues:', error);
         }
+    }
+
+    onDestroy() {
+        this.cleanup();
     }
 
     /**
@@ -597,6 +612,7 @@ class GrandmaStrudelDAW {
      * 🎵 Start traditional playback mode
      */
     startPlaybackMode(song) {
+        this.container.querySelector('[data-local-creation]')?.remove();
         // Update the display
         this.updateSongDisplay(song);
         
@@ -608,7 +624,7 @@ class GrandmaStrudelDAW {
     }
 
     /**
-     * 🎨 Start AI-assisted creation mode
+     * 🎨 Start local melody creation mode
      */
     startCreationMode() {
         console.log('🎨 Starting creation mode...');
@@ -617,6 +633,51 @@ class GrandmaStrudelDAW {
         this.showCreationInterface();
         
         this.showFriendlyMessage('🎨 Welcome to your music creation studio! Let\'s make something amazing together! ✨');
+    }
+
+    showCreationInterface() {
+        if (this.disposed || !this.container?.isConnected) return;
+        const host = this.container.querySelector('.now-playing');
+        if (!host) return;
+        host.querySelector('[data-local-creation]')?.remove();
+        const editor = document.createElement('section');
+        editor.dataset.localCreation = 'true';
+        editor.innerHTML = `
+            <h3>Create a local melody</h3>
+            <p>Edit notes such as C4, Eb4 and G4. Playback uses this browser's audio; no AI request or backend save is made.</p>
+            <label>Melody notes <input id="creation-pattern" aria-label="Melody notes" type="text"></label>
+            <label>Tempo (BPM) <input id="creation-tempo" aria-label="Creation tempo" type="number" min="40" max="240"></label>
+            <button type="button" id="apply-creation">Apply melody</button>
+            <button type="button" id="return-to-songs">Return to songs</button>
+            <p data-creation-status role="status"></p>`;
+        const notes = editor.querySelector('#creation-pattern');
+        const tempo = editor.querySelector('#creation-tempo');
+        notes.value = this.creation.pattern;
+        tempo.value = String(this.creation.tempo);
+        const apply = () => {
+            const pattern = notes.value.trim().toLowerCase().replace(/\s+/g, ' ');
+            const bpm = Number(tempo.value);
+            const tokens = pattern.split(' ');
+            if (!pattern || tokens.length > 64 || tokens.some(note => !/^(?:[a-g]|[cdfga]#|[degab]b)[0-8]$/.test(note))
+                || !Number.isFinite(bpm) || bpm < 40 || bpm > 240) {
+                editor.querySelector('[data-creation-status]').textContent = 'Use 1–64 notes (C0–B8, including supported sharps/flats) and a tempo from 40 to 240 BPM.';
+                return;
+            }
+            if (this.state.isPlaying) this.stopMusic();
+            this.creation = { pattern, tempo: bpm };
+            this.state.currentSong = { ...this.demoSongs.find(song => song.type === 'creation'), pattern, tempo: bpm };
+            this.updateSongDisplay(this.state.currentSong);
+            this.enablePlayButton();
+            editor.querySelector('[data-creation-status]').textContent = `Local melody ready: ${pattern} at ${bpm} BPM. Press Play Music to hear it.`;
+        };
+        editor.querySelector('#apply-creation').addEventListener('click', apply);
+        editor.querySelector('#return-to-songs').addEventListener('click', () => {
+            if (this.state.isPlaying) this.stopMusic();
+            editor.remove();
+            this.container.querySelector('.song-picker')?.scrollIntoView?.({ block: 'nearest' });
+        });
+        host.appendChild(editor);
+        apply();
     }
     
     /**
@@ -898,6 +959,7 @@ class GrandmaStrudelDAW {
         try {
             // Get enhanced song data (real files or fallback patterns)
             const songData = await this.getEnhancedSongData(this.state.currentSong);
+            if (this.disposed || !this.state.isPlaying) return;
             
             if (!songData) {
                 console.warn('No song data available');
@@ -1012,7 +1074,7 @@ class GrandmaStrudelDAW {
             const match = noteStr.match(/([a-g][#b]?)(\d?)/);
             if (match) {
                 const [, note, octaveStr] = match;
-                const octave = parseInt(octaveStr) || 4;
+                const octave = octaveStr === '' ? 4 : Number(octaveStr);
                 const baseFreq = noteMap[note];
                 
                 if (baseFreq) {
@@ -1362,6 +1424,10 @@ class GrandmaStrudelDAW {
      * 🎵 Get enhanced pattern data for a song
      */
     async getEnhancedSongData(song) {
+        if (song.type === 'creation') {
+            return { pattern: song.pattern || this.creation.pattern, tempo: song.tempo || this.creation.tempo,
+                description: 'Local user melody', isRealMusic: false };
+        }
         // Try to load real music file first
         const musicFileData = await this.loadPolyphiaMusicFile(song);
         
@@ -1400,22 +1466,25 @@ class GrandmaStrudelDAW {
      * 📚 Show current tutorial step
      */
     showTutorialStep() {
-        if (!this.help.isActive || this.help.currentStep >= this.help.steps.length) {
+        if (this.disposed || !this.help.isActive || this.help.currentStep >= this.help.steps.length) {
             return;
         }
         
-        const tipEl = document.getElementById('tutorial-tip');
+        const tipEl = this.container?.querySelector('#tutorial-tip');
+        if (!tipEl) return;
         const step = this.help.steps[this.help.currentStep];
         
         tipEl.innerHTML = `
             <div class="tip-content">
                 <span class="tip-text">${step}</span>
-                <button class="tip-next" onclick="window.strudelDAW.nextTutorialStep()">Got it! ✅</button>
-                <button class="tip-skip" onclick="window.strudelDAW.skipTutorial()">Skip tutorial</button>
+                <button class="tip-next">Got it! ✅</button>
+                <button class="tip-skip">Skip tutorial</button>
             </div>
         `;
         
         tipEl.style.display = 'block';
+        tipEl.querySelector('.tip-next').addEventListener('click', () => this.nextTutorialStep());
+        tipEl.querySelector('.tip-skip').addEventListener('click', () => this.skipTutorial());
     }
     
     /**
@@ -1427,7 +1496,10 @@ class GrandmaStrudelDAW {
         if (this.help.currentStep >= this.help.steps.length) {
             this.endTutorial();
         } else {
-            setTimeout(() => this.showTutorialStep(), 500);
+            clearTimeout(this.tutorialTimer);
+            this.tutorialTimer = setTimeout(() => {
+                if (!this.disposed && this.container?.isConnected) this.showTutorialStep();
+            }, 500);
         }
     }
     
@@ -1442,8 +1514,10 @@ class GrandmaStrudelDAW {
      * 🏁 End the tutorial
      */
     endTutorial() {
+        clearTimeout(this.tutorialTimer);
         this.help.isActive = false;
-        document.getElementById('tutorial-tip').style.display = 'none';
+        const tipEl = this.container?.querySelector('#tutorial-tip');
+        if (tipEl) tipEl.style.display = 'none';
         this.showFriendlyMessage('🎉 You\'re all set! Have fun making music!');
     }
     

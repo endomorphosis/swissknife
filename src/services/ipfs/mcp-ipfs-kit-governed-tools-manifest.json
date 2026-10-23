@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "tools": [
+    { "name": "artifacts_put", "category": "governed", "description": "Persist exact CID-verified artifact bytes, or validate a mutation preview without storage.", "tags": ["write", "confirmation"], "inputSchema": { "type": "object", "properties": { "cid": {"type":"string"}, "bytes_base64": {"type":"string"}, "profile": {"type":"string"}, "kind": {"type":"string"}, "service": {"type":"string"}, "pin": {"type":"boolean"}, "dry_run": {"type":"boolean"} }, "required": ["cid", "bytes_base64"] } },
+    { "name": "artifacts_get", "category": "governed", "description": "Read and verify the exact stored artifact CID.", "tags": ["read"], "inputSchema": { "type": "object", "properties": { "cid": {"type":"string"} }, "required": ["cid"] } },
+    { "name": "dag_append", "category": "governed", "description": "Append a structured event to the owner DAG, or validate it without mutation.", "tags": ["write", "confirmation"], "inputSchema": { "type": "object", "properties": { "event": {"type":"object"}, "dry_run": {"type":"boolean"} }, "required": ["event"] } },
+    { "name": "dag_history", "category": "governed", "description": "Read real event DAG history from the owner.", "tags": ["read"], "inputSchema": { "type": "object", "properties": { "limit": {"type":"integer", "minimum":1, "maximum":1000} } } },
+    { "name": "ipfs_pubsub_publish", "category": "pubsub", "description": "Publish actual UTF-8 content to an IPFS topic, or validate a mutation preview.", "tags": ["write", "confirmation"], "inputSchema": { "type": "object", "properties": { "topic": {"type":"string"}, "content": {"type":"string"}, "dry_run": {"type":"boolean"} }, "required": ["topic", "content"] } }
+  ]
+}

@@ -7,6 +7,7 @@
  * binding the dashboard can render and call over MCP/MCP++.
  */
 import manifest from './mcp-ipfs-kit-tools-manifest.json';
+import governedManifest from './mcp-ipfs-kit-governed-tools-manifest.json';
 
 export interface IPFSKitToolDef {
   name: string;
@@ -38,7 +39,11 @@ export interface IPFSKitDescriptorPack {
   backend_bindings: IPFSKitBackendBinding[];
 }
 
-const m = manifest as IPFSKitManifest;
+// Adapter-owned operations share their descriptors with the executable owner;
+// the upstream generated manifest remains untouched.
+const m: IPFSKitManifest = { ...manifest, tools: [...new Map(
+  [...manifest.tools, ...governedManifest.tools].map(tool => [tool.name, tool as IPFSKitToolDef]),
+).values()] };
 
 export function getIPFSKitDescriptorPack(): IPFSKitDescriptorPack {
   return {

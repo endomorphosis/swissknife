@@ -14,6 +14,7 @@
  */
 
 import { contentCidForBytes, stableStringifyValue, base64ForBytes } from '../core/mcp-plus-plus-desktop-client.js';
+import { invokeNativeTool } from '../live-tool-gateway.js';
 
 async function parseToolResponse(response) {
   const raw = await response.text();
@@ -216,6 +217,7 @@ export class PeerTubeApp {
   async createInterface(container) {
     await this.initialize();
     
+    this.container = container;
     container.innerHTML = this.getHTML();
     
     // Apply styles
@@ -346,7 +348,7 @@ export class PeerTubeApp {
               </div>
               <div class="cid-open-bar" aria-label="Open video by CID">
                 <input type="text" id="cid-open-input" placeholder="Open a video by artifact CID (bafy…)" spellcheck="false" aria-label="Video artifact CID">
-                <button id="cid-open-btn" class="header-btn" aria-label="📥 Open by CID">📥 Open by CID</button>
+                <button id="cid-open-btn" data-native-gateway-binding="peertube.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat" class="header-btn" aria-label="📥 Open by CID">📥 Open by CID</button>
                 <span class="cid-open-note" id="cid-open-status">Fetches real bytes from ipfs_kit_py. Playback is local.</span>
               </div>
               <div class="videos-container" id="videos-container">
@@ -1442,7 +1444,7 @@ export class PeerTubeApp {
     // Open by CID
     const cidOpenInput = container.querySelector('#cid-open-input');
     const cidOpenBtn = container.querySelector('#cid-open-btn');
-    const openByCid = () => this.openVideoByCid(cidOpenInput?.value || '');
+    const openByCid = () => this.openVideoByCid(cidOpenInput?.value || '', cidOpenBtn);
     cidOpenBtn?.addEventListener('click', openByCid);
     cidOpenInput?.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') openByCid();
@@ -1994,7 +1996,7 @@ export class PeerTubeApp {
    * ipfs_kit_py. The artifact joins the local library and starts playing.
    * Failures surface verbatim.
    */
-  async openVideoByCid(cid) {
+  async openVideoByCid(cid, trigger = null) {
     cid = String(cid || '').trim();
     if (!cid) {
       this.setCidOpenStatus('Enter an artifact CID first.');
@@ -2003,53 +2005,32 @@ export class PeerTubeApp {
     this.setCidOpenStatus(`Fetching ${cid} from ipfs_kit_py…`);
     const started = performance.now();
     const dryRun = globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true;
-    if (dryRun) {
-      const toolId = 'ipfs_cat';
-      const bindingId = 'peertube.ipfs_kit_py.retrieve_content';
-      const correlationId = `peertube:cid:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
-      this.setCidOpenStatus(`${toolId} ${correlationId}`);
-      const response = await fetch('/mcp/tools/call', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          protocol: 'swissknife.all-app-tool-gateway.v1',
-          route: '/mcp/tools/call',
-          binding_id: bindingId,
-          app_id: 'peertube',
-          intent_id: bindingId,
-          owner: 'ipfs_kit_py',
-          tool_id: toolId,
-          transport: 'http',
-          correlation_id: correlationId,
-          receipt_required: true,
-          input: {
-            correlation_id: correlationId,
-            payload: { cid, scope: bindingId, limit: 1 },
-            policy: {
-              decision_id: `desktop-policy:${bindingId}`,
-              outcome: 'require_confirmation',
-              reason: 'PeerTube CID open is a dry run while the desktop gateway forces dry run.',
-              consent: 'not_required',
-              dry_run: true,
-            },
-          },
-        }),
-      });
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text.slice(0, 180) || `gateway ${response.status}`);
-      }
-      // Read the mediator body. Leaving it unread lets the browser cancel the
-      // stream before the click harness can record receipt and outcome.
-      await response.json().catch(() => undefined);
-      this.setCidOpenStatus(`${toolId} ${correlationId}`);
-      this.appendWorkflowLog(`dry run ${toolId} ${correlationId}`);
-      return;
-    }
     try {
-      const artifact = await callMcpTool('mcp++:ipfs_kit_py/artifacts/get', { cid });
+      const bindingId = 'peertube.ipfs_kit_py.retrieve_content';
+      const container = this.container || document.querySelector('.peertube-container');
+      const envelope = await invokeNativeTool(container, 'peertube', bindingId, {
+        toolId: 'ipfs_cat', payload: { cid, scope: bindingId, limit: 1 },
+        trigger: trigger || container?.querySelector('#cid-open-btn'),
+      });
+      if (!envelope) { this.setCidOpenStatus('Cancelled before retrieval.'); return; }
+      if (envelope.ok === false || envelope.error || envelope.result?.ok === false || envelope.result?.error) {
+        throw new Error(envelope.error?.message || envelope.error || envelope.result?.error?.message || envelope.result?.error || 'Owner retrieval failed.');
+      }
+      const toolResult = envelope.result ?? envelope;
+      const blocks = toolResult.content?.filter(block => block.type === 'json' && block.json && typeof block.json === 'object') || [];
+      if (blocks.length > 1) throw new Error('Owner returned ambiguous retrieval data.');
+      const artifact = blocks[0]?.json ?? toolResult.result ?? toolResult;
+      if (artifact.ok === false || artifact.success === false || artifact.error) {
+        throw new Error(artifact.error?.message || artifact.error || 'Owner retrieval failed.');
+      }
+      if (dryRun || artifact.dry_run === true) {
+        const line = `dry run ipfs_cat ${envelope.correlation_id || ''}`;
+        this.setCidOpenStatus(line);
+        this.appendWorkflowLog(line);
+        return;
+      }
       const ms = Math.round(performance.now() - started);
-      if (!artifact || artifact.found !== true) {
+      if (!artifact || artifact.found === false) {
         throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
       }
       const bytes = bytesFromBase64(artifact.bytes_base64 || '');

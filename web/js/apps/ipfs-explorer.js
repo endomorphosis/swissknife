@@ -1,47 +1,10 @@
 /**
  * Enhanced IPFS Explorer App for SwissKnife Web Desktop
  * Advanced IPFS file management with P2P integration, content pinning, and network analytics.
- * Artifact reads and confirmed writes use POST /mcp/tools/call (IDL method request_action).
+ * File writes use the reviewed artifact binding and visible gateway confirmation.
  */
 
-async function parseToolResponse(response) {
-  const raw = await response.text();
-  let payload = null;
-  if (raw) {
-    try {
-      payload = JSON.parse(raw);
-    } catch (parseError) {
-      payload = null;
-    }
-  }
-  if (!response.ok) {
-    const message = payload && typeof payload === 'object'
-      ? (payload.error?.message || payload.error || payload.message || raw)
-      : (raw || ('HTTP ' + response.status));
-    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
-  }
-  if (payload && typeof payload === 'object' && payload.error) {
-    const message = payload.error.message || payload.error;
-    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
-  }
-  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
-    return payload.result;
-  }
-  return payload;
-}
-
-async function callMcpTool(tool, toolArguments) {
-  const response = await fetch('/mcp/tools/call', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      method: 'request_action',
-      tool,
-      arguments: toolArguments
-    })
-  });
-  return parseToolResponse(response);
-}
+import { invokeNetworkNativeTool, networkNativeAttributes } from './network-native-tools.js';
 
 export class IPFSExplorerApp {
   constructor(desktop) {
@@ -471,7 +434,7 @@ export class IPFSExplorerApp {
             </div>
             <div class="modal-footer">
               <button class="btn-secondary" id="cancel-upload">Cancel</button>
-              <button class="btn-primary" id="start-upload" disabled>Upload to IPFS</button>
+              <button class="btn-primary" id="start-upload" ${networkNativeAttributes('ipfs-explorer', 'mcp++:ipfs_kit_py/artifacts/put')} disabled>Upload to IPFS</button>
             </div>
           </div>
         </div>
@@ -1124,9 +1087,12 @@ export class IPFSExplorerApp {
     await this.loadInitialData();
   }
 
-  setupEventListeners() {
+  setupEventListeners(container = document.querySelector('.ipfs-explorer-container')) {
+    if (!container || this._boundContainer === container) return;
+    this.container = container;
+    this._boundContainer = container;
     // Tab switching
-    document.addEventListener('click', (e) => {
+    container.addEventListener('click', (e) => {
       if (e.target.classList.contains('tab-btn')) {
         const view = e.target.dataset.view;
         this.switchView(view);
@@ -1134,7 +1100,7 @@ export class IPFSExplorerApp {
     });
 
     // File upload and management
-    document.addEventListener('click', (e) => {
+    container.addEventListener('click', (e) => {
       const buttonHandlers = {
         'add-files': () => this.showUploadModal(),
         'create-folder': () => this.createFolder(),
@@ -1812,76 +1778,18 @@ export class IPFSExplorerApp {
       this.hideUploadModal();
       this.loadExplorerContent();
     } catch (error) {
-      this.showNotification(`Upload failed: ${error.message}`, 'error');
+      this.showNotification(`Upload ${error.preview ? 'preview' : error.cancelled ? 'cancelled' : 'failed'}: ${error.message}`, error.preview || error.cancelled ? 'info' : 'error');
     }
   }
 
   async uploadFileToIPFS(file) {
-    // Try to upload to real IPFS
-    if (this.desktop?.swissknife?.ipfs) {
-      try {
-        const result = await this.desktop.swissknife.ipfs.add(file);
-        const hash = result.cid || result.hash;
-        
-        // Add to pinned content if option is selected
-        const pinAfterUpload = document.getElementById('pin-after-upload');
-        if (pinAfterUpload?.checked) {
-          await this.desktop.swissknife.ipfs.pin(hash);
-          this.pinnedContent.set(hash, {
-            hash,
-            name: file.name,
-            size: file.size,
-            type: this.getFileType(file.name),
-            pinnedAt: Date.now(),
-            status: 'pinned'
-          });
-        }
-        
-        return hash;
-      } catch (error) {
-        console.warn('⚠️ SwissKnife IPFS upload failed:', error);
-      }
-    }
-    
-    // Try window.ipfs
-    if (window.ipfs) {
-      try {
-        const result = await window.ipfs.add(file);
-        const hash = result.cid.toString();
-        
-        // Add to pinned content if option is selected
-        const pinAfterUpload = document.getElementById('pin-after-upload');
-        if (pinAfterUpload?.checked) {
-          await window.ipfs.pin.add(hash);
-          this.pinnedContent.set(hash, {
-            hash,
-            name: file.name,
-            size: file.size,
-            type: this.getFileType(file.name),
-            pinnedAt: Date.now(),
-            status: 'pinned'
-          });
-        }
-        
-        return hash;
-      } catch (error) {
-        console.warn('⚠️ Window IPFS upload failed:', error);
-      }
-    }
-    
-    // Final route: persist the file bytes as a real content-addressed
-    // artifact in the ipfs_kit_py store. The CID is computed over the exact
-    // bytes via contentCidForBytes and verified by the backend — no
-    // fabricated hashes. Governed write: explicit user confirmation first,
-    // failures surface verbatim.
-    if (!confirm(`Upload "${file.name}" (${this.formatBytes(file.size)}) to the IPFS artifact store via ipfs_kit_py?`)) {
-      throw new Error('Upload cancelled by user.');
-    }
+    // The reviewed owner validates the exact file bytes after visible
+    // confirmation. No alternate browser writer runs before policy review.
     const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
     const { contentCidForBytes, base64ForBytes } = clientModule;
     const bytes = new Uint8Array(await file.arrayBuffer());
     const cid = await contentCidForBytes(bytes);
-    const result = await callMcpTool('mcp++:ipfs_kit_py/artifacts/put', {
+    const result = await invokeNetworkNativeTool(this.container || document.querySelector('.ipfs-explorer-container'), 'ipfs-explorer', 'mcp++:ipfs_kit_py/artifacts/put', {
       cid,
       bytes_base64: base64ForBytes(bytes),
       profile: 'ipfs-explorer-upload',
@@ -1889,7 +1797,8 @@ export class IPFSExplorerApp {
       service: 'ipfs_kit_py',
       pin: document.getElementById('pin-after-upload')?.checked !== false
     });
-    if (!result || result.persisted !== true || result.cid !== cid) {
+    if (result === null) throw Object.assign(new Error('Upload cancelled before dispatch.'), { cancelled: true });
+    if (result.persisted !== true || result.cid !== cid) {
       throw new Error(result?.error || 'ipfs_kit_py did not verify the uploaded artifact.');
     }
     this.pinnedContent.set(cid, {
@@ -1901,7 +1810,7 @@ export class IPFSExplorerApp {
       status: 'pinned',
       verified: result.verified === true
     });
-    eventBus.emit('ipfs:file-added', { filename: file.name, hash: cid, size: file.size });
+    globalThis.eventBus?.emit?.('ipfs:file-added', { filename: file.name, hash: cid, size: file.size });
     return cid;
   }
 

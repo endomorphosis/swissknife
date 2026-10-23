@@ -251,7 +251,7 @@ export interface MediatedOutputValidationResult {
 }
 
 const POLICY_BLOCKED_APP_IDS = new Set(['api-keys']);
-const EXTERNAL_PROVIDER_APP_IDS = new Set(['oauth-login']);
+const EXTERNAL_PROVIDER_APP_IDS = new Set(['oauth-login', 'openrouter']);
 
 const TOOL_PREFERENCES: Readonly<
   Record<ExecutableBackendOwner, Readonly<Partial<Record<string, readonly string[]>>>>
@@ -261,11 +261,20 @@ const TOOL_PREFERENCES: Readonly<
     vfs: ['files_ls', 'files_read', 'files_write'],
     dag: ['dag_get', 'dag_put'],
     swarm: ['swarm_peers', 'node_id'],
-    pubsub: ['swarm_peers'],
+    pubsub: ['ipfs_pubsub_publish'],
+    artifact_write: ['artifacts_put'],
+    artifact_read: ['artifacts_get'],
+    event_append: ['dag_append'],
+    event_history: ['dag_history'],
     registry: ['node_id'],
     descriptor: ['node_id'],
   },
   ipfs_datasets_py: {
+    semantic_query: ['semantic_search'],
+    dataset_search: ['semantic_search'],
+    dataset_lineage: ['record_provenance'],
+    dataset_preparation: ['index'],
+    dataset_progress: ['sync_status'],
     discovery: ['load_dataset', 'get_from_ipfs'],
     vector: ['load_index', 'load_dataset'],
     provenance: ['record_provenance', 'save_dataset'],
@@ -273,6 +282,12 @@ const TOOL_PREFERENCES: Readonly<
     descriptor: ['tools_get_schema'],
   },
   ipfs_accelerate_py: {
+    training_preview: ['submit_task'],
+    hardware_snapshot: ['hardware_profile'],
+    telemetry_snapshot: ['telemetry'],
+    model_catalog: ['list_models'],
+    job_lookup: ['job_status'],
+    inference_job: ['run_inference_job'],
     models: ['get_task', 'detect_hardware'],
     inference: ['submit_task', 'WorkflowCoordinator.submit_task'],
     jobs: ['get_task', 'submit_task'],
@@ -290,6 +305,21 @@ const OPERATION_BY_CAPABILITY_TOKEN: Readonly<Record<string, string>> = {
   dag: 'read_event_dag',
   swarm: 'inspect_peer_network',
   pubsub: 'exchange_peer_messages',
+  artifact_write: 'persist_artifact',
+  artifact_read: 'retrieve_artifact',
+  event_append: 'append_event',
+  event_history: 'read_event_history',
+  model_catalog: 'read_model_catalog',
+  job_lookup: 'read_job_status',
+  inference_job: 'run_inference_job',
+  hardware_snapshot: 'read_hardware_profile',
+  telemetry_snapshot: 'read_telemetry',
+  semantic_query: 'search_notes',
+  dataset_search: 'search_dataset',
+  dataset_lineage: 'record_dataset_provenance',
+  dataset_preparation: 'preview_dataset_preparation',
+  dataset_progress: 'read_dataset_progress',
+  training_preview: 'preview_training_task',
   discovery: 'query_catalog',
   vector: 'query_vector_index',
   provenance: 'record_provenance',

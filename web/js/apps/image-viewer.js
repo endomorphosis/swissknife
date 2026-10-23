@@ -5,13 +5,14 @@
  *
  * Backend contract: image bytes and metadata persist through
  * POST /mcp/tools/call using IDL method request_action.
- * Retrieval tool id: mcp++:ipfs_kit_py/artifacts/get.
+ * Retrieval uses the approved ipfs_kit_py ipfs_cat binding.
  * Every backend-mutating POST sits behind an explicit user confirmation step;
  * backend failures surface verbatim and never fall back to fixtures or
  * simulated success. Zoom, pan, filters and alt text are honestly local.
  */
 
 import { contentCidForBytes, stableStringifyValue, base64ForBytes } from '../core/mcp-plus-plus-desktop-client.js';
+import { invokeNativeTool } from '../live-tool-gateway.js';
 
 async function backendClient() {
   const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
@@ -135,7 +136,7 @@ export class ImageViewerApp {
         <div class="image-toolbar" aria-label="Image Viewer toolbar">
           <div class="toolbar-section">
             <button class="toolbar-btn primary-action" id="open-files-btn" type="button" title="Open image files" aria-label="Open image files">Open</button>
-            <button class="toolbar-btn" id="retrieve-cid-btn" type="button" data-live-gateway-binding="image-viewer.ipfs_kit_py.retrieve_content" data-action="retrieve-cid-image" aria-label="Retrieve CID-backed image">Retrieve CID</button>
+            <button class="toolbar-btn" id="retrieve-cid-btn" type="button" data-native-gateway-binding="image-viewer.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat" data-action="retrieve-cid-image" aria-label="Retrieve CID-backed image">Retrieve CID</button>
             <input type="file" id="image-file-input" accept="image/*" multiple hidden>
           </div>
           <div class="toolbar-section">
@@ -270,7 +271,7 @@ export class ImageViewerApp {
       <div class="welcome-screen">
         <h2>SwissKnife Image Viewer</h2>
         <p>Open local images or retrieve a CID-backed image with metadata, OCR, enhancement, and fallback states.</p>
-        <button class="welcome-btn" id="welcome-retrieve-cid" type="button" data-action="retrieve-cid-image" data-svd-workflow-action="retrieve-cid-image">Retrieve CID image</button>
+        <button class="welcome-btn" id="welcome-retrieve-cid" data-native-gateway-binding="image-viewer.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat" type="button" data-action="retrieve-cid-image" data-svd-workflow-action="retrieve-cid-image">Retrieve CID image</button>
       </div>
     `;
   }
@@ -314,7 +315,7 @@ export class ImageViewerApp {
           </article>
         </div>
         <div class="workflow-actions" aria-label="Image Viewer VDA-G038 workflow actions">
-          <button type="button" data-svd-workflow-action="retrieve-cid-image" data-action="retrieve-cid-image">Retrieve CID</button>
+          <button type="button" data-svd-workflow-action="retrieve-cid-image" data-action="retrieve-cid-image" data-native-gateway-binding="image-viewer.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat">Retrieve CID</button>
           <button type="button" data-svd-workflow-action="publish-image" data-action="publish-image">Publish</button>
           <button type="button" data-svd-workflow-action="run-metadata-ocr" data-action="run-metadata-ocr">Metadata</button>
           <button type="button" data-svd-workflow-action="start-enhancement-job" data-action="start-enhancement-job">Enhance</button>
@@ -729,8 +730,8 @@ export class ImageViewerApp {
 
     this.on(container, '#open-files-btn', 'click', () => this.openImages());
     this.on(container, '#image-file-input', 'change', event => this.loadLocalImages(event.target.files));
-    this.on(container, '#retrieve-cid-btn', 'click', () => this.retrieveCidImage());
-    this.on(container, '#welcome-retrieve-cid', 'click', () => this.retrieveCidImage());
+    this.on(container, '#retrieve-cid-btn', 'click', event => this.retrieveCidImage(null, event.currentTarget));
+    this.on(container, '#welcome-retrieve-cid', 'click', event => this.retrieveCidImage(null, event.currentTarget));
     this.on(container, '#prev-image-btn', 'click', () => this.navigateImage(-1));
     this.on(container, '#next-image-btn', 'click', () => this.navigateImage(1));
     this.on(container, '#zoom-in-btn', 'click', () => this.zoomIn());
@@ -755,7 +756,7 @@ export class ImageViewerApp {
 
     container.querySelectorAll('[data-svd-workflow-action]').forEach(button => {
       const action = button.dataset.svdWorkflowAction;
-      if (action === 'retrieve-cid-image') button.addEventListener('click', () => this.retrieveCidImage());
+      if (action === 'retrieve-cid-image') button.addEventListener('click', event => this.retrieveCidImage(null, event.currentTarget));
       if (action === 'publish-image') button.addEventListener('click', () => this.publishCurrentImage());
       if (action === 'run-metadata-ocr') button.addEventListener('click', () => this.runMetadataOcr());
       if (action === 'start-enhancement-job') button.addEventListener('click', () => this.startEnhancementJob());
@@ -860,11 +861,11 @@ export class ImageViewerApp {
 
   /**
    * 🛰️ Retrieve a CID-backed image via POST /mcp/tools/call
-   * (request_action, tool mcp++:ipfs_kit_py/artifacts/get). Bytes are decoded, sniffed for a real MIME type and shown
+   * through the approved ipfs_cat binding. Bytes are decoded, sniffed for a real MIME type and shown
    * from a blob URL. Retrieval time is measured, never fabricated. Backend
    * failures surface verbatim — never a fixture gallery entry.
    */
-  async retrieveCidImage(presetCid = null) {
+  async retrieveCidImage(presetCid = null, trigger = null) {
     const cid = presetCid || await this.promptForCid(
       'Retrieve CID image',
       'Enter the CID of an image artifact stored in ipfs_kit_py. Its real bytes will be fetched and added to the gallery.'
@@ -872,7 +873,7 @@ export class ImageViewerApp {
     if (!cid) return;
     const toolId = 'ipfs_cat';
     const bindingId = 'image-viewer.ipfs_kit_py.retrieve_content';
-    const correlationId = `image-viewer:retrieve:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+    let correlationId = '';
     const dryRun = globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true;
     this.vdaG038.retrievalState = 'retrieving';
     this.vdaG038.gatewayStatus = `${toolId} ${correlationId}`;
@@ -881,36 +882,27 @@ export class ImageViewerApp {
     this.refreshContent();
     const started = performance.now();
     try {
-      const response = await fetch('/mcp/tools/call', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          protocol: 'swissknife.all-app-tool-gateway.v1',
-          route: '/mcp/tools/call',
-          binding_id: bindingId,
-          app_id: 'image-viewer',
-          intent_id: bindingId,
-          owner: 'ipfs_kit_py',
-          tool_id: toolId,
-          transport: 'http',
-          correlation_id: correlationId,
-          receipt_required: true,
-          input: {
-            correlation_id: correlationId,
-            payload: { cid, scope: bindingId, limit: 1 },
-            policy: {
-              decision_id: `desktop-policy:${bindingId}`,
-              outcome: 'require_confirmation',
-              reason: dryRun
-                ? 'Image retrieval runs as a no-side-effect dry run while the desktop gateway forces dry run.'
-                : 'Image retrieval reads one CID through the mediated ipfs_kit_py gateway.',
-              consent: dryRun ? 'not_required' : 'granted',
-              dry_run: dryRun,
-            },
-          },
-        }),
+      const envelope = await invokeNativeTool(this.container(), 'image-viewer', bindingId, {
+        toolId, payload: { cid, scope: bindingId, limit: 1 },
+        trigger: trigger || this.container()?.querySelector('#retrieve-cid-btn'),
       });
-      const artifact = await parseToolResponse(response);
+      if (!envelope) {
+        this.vdaG038.retrievalState = 'idle';
+        this.vdaG038.lastRetrievedInfo = 'Cancelled before retrieval.';
+        this.refreshContent();
+        return;
+      }
+      correlationId = envelope.correlation_id || '';
+      if (envelope.ok === false || envelope.error || envelope.result?.ok === false || envelope.result?.error) {
+        throw new Error(envelope.error?.message || envelope.error || envelope.result?.error?.message || envelope.result?.error || 'Owner retrieval failed.');
+      }
+      const toolResult = envelope.result ?? envelope;
+      const blocks = toolResult.content?.filter(block => block.type === 'json' && block.json && typeof block.json === 'object') || [];
+      if (blocks.length > 1) throw new Error('Owner returned ambiguous retrieval data.');
+      const artifact = blocks[0]?.json ?? toolResult.result ?? toolResult;
+      if (artifact.ok === false || artifact.success === false || artifact.error) {
+        throw new Error(artifact.error?.message || artifact.error || 'Owner retrieval failed.');
+      }
       const ms = Math.round(performance.now() - started);
       const bytes = bytesFromBase64(artifact?.bytes_base64 || artifact?.result?.bytes_base64 || '');
       if (dryRun) {
@@ -1396,7 +1388,14 @@ export class ImageViewerApp {
       const done = (value) => { overlay.remove(); resolve(value ? value.trim() : null); };
       overlay.querySelector('.iv-governed-cancel').addEventListener('click', () => done(null));
       overlay.querySelector('.iv-governed-confirm').addEventListener('click', () => done(input.value));
-      input.addEventListener('keydown', (event) => { if (event.key === 'Enter') done(input.value); });
+      input.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        // This key submits the CID only. Its default must not activate the
+        // cancel button focused by the following owner confirmation dialog.
+        event.preventDefault();
+        event.stopPropagation();
+        done(input.value);
+      });
       document.body.appendChild(overlay);
       input.focus();
     });

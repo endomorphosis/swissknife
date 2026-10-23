@@ -51,7 +51,8 @@ function profileEPeersResult(service) {
   const announceName = ANNOUNCE_FILES[service];
   if (!announceName) return { peers: [], protocol: MCP_P2P_PROTOCOL };
   try {
-    const announce = JSON.parse(fs.readFileSync(path.join(EVIDENCE_ROOT, announceName), 'utf8'));
+    const announceRoot = process.env.MCPPLUSPLUS_PEER_ANNOUNCE_DIR || EVIDENCE_ROOT;
+    const announce = JSON.parse(fs.readFileSync(path.join(announceRoot, announceName), 'utf8'));
     if (
       announce.service !== service
       || announce.protocol !== MCP_P2P_PROTOCOL

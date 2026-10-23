@@ -6,6 +6,7 @@ import {
   stableStringifyValue,
   base64ForBytes,
 } from '../core/mcp-plus-plus-desktop-client.js';
+import { invokeNetworkNativeTool, networkNativeAttributes } from './network-native-tools.js';
 
 const TABS = ['overview', 'tools', 'protocol', 'diagnostics', 'events', 'policy', 'artifacts'];
 
@@ -248,7 +249,7 @@ export class MCPPlusPlusExplorerApp {
         <h4>${escapeHtml(title)}</h4>
         ${body}
         <div class="mcppp-actions mcppp-actions-spaced">
-          <button type="button" data-svd-workflow-action="${action}" data-action="${action}">${escapeHtml(actionLabel)}</button>
+          <button type="button" ${action === 'open-evidence-drilldown' ? networkNativeAttributes('mcp-plus-plus', 'mcp++:ipfs_kit_py/artifacts/put') : ''} data-svd-workflow-action="${action}" data-action="${action}">${escapeHtml(actionLabel)}</button>
         </div>
       </article>`;
     const resultBlock = value => value === null || value === undefined
@@ -304,7 +305,7 @@ export class MCPPlusPlusExplorerApp {
     return `
       <section class="mcppp-section" aria-label="Confirm evidence persist">
         <div class="mcppp-section-heading"><h3>Confirm evidence persist</h3></div>
-        <p class="mcppp-note">This will POST the evidence bundle (${pending.bytes} bytes, CID ${escapeHtml(pending.expectedCid)}) through POST /mcp/tools/call with IDL method request_action and pin=true. The store verifies the CID over the exact bytes sent.</p>
+        <p class="mcppp-note">Review the evidence bundle (${pending.bytes} bytes, expected CID ${escapeHtml(pending.expectedCid)}). The owner verifies these exact bytes. A validated preview creates no stored artifact.</p>
         <div class="mcppp-actions">
           <button type="button" data-action="confirm-evidence-persist">Confirm persist</button>
           <button type="button" data-action="cancel-evidence-persist">Cancel</button>
@@ -486,6 +487,7 @@ export class MCPPlusPlusExplorerApp {
     this.state.diag.pendingConfirm = { bundle, bytes: bytes.length, expectedCid };
     this.state.message = `Evidence bundle ready (CID ${expectedCid}). Confirm to persist it to the kit backend.`;
     this.update();
+    await this.confirmEvidencePersist();
   }
 
   async confirmEvidencePersist() {
@@ -499,7 +501,7 @@ export class MCPPlusPlusExplorerApp {
     try {
       const bytes = new TextEncoder().encode(stableStringifyValue(pending.bundle));
       const cid = await contentCidForBytes(bytes);
-      const res = await callExplorerMcpTool('request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
+      const res = await invokeNetworkNativeTool(this.container, 'mcp-plus-plus', 'mcp++:ipfs_kit_py/artifacts/put', {
         cid,
         bytes_base64: base64ForBytes(bytes),
         profile: 'mcppp-explorer-artifact',
@@ -507,7 +509,8 @@ export class MCPPlusPlusExplorerApp {
         service: 'ipfs_kit_py',
         pin: true,
       });
-      if (!res || res.persisted !== true || res.cid !== cid) {
+      if (res === null) { this.state.message = 'Evidence persistence cancelled before dispatch.'; this.update(); return; }
+      if (res.persisted !== true || res.cid !== cid) {
         throw new Error(res?.error || 'ipfs_kit_py did not verify the persisted evidence artifact.');
       }
       this.state.diag.evidence = pending.bundle;
@@ -515,8 +518,8 @@ export class MCPPlusPlusExplorerApp {
       this.state.message = `Evidence bundle persisted to ipfs_kit_py at CID ${cid} (verified: ${res.verified === true}).`;
       this.diagLog(`open-evidence-drilldown: bundle persisted at ${cid}`);
     } catch (error) {
-      this.state.message = `Evidence persist failed: ${messageFor(error)}`;
-      this.diagLog(`open-evidence-drilldown failed: ${messageFor(error)}`);
+      this.state.message = error.preview ? error.message : `Evidence persist failed: ${messageFor(error)}`;
+      this.diagLog(`open-evidence-drilldown ${error.preview ? 'preview' : 'failed'}: ${messageFor(error)}`);
     }
     this.update();
   }
@@ -838,37 +841,6 @@ export class MCPPlusPlusExplorerApp {
       @media (max-width: 760px) { .mcp-plus-plus-explorer { padding: 12px; } .mcppp-header, .mcppp-coverage-row, .mcppp-section-heading { align-items: flex-start; flex-direction: column; } .mcppp-actions, .mcppp-vda-actions { align-items: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .mcppp-actions button, .mcppp-section button { min-width: 0; overflow-wrap: anywhere; } .mcppp-summary-grid, .mcppp-split, .mcppp-diagnostic-grid, .mcppp-vda-grid { grid-template-columns: 1fr; } .mcppp-event-list article { grid-template-columns: 1fr; } }
     </style>`;
   }
-}
-
-async function callExplorerMcpTool(method, tool, toolArguments) {
-  const response = await fetch('/mcp/tools/call', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ method, tool, arguments: toolArguments }),
-  });
-  const raw = await response.text();
-  let payload = null;
-  if (raw) {
-    try {
-      payload = JSON.parse(raw);
-    } catch {
-      payload = null;
-    }
-  }
-  if (!response.ok) {
-    const message = payload && typeof payload === 'object'
-      ? (payload.error?.message || payload.error || payload.message || raw)
-      : (raw || ('HTTP ' + response.status));
-    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
-  }
-  if (payload && typeof payload === 'object' && payload.error) {
-    const message = payload.error.message || payload.error;
-    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
-  }
-  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
-    return payload.result;
-  }
-  return payload;
 }
 
 function tabLabel(tab) { return tab.charAt(0).toUpperCase() + tab.slice(1); }

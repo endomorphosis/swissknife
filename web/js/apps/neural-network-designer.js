@@ -7,6 +7,7 @@
 // global-only capability. See `web/js/core/ipfs-accelerate-global-adapter.js`
 // for why this app no longer dynamically imports raw
 // `ipfs_accelerate_js/src` source.
+import { invokeNativeTool } from '../live-tool-gateway.js';
 import { loadLocalIPFSAccelerateClass } from '../core/ipfs-accelerate-global-adapter.js';
 import {
   getMCPPlusPlusDesktopClient,
@@ -19,46 +20,35 @@ const VDA_G031_WORKFLOW = 'neural-network-designer.design-compile-train';
 const VDA_G031_ID = 'VDA-G031';
 const GRAPH_SCHEMA = 'swissknife.neural-network-designer.graph.v1';
 
-// GUI calls use POST /mcp/tools/call. Model and training reads use read_status.
-// Writes use request_action and stay behind explicit confirmation.
-const MCP_TOOLS_CALL_PATH = '/mcp/tools/call';
+const DESIGNER_BINDINGS = Object.freeze({
+  list_models: 'neural-network-designer.ipfs_accelerate_py.read_model_catalog',
+  job_status: 'neural-network-designer.ipfs_accelerate_py.read_job_status',
+  run_inference_job: 'neural-network-designer.ipfs_accelerate_py.run_inference_job',
+  artifacts_put: 'neural-network-designer.ipfs_kit_py.persist_artifact',
+  artifacts_get: 'neural-network-designer.ipfs_kit_py.retrieve_artifact',
+});
 
-async function parseDesignerToolResponse(response) {
-  const raw = await response.text();
-  let payload = null;
-  if (raw) {
-    try {
-      payload = JSON.parse(raw);
-    } catch (_parseError) {
-      payload = null;
+function designerOwnerResult(envelope) {
+  if (envelope?.ok !== true || envelope.outcome !== 'executed') {
+    throw new Error(envelope?.error?.message || envelope?.error || envelope?.result?.error || 'Owner did not execute the request.');
+  }
+  let result = envelope.result;
+  for (let depth = 0; depth < 4 && result && typeof result === 'object'; depth += 1) {
+    if (result.ok === false || result.success === false || result.isError === true || result.error) {
+      throw new Error(result.error?.message || result.error || 'Owner rejected the request.');
     }
+    const blocks = result.content?.filter(block => block.type === 'json' && block.json && typeof block.json === 'object') || [];
+    if (blocks.length > 1) throw new Error('Owner returned ambiguous operation data.');
+    if (blocks.length === 1) result = blocks[0].json;
+    else if (result.result && typeof result.result === 'object') result = result.result;
+    else return result;
   }
-  if (!response.ok) {
-    const message = payload && typeof payload === 'object'
-      ? (payload.error?.message || payload.error || payload.message || raw)
-      : (raw || ('HTTP ' + response.status));
-    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
-  }
-  if (payload && typeof payload === 'object' && payload.error) {
-    const message = payload.error.message || payload.error;
-    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
-  }
-  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
-    return payload.result;
-  }
-  return payload;
+  if (result == null) throw new Error('Owner returned no operation data.');
+  return result;
 }
 
-function callDesignerMcpTool(method, tool, toolArguments) {
-  return fetch(MCP_TOOLS_CALL_PATH, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      method,
-      tool,
-      arguments: toolArguments,
-    }),
-  }).then(parseDesignerToolResponse);
+function designerPreview(result) {
+  return result?.dry_run === true || result?.preview === true || result?.mutation_performed === false;
 }
 
 export class NeuralNetworkDesignerApp {
@@ -231,12 +221,6 @@ export class NeuralNetworkDesignerApp {
     // exposes inference jobs — not training. There is no simulated training
     // backend anywhere in this app. Training availability is a read_status read.
     this.designArtifacts.trainingAvailable = false;
-    try {
-      const training = await this.readTrainingStatus({ task: 'training' });
-      this.designArtifacts.trainingAvailable = training?.available === true || training?.training_available === true;
-    } catch (_trainingError) {
-      this.designArtifacts.trainingAvailable = false;
-    }
     this.designArtifacts.backendStatus = this.mlBackendMode === 'tensorflow-local'
       ? 'Local TensorFlow.js is available for browser-local compute. Model execution runs through the real ipfs_accelerate_py inference job queue.'
       : 'No local ML engine is loaded. Model execution runs through the real ipfs_accelerate_py inference job queue; training is not exposed by that backend.';
@@ -250,14 +234,64 @@ export class NeuralNetworkDesignerApp {
     return this.mcpClient;
   }
 
-  // Model catalog read. IDL method is read_status on POST /mcp/tools/call.
-  readModelStatus(input) {
-    return callDesignerMcpTool('read_status', 'mcp++:ipfs_accelerate_py/list_models', input || {});
+  nativeContainer() {
+    const container = document.querySelector('.neural-designer-container');
+    if (!container) throw new Error('Neural designer is not mounted.');
+    return container;
   }
 
-  // Training status read. IDL method is read_status on POST /mcp/tools/call.
-  readTrainingStatus(input) {
-    return callDesignerMcpTool('read_status', 'mcp++:ipfs_accelerate_py/job_status', input || { task: 'training' });
+  async invokeDesignerTool(tool, payload, trigger = null) {
+    const bindingId = DESIGNER_BINDINGS[tool];
+    const container = this.nativeContainer();
+    if (tool === 'run_inference_job' && !payload?.model) {
+      const response = await fetch('/mcp/tools/bindings?app_id=neural-network-designer');
+      if (!response.ok) throw new Error('Could not read the declared inference defaults.');
+      const catalog = await response.json();
+      const defaults = catalog.controls?.find(control => control.binding_id === bindingId)?.safe_payload;
+      payload = { ...defaults, ...payload };
+      if (!payload.model && payload.model_id) payload.model = payload.model_id;
+      if (!payload.model) throw new Error('Read the model catalog or enter a real model ID before inference.');
+    }
+    const envelope = await invokeNativeTool(container, 'neural-network-designer', bindingId, {
+      toolId: tool, ...(payload === undefined ? {} : { payload }),
+      trigger: trigger || container.querySelector(`[data-native-gateway-binding="${bindingId}"]`),
+    });
+    if (!envelope) {
+      const error = new Error('Cancelled before owner dispatch.'); error.cancelled = true; throw error;
+    }
+    const result = designerOwnerResult(envelope);
+    this.lastNativeOperation = { tool, result, envelope, payload };
+    return result;
+  }
+
+  async readModelStatus(input, trigger = null) {
+    const result = await this.invokeDesignerTool('list_models', input, trigger);
+    this.designArtifacts.modelCatalog = result;
+    return result;
+  }
+
+  // Job status requires a real task ID. An omitted payload uses the catalog's
+  // reviewed existing sample job, rather than inventing a training/list query.
+  async readTrainingStatus(input, trigger = null) {
+    return this.invokeDesignerTool('job_status', input, trigger);
+  }
+
+  async refreshModelCatalog(trigger = null) {
+    try {
+      const result = await this.readModelStatus(undefined, trigger);
+      this.designArtifacts.backendStatus = `Model catalog: ${JSON.stringify(result)}`;
+    } catch (error) { this.designArtifacts.backendStatus = `Model catalog read: ${error.message}`; }
+    this.updateWorkflowPanel();
+  }
+
+  async refreshJobStatus(trigger = null) {
+    const taskId = this.nativeContainer().querySelector('#nnd-job-id')?.value.trim() || this.designArtifacts.inference?.job_id;
+    try {
+      const result = await this.readTrainingStatus(taskId ? { task_id: taskId } : undefined, trigger);
+      this.designArtifacts.jobStatus = result;
+      this.designArtifacts.backendStatus = `Actual job status: ${JSON.stringify(result)}`;
+    } catch (error) { this.designArtifacts.backendStatus = `Job status read: ${error.message}`; }
+    this.updateWorkflowPanel();
   }
 
   // Real content addressing: CIDv1-raw+sha2-256 over the canonical bytes,
@@ -270,30 +304,36 @@ export class NeuralNetworkDesignerApp {
   // Backend-mutating write. Callers must have collected an explicit user
   // confirmation first; backend failures surface verbatim and are never
   // replaced with simulated success.
-  async persistArtifact(record, kind) {
+  async persistArtifact(record, kind, trigger = null) {
     const bytes = new TextEncoder().encode(stableStringifyValue(record));
     const cid = await contentCidForBytes(bytes);
-    const res = await callDesignerMcpTool('request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
+    const res = await this.invokeDesignerTool('artifacts_put', {
       cid,
       bytes_base64: base64ForBytes(bytes),
       profile: 'neural-designer-artifact',
       kind,
       service: 'ipfs_kit_py',
       pin: true,
-    });
+    }, trigger);
+    if (designerPreview(res)) {
+      const error = new Error(`Artifact preview validated; no artifact was persisted. ${this.lastNativeOperation.envelope.correlation_id}`);
+      error.preview = true; throw error;
+    }
     if (!res || res.persisted !== true || res.cid !== cid) {
       throw new Error(res?.error || 'ipfs_kit_py did not verify the persisted artifact.');
     }
     return { cid, response: res };
   }
 
-  async retrieveArtifact(cid) {
-    const artifact = await callDesignerMcpTool('read_status', 'mcp++:ipfs_kit_py/artifacts/get', { cid });
+  async retrieveArtifact(cid, trigger = null) {
+    const artifact = await this.invokeDesignerTool('artifacts_get', cid ? { cid } : undefined, trigger);
     if (!artifact || artifact.found !== true) {
       throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
     }
     const bytes = Uint8Array.from(atob(artifact.bytes_base64), character => character.charCodeAt(0));
-    return { record: JSON.parse(new TextDecoder().decode(bytes)), verified: artifact.verified === true };
+    const actualCid = cid || artifact.cid;
+    if (!actualCid || await contentCidForBytes(bytes) !== actualCid) throw new Error('Retrieved artifact bytes did not match its CID.');
+    return { record: JSON.parse(new TextDecoder().decode(bytes)), verified: artifact.verified === true, cid: actualCid };
   }
 
   // ---- Real graph / validation / plan / inference workflow ----
@@ -355,17 +395,17 @@ export class NeuralNetworkDesignerApp {
     return { graphDoc, cid };
   }
 
-  async requestGraphPersist() {
+  async requestGraphPersist(trigger = null) {
     const { graphDoc, cid } = await this.buildGraphArtifact();
     const bytes = new TextEncoder().encode(stableStringifyValue(graphDoc));
     this.designArtifacts.pendingConfirm = {
       action: 'persist-graph', record: graphDoc, bytes: bytes.length, expectedCid: cid,
     };
     this.designArtifacts.backendStatus = `Graph artifact ready (${graphDoc.layers.length} layers, CID ${cid}). Confirm to persist it to the kit backend.`;
-    this.updateWorkflowPanel();
+    return this.confirmBackendWrite(trigger);
   }
 
-  async verifyGraphArtifact() {
+  async verifyGraphArtifact(trigger = null) {
     const cid = this.designArtifacts.graphPersistedCid;
     if (!cid) {
       this.designArtifacts.backendStatus = 'No graph artifact has been persisted yet.';
@@ -373,7 +413,7 @@ export class NeuralNetworkDesignerApp {
       return;
     }
     try {
-      const { record, verified } = await this.retrieveArtifact(cid);
+      const { record, verified } = await this.retrieveArtifact(cid, trigger);
       const roundTripCid = await this.realContentCid(record);
       this.designArtifacts.graphVerified = verified && roundTripCid === cid;
       this.designArtifacts.backendStatus = `Retrieved ${cid} from ipfs_kit_py (store-verified: ${verified}, CID round-trip: ${roundTripCid === cid}).`;
@@ -495,56 +535,43 @@ export class NeuralNetworkDesignerApp {
     return plan;
   }
 
-  async requestPlanPersist() {
+  async requestPlanPersist(trigger = null) {
     const plan = await this.buildCompilePlan();
     const bytes = new TextEncoder().encode(stableStringifyValue(plan));
     this.designArtifacts.pendingConfirm = {
       action: 'persist-plan', record: plan, bytes: bytes.length, expectedCid: this.designArtifacts.planCid,
     };
     this.designArtifacts.backendStatus = `Compile plan ready (CID ${this.designArtifacts.planCid}). Confirm to persist it to the kit backend.`;
-    this.updateWorkflowPanel();
+    return this.confirmBackendWrite(trigger);
   }
 
-  // Runs the current design through the REAL ipfs_accelerate_py inference
-  // job queue (list_models -> run_inference_job -> job_status), following
-  // the accelerate-panel pattern. The envelope shown is the gateway's own
-  // result — never a locally claimed completion. Training is not exposed
-  // by the descriptor, so this button runs inference, honestly labeled.
-  async runInferenceJob() {
-    const { invokeDescriptorOperation } = await import('../core/mcp-descriptor-registry.js');
+  // Catalog reads, inference submission, and status reads each retain their
+  // exact owner operation. The shown envelope is the actual gateway result;
+  // a preview or submission never becomes a locally claimed completed job.
+  async runInferenceJob(trigger = null) {
     const { graphDoc, cid } = await this.buildGraphArtifact();
-    this.designArtifacts.inference = { status: 'running', detail: 'Submitting inference job…' };
-    this.updateWorkflowPanel();
+    this.designArtifacts.inference = { status: 'running', detail: 'Reviewing inference request…' };
     try {
-      const modelsEnvelope = await this.readModelStatus({ task: 'inference' });
-      const models = Array.isArray(modelsEnvelope)
-        ? modelsEnvelope
-        : (modelsEnvelope?.output?.models || modelsEnvelope?.models || []);
-      if (models.length === 0) {
-        throw new Error(`list_models returned no models (${modelsEnvelope?.status || 'unknown status'}); nothing to run inference against.`);
-      }
-      const model = models[0]?.id || models[0]?.name || String(models[0]);
-      const envelope = await invokeDescriptorOperation({
-        descriptor_id: 'ipfs_accelerate_py',
-        operation: 'run_inference_job',
-        input: { model: String(model), input: JSON.stringify(graphDoc), max_tokens: 64 },
-        app_id: 'neural-network-designer',
-        execution_mode: 'confirmed',
-        desktop: this.desktop,
-      });
-      const jobId = envelope?.output?.job_id || null;
-      let statusEnvelope = null;
-      if (jobId) {
-        statusEnvelope = await callDesignerMcpTool('read_status', 'mcp++:ipfs_accelerate_py/job_status', { job_id: jobId });
-      }
+      const catalog = this.designArtifacts.modelCatalog;
+      const models = Array.isArray(catalog) ? catalog : (catalog?.output?.models || catalog?.models || []);
+      const selected = this.nativeContainer().querySelector('#nnd-model-id')?.value.trim();
+      const model = selected || models[0]?.id || models[0]?.name || (typeof models[0] === 'string' ? models[0] : null);
+      const result = await this.invokeDesignerTool('run_inference_job', {
+        ...(model ? { model: String(model) } : {}), input: JSON.stringify(graphDoc), max_tokens: 64,
+      }, trigger);
+      const preview = designerPreview(result);
+      const jobId = preview ? null : (result.job_id || result.task_id || result.output?.job_id || null);
       this.designArtifacts.inference = {
-        status: 'complete', model: String(model), graph_cid: cid, job_id: jobId,
-        envelope, status_envelope: statusEnvelope, at: new Date().toISOString(),
+        status: preview ? 'preview' : jobId ? 'submitted' : 'returned',
+        detail: preview ? 'Inference preview validated; no job was created.'
+          : jobId ? 'Owner accepted the job; read its actual status separately.' : 'Owner returned an inference result without a job ID.',
+        model: model || this.lastNativeOperation.payload?.model || result.model || result.model_id || '(owner default)', graph_cid: cid, job_id: jobId,
+        envelope: this.lastNativeOperation.envelope, at: new Date().toISOString(),
       };
-      this.recordWorkflowAction('run-inference', `job ${jobId || '(none)'} on ${model}: ${envelope?.status || 'unknown'}`);
+      this.recordWorkflowAction('run-inference', this.designArtifacts.inference.detail);
     } catch (error) {
-      this.designArtifacts.inference = { status: 'failed', error: error instanceof Error ? error.message : String(error), at: new Date().toISOString() };
-      this.recordWorkflowAction('run-inference', `failed: ${this.designArtifacts.inference.error}`);
+      this.designArtifacts.inference = { status: error.cancelled ? 'cancelled' : 'failed', error: error.message, detail: error.message, at: new Date().toISOString() };
+      this.recordWorkflowAction('run-inference', error.message);
     }
     this.updateWorkflowPanel();
     return this.designArtifacts.inference;
@@ -569,7 +596,7 @@ export class NeuralNetworkDesignerApp {
     }
   }
 
-  async requestVersionCommit() {
+  async requestVersionCommit(trigger = null) {
     const graphDoc = this.graphDocument();
     const version = graphDoc.metadata.version || '1.0.0';
     const record = {
@@ -585,13 +612,12 @@ export class NeuralNetworkDesignerApp {
       action: 'commit-version', record, bytes: bytes.length, expectedCid,
     };
     this.designArtifacts.backendStatus = `Version ${version} ready (CID ${expectedCid}). Confirm to persist it to the kit backend.`;
-    this.updateWorkflowPanel();
+    return this.confirmBackendWrite(trigger);
   }
 
-  // The explicit user confirmation step every backend-mutating POST sits
-  // behind. The confirmation card renders the exact write first; only the
-  // "Confirm persist" click reaches this method.
-  async confirmBackendWrite() {
+  // The shared native gateway presents a real confirmation before dispatch.
+  // The prepared record remains local until that dialog is confirmed.
+  async confirmBackendWrite(trigger = null) {
     const pending = this.designArtifacts.pendingConfirm;
     this.designArtifacts.pendingConfirm = null;
     if (!pending) {
@@ -605,7 +631,7 @@ export class NeuralNetworkDesignerApp {
         : pending.action === 'deploy-graph' ? 'model-graph'
         : pending.action === 'export-graph' ? 'model-graph'
         : 'model-version';
-      const { cid, response } = await this.persistArtifact(pending.record, kind);
+      const { cid, response } = await this.persistArtifact(pending.record, kind, trigger);
       if (pending.action === 'persist-graph' || pending.action === 'deploy-graph' || pending.action === 'export-graph') {
         this.designArtifacts.graphPersistedCid = cid;
         this.recordWorkflowAction('persist-graph', `${cid} (store-verified: ${response.verified === true})`);
@@ -632,8 +658,8 @@ export class NeuralNetworkDesignerApp {
         await this.announceModelCid(cid, pending.record?.metadata?.name || 'neural network');
       }
     } catch (error) {
-      this.designArtifacts.backendStatus = `Backend persist failed: ${error instanceof Error ? error.message : String(error)}`;
-      this.recordWorkflowAction('persist-failed', this.designArtifacts.backendStatus);
+      this.designArtifacts.backendStatus = error.preview || error.cancelled ? error.message : `Backend persist failed: ${error instanceof Error ? error.message : String(error)}`;
+      this.recordWorkflowAction(error.preview ? 'persist-preview' : error.cancelled ? 'persist-cancelled' : 'persist-failed', this.designArtifacts.backendStatus);
     }
     this.updateWorkflowPanel();
   }
@@ -734,15 +760,15 @@ export class NeuralNetworkDesignerApp {
           
           <div class="toolbar-section">
             <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.newNetwork()">🆕 New</button>
-            <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.loadNetwork()">📂 Load</button>
-            <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.saveNetwork()">💾 Save</button>
-            <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.exportNetwork()">📤 Export</button>
+            <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.retrieve_artifact" data-native-tool-id="artifacts_get" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.loadNetwork(null, event.currentTarget)">📂 Load</button>
+            <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.saveNetwork(event.currentTarget)">💾 Save</button>
+            <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.exportNetwork(event.currentTarget)">📤 Export</button>
           </div>
           
           <div class="toolbar-section">
             <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.validateNetwork()">✅ Validate</button>
-            <button class="btn btn-sm btn-success sk-btn sk-btn-primary" title="Runs the current design as a real ipfs_accelerate_py inference job. Training is not exposed by that backend." onclick="window.neuralDesignerApp?.runInferenceJob()">▶ Run inference</button>
-            <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.deployToP2P()">🌐 Deploy</button>
+            <button data-native-gateway-binding="neural-network-designer.ipfs_accelerate_py.run_inference_job" data-native-tool-id="run_inference_job" class="btn btn-sm btn-success sk-btn sk-btn-primary" title="Runs the current design as a real ipfs_accelerate_py inference job. Training is not exposed by that backend." onclick="window.neuralDesignerApp?.runInferenceJob(event.currentTarget)">▶ Run inference</button>
+            <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.deployToP2P(event.currentTarget)">🌐 Deploy</button>
           </div>
           
           <div class="toolbar-section">
@@ -758,7 +784,7 @@ export class NeuralNetworkDesignerApp {
               <h3>VDA-G031 Neural Network Workflow</h3>
               <p>Local design canvas below. Graph artifacts, validation records, and compile plans are computed locally with real content CIDs; backend persistence happens only behind your explicit confirmation. Inference runs as a real ipfs_accelerate_py job — training is not exposed by that backend, so no training outcome is ever claimed.</p>
             </div>
-            <button class="btn btn-primary workflow-primary sk-btn sk-btn-primary" data-svd-workflow="${VDA_G031_WORKFLOW}" data-svd-workflow-action="generate-graph-artifacts" onclick="window.neuralDesignerApp?.requestGraphPersist()">Build + persist graph artifact</button>
+            <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" class="btn btn-primary workflow-primary sk-btn sk-btn-primary" data-svd-workflow="${VDA_G031_WORKFLOW}" data-svd-workflow-action="generate-graph-artifacts" onclick="window.neuralDesignerApp?.requestGraphPersist(event.currentTarget)">Build + persist graph artifact</button>
           </div>
           <div id="vda-g031-confirm-slot">
             ${this.renderWorkflowConfirmCard()}
@@ -840,10 +866,10 @@ export class NeuralNetworkDesignerApp {
               <h4>📂 Version Control</h4>
               <div class="current-version">
                 <span>v${this.networkConfig.metadata.version}</span>
-                <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.commitVersion()">💾</button>
+                <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.commitVersion(event.currentTarget)">💾</button>
               </div>
               <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.viewVersionHistory()">📜 History</button>
-              <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.shareToIPFS()">🌐 Share</button>
+              <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.shareToIPFS(event.currentTarget)">🌐 Share</button>
             </div>
           </div>
         </div>
@@ -914,7 +940,7 @@ export class NeuralNetworkDesignerApp {
           <p>This will POST ${what} (${pending.bytes} bytes, CID <code>${pending.expectedCid}</code>) to <code>ipfs_kit_py</code> through <code>/mcp/tools/call</code> with pin=true. The store verifies the CID over the exact bytes sent; a mismatch fails the write and is reported verbatim.</p>
         </div>
         <div class="vda-g031-confirm-actions">
-          <button class="btn btn-primary btn-sm sk-btn sk-btn-primary" onclick="window.neuralDesignerApp?.confirmBackendWrite()">Confirm persist</button>
+          <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" class="btn btn-primary btn-sm sk-btn sk-btn-primary" onclick="window.neuralDesignerApp?.confirmBackendWrite(event.currentTarget)">Confirm persist</button>
           <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.cancelBackendWrite()">Cancel</button>
         </div>
       </div>
@@ -928,14 +954,14 @@ export class NeuralNetworkDesignerApp {
       : '<li>No workflow actions recorded yet.</li>';
     const inference = artifacts.inference;
     const inferenceBody = !inference
-      ? '<p>Not run yet. Runs the current design as a real <code>run_inference_job</code> on ipfs_accelerate_py and polls <code>job_status</code>.</p>'
+      ? '<p>Not run yet. Runs the current design as a real <code>run_inference_job</code> on ipfs_accelerate_py. Read the real model catalog and job status separately.</p>'
       : inference.status === 'running'
         ? `<p><span class="sk-status-dot is-warn"></span>${this.escapeHtml(inference.detail || 'Running…')}</p>`
         : inference.status === 'failed'
           ? `<p><span class="sk-status-dot is-err"></span><strong>Failed:</strong> ${this.escapeHtml(inference.error)}</p>`
-          : `<p>Model <code>${this.escapeHtml(inference.model)}</code> · job <code>${this.escapeHtml(inference.job_id || 'none')}</code> · envelope status <strong>${this.escapeHtml(inference.envelope?.status || 'unknown')}</strong></p>
+          : `<p>Model <code>${this.escapeHtml(inference.model)}</code> · ${this.escapeHtml(inference.status)} · ${this.escapeHtml(inference.detail || '')} · job <code>${this.escapeHtml(inference.job_id || 'none')}</code> · envelope status <strong>${this.escapeHtml(inference.envelope?.outcome || 'unknown')}</strong></p>
              <details><summary>Gateway envelope</summary><pre class="sk-code">${this.escapeHtml(JSON.stringify(inference.envelope, null, 2))}</pre></details>
-             ${inference.status_envelope ? `<details><summary>job_status</summary><pre class="sk-code">${this.escapeHtml(JSON.stringify(inference.status_envelope, null, 2))}</pre></details>` : '<p>No job id was returned, so there is nothing to poll.</p>'}`;
+             ${inference.status_envelope ? `<details><summary>job_status</summary><pre class="sk-code">${this.escapeHtml(JSON.stringify(inference.status_envelope, null, 2))}</pre></details>` : '<p>Use Read job status for a returned job ID or the reviewed existing sample job.</p>'}`;
     const versions = artifacts.versions;
     return `
       <div class="vda-g031-grid">
@@ -945,8 +971,8 @@ export class NeuralNetworkDesignerApp {
           <p>${artifacts.graphPersistedCid ? `Persisted <code>${artifacts.graphPersistedCid}</code> (retrieval verified: ${artifacts.graphVerified})` : 'Not persisted to the backend yet.'}</p>
           <p>${this.networkConfig.layers.length} layers, ${this.networkConfig.connections.length} edges on the local canvas.</p>
           <button class="btn btn-sm sk-btn" data-svd-workflow-action="generate-graph-artifacts" onclick="window.neuralDesignerApp?.buildGraphArtifact()">Build graph artifact</button>
-          <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.requestGraphPersist()">Persist</button>
-          <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.verifyGraphArtifact()" ${artifacts.graphPersistedCid ? '' : 'disabled'}>Verify retrieve</button>
+          <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.requestGraphPersist(event.currentTarget)">Persist</button>
+          <button ${artifacts.graphPersistedCid ? 'data-native-gateway-binding="neural-network-designer.ipfs_kit_py.retrieve_artifact" data-native-tool-id="artifacts_get"' : 'title="Persist a graph artifact before verifying its retrieval"'} class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.verifyGraphArtifact(event.currentTarget)" ${artifacts.graphPersistedCid ? '' : 'disabled'}>Verify retrieve</button>
         </div>
         <div class="vda-g031-card sk-card" data-svd-vda-marker="schema-validation">
           <h4>Data Contract (local)</h4>
@@ -964,7 +990,7 @@ export class NeuralNetworkDesignerApp {
                <p>${artifacts.planPersistedCid ? `Persisted <code>${artifacts.planPersistedCid}</code>` : 'Not persisted yet.'}</p>`
             : '<p>Not built yet. Derived locally from the current graph; parameter counts are real arithmetic, not estimates from a run.</p>'}
           <button class="btn btn-sm sk-btn" data-svd-workflow-action="plan-compile-train" onclick="window.neuralDesignerApp?.buildCompilePlan().then(() => window.neuralDesignerApp?.updateWorkflowPanel())">Build plan</button>
-          <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.requestPlanPersist()">Persist plan</button>
+          <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.requestPlanPersist(event.currentTarget)">Persist plan</button>
         </div>
         <div class="vda-g031-card ${artifacts.invalidEdges.length ? 'invalid-edge' : ''}" data-svd-vda-marker="invalid-edge-feedback">
           <h4>Invalid Edges (local)</h4>
@@ -975,17 +1001,21 @@ export class NeuralNetworkDesignerApp {
         </div>
         <div class="vda-g031-card sk-card" data-svd-vda-marker="result-receipts">
           <h4>Inference Job (backend)</h4>
+          <label>Model ID <input id="nnd-model-id" class="sk-input" placeholder="Owner default or catalog model ID"></label>
+          <button class="btn btn-sm sk-btn" data-native-gateway-binding="neural-network-designer.ipfs_accelerate_py.read_model_catalog" data-native-tool-id="list_models" onclick="window.neuralDesignerApp?.refreshModelCatalog(event.currentTarget)">Read model catalog</button>
+          <label>Job ID <input id="nnd-job-id" class="sk-input" placeholder="Reviewed sample job when empty"></label>
+          <button class="btn btn-sm sk-btn" data-native-gateway-binding="neural-network-designer.ipfs_accelerate_py.read_job_status" data-native-tool-id="job_status" onclick="window.neuralDesignerApp?.refreshJobStatus(event.currentTarget)">Read job status</button>
           ${inferenceBody}
-          <button class="btn btn-sm btn-success sk-btn sk-btn-primary" data-svd-workflow-action="run-inference-job" onclick="window.neuralDesignerApp?.runInferenceJob()">Run inference</button>
+          <button data-native-gateway-binding="neural-network-designer.ipfs_accelerate_py.run_inference_job" data-native-tool-id="run_inference_job" class="btn btn-sm btn-success sk-btn sk-btn-primary" data-svd-workflow-action="run-inference-job" onclick="window.neuralDesignerApp?.runInferenceJob(event.currentTarget)">Run inference</button>
         </div>
         <div class="vda-g031-card sk-card" data-svd-vda-marker="version-history">
           <h4>Versions</h4>
           ${versions.length
-            ? versions.map(v => `<p>v${this.escapeHtml(v.version)} <code>${this.escapeHtml(v.cid)}</code><br><button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.loadNetwork('${this.escapeHtml(v.cid)}')">Load</button></p>`).join('')
+            ? versions.map(v => `<p>v${this.escapeHtml(v.version)} <code>${this.escapeHtml(v.cid)}</code><br><button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.retrieve_artifact" data-native-tool-id="artifacts_get" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.loadNetwork('${this.escapeHtml(v.cid)}', event.currentTarget)">Load</button></p>`).join('')
             : '<p>No versions committed yet. "Save" persists the current network as a versioned backend artifact; the index itself is local browser storage.</p>'}
           <div class="vda-g031-load-row">
             <input id="nnd-load-cid" class="sk-input" placeholder="artifact CID" aria-label="Artifact CID to load">
-            <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.loadNetwork(document.getElementById('nnd-load-cid').value.trim())">Load by CID</button>
+            <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.retrieve_artifact" data-native-tool-id="artifacts_get" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.loadNetwork(document.getElementById('nnd-load-cid').value.trim(), event.currentTarget)">Load by CID</button>
           </div>
         </div>
       </div>
@@ -1394,14 +1424,11 @@ export class NeuralNetworkDesignerApp {
   // Loads a network from a backend CID (explicit argument, a version entry,
   // or the latest committed version). The canvas is replaced only with bytes
   // actually retrieved from the kit backend.
-  async loadNetwork(cid = null) {
-    const targetCid = cid || this.designArtifacts.versions[0]?.cid || null;
-    if (!targetCid) {
-      this.showStatusMessage('No saved versions yet — commit a version first, or paste an artifact CID in the Versions card.');
-      return null;
-    }
+  async loadNetwork(cid = null, trigger = null) {
+    let targetCid = cid || this.designArtifacts.versions[0]?.cid || this.nativeContainer().querySelector('#nnd-load-cid')?.value.trim() || null;
     try {
-      const { record } = await this.retrieveArtifact(targetCid);
+      const { record, cid: actualCid } = await this.retrieveArtifact(targetCid, trigger);
+      targetCid = actualCid;
       const graph = record.graph || record;
       if (!Array.isArray(graph.layers)) throw new Error('The retrieved artifact is not a network graph document.');
       this.pushHistory();
@@ -1423,21 +1450,21 @@ export class NeuralNetworkDesignerApp {
   }
 
   // Save = versioned persist behind explicit confirmation.
-  async saveNetwork() {
-    await this.requestVersionCommit();
+  async saveNetwork(trigger = null) {
+    await this.requestVersionCommit(trigger);
     return { pending: true };
   }
 
   // Export persists the REAL architecture JSON to the kit backend (real
   // CID, behind confirmation) and downloads a local copy of the same bytes.
-  async exportNetwork() {
+  async exportNetwork(trigger = null) {
     const { graphDoc, cid } = await this.buildGraphArtifact();
     const bytes = new TextEncoder().encode(stableStringifyValue(graphDoc));
     this.designArtifacts.pendingConfirm = {
       action: 'export-graph', record: graphDoc, bytes: bytes.length, expectedCid: cid, download: true,
     };
     this.designArtifacts.backendStatus = `Export ready (${graphDoc.layers.length} layers, CID ${cid}). Confirm to persist it to the kit backend and download the local copy.`;
-    this.updateWorkflowPanel();
+    return this.confirmBackendWrite(trigger);
   }
 
   downloadGraphFile(graphDoc) {
@@ -1459,14 +1486,14 @@ export class NeuralNetworkDesignerApp {
   // Deploy = persist the graph (confirmed) then announce its CID on the P2P
   // topic through the real browser transport. No transport means an honest
   // skip, not a fabricated deployment.
-  async deployToP2P() {
+  async deployToP2P(trigger = null) {
     const { graphDoc, cid } = await this.buildGraphArtifact();
     const bytes = new TextEncoder().encode(stableStringifyValue(graphDoc));
     this.designArtifacts.pendingConfirm = {
       action: 'deploy-graph', record: graphDoc, bytes: bytes.length, expectedCid: cid,
     };
     this.designArtifacts.backendStatus = `Deployment artifact ready (CID ${cid}). Confirm to persist it and announce the CID on /swissknife/models/announce.`;
-    this.updateWorkflowPanel();
+    return this.confirmBackendWrite(trigger);
   }
 
   // Real auto-connect: links layers left-to-right, skipping edges that
@@ -1502,8 +1529,8 @@ export class NeuralNetworkDesignerApp {
     this.showStatusMessage('Connections cleared. Use auto connect to rebuild the graph.');
   }
 
-  async commitVersion() {
-    await this.requestVersionCommit();
+  async commitVersion(trigger = null) {
+    await this.requestVersionCommit(trigger);
   }
 
   viewVersionHistory() {
@@ -1518,13 +1545,13 @@ export class NeuralNetworkDesignerApp {
 
   // Share = persist the graph artifact to the content-addressed kit store
   // (real CID) and report it. Nothing is uploaded anywhere else.
-  async shareToIPFS() {
+  async shareToIPFS(trigger = null) {
     if (this.designArtifacts.graphPersistedCid) {
       this.designArtifacts.backendStatus = `Already shared: graph artifact ${this.designArtifacts.graphPersistedCid} is content-addressed in the kit artifact store (retrievable via CID).`;
       this.updateWorkflowPanel();
       return;
     }
-    await this.requestGraphPersist();
+    await this.requestGraphPersist(trigger);
   }
 
   showStatusMessage(message) {

@@ -3,6 +3,9 @@
  * AI-powered video editor with multi-track timeline, effects, and professional tools
  */
 
+import { invokeNativeTool } from '../live-tool-gateway.js';
+import { contentCidForBytes, stableStringifyValue, base64ForBytes } from '../core/mcp-plus-plus-desktop-client.js';
+
 export class CinemaApp {
   constructor() {
     this.name = 'Cinema';
@@ -75,40 +78,14 @@ export class CinemaApp {
     };
 
     this.cinemaWorkflow = {
-      workflowId: 'cinema.project-media-render-provenance',
-      vdaId: 'VDA-G043',
-      projectCid: 'bafycinemag043projectcid',
-      mediaCid: 'bafycinemag043mediacid',
-      rightsCid: 'bafycinemag043rightsmetadata',
-      renderQueueCid: 'bafycinemag043renderqueue',
-      failedExportCid: 'bafycinemag043failedexport',
-      playbackFallbackCid: 'bafycinemag043playbackfallback',
-      timelineCid: 'bafycinemag043timelinecontrols',
-      eventDagCid: 'bafycinemag043eventdag',
-      receiptPrefix: 'receipt:cinema:g043',
-      projectName: 'Orbital Cutdown Trailer',
-      mediaTitle: 'launch-deck-master.mov',
-      rightsLicense: 'CC-BY-4.0 + creator release SK-CIN-2026-043',
-      renderJob: 'render-job-cinema-g043-1080p',
-      failedExport: 'ProRes 4444 export failed: encoder unavailable; MP4/H.264 fallback queued',
-      fallback: 'Proxy playback active from webm preview while original media gateway retries',
-      timeline: {
-        duration: 128,
-        playhead: 42,
-        zoom: 1.25,
-        snap: true
-      }
+      workflowId: 'cinema.project-media-render-provenance', vdaId: 'VDA-G043',
+      projectCid: null, mediaCid: null, rightsCid: null, renderQueueCid: null,
+      failedExportCid: null, playbackFallbackCid: null, timelineCid: null, eventDagCid: null,
+      projectName: 'Untitled project', mediaTitle: 'No media imported', rightsLicense: 'Not verified',
+      renderJob: null, timeline: { duration: 0, playhead: 0, zoom: 1, snap: true },
     };
-    this.renderQueue = [
-      {
-        id: this.cinemaWorkflow.renderJob,
-        format: 'mp4',
-        status: 'queued',
-        progress: 72,
-        cid: this.cinemaWorkflow.renderQueueCid
-      }
-    ];
-    
+    this.renderQueue = [];
+
     // Initialize components
     this.initializeComponents();
   }
@@ -303,109 +280,38 @@ export class CinemaApp {
   renderCinemaWorkflowPanel() {
     const workflow = this.cinemaWorkflow;
     return `
-      <section class="cinema-vda-workflow sk-card cinema-vda-panel"
-               data-svd-workflow="${workflow.workflowId}"
-               aria-label="Cinema project media render workflow"
-               >
-        <div class="cinema-vda-head">
-          <div>
-            <div class="sk-badge">${workflow.vdaId}</div>
-            <h3 class="cinema-vda-title">Project Render Workflow</h3>
-            <p class="vda-evidence-note sk-honest-note">Evidence draft — CIDs, receipts and metrics shown are fixture references for design verification until a real project is persisted via “Load CIDs”.</p>
-          </div>
-          <span class="sk-badge" data-render-queue-state="queued">Queue 1 active</span>
+      <section class="cinema-vda-workflow sk-card cinema-vda-panel" data-svd-workflow="${workflow.workflowId}" aria-label="Cinema project media render workflow">
+        <div class="cinema-vda-head"><div><div class="sk-badge">${workflow.vdaId}</div><h3 class="cinema-vda-title">Project Render Workflow</h3>
+          <p class="sk-honest-note">The local project can be reviewed through a governed artifact preview. A preview stores nothing. Video rendering and rights verification have no connected backend.</p></div>
+          <output class="sk-badge" data-cinema-workflow-status data-render-queue-state="not_observed" role="status">No owner operation has run.</output>
         </div>
-
-        <div class="cinema-workflow-actions cinema-actions" >
-          <button class="sk-btn" data-svd-workflow-action="load-project-media-cids"
-                  aria-label="Load project and media CIDs"
-                  >Load CIDs</button>
-          <button class="sk-btn" data-svd-workflow-action="verify-rights-metadata"
-                  aria-label="Verify rights metadata"
-                  >Rights</button>
-          <button class="sk-btn" data-svd-workflow-action="submit-render-queue"
-                  aria-label="Submit render queue job"
-                  >Render</button>
-          <button class="sk-btn" data-svd-workflow-action="simulate-failed-export"
-                  aria-label="Simulate failed export"
-                  >Fail Export</button>
-          <button class="sk-btn" data-svd-workflow-action="activate-playback-fallback"
-                  aria-label="Activate playback fallback"
-                  >Fallback</button>
-          <button class="sk-btn" data-svd-workflow-action="stabilize-timeline-controls"
-                  aria-label="Stabilize timeline controls"
-                  >Timeline</button>
+        <div class="cinema-workflow-actions cinema-actions">
+          <button class="sk-btn" data-svd-workflow-action="load-project-media-cids" data-native-gateway-binding="cinema.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" aria-label="Review Cinema project persistence">Persist project</button>
+          <button class="sk-btn" data-svd-workflow-action="verify-rights-metadata" aria-label="Inspect local rights metadata">Rights</button>
+          <button class="sk-btn" data-svd-workflow-action="submit-render-queue" aria-label="Check render availability">Render availability</button>
+          <button class="sk-btn" data-svd-workflow-action="simulate-failed-export" aria-label="Inspect export availability">Export availability</button>
+          <button class="sk-btn" data-svd-workflow-action="activate-playback-fallback" aria-label="Check local playback fallback">Fallback</button>
+          <button class="sk-btn" data-svd-workflow-action="stabilize-timeline-controls" aria-label="Inspect local timeline controls">Timeline</button>
         </div>
-
-        <article class="sk-card cinema-vda-card" data-svd-vda-marker="project-media-cids"
-                 data-project-cid-state="loaded"
-                 data-media-cid-state="loaded"
-                 data-project-cid="${workflow.projectCid}"
-                 data-media-cid="${workflow.mediaCid}"
-                 >
-          <strong>Project/media CIDs</strong>
-          <p class="cinema-vda-desc">${workflow.projectName} stores project CID ${workflow.projectCid}, media CID ${workflow.mediaCid}, and Event DAG ${workflow.eventDagCid}.</p>
-          <small>${workflow.receiptPrefix}:project-media-cids</small>
+        <article class="sk-card cinema-vda-card" data-svd-vda-marker="project-media-cids" data-project-cid-state="${workflow.projectCid ? 'persisted' : 'not_persisted'}" data-media-cid-state="not_observed">
+          <strong>Project/media CIDs</strong><p data-cinema-project-proof>${workflow.projectCid || 'No project has been persisted.'}</p><small>No media CID or Event DAG claim has been made.</small>
         </article>
-
-        <article class="sk-card cinema-vda-card" data-svd-vda-marker="rights-metadata"
-                 data-rights-state="verified"
-                 data-rights-cid="${workflow.rightsCid}"
-                 >
-          <strong>Rights metadata</strong>
-          <p class="cinema-vda-desc">Clip ${workflow.mediaTitle} license ${workflow.rightsLicense}; rights CID ${workflow.rightsCid}.</p>
-          <small>${workflow.receiptPrefix}:rights-metadata</small>
+        <article class="sk-card cinema-vda-card" data-svd-vda-marker="rights-metadata" data-rights-state="not_verified"><strong>Rights metadata</strong><p>Local rights fields have not been verified by a rights backend.</p></article>
+        <article class="sk-card cinema-vda-card" data-svd-vda-marker="render-queue" data-render-queue-state="not_observed"><strong>Render queue</strong><p>No renderer is connected. No job, progress metric, or queue receipt has been created.</p></article>
+        <article class="sk-card cinema-vda-card" data-svd-vda-marker="failed-export" data-export-state="not_attempted"><strong>Export</strong><p>No encoder export or recovery result has been observed.</p></article>
+        <article class="sk-card cinema-vda-card" data-svd-vda-marker="playback-fallback" data-playback-fallback-state="unavailable"><strong>Playback fallback</strong><p>No proxy media has been loaded.</p></article>
+        <article class="sk-card cinema-vda-card" data-svd-vda-marker="stable-timeline-controls" data-timeline-state="local"><strong>Timeline (local)</strong>
+          <label>Playhead<input type="range" min="0" max="${Math.max(0, this.timeline.duration)}" value="${this.timeline.currentTime}" data-timeline-control="playhead" class="sk-range"></label>
+          <label>Zoom<input type="range" min="50" max="400" value="${this.timeline.zoom * 100}" data-timeline-control="zoom" class="sk-range"></label>
         </article>
-
-        <article class="sk-card cinema-vda-card" data-svd-vda-marker="render-queue"
-                 data-render-queue-state="queued"
-                 data-render-job-id="${workflow.renderJob}"
-                 >
-          <strong>Render queue</strong>
-          <p class="cinema-vda-desc">Job ${workflow.renderJob} queued at 72% with queue CID ${workflow.renderQueueCid}.</p>
-          <progress class="sk-progress" value="72" max="100" data-render-progress="queued"></progress>
-          <small>${workflow.receiptPrefix}:render-queue</small>
-        </article>
-
-        <article class="sk-card cinema-vda-card is-err" data-svd-vda-marker="failed-export"
-                 data-export-state="failed-recoverable"
-                 data-failed-export-cid="${workflow.failedExportCid}"
-                 >
-          <strong>Failed export</strong>
-          <p class="cinema-vda-desc">${workflow.failedExport}; failure CID ${workflow.failedExportCid}.</p>
-          <small>${workflow.receiptPrefix}:failed-export</small>
-        </article>
-
-        <article class="sk-card cinema-vda-card" data-svd-vda-marker="playback-fallback"
-                 data-playback-fallback-state="active"
-                 data-playback-state="fallback-preview"
-                 >
-          <strong>Playback fallback</strong>
-          <p class="cinema-vda-desc">${workflow.fallback}; fallback CID ${workflow.playbackFallbackCid}.</p>
-          <small>${workflow.receiptPrefix}:playback-fallback</small>
-        </article>
-
-        <article class="sk-card cinema-vda-card" data-svd-vda-marker="stable-timeline-controls"
-                 data-timeline-state="stable"
-                 data-timeline-cid="${workflow.timelineCid}"
-                 >
-          <strong>Stable timeline controls</strong>
-          <p class="cinema-vda-desc">Playhead ${workflow.timeline.playhead}s of ${workflow.timeline.duration}s, zoom ${workflow.timeline.zoom}x, snap enabled, timeline CID ${workflow.timelineCid}.</p>
-          <label class="sk-label">Playhead
-            <input type="range" min="0" max="${workflow.timeline.duration}" value="${workflow.timeline.playhead}" data-timeline-control="playhead" data-timeline-state="stable" class="sk-range">
-          </label>
-          <label class="sk-label">Zoom
-            <input type="range" min="50" max="400" value="125" data-timeline-control="zoom" data-timeline-state="stable" class="sk-range">
-          </label>
-          <small>${workflow.receiptPrefix}:stable-timeline-controls</small>
-        </article>
-      </section>
-    `;
+        <pre data-cinema-owner-envelope></pre>
+      </section>`;
   }
-  
+
   // GUI Methods for Virtual Desktop Integration
   createInterface(container) {
     console.log('🖥️ Creating Cinema interface...');
+    this.container = container;
     
     if (!container) {
       console.log('📱 Cinema running in CLI mode');
@@ -679,7 +585,7 @@ export class CinemaApp {
         <div class="cinema-header" >
           <div class="app-icon cinema-icon">🎬</div>
           <div class="app-title cinema-title" >Cinema - Professional Video Editor</div>
-          <div class="project-info cinema-project-cid" >Project CID ${this.cinemaWorkflow.projectCid}</div>
+          <div class="project-info cinema-project-cid" >Project CID ${this.cinemaWorkflow.projectCid || 'not persisted'}</div>
         </div>
         
         <!-- Main Content -->
@@ -700,9 +606,9 @@ export class CinemaApp {
           <div class="editing-area cinema-editing" >
             <!-- Preview Area -->
             <div class="preview-area cinema-preview-area" >
-              <div class="video-preview cinema-video-frame"  data-playback-fallback-state="active" data-playback-state="fallback-preview">
-                🎬 Proxy Preview Ready
-                <br><small>${this.cinemaWorkflow.playbackFallbackCid}</small>
+              <div class="video-preview cinema-video-frame"  data-playback-fallback-state="unavailable" data-playback-state="not_loaded">
+                🎬 No media loaded
+                <br><small>${this.cinemaWorkflow.playbackFallbackCid || 'No proxy CID observed'}</small>
               </div>
               
               <!-- Playback Controls -->
@@ -744,7 +650,7 @@ export class CinemaApp {
                 <div class="cinema-prop-row">Resolution: 1920x1080</div>
                 <div class="cinema-prop-row">Frame Rate: 30fps</div>
                 <div class="cinema-prop-row">Duration: 00:02:08</div>
-                <div class="cinema-cid">${this.cinemaWorkflow.mediaCid}</div>
+                <div class="cinema-cid">${this.cinemaWorkflow.mediaCid || 'No media CID observed'}</div>
               </div>
             </div>
 
@@ -762,10 +668,10 @@ export class CinemaApp {
             <div class="panel-section">
               <h3 class="sk-section-head">🤖 AI Tools</h3>
               <div class="ai-tools cinema-ai-tools" >
-                <button class="ai-tool-btn sk-btn sk-btn-primary">🎯 Auto Scene Detection</button>
-                <button class="ai-tool-btn sk-btn sk-btn-primary">📹 Video Stabilization</button>
-                <button class="ai-tool-btn sk-btn sk-btn-primary">🔍 AI Upscaling</button>
-                <button class="ai-tool-btn sk-btn sk-btn-primary">🔇 Noise Reduction</button>
+                <button data-native-gateway-binding="cinema.ipfs_accelerate_py.run_inference_job" data-native-tool-id="run_inference_job" class="ai-tool-btn sk-btn sk-btn-primary">🎯 Auto Scene Detection</button>
+                <button data-native-gateway-binding="cinema.ipfs_accelerate_py.run_inference_job" data-native-tool-id="run_inference_job" class="ai-tool-btn sk-btn sk-btn-primary">📹 Video Stabilization</button>
+                <button data-native-gateway-binding="cinema.ipfs_accelerate_py.run_inference_job" data-native-tool-id="run_inference_job" class="ai-tool-btn sk-btn sk-btn-primary">🔍 AI Upscaling</button>
+                <button data-native-gateway-binding="cinema.ipfs_accelerate_py.run_inference_job" data-native-tool-id="run_inference_job" class="ai-tool-btn sk-btn sk-btn-primary">🔇 Noise Reduction</button>
               </div>
             </div>
           </div>
@@ -807,7 +713,7 @@ export class CinemaApp {
     const workflowButtons = container.querySelectorAll('[data-svd-workflow-action]');
     workflowButtons.forEach(btn => {
       btn.addEventListener('click', () => {
-        this.handleCinemaWorkflowAction(container, btn.dataset.svdWorkflowAction);
+        this.handleCinemaWorkflowAction(container, btn.dataset.svdWorkflowAction, btn);
       });
     });
     
@@ -823,115 +729,93 @@ export class CinemaApp {
     });
   }
 
-  async handleCinemaWorkflowAction(container, action) {
-    const workflow = this.cinemaWorkflow;
-    const status = container.querySelector('[data-render-queue-state]');
-    const setText = message => {
-      if (status) status.textContent = message;
-    };
-
-    if (action === 'load-project-media-cids') {
-      // Real persistence: the project record goes to the ipfs_kit_py
-      // artifact store with a canonical CID over the exact bytes, after the
-      // user's explicit confirmation. The fixture CIDs above are replaced by
-      // the real one; backend failures surface verbatim.
-      setText('Persisting project…');
-      try {
-        const helper = await import('./real-artifact.js');
-        if (!helper.userConfirmsBackendWrite('Persist this Cinema project record to the ipfs_kit_py artifact store?')) {
-          setText('Persist cancelled');
-          return;
-        }
-        const record = {
-          schema: 'swissknife.cinema.project.v1',
-          name: workflow.projectName,
-          mediaTitle: workflow.mediaTitle,
-          rightsLicense: workflow.rightsLicense,
-          timeline: workflow.timeline,
-          created: new Date().toISOString()
-        };
-        const persisted = await helper.persistArtifactRecord({
-          record,
-          profile: 'cinema-project',
-          kind: 'video-project'
-        });
-        this.currentProject = {
-          id: persisted.cid,
-          name: workflow.projectName,
-          mediaTitle: workflow.mediaTitle,
-          rightsLicense: workflow.rightsLicense,
-          created: new Date().toISOString(),
-          timeline: { tracks: [], duration: workflow.timeline.duration },
-          settings: { resolution: '1920x1080', fps: 30 }
-        };
-        workflow.projectCid = persisted.cid;
-        const headerCid = container.querySelector('.cinema-header .project-info');
-        if (headerCid) headerCid.textContent = `Project CID ${persisted.cid}`;
-        setText(`Project persisted: ${persisted.cid.slice(0, 20)}…`);
-        console.log(`🎬 Cinema project persisted: ${persisted.cid}`);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        setText(`Persist failed: ${message}`);
-        console.warn('Cinema project persist failed:', message);
-      }
-    } else if (action === 'verify-rights-metadata') {
-      setText('Rights metadata is a local project field; no rights backend is connected');
-    } else if (action === 'submit-render-queue') {
-      this.renderQueue[0].status = 'queued';
-      setText('Render queued (local queue; no render backend connected)');
-    } else if (action === 'simulate-failed-export') {
-      this.renderQueue[0].status = 'failed-recoverable';
-      setText('Export fallback ready (test control)');
-    } else if (action === 'activate-playback-fallback') {
-      setText('Proxy playback active (local preview)');
-    } else if (action === 'stabilize-timeline-controls') {
-      this.timeline.currentTime = workflow.timeline.playhead;
-      this.timeline.duration = workflow.timeline.duration;
-      this.timeline.zoom = workflow.timeline.zoom;
-      setText('Timeline stable (local)');
+  async invokeCinemaOwner(container, tool, payload, trigger) {
+    const operation = tool === 'artifacts_put' ? 'persist_artifact' : 'run_inference_job';
+    const owner = tool === 'artifacts_put' ? 'ipfs_kit_py' : 'ipfs_accelerate_py';
+    const bindingId = `cinema.${owner}.${operation}`;
+    if (tool === 'run_inference_job' && !payload.model) {
+      const response = await fetch('/mcp/tools/bindings?app_id=cinema');
+      if (!response.ok) throw new Error('The reviewed Cinema model defaults are unavailable.');
+      const controls = (await response.json()).controls || [];
+      payload = { ...controls.find(control => control.binding_id === bindingId)?.safe_payload, ...payload };
+      if (!payload.model && payload.model_id) payload.model = payload.model_id;
+      if (!payload.model) throw new Error('No real catalog model has been selected for Cinema inference.');
     }
-    console.log(`🎬 Cinema workflow action: ${action}`);
+    const envelope = await invokeNativeTool(container, 'cinema', bindingId, { toolId: tool, payload, trigger });
+    if (!envelope) return null;
+    const output = container.querySelector('[data-cinema-owner-envelope]');
+    if (output) output.textContent = JSON.stringify(envelope, null, 2);
+    if (envelope.ok !== true || envelope.outcome !== 'executed') throw new Error(envelope.error?.message || envelope.error || envelope.result?.error || 'Owner did not execute the request.');
+    let value = envelope.result;
+    for (let depth = 0; depth < 8 && value && typeof value === 'object'; depth++) {
+      if (value.ok === false || value.success === false || value.isError === true || value.error) throw new Error(value.error?.message || value.error || 'Owner rejected the request.');
+      const blocks = value.content?.filter(item => item.type === 'json' && item.json && typeof item.json === 'object') || [];
+      if (blocks.length > 1) throw new Error('Owner returned ambiguous operation data.');
+      if (blocks.length === 1) value = blocks[0].json;
+      else if (value.result && typeof value.result === 'object') value = value.result;
+      else break;
+    }
+    if (value == null) throw new Error('Owner returned no operation data.');
+    const preview = value.dry_run === true || value.preview === true || value.mutation_performed === false;
+    return { envelope, value, preview, payload };
   }
 
-  // Runs a cinema AI tool for real through the ipfs_accelerate_py inference
-  // gateway. The envelope's real outcome (or its verbatim error) is what the
-  // user sees; nothing is faked as a completed analysis.
+  async handleCinemaWorkflowAction(container, action, trigger = null) {
+    const status = container.querySelector('[data-cinema-workflow-status]');
+    const setText = message => { if (status) status.textContent = message; };
+    if (action === 'load-project-media-cids') {
+      setText('Review project persistence…');
+      try {
+        const record = { schema: 'swissknife.cinema.project.v1', name: this.currentProject?.name || this.cinemaWorkflow.projectName,
+          mediaTitle: this.currentProject?.mediaTitle || this.cinemaWorkflow.mediaTitle,
+          rightsLicense: this.currentProject?.rightsLicense || this.cinemaWorkflow.rightsLicense,
+          timeline: this.currentProject?.timeline || this.timeline, created: this.currentProject?.created || new Date().toISOString() };
+        const bytes = new TextEncoder().encode(stableStringifyValue(record));
+        const expectedCid = await contentCidForBytes(bytes);
+        const response = await this.invokeCinemaOwner(container, 'artifacts_put', {
+          cid: expectedCid, bytes_base64: base64ForBytes(bytes), profile: 'cinema-project', kind: 'video-project', service: 'ipfs_kit_py', pin: true,
+        }, trigger || container.querySelector('[data-svd-workflow-action="load-project-media-cids"]'));
+        if (!response) { setText('Cancelled before owner dispatch; no project was persisted.'); return; }
+        const { value, envelope, preview } = response;
+        if (preview) {
+          if (value.dry_run !== true || value.persisted !== false || value.mutation_performed !== false || value.expected_cid !== expectedCid || value.validated !== true) throw new Error('Owner preview did not verify the exact project CID without persistence.');
+          setText(`Project preview validated; no project or media was persisted. ${envelope.correlation_id}; receipt ${envelope.receipt?.receipt_id || 'unavailable'}`);
+          return;
+        }
+        if (value.persisted !== true || value.verified !== true || value.cid !== expectedCid) throw new Error('Owner did not verify persistence of the exact project bytes.');
+        this.currentProject = { ...record, id: value.cid, settings: this.currentProject?.settings || { resolution: '1920x1080', fps: 30 } };
+        this.cinemaWorkflow.projectCid = value.cid;
+        const header = container.querySelector('.cinema-header .project-info'); if (header) header.textContent = `Project CID ${value.cid}`;
+        const proof = container.querySelector('[data-cinema-project-proof]'); if (proof) proof.textContent = `Project persisted: ${value.cid}`;
+        const card = container.querySelector('[data-project-cid-state]'); if (card) card.dataset.projectCidState = 'persisted';
+        setText(`Project persisted: ${value.cid}`);
+      } catch (error) { setText(`Project persistence failed: ${error instanceof Error ? error.message : String(error)}`); }
+    } else if (action === 'verify-rights-metadata') setText('Rights fields are local and unverified; no rights backend is connected.');
+    else if (action === 'submit-render-queue') setText('Rendering unavailable; no renderer job or queue admission was created.');
+    else if (action === 'simulate-failed-export') setText('Export unavailable; no encoder ran and no failed-export receipt was created.');
+    else if (action === 'activate-playback-fallback') setText('Playback fallback unavailable; no proxy media is loaded.');
+    else if (action === 'stabilize-timeline-controls') setText(`Local timeline: ${this.timeline.currentTime}s of ${this.timeline.duration}s, zoom ${this.timeline.zoom}. No owner operation ran.`);
+  }
+
   async runCinemaAIOperation(toolName, btn) {
     const originalText = btn.textContent;
-    btn.textContent = '⏳ Running…';
-    btn.disabled = true;
     try {
-      const { invokeDescriptorOperation } = await import('../core/mcp-descriptor-registry.js');
+      const container = this.container || btn.closest('.cinema-app') || btn.parentElement;
       const project = this.currentProject?.name || this.cinemaWorkflow.projectName;
-      const envelope = await invokeDescriptorOperation({
-        descriptor_id: 'ipfs_accelerate_py',
-        operation: 'run_inference_job',
-        input: {
-          model: 'default',
-          input: `Cinema project "${project}": perform ${toolName}. Describe the analysis steps and any findings as text.`,
-          max_tokens: 256
-        },
-        app_id: 'cinema',
-        desktop: this.desktop || null,
-        execution_mode: 'confirmed'
-      });
-      if (envelope && envelope.status === 'ok') {
-        const output = envelope.output || {};
-        console.log(`🤖 ${toolName} result:`, output.text || output.result || output);
-        btn.textContent = originalText;
-        btn.disabled = false;
-        this.showCinemaNotice(`✅ ${toolName}: backend job ${output.job_id || 'accepted'} — see console for the result envelope.`);
+      const response = await this.invokeCinemaOwner(container, 'run_inference_job', {
+        input: `Cinema project "${project}": review ${toolName}. Describe only actual analysis or unavailable prerequisites.`, max_length: 256,
+      }, btn);
+      if (!response) { this.showCinemaNotice('Cancelled before owner dispatch; no inference job was created.'); return; }
+      const { value, envelope, preview, payload } = response;
+      if (preview) {
+        if (value.dry_run !== true || value.body_executed !== false || value.mutation_performed !== false) throw new Error('Owner did not verify a no-side-effect inference preview.');
+        this.showCinemaNotice(`${toolName}: preview validated for ${payload.model}; no video analysis or job was executed. ${envelope.correlation_id}`);
       } else {
-        const reason = envelope?.error?.message || envelope?.summary || 'inference backend unavailable';
-        throw new Error(reason);
+        const jobId = value.job_id || value.task_id;
+        this.showCinemaNotice(`${toolName}: ${jobId ? `owner submitted job ${jobId}; completion has not been observed` : 'owner returned an inference result without a job ID'}. ${envelope.correlation_id}`);
       }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      btn.textContent = originalText;
-      btn.disabled = false;
-      console.warn(`🤖 ${toolName} failed:`, message);
-      this.showCinemaNotice(`❌ ${toolName} failed: ${message}`);
-    }
+    } catch (error) { this.showCinemaNotice(`${toolName} failed: ${error instanceof Error ? error.message : String(error)}`); }
+    finally { btn.textContent = originalText; btn.disabled = false; }
   }
 
   showCinemaNotice(message) {

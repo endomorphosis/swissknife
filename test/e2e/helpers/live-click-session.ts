@@ -14,7 +14,6 @@
 
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { request as httpRequest } from 'node:http';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -45,6 +44,7 @@ const matrixPath = join(evidenceRoot, 'control-tool-matrix.json');
 const capabilityMatrixPath = join(evidenceRoot, 'capability-matrix.json');
 const domContractPath = join(evidenceRoot, 'vog', 'click-dom-backend-contract.json');
 const workListPath = join(evidenceRoot, 'vog', 'click-worklist.json');
+const rowFixtureCid = new WeakMap<Page, string>();
 
 function loadDomAliases(): Map<string, string> {
   const aliases = new Map<string, string>();
@@ -142,29 +142,17 @@ const OWNER_PROBES = [
   { owner: 'ipfs_accelerate_py', port: 3003 },
 ];
 
-function probeOwner(owner: string, port: number): Promise<OwnerProbe> {
-  const url = `http://127.0.0.1:${port}/mcp/health`;
-  return new Promise((resolve) => {
-    const req = httpRequest(
-      { hostname: '127.0.0.1', port, path: '/mcp/health', method: 'GET', timeout: 1000 },
-      (res) => {
-        res.resume();
-        const status = res.statusCode ?? null;
-        resolve({
-          owner,
-          url,
-          up: status !== null && status >= 200 && status < 300,
-          status,
-        });
-      },
-    );
-    req.on('error', () => resolve({ owner, url, up: false, status: null }));
-    req.on('timeout', () => {
-      req.destroy();
-      resolve({ owner, url, up: false, status: null });
-    });
-    req.end();
-  });
+async function probeOwner(owner: string, port: number): Promise<OwnerProbe> {
+  const environmentName = `SWISSKNIFE_${owner.toUpperCase().replace(/_PY$/, '')}_MCP_URL`;
+  const configured = process.env[environmentName] || `http://127.0.0.1:${port}/mcp`;
+  const url = `${configured.replace(/\/(?:api\/mcp\/status|mcp)\/?$/, '').replace(/\/$/, '')}/mcp/health`;
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(1000) });
+    await response.arrayBuffer();
+    return { owner, url, up: response.ok, status: response.status };
+  } catch {
+    return { owner, url, up: false, status: null };
+  }
 }
 
 async function probeOwners(): Promise<OwnerProbe[]> {
@@ -261,6 +249,7 @@ interface WorkItem {
   tool_id: string;
   objective_named: boolean | null;
   matrix_reason: string;
+  origin?: 'native-control' | 'gateway-button';
 }
 
 interface CallRecord {
@@ -296,6 +285,7 @@ export interface LiveClickReport {
   worklist_row_count: number;
   owner_health: 'up' | 'down';
   owner_probes: OwnerProbe[];
+  governed_negatives?: Array<{ tool_identity: string; clicked: boolean; mcp_call_count: number; outcome: string }>;
   rows: LiveClickRow[];
 }
 
@@ -320,6 +310,11 @@ interface LiveClickRow {
   mcp_call_count: number;
   incomplete_mcp_call_count?: number;
   observation: (McpInvocationObservation & { policy_outcome: string }) | null;
+  observations?: Array<McpInvocationObservation & { policy_outcome: string }>;
+  confirmation?: { correlation_id: string; calls_before_confirmation: number; confirmed: boolean; control_clicked: boolean };
+  confirmations?: Array<{ correlation_id: string; calls_before_confirmation: number; confirmed: boolean; control_clicked: boolean }>;
+  external_provider_outcome?: string;
+  governed_negative?: { tool_identity: string; outcome: string };
   confirm_surface: boolean;
   result_surface: string;
   failure_reasons: string[];
@@ -502,6 +497,25 @@ function readPost(request: { postData: () => string | null }): Record<string, un
 }
 
 async function preparePage(page: Page, calls: CallRecord[]): void {
+  await page.addInitScript(() => {
+    const host = window as any;
+    host.__vdgUiProof = [];
+    const requests: any[] = [];
+    const originalFetch = window.fetch;
+    window.fetch = function(input, init) {
+      try {
+        const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, location.href);
+        if (url.pathname === '/mcp/tools/call' && init?.method === 'POST') requests.push(JSON.parse(String(init.body || '{}')));
+      } catch { /* The network observer still records malformed calls. */ }
+      return originalFetch.call(this, input, init);
+    };
+    for (const type of ['swissknife:gateway-confirmation', 'swissknife:external-provider-result', 'swissknife:policy-negative']) {
+      document.addEventListener(type, event => {
+        const detail = (event as CustomEvent).detail || {};
+        host.__vdgUiProof.push({ ...detail, type, request_count: requests.filter(item => item.correlation_id === detail.correlation_id).length });
+      });
+    }
+  });
   page.on('request', (request) => {
     const url = new URL(request.url());
     if (isPrivateArtifactPath(url.pathname)) {
@@ -547,7 +561,7 @@ async function preparePage(page: Page, calls: CallRecord[]): void {
   page.on('dialog', async (dialog) => {
     const message = `${dialog.message()} ${dialog.defaultValue()}`;
     if (dialog.type() === 'prompt' && isCidPromptMessage(message)) {
-      await dialog.accept(LIVE_CLICK_FIXTURE_CID).catch(() => undefined);
+      await dialog.accept(rowFixtureCid.get(page) || LIVE_CLICK_FIXTURE_CID).catch(() => undefined);
       return;
     }
     await dialog.dismiss().catch(() => undefined);
@@ -579,18 +593,20 @@ async function launchWindow(page: Page, launchId: string, appId: string): Promis
   box: { width: number; height: number } | null;
   launchError: string;
 }> {
-  const icon = page.locator(`.icon[data-app="${launchId}"]`).first();
+  const canonicalId = ALL_APP_EXECUTABLE_BACKEND_CONTRACT.apps.find(app => app.app_id === launchId || app.aliases.includes(launchId))?.app_id || appId;
+  const aliasIcon = page.locator(`.icon[data-app="${launchId}"]`).first();
+  const icon = await aliasIcon.count() ? aliasIcon : page.locator(`.icon[data-app="${canonicalId}"]`).first();
   await icon.scrollIntoViewIfNeeded({ timeout: 2_000 }).catch(() => undefined);
   const iconVisible = await icon.isVisible().catch(() => false);
   await page.evaluate((realRead) => {
     (window as unknown as { __SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__?: boolean }).__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ = !realRead;
   }, appId === 'mcp-control');
-  let launchError = await page.evaluate(async (id) => {
+  let launchError = await page.evaluate(async ({ id, canonical }) => {
     const desktop = (window as unknown as {
       swissknifeDesktop?: { launchApp?: (appId: string) => Promise<void> | void; apps?: { has?: (appId: string) => boolean } };
     }).swissknifeDesktop;
     if (!desktop || typeof desktop.launchApp !== 'function') return 'launchApp missing';
-    if (desktop.apps && typeof desktop.apps.has === 'function' && !desktop.apps.has(id)) return 'launch id is not registered';
+    if (desktop.apps && typeof desktop.apps.has === 'function' && !desktop.apps.has(canonical)) return 'canonical launch id is not registered';
     try {
       await Promise.race([
         Promise.resolve(desktop.launchApp(id)),
@@ -602,8 +618,8 @@ async function launchWindow(page: Page, launchId: string, appId: string): Promis
     } catch (error) {
       return error instanceof Error ? error.message : String(error);
     }
-  }, launchId);
-  const appWindow = page.locator(`.window[data-app-id="${launchId}"]`).last();
+  }, { id: launchId, canonical: canonicalId });
+  const appWindow = page.locator(`.window[data-app-id="${canonicalId}"]`).last();
   let box: { width: number; height: number } | null = null;
   // The window chrome is inserted before a slow snapshot read resolves.
   // A launch timeout is not a miss when that window is already on screen.
@@ -623,7 +639,7 @@ async function launchWindow(page: Page, launchId: string, appId: string): Promis
           item.element.style.display = 'block';
           item.minimized = false;
         }
-      }, launchId).catch(() => undefined);
+      }, canonicalId).catch(() => undefined);
     }
     await appWindow.waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
     const raw = await appWindow.boundingBox().catch(() => null);
@@ -648,16 +664,40 @@ function withholdLocalGateway(item: WorkItem, withholdGateway: boolean): WorkIte
   };
 }
 
-async function discoverLive(
+export async function discoverLive(
   appWindow: Locator,
   matrix: WorkItem[],
   withholdGateway: boolean,
 ): Promise<WorkItem[]> {
   const found = await appWindow.evaluate((root, selectors) => {
-    const nodes = Array.from(root.querySelectorAll('button, [role="button"], [role="menuitem"], a[href], input[type="submit"], [data-action], [data-live-gateway-binding]'));
+    // :scope is relative to the application window, never the candidate node.
+    // Resolve each declaration once; this also avoids a quadratic number of
+    // DOM queries on large provider catalogs.
+    const declared = new Set<Element>();
+    for (const selector of selectors) {
+      try { for (const node of root.querySelectorAll(selector)) declared.add(node); } catch { /* Invalid declarations cannot hide a live control. */ }
+    }
+    const identity = {
+      structural(element: Element) {
+        const parts: string[] = [];
+        let current: Element | null = element;
+        while (current && current !== root) {
+          const parent: Element | null = current.parentElement;
+          if (!parent) return '';
+          const siblings = Array.from(parent.children).filter(sibling => sibling.tagName === current!.tagName);
+          parts.unshift(`${current.tagName.toLowerCase()}:nth-of-type(${siblings.indexOf(current) + 1})`);
+          current = parent;
+        }
+        return current === root ? `:scope > ${parts.join(' > ')}` : '';
+      },
+      quoted(value: string) { return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"'); },
+    };
+    const nodes = Array.from(root.querySelectorAll('button, [role="button"], [role="menuitem"], a[href], input[type="submit"], [data-action], [data-live-gateway-binding], [data-native-gateway-binding]'));
     return nodes.map((node) => {
       const element = node as HTMLElement;
-      const binding = element.getAttribute('data-live-gateway-binding') || '';
+      const liveBinding = element.getAttribute('data-live-gateway-binding') || '';
+      const nativeBinding = element.getAttribute('data-native-gateway-binding') || '';
+      const binding = nativeBinding || liveBinding;
       const action = element.getAttribute('data-action') || '';
       const label = element.getAttribute('aria-label') || element.getAttribute('title') || (element.textContent || '').trim();
       let selector = '';
@@ -671,8 +711,16 @@ async function discoverLive(
       } else if (element.classList.contains('window-control') && element.classList.contains('close')) {
         selector = '.window-control.close';
         source = 'live-shell';
-      } else if (binding) {
-        selector = `[data-live-gateway-binding="${binding.replace(/"/g, '\\"')}"]`;
+      } else if (nativeBinding) {
+        selector = `[data-native-gateway-binding="${identity.quoted(nativeBinding)}"]`;
+        const attribute = element.hasAttribute('data-native-tool-id') ? 'data-native-tool-id' : 'data-native-gateway-tool';
+        const exact = element.getAttribute(attribute);
+        if (exact) selector += `[${attribute}="${identity.quoted(exact)}"]`;
+        source = 'live-tool';
+      } else if (liveBinding) {
+        selector = `[data-live-gateway-binding="${identity.quoted(liveBinding)}"]`;
+        const exact = element.getAttribute('data-gateway-exact-tool');
+        if (exact) selector += `[data-gateway-exact-tool="${identity.quoted(exact)}"]`;
         source = 'live-tool';
       } else if (action) {
         selector = `[data-action="${action.replace(/"/g, '\\"')}"]`;
@@ -681,13 +729,9 @@ async function discoverLive(
       } else if (label) {
         selector = `button[aria-label="${label.replace(/"/g, '\\"')}"]`;
       }
-      const matched = selectors.some((candidate) => {
-        try {
-          return element.matches(candidate);
-        } catch {
-          return false;
-        }
-      });
+      try { if (!selector || root.querySelectorAll(selector).length !== 1) selector = identity.structural(element); }
+      catch { selector = identity.structural(element); }
+      const matched = declared.has(element);
       return { selector, source, binding, matched, visible: element.getClientRects().length > 0 };
     });
   }, matrix.map((item) => item.selector));
@@ -717,7 +761,7 @@ async function discoverLive(
   return extras;
 }
 
-async function closeLaunched(page: Page, appWindow: Locator): Promise<void> {
+export async function closeLaunched(page: Page, appWindow: Locator): Promise<void> {
   const close = appWindow.locator('.window-control.close').first();
   if (await close.count().catch(() => 0)) {
     await close.click({ force: true, timeout: 3000 }).catch(() => undefined);
@@ -725,30 +769,54 @@ async function closeLaunched(page: Page, appWindow: Locator): Promise<void> {
   // Minimize sets display:none, and a forced click then has no box, so the
   // titlebar handler never runs. A singleton launch would focus that hidden
   // window and the next control would be recorded as not launched.
-  await appWindow.evaluate((el) => {
+  // A normal close already removed the window. Evaluating its locator again
+  // waits the full action timeout for a window that must never reappear.
+  if (await appWindow.count().catch(() => 0)) await appWindow.evaluate((el) => {
     const desktop = (window as unknown as {
       swissknifeDesktop?: { windows?: { delete?: (id: string) => void } };
     }).swissknifeDesktop;
     const id = el.id;
     if (id && desktop?.windows?.delete) desktop.windows.delete(id);
     el.remove();
-  }).catch(() => undefined);
+  }, undefined, { timeout: 1000 }).catch(() => undefined);
   await page.evaluate(() => {
     document.querySelectorAll('.iv-governed-confirm-overlay').forEach((node) => node.remove());
   });
 }
 
-async function fillCidInputs(scope: Page | Locator): Promise<void> {
+/** Capture the complete visible app region without repeating locator scrolling.
+ * Moving/offscreen windows retain the original full-element screenshot path.
+ */
+export async function screenshotAppWindow(page: Page, appWindow: Locator,
+  options: { path?: string; timeout?: number; animations?: 'disabled' | 'allow' } = {}): Promise<Buffer> {
+  const viewport = page.viewportSize();
+  const box = await appWindow.boundingBox().catch(() => null);
+  const equal = (a: typeof box, b: typeof box) => a && b && ['x', 'y', 'width', 'height'].every(key =>
+    Math.abs(a[key as keyof typeof a] - b[key as keyof typeof b]) < 0.01);
+  if (viewport && box && box.width > 0 && box.height > 0 && box.x >= 0 && box.y >= 0
+    && box.x + box.width <= viewport.width && box.y + box.height <= viewport.height) {
+    const next = await appWindow.evaluate(element => new Promise<{ x: number; y: number; width: number; height: number }>(resolve => {
+      requestAnimationFrame(() => { const rect = element.getBoundingClientRect(); resolve({ x: rect.x, y: rect.y, width: rect.width, height: rect.height }); });
+    })).catch(() => null);
+    if (equal(box, next)) {
+      const bytes = await page.screenshot({ ...options, clip: box });
+      if (equal(box, await appWindow.boundingBox().catch(() => null))) return bytes;
+    }
+  }
+  return appWindow.screenshot(options);
+}
+
+async function fillCidInputs(scope: Page | Locator, cid = LIVE_CLICK_FIXTURE_CID): Promise<void> {
   const inputs = scope.locator(CID_INPUT_SELECTOR);
   const count = await inputs.count().catch(() => 0);
   for (let index = 0; index < count; index += 1) {
     const input = inputs.nth(index);
     if (!await input.isVisible().catch(() => false)) continue;
-    await input.fill(LIVE_CLICK_FIXTURE_CID).catch(() => undefined);
+    await input.fill(cid).catch(() => undefined);
   }
 }
 
-async function submitAppearedCidPrompt(page: Page, item: WorkItem): Promise<void> {
+async function submitAppearedCidPrompt(page: Page, item: WorkItem, cid = LIVE_CLICK_FIXTURE_CID): Promise<void> {
   const input = page.locator(MODAL_CID_SELECTOR).first();
   const mayPrompt = item.disposition === 'invoke'
     || item.disposition === 'deny'
@@ -759,7 +827,7 @@ async function submitAppearedCidPrompt(page: Page, item: WorkItem): Promise<void
     visible = await input.waitFor({ state: 'visible', timeout: 250 }).then(() => true).catch(() => false);
   }
   if (!visible) return;
-  await input.fill(LIVE_CLICK_FIXTURE_CID).catch(() => undefined);
+  await input.fill(cid).catch(() => undefined);
   const overlay = page.locator('.iv-governed-confirm-overlay, .mp-governed-confirm-overlay, .pc-governed-confirm-overlay').filter({ has: input }).first();
   const confirm = overlay.locator('button.iv-governed-confirm, button.mp-governed-confirm, button.pc-governed-confirm').first();
   if (await confirm.isVisible().catch(() => false)) {
@@ -769,19 +837,28 @@ async function submitAppearedCidPrompt(page: Page, item: WorkItem): Promise<void
   await input.press('Enter').catch(() => undefined);
 }
 
-async function waitForRowCalls(page: Page, calls: CallRecord[], callStart: number): Promise<void> {
+export async function waitForRowCalls(page: Page, calls: CallRecord[], callStart: number,
+  options: { timeoutMs?: number; appearMs?: number; quietMs?: number } = {}): Promise<void> {
   const rowCalls = () => calls.slice(callStart).filter((call) => call.kind === 'tools-call');
-  const appearLimit = Date.now() + 800;
-  while (Date.now() < appearLimit && rowCalls().length === 0) {
+  const started = Date.now();
+  const appearLimit = started + (options.appearMs ?? 800);
+  const limit = started + Math.min(options.timeoutMs ?? 15000, 15000);
+  const quietMs = options.quietMs ?? 400;
+  let quietSince = started;
+  let previousCount = 0;
+  while (Date.now() < limit) {
+    const confirming = page.locator('[data-gateway-confirm]:visible').first();
+    if (await confirming.isVisible().catch(() => false)) {
+      await confirming.click({ timeout: Math.min(3000, Math.max(1, limit - Date.now())) });
+      quietSince = Date.now();
+    }
+    const current = rowCalls();
+    if (current.length !== previousCount || current.some(call => !call.done)) quietSince = Date.now();
+    previousCount = current.length;
+    if (Date.now() >= appearLimit && Date.now() - quietSince >= quietMs) return;
     await page.waitForTimeout(50);
   }
-  const pending = () => rowCalls().some((call) => !call.done);
-  if (!pending()) return;
-  const limit = Date.now() + 15000;
-  while (Date.now() < limit) {
-    if (!pending()) return;
-    await page.waitForTimeout(100);
-  }
+  throw new Error('row owner calls or governed confirmation did not settle within the bounded capture window');
 }
 
 function applyCallEvidence(row: LiveClickRow, item: WorkItem, calls: CallRecord[], callStart: number): Record<string, unknown> | null {
@@ -790,8 +867,11 @@ function applyCallEvidence(row: LiveClickRow, item: WorkItem, calls: CallRecord[
   // produce a complete observation. Zero-call controls must reject these too.
   row.mcp_call_count = evidence.toolCalls.length;
   row.incomplete_mcp_call_count = evidence.incompleteCallCount;
-  const newest = evidence.newestGatewayCall;
-  const origin = item.selector.includes('data-live-gateway-binding') ? 'gateway-button' : 'native-control';
+  const origin = item.origin || (item.selector.includes('data-live-gateway-binding') ? 'gateway-button' : 'native-control');
+  const primary = evidence.toolCalls.filter(call => matchExpectedInvocation({ appId: item.app_id, expectedToolId: item.tool_id, selector: item.selector,
+    observation: observationFromParts(call.post, call.body, origin), call: call.post }, ALL_APP_EXECUTABLE_BACKEND_CONTRACT).matches).at(-1);
+  const newest = primary || evidence.newestGatewayCall;
+  row.observations = evidence.toolCalls.map(call => observationFromParts(call.post, call.body, origin)).filter((value): value is NonNullable<typeof value> => Boolean(value));
   row.observation = newest ? observationFromParts(newest.post, newest.body, origin) : null;
   if (row.observation && isPrivateArtifactPath(row.observation.route)) row.observation = null;
   if (evidence.incompleteCallCount > 0) row.failure_reasons.push('incomplete-mcp-invocation');
@@ -870,7 +950,7 @@ function judge(row: LiveClickRow, appId: string, forbidden: Set<string>, observe
     const confirming = /confirm/i.test(row.selector);
     if (confirming) {
       if (!observationComplete(row.observation)) reasons.push('missing-mcp-observation');
-    } else if (row.mcp_call_count !== 0) {
+    } else if (row.mcp_call_count !== 0 && !(row.confirmation?.confirmed && row.confirmation.control_clicked && row.confirmation.calls_before_confirmation === 0)) {
       reasons.push('confirm-invoked-before-confirming-control');
     } else if (!row.confirm_surface) {
       reasons.push('confirm-surface-missing');
@@ -1002,6 +1082,66 @@ async function clickWorkItem(
     await closeLaunched(page, launched.appWindow);
     return row;
   }
+  item.origin = await target.evaluate(element => element.closest('.live-tool-gateway-panel') ? 'gateway-button' : 'native-control').catch(() => item.origin);
+  await page.evaluate(() => { (window as any).__vdgUiProof = []; });
+  const bindingId = await target.getAttribute('data-native-gateway-binding').catch(() => null)
+    || await target.getAttribute('data-live-gateway-binding').catch(() => null);
+  const declaredCid = await page.evaluate(async ({ appId, binding, tool }) => {
+    const cache = (window as any).__vdgFixtureCatalog ||= {};
+    cache[appId] ||= fetch(`/mcp/tools/bindings?app_id=${encodeURIComponent(appId)}`, { cache: 'no-store' }).then(async response => {
+      if (!response.ok) throw new Error('Owner fixture binding catalog unavailable');
+      return response.json();
+    }).catch(error => { delete cache[appId]; throw error; });
+    const catalog = await cache[appId];
+    const controls = catalog.controls || [];
+    const selected = controls.find((control: any) => control.binding_id === binding);
+    for (const control of selected ? [selected] : controls) {
+      for (const name of [tool, 'ipfs_cat', 'artifacts_get']) {
+        const value = control.safe_payloads?.[name]?.cid;
+        if (typeof value === 'string' && value) return value;
+      }
+      if (typeof control.safe_payload?.cid === 'string' && control.safe_payload.cid) return control.safe_payload.cid;
+    }
+    return '';
+  }, { appId: item.app_id, binding: bindingId, tool: item.tool_id });
+  if (bindingId && ['ipfs_cat', 'artifacts_get'].includes(item.tool_id) && !declaredCid) throw new Error('No real CID is declared for the native artifact read');
+  const fixtureCid = declaredCid || LIVE_CLICK_FIXTURE_CID;
+  rowFixtureCid.set(page, fixtureCid);
+  if (item.app_id === 'ai-chat' && (/ai-chat-send-btn/.test(item.selector) || (item.origin === 'native-control' && item.tool_id === 'submit_task'))) {
+    await launched.appWindow.locator('#ai-chat-input').fill('VDG owner queue validation');
+  }
+  if (item.app_id === 'vibecode' && (/send-ai-btn/.test(item.selector) || (item.origin === 'native-control' && item.tool_id === 'submit_task'))) {
+    const assistant = launched.appWindow.locator('#ai-toggle-btn');
+    if (!await launched.appWindow.locator('#ai-input').isVisible().catch(() => false)) await assistant.click({ timeout: 3000 }).catch(() => undefined);
+    await launched.appWindow.locator('#ai-input').fill('Validate this workspace');
+  }
+  if (item.origin === 'native-control' && ['p2p-chat', 'p2p-chat-unified'].includes(item.app_id) && item.tool_id === 'artifacts_get') {
+    await launched.appWindow.locator(item.app_id === 'p2p-chat' ? '[data-chat-history-cid]' : '[data-chat-archive-cid]').fill(fixtureCid);
+  }
+  if (item.app_id === 'notes' && item.origin === 'native-control' && item.tool_id === 'artifacts_get') {
+    await launched.appWindow.locator('[data-notes-base-cid]').fill(fixtureCid);
+  }
+  if (item.app_id === 'p2p-chat-unified' && item.origin === 'native-control'
+    && await target.getAttribute('data-chat-action') === 'persist-receipts') {
+    // A receipt ledger needs an actual local event. Queue a real draft through
+    // its owning UI before asking the app to persist that event's provenance.
+    await launched.appWindow.locator('[data-chat-draft]').fill('VDG local queue provenance');
+    await launched.appWindow.locator('[data-chat-action="queue-offline"]').first().click();
+  }
+  if (item.app_id === 'ipfs-explorer' && item.origin === 'native-control' && item.tool_id === 'artifacts_put') {
+    await launched.appWindow.locator('#add-files').click();
+    await launched.appWindow.locator('#file-input').setInputFiles({ name: 'vdg-native-upload.txt', mimeType: 'text/plain', buffer: Buffer.from('VDG native artifact upload provenance\n') });
+  }
+  if (item.app_id === 'friends-list' && await target.getAttribute('id') === 'send-friend-request') {
+    await launched.appWindow.locator('#add-friend-btn').click();
+    await launched.appWindow.locator('.add-option[data-method="platform"]').click();
+    await launched.appWindow.locator('#platform-select').selectOption('github');
+    await launched.appWindow.locator('#friend-input').fill(`vdg-contact-preview-${Date.now()}`);
+    await launched.appWindow.locator('#friend-message').fill('Validate a contact artifact without sending an invitation.');
+  }
+  if (item.app_id === 'p2p-chat' && item.origin === 'native-control' && item.tool_id === 'ipfs_pubsub_publish') {
+    await launched.appWindow.locator('[data-chat-broadcast-message]').fill('Validate this desktop pubsub draft without publishing it.');
+  }
   await launched.appWindow.evaluate((windowEl, selector) => {
     const menu = windowEl.querySelector('#context-menu, .context-menu');
     if (!menu) return;
@@ -1074,7 +1214,7 @@ async function clickWorkItem(
     row.visibility = 'not-visible';
     const beforePath = shotFile(shotDir, index, 'before', `${item.selector}:missing`);
     try {
-      await launched.appWindow.screenshot({ path: beforePath, timeout: 5_000 });
+      await screenshotAppWindow(page, launched.appWindow, { path: beforePath, timeout: 5_000 });
       const beforeCheck = inspectPng(readFileSync(beforePath));
       row.screenshot_before = repoRelative(beforePath);
       row.screenshot_before_check = beforeCheck.reason;
@@ -1089,13 +1229,13 @@ async function clickWorkItem(
   row.visibility = 'visible';
   const beforePath = shotFile(shotDir, index, 'before', item.selector);
   try {
-    await launched.appWindow.screenshot({ path: beforePath, timeout: 5_000, animations: 'disabled' });
+    await screenshotAppWindow(page, launched.appWindow, { path: beforePath, timeout: 5_000, animations: 'disabled' });
     const beforeCheck = inspectPng(readFileSync(beforePath));
     row.screenshot_before = repoRelative(beforePath);
     row.screenshot_before_check = beforeCheck.reason;
   } catch {
     try {
-      await launched.appWindow.screenshot({ path: beforePath, timeout: 15_000, animations: 'disabled' });
+      await screenshotAppWindow(page, launched.appWindow, { path: beforePath, timeout: 15_000, animations: 'disabled' });
       const beforeCheck = inspectPng(readFileSync(beforePath));
       row.screenshot_before = repoRelative(beforePath);
       row.screenshot_before_check = beforeCheck.reason;
@@ -1104,9 +1244,9 @@ async function clickWorkItem(
       row.failure_reasons.push(error instanceof Error ? error.message.slice(0, 180) : 'screenshot-before-failed');
     }
   }
-  await fillCidInputs(launched.appWindow);
+  await fillCidInputs(launched.appWindow, fixtureCid);
   if (await page.locator(MODAL_CID_SELECTOR).first().isVisible().catch(() => false)) {
-    await submitAppearedCidPrompt(page, item);
+    await submitAppearedCidPrompt(page, item, fixtureCid);
   }
   const disabled = await target.isDisabled().catch(() => false);
   if (localGateway) {
@@ -1133,6 +1273,12 @@ async function clickWorkItem(
       }
     }
   }
+  const gatewayConfirm = launched.appWindow.locator('[data-gateway-confirm]').first();
+  if (item.disposition === 'confirm-then-invoke' && !disabled) {
+    await page.locator(`[data-gateway-confirm], ${MODAL_CID_CONFIRM_SELECTOR}`).first()
+      .waitFor({ state: 'visible', timeout: 3000 }).catch(() => undefined);
+  }
+  if (await gatewayConfirm.isVisible().catch(() => false)) await gatewayConfirm.click({ timeout: 3000 });
   if (
     !localGateway
     && item.selector.includes('data-live-gateway-binding')
@@ -1142,7 +1288,7 @@ async function clickWorkItem(
       if (element instanceof HTMLElement) element.click();
     }).catch(() => undefined);
   }
-  await submitAppearedCidPrompt(page, item);
+  await submitAppearedCidPrompt(page, item, fixtureCid);
   await page.evaluate(() => {
     document.querySelectorAll('.mp-governed-confirm-overlay, .iv-governed-confirm-overlay, .pc-governed-confirm-overlay').forEach((overlay) => {
       const cidInput = overlay.querySelector('input[aria-label="Artifact CID"], input[aria-label="Playlist artifact CID"], input[aria-label="Video artifact CID"]');
@@ -1168,7 +1314,7 @@ async function clickWorkItem(
   } else {
     const afterPath = shotFile(shotDir, index, 'after', item.selector);
     try {
-      await launched.appWindow.screenshot({ path: afterPath, timeout: 5_000, animations: 'disabled' });
+      await screenshotAppWindow(page, launched.appWindow, { path: afterPath, timeout: 5_000, animations: 'disabled' });
       const afterCheck = inspectPng(readFileSync(afterPath));
       row.screenshot_after = repoRelative(afterPath);
       row.screenshot_after_check = afterCheck.reason;
@@ -1182,6 +1328,15 @@ async function clickWorkItem(
     const binding = await target.getAttribute('data-live-gateway-binding').catch(() => null);
     if (binding) row.failure_reasons.push('matrix-unsupported-but-live-tool-button');
   }
+  const uiProof = await page.evaluate(() => (window as any).__vdgUiProof || []);
+  row.confirmations = uiProof.filter((event: any) => event.type === 'swissknife:gateway-confirmation' && event.phase === 'shown').map((shown: any) => {
+    const confirmed = uiProof.find((event: any) => event.type === 'swissknife:gateway-confirmation' && event.phase === 'confirmed' && event.trusted === true && event.correlation_id === shown.correlation_id);
+    return { correlation_id: shown.correlation_id, calls_before_confirmation: shown.request_count ?? -1, confirmed: Boolean(confirmed), control_clicked: Boolean(confirmed) };
+  });
+  row.confirmation = row.confirmations.at(-1);
+  row.confirm_surface ||= row.confirmations.length > 0;
+  if (uiProof.some((event: any) => event.type === 'swissknife:external-provider-result' && event.outcome === 'external-provider' && event.trusted === true)) row.external_provider_outcome = 'external-provider';
+  row.governed_negative = uiProof.find((event: any) => event.type === 'swissknife:policy-negative' && event.outcome === 'denied' && event.trusted === true);
   finishRow(row, item, calls, clickStart, forbidden);
   if (!isDismissControl(item.selector, 'close')) await closeLaunched(page, launched.appWindow);
   else await page.evaluate(() => document.querySelectorAll('.iv-governed-confirm-overlay').forEach((node) => node.remove()));
@@ -1191,7 +1346,8 @@ async function clickWorkItem(
 export async function runLiveClickTarget(
   page: Page,
   target: string,
-  options: { outputRoot?: string; preferMatrix?: boolean } = {},
+  options: { outputRoot?: string; preferMatrix?: boolean; resumeRows?: LiveClickRow[]; resumePageerrors?: string[];
+    onCheckpoint?: (rows: LiveClickRow[], pageerrors: string[]) => Promise<void> } = {},
 ): Promise<LiveClickReport> {
   const spec = LIVE_CLICK_TARGETS[target];
   const captureRoot = options.outputRoot ? resolve(options.outputRoot) : join(evidenceRoot, 'live-clicks');
@@ -1201,11 +1357,13 @@ export async function runLiveClickTarget(
     ? join(captureRoot, spec.reportName)
     : join(captureRoot, 'unknown.json');
   mkdirSync(dirname(reportPath), { recursive: true });
-  const pageerrors: string[] = [];
+  const pageerrors: string[] = [...options.resumePageerrors || []];
   page.on('pageerror', (error) => pageerrors.push(String(error).slice(0, 500)));
   const calls: CallRecord[] = [];
   const forbidden = loadForbiddenToolIds();
   const rows: LiveClickRow[] = [];
+  const resumeKey = (row: { app_id: string; launch_id: string; selector: string }) => JSON.stringify([row.app_id, row.launch_id, row.selector]);
+  const resumed = new Map((options.resumeRows || []).map(row => [resumeKey(row), row]));
   let matrixCount = 0;
   let scheduledCount = 0;
   let usingWorkList = false;
@@ -1219,7 +1377,8 @@ export async function runLiveClickTarget(
   }
   try {
     if (!spec) throw new Error(`unknown live-click target ${target}`);
-    await liveClickFixture.ensureLiveClickFixture();
+    const configuredKit = process.env.SWISSKNIFE_IPFS_KIT_MCP_URL;
+    await liveClickFixture.ensureLiveClickFixture(configuredKit ? { endpoint: `${configuredKit.replace(/\/(?:api\/mcp\/status|mcp)\/?$/, '').replace(/\/$/, '')}/mcp/artifacts` } : {});
     if (!existsSync(matrixPath)) throw new Error('control-tool matrix missing');
     const matrixRows = loadMatrix(spec.apps);
     matrixCount = matrixRows.length;
@@ -1246,7 +1405,9 @@ export async function runLiveClickTarget(
     }
     let index = 0;
     const domAliases = loadDomAliases();
-    const withholdGateway = target === 'local';
+    // VDG uses the current source contract and actually exercises every
+    // control. Legacy VOG local replay retains its old withheld work list.
+    const withholdGateway = target === 'local' && !options.preferMatrix;
     for (const [launchId, items] of byLaunch) {
       const probe = await launchWindow(page, launchId, items[0].app_id);
       let work = items;
@@ -1260,6 +1421,14 @@ export async function runLiveClickTarget(
           ? domAliases.get(`${item.app_id}\n${item.selector}`)
           : undefined;
         const workItem = withholdLocalGateway(resolved ? { ...item, selector: resolved } : item, withholdGateway);
+        const previous = resumed.get(resumeKey(workItem));
+        if (previous && previous.disposition === workItem.disposition && previous.expected_tool_id === workItem.tool_id
+          && previous.source === workItem.source && !previous.failure_reasons.includes('runner-failed')) {
+          rows.push(previous);
+          index += 1;
+          console.log(`live-click resumed ${index} ${workItem.launch_id} ${workItem.selector}`);
+          continue;
+        }
         console.log(`live-click ${index + 1} ${workItem.launch_id} ${workItem.selector}`);
         const bounded = await clickWithinBudget(
           page,
@@ -1274,6 +1443,7 @@ export async function runLiveClickTarget(
         page = bounded.page;
         if (resolved) bounded.row.resolved_from = item.selector;
         rows.push(bounded.row);
+        await options.onCheckpoint?.(rows, pageerrors);
         index += 1;
       }
     }
@@ -1342,6 +1512,7 @@ export async function runLiveClickTarget(
     worklist_row_count: usingWorkList ? scheduledCount : 0,
     owner_health: ownerHealth,
     owner_probes: ownerProbes,
+    governed_negatives: rows.filter(row => row.governed_negative).map(row => ({ ...row.governed_negative!, clicked: row.clicked, mcp_call_count: row.mcp_call_count })),
     rows,
   };
   writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);

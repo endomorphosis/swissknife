@@ -4,6 +4,7 @@ import { execFile as execFileCallback } from 'node:child_process'
 import { promisify } from 'node:util'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
+import { createRequire } from 'node:module'
 import {
   createAllAppToolMediator,
   gatewayArtifactCanonicalJson,
@@ -12,6 +13,7 @@ import {
 import type { BrowserMediatedToolCall } from '../../src/services/mcp/all-app-tool-gateway.js'
 import { ALL_APP_EXECUTABLE_BACKEND_CONTRACT } from '../../src/services/apps/all-app-executable-backend-contract.js'
 import { ALL_APP_LIVE_TOOL_BINDINGS } from '../../src/services/apps/all-app-live-tool-bindings.js'
+import { ALL_TOOLS_DISPOSITION_CATALOG } from '../../src/services/mcp/all-tools-disposition-catalog.js'
 import {
   buildAllAppBackendStatusContract,
   buildBackendStatusMatrixEvidence,
@@ -23,6 +25,8 @@ const execFile = promisify(execFileCallback)
 
 const configDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(configDir, '../..')
+// Keep the host-only CommonJS fixture module outside Vite's ESM config bundle.
+const { LIVE_CLICK_FIXTURE_CID } = createRequire(import.meta.url)(resolve(repoRoot, 'scripts/live-click-fixture.cjs'))
 
 const mcpEndpointLeaseFileNames: Record<string, string> = {
   ipfs_kit_py: 'ipfs-kit-compat-endpoint.json',
@@ -238,7 +242,10 @@ function swissknifeSameOriginToolMediatorPlugin(): Plugin {
         transport: selectedTool && binding.gateway.transports.includes('http') ? 'http' : null,
         transports: selectedTool ? binding.gateway.transports : [],
         selected_tool_id: selectedTool,
-        safe_payload: selectedTool ? safeDesktopPayload(selectedTool, binding.capability_id) : null,
+        preferred_tool_ids: source?.tool_selection.preferred_tool_ids ?? [],
+        safe_payload: selectedTool ? safeDesktopPayload(selectedTool, binding.capability_id, binding.app_id) : null,
+        safe_payloads: Object.fromEntries((source?.tool_selection.preferred_tool_ids ?? [])
+          .map(tool => [tool, safeDesktopPayload(tool, binding.capability_id, binding.app_id)])),
         status: selectedTool ? 'available' : 'unavailable',
       }
     })
@@ -247,6 +254,11 @@ function swissknifeSameOriginToolMediatorPlugin(): Plugin {
   }
   const install = (server: { middlewares: { use(handler: (request: import('node:http').IncomingMessage, response: import('node:http').ServerResponse, next: () => void) => void): void } }) => {
     server.middlewares.use((request, response, next) => {
+      if (request.method === 'GET' && request.url?.split('?')[0] === '/mcp/tools/dispositions') {
+        response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
+        response.end(JSON.stringify(ALL_TOOLS_DISPOSITION_CATALOG))
+        return
+      }
       const serviceRequest = request.url?.match(/^\/mcp\/services\/(ipfs_kit_py|ipfs_datasets_py|ipfs_accelerate_py)(\/mcp(?:\/[^?]*)?)(?:\?.*)?$/)
       if (serviceRequest && (request.method === 'GET' || request.method === 'POST')) {
         const [, owner, servicePath] = serviceRequest
@@ -357,8 +369,13 @@ async function invokeOwnerOverMcpPlusPlus(
   }
   let multiaddr: string | undefined
   if (call.transport === 'libp2p') {
-    const announcePath = resolve(repoRoot, 'test-results', 'virtual-desktop-ipfs-mcp-orb', announceNames[owner])
-    const announce = JSON.parse(readFileSync(announcePath, 'utf8')) as { multiaddr?: string }
+    const announceRoot = process.env.MCPPLUSPLUS_PEER_ANNOUNCE_DIR || resolve(repoRoot, 'test-results', 'virtual-desktop-ipfs-mcp-orb')
+    const announcePath = resolve(announceRoot, announceNames[owner])
+    const announce = JSON.parse(readFileSync(announcePath, 'utf8')) as { multiaddr?: string; service?: string; endpoint?: string; protocol?: string; peer_id?: string }
+    if (announce.service !== owner || announce.endpoint !== endpoint || announce.protocol !== '/mcp+p2p/1.0.0'
+      || !announce.peer_id || !announce.multiaddr?.endsWith(`/p2p/${announce.peer_id}`)) {
+      throw new Error(`The libp2p announcement does not belong to the configured ${owner} owner.`)
+    }
     multiaddr = announce.multiaddr
     if (!multiaddr) throw new Error(`No verified libp2p announce is available for ${owner}.`)
     return invokeOwnerOverInteropLibp2p(owner, multiaddr, call)
@@ -506,9 +523,34 @@ async function ownerToolNames(endpoints: Record<string, string>): Promise<{
   return { availableTools, discoveryUnavailable }
 }
 
-function safeDesktopPayload(toolId: string, capabilityId: string): Readonly<Record<string, unknown>> {
+function safeDesktopPayload(toolId: string, capabilityId: string, appId = ''): Readonly<Record<string, unknown>> {
   if (toolId === 'tools_get_schema') return { name: 'tools_list_categories' }
   if (toolId === 'tools_list_tools') return { category: 'mcplusplus' }
+  let fixtures: Record<string, any> = {}
+  if (process.env.SWISSKNIFE_VDG_PAYLOAD_FIXTURES) {
+    fixtures = JSON.parse(readFileSync(process.env.SWISSKNIFE_VDG_PAYLOAD_FIXTURES, 'utf8'))
+  }
+  if (toolId === 'ipfs_cat') return { cid: ['media-player', 'peertube', 'cinema'].includes(appId) && fixtures.artifact_cids?.media ? fixtures.artifact_cids.media : LIVE_CLICK_FIXTURE_CID }
+  if (toolId === 'files_ls') return { path: '/swissknife/vdg' }
+  if (toolId === 'files_read') return { path: '/swissknife/vdg/README.md' }
+  if (toolId === 'files_write') return { path: '/swissknife/vdg/README.md', content: 'SwissKnife governed workspace preview.\n' }
+  if (toolId === 'ipfs_ls' && fixtures.workspace_cid) return { path: `/ipfs/${fixtures.workspace_cid}` }
+  if (toolId === 'ipfs_add') return { content: 'SwissKnife governed content preview.\n' }
+  if (toolId === 'get_task' || toolId === 'job_status') return fixtures.task_id ? { task_id: fixtures.task_id } : {}
+  if (toolId === 'run_inference_job' && fixtures.inference_model) return { model: fixtures.inference_model, model_id: fixtures.inference_model, input: 'Validate this bounded desktop inference request without executing it.', max_length: 64 }
+  if (toolId === 'submit_task') return { prompt: 'Validate the desktop preview request without submitting work.' }
+  if (toolId === 'WorkflowCoordinator.submit_task') return { task_id: 'vdg-preview', task_type: 'validation', data: { prompt: 'Validate only; do not enqueue.' } }
+  if (toolId === 'load_dataset' && fixtures.dataset_file) return { source: 'json', format: 'json', options: { data_files: fixtures.dataset_file, split: 'train' } }
+  if (toolId === 'semantic_search' && fixtures.notes_collection) return { query: 'desktop note provenance', collection: fixtures.notes_collection, model: 'thenlper/gte-small', top_k: 2 }
+  if (toolId === 'index' && fixtures.dataset_file) return { dataset_source: { data: JSON.parse(readFileSync(fixtures.dataset_file, 'utf8')) }, operations: [{ type: 'clean' }] }
+  if (toolId === 'get_from_ipfs' && fixtures.dataset_cid) return { cid: fixtures.dataset_cid, gateway: fixtures.gateway }
+  if (toolId === 'save_dataset') return { dataset_data: { data: fixtures.dataset_file ? JSON.parse(readFileSync(fixtures.dataset_file, 'utf8')) : [{ text: 'VDG governed dataset preview' }] }, destination: 'vdg-preview-dataset.json', format: 'json' }
+  if (toolId === 'record_provenance') return { dataset_id: fixtures.dataset_cid, operation: 'vdg-gui-preview', inputs: fixtures.dataset_cid ? [fixtures.dataset_cid] : [], parameters: { source: 'real-desktop-control' } }
+  if (toolId === 'artifacts_put' && fixtures.dataset_file) return { cid: fixtures.dataset_cid, bytes_base64: readFileSync(fixtures.dataset_file).toString('base64'), profile: 'vdg-preview', kind: 'dataset-fixture', service: 'ipfs_kit_py', pin: true }
+  if (toolId === 'artifacts_get') return { cid: fixtures.artifact_cids?.[appId] ?? fixtures.artifact_cids?.dataset ?? LIVE_CLICK_FIXTURE_CID }
+  if (toolId === 'dag_append') return { event: { event_type: 'vdg-governed-preview', parents: [], data_cid: fixtures.dataset_cid } }
+  if (toolId === 'dag_history') return { limit: 10 }
+  if (toolId === 'ipfs_pubsub_publish') return { topic: '/swissknife/vdg/preview', content: 'VDG governed message preview.' }
   return { scope: capabilityId, limit: 1, cursor: 'desktop-read-only' }
 }
 

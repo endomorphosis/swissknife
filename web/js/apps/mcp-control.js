@@ -397,6 +397,12 @@ class MCPControlApp {
     renderLibp2pBrowserStyles() {
         return `
             <style>
+                /* The positioned window-content owns these dialogs. Keep
+                   their backdrop below its independently clickable titlebar. */
+                .mcp-control-app > .modal {
+                    position: absolute;
+                }
+
                 .libp2p-browser-defaults {
                     margin-top: 16px;
                     padding: 12px;
@@ -1168,7 +1174,7 @@ class MCPControlApp {
                         </div>
                         <div class="metric-item">
                             <span>Connection Success Rate:</span>
-                            <span class="metric-value">95%</span>
+                            <span class="metric-value">Not measured</span>
                         </div>
                     </div>
                 </div>
@@ -1807,7 +1813,6 @@ class MCPControlApp {
         // detected through the hallucinate bridge.
         if (this.servers.size === 0) {
             console.log('MCP Control: no servers configured yet.');
-        }
         }
 
         // Check remote server connections

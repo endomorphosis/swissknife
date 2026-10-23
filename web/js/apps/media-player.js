@@ -14,6 +14,7 @@
  */
 
 import { contentCidForBytes, stableStringifyValue, base64ForBytes } from '../core/mcp-plus-plus-desktop-client.js';
+import { invokeNativeTool } from '../live-tool-gateway.js';
 
 async function parseToolResponse(response) {
     const raw = await response.text();
@@ -354,7 +355,7 @@ class MediaPlayer {
                     </div>
 
                     <div class="vda-workflow-actions">
-                        <button type="button" data-svd-workflow-action="retrieve-cid-media" onclick="mediaPlayer.retrieveCidMedia()" aria-label="Retrieve CID media">Retrieve CID media</button>
+                        <button type="button" data-svd-workflow-action="retrieve-cid-media" data-native-gateway-binding="media-player.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat" onclick="mediaPlayer.retrieveCidMedia(event.currentTarget)" aria-label="Retrieve CID media">Retrieve CID media</button>
                         <button type="button" data-svd-workflow-action="toggle-captions-metadata" onclick="mediaPlayer.persistCaptionsMetadata()" aria-label="Persist captions metadata">Captions metadata</button>
                         <button type="button" data-svd-workflow-action="run-quality-diagnostics" onclick="mediaPlayer.runQualityDiagnostics()" aria-label="Run quality diagnostics">Run diagnostics</button>
                         <button type="button" data-svd-workflow-action="exercise-seek-volume" onclick="mediaPlayer.exerciseSeekVolume()" aria-label="Exercise seek volume">Seek volume</button>
@@ -1909,7 +1910,7 @@ class MediaPlayer {
      * playback of those bytes stays honestly local. Retrieval time is measured,
      * never fabricated. Failures surface verbatim.
      */
-    async retrieveCidMedia() {
+    async retrieveCidMedia(trigger = null) {
         const cid = await this.promptForCid(
             'Retrieve CID media',
             'Enter the CID of an audio/video artifact stored in ipfs_kit_py. Its real bytes will be fetched and added to the playlist.'
@@ -1918,53 +1919,31 @@ class MediaPlayer {
         this.setWorkflowLine('cid-media', `Retrieving ${cid} from ipfs_kit_py…`);
         const started = performance.now();
         const dryRun = globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true;
-        if (dryRun) {
-            const toolId = 'ipfs_cat';
-            const bindingId = 'media-player.ipfs_kit_py.retrieve_content';
-            const correlationId = `media-player:cid:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
-            this.setWorkflowLine('cid-media', `${toolId} ${correlationId}`);
-            const response = await fetch('/mcp/tools/call', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    protocol: 'swissknife.all-app-tool-gateway.v1',
-                    route: '/mcp/tools/call',
-                    binding_id: bindingId,
-                    app_id: 'media-player',
-                    intent_id: bindingId,
-                    owner: 'ipfs_kit_py',
-                    tool_id: toolId,
-                    transport: 'http',
-                    correlation_id: correlationId,
-                    receipt_required: true,
-                    input: {
-                        correlation_id: correlationId,
-                        payload: { cid, scope: bindingId, limit: 1 },
-                        policy: {
-                            decision_id: `desktop-policy:${bindingId}`,
-                            outcome: 'require_confirmation',
-                            reason: 'Media player CID retrieval is a dry run while the desktop gateway forces dry run.',
-                            consent: 'not_required',
-                            dry_run: true,
-                        },
-                    },
-                }),
-            });
-            if (!response.ok) {
-                const text = await response.text();
-                throw new Error(text.slice(0, 180) || `gateway ${response.status}`);
-            }
-            // Read the mediator body. Leaving it unread lets the browser cancel the
-            // stream before the click harness can record receipt and outcome.
-            await response.json().catch(() => undefined);
-            this.setWorkflowLine('cid-media', `${toolId} ${correlationId}`);
-            this.appendReceiptLog(`dry run ${toolId} ${correlationId}`);
-            return;
-        }
         try {
-            const artifact = await callMcpTool('mcp++:ipfs_kit_py/artifacts/get', { cid });
+            const bindingId = 'media-player.ipfs_kit_py.retrieve_content';
+            const envelope = await invokeNativeTool(this.container, 'media-player', bindingId, {
+                toolId: 'ipfs_cat', payload: { cid, scope: bindingId, limit: 1 },
+                trigger: trigger || this.container?.querySelector('[data-native-gateway-binding="media-player.ipfs_kit_py.retrieve_content"]'),
+            });
+            if (!envelope) { this.setWorkflowLine('cid-media', 'Cancelled before retrieval.'); return; }
+            if (envelope.ok === false || envelope.error || envelope.result?.ok === false || envelope.result?.error) {
+                throw new Error(envelope.error?.message || envelope.error || envelope.result?.error?.message || envelope.result?.error || 'Owner retrieval failed.');
+            }
+            const toolResult = envelope.result ?? envelope;
+            const blocks = toolResult.content?.filter(block => block.type === 'json' && block.json && typeof block.json === 'object') || [];
+            if (blocks.length > 1) throw new Error('Owner returned ambiguous retrieval data.');
+            const artifact = blocks[0]?.json ?? toolResult.result ?? toolResult;
+            if (artifact.ok === false || artifact.success === false || artifact.error) {
+              throw new Error(artifact.error?.message || artifact.error || 'Owner retrieval failed.');
+            }
+            if (dryRun || artifact.dry_run === true) {
+                const line = `dry run ipfs_cat ${envelope.correlation_id || ''}`;
+                this.setWorkflowLine('cid-media', line);
+                this.appendReceiptLog(line);
+                return;
+            }
             const ms = Math.round(performance.now() - started);
-            if (!artifact || artifact.found !== true) {
+            if (!artifact || artifact.found === false) {
                 throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
             }
             const bytes = bytesFromBase64(artifact.bytes_base64 || '');
@@ -2287,7 +2266,14 @@ class MediaPlayer {
             };
             overlay.querySelector('.mp-governed-cancel').addEventListener('click', () => done(null));
             overlay.querySelector('.mp-governed-confirm').addEventListener('click', () => done(input.value));
-            input.addEventListener('keydown', (event) => { if (event.key === 'Enter') done(input.value); });
+            input.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter') return;
+                // Enter supplies the CID, without activating the next dialog's
+                // focused cancel button through the same keyboard default.
+                event.preventDefault();
+                event.stopPropagation();
+                done(input.value);
+            });
             document.body.appendChild(overlay);
             input.focus();
         });

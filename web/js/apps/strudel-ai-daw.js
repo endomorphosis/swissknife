@@ -20,6 +20,21 @@ export class StrudelAIDAW {
         this.audioContext = null;
         this.strudelEngine = null;
         this.currentPattern = null;
+        this.samples = new Map();
+        this.playbackMode = 'unavailable';
+        this._transportGeneration = 0;
+        this._sdkActive = false;
+        this._transportTimeoutMs = 5000;
+        this._sdkLoadTimeoutMs = 5000;
+        this._workletLoadTimeoutMs = 1000;
+        this._previewOscillators = new Set();
+        this._previewGains = new Set();
+        this._previewBeatHistory = [];
+        this._metronomeTimer = null;
+        this.audioBackend = 'unavailable';
+        this.audioCleanupErrors = [];
+        this._transportFaulted = false;
+        this._closed = false;
         this.bpm = 120;
         this.masterVolume = 0.8;
         
@@ -92,14 +107,62 @@ export class StrudelAIDAW {
      * Called after the HTML has been inserted into the container. Sets up listeners and audio.
      */
     async mount(container) {
+        if (this._closed || this._container) return;
+        if (!container.isConnected) { await this.onDestroy(); return; }
+        this._container = container;
+        const view = container.ownerDocument.defaultView;
+        this._ownerObserver = new view.MutationObserver(() => {
+            if (!container.isConnected) void this.onDestroy();
+        });
+        this._ownerObserver.observe(container.ownerDocument.documentElement, {childList: true, subtree: true});
+        this._onPageHide = () => { void this.onDestroy(); };
+        view.addEventListener('pagehide', this._onPageHide);
         try {
             this.setupEventListeners(container);
             await this.initializeEditor(container);
+            if (this._closed) return;
             this.setupVisualization(container);
             await this.initializeAudioEngine(container);
+            if (!this._closed) {
+                this.updateStatus(container, this.playbackMode === 'local-preview' ?
+                    'Local audio preview ready — metronome/reference tone; Strudel code compilation unavailable' :
+                    this.playbackMode === 'strudel' ? 'Strudel transport ready' : 'Audio unavailable — no Strudel transport or local WebAudio preview');
+            }
         } catch (err) {
-            console.error('Failed to mount Strudel AI DAW:', err);
+            if (!this._closed) {
+                this.updateStatus(container, 'Audio unavailable');
+                this.addConsoleMessage(container, `Audio setup failed: ${err.message}`, 'error');
+            }
         }
+    }
+
+    onDestroy() {
+        if (this._cleanupPromise) return this._cleanupPromise;
+        this._closed = true;
+        this._transportGeneration++;
+        this.isPlaying = false;
+        this.stopLocalReference();
+        clearTimeout(this.autoSaveTimeout);
+        clearTimeout(this.analysisTimeout);
+        if (this.animationFrame !== null) cancelAnimationFrame(this.animationFrame);
+        this.animationFrame = null;
+        this._ownerObserver?.disconnect();
+        this._container?.ownerDocument.defaultView.removeEventListener('pagehide', this._onPageHide);
+        // Silence the owned audio graph before waiting for a possibly external SDK.
+        try { this.audioNode?.port.postMessage({type: 'setPlaying', value: false}); } catch {}
+        for (const node of [this.audioNode, this.masterGain, this.analyser]) {
+            try { node?.disconnect(); } catch {}
+        }
+        const sdk = this._sdkActive ? this.strudelEngine : null;
+        this._sdkActive = false;
+        this._cleanupPromise = Promise.allSettled([
+            Promise.resolve().then(() => sdk ? this.awaitTransport(sdk.stop()) : undefined),
+            Promise.resolve().then(() => this.audioContext?.state !== 'closed' && this.audioContext ?
+                this.awaitAudioCleanup(this.audioContext.close()) : undefined)
+        ]).then(results => {
+            for (const result of results) if (result.status === 'rejected') this.audioCleanupErrors.push(result.reason?.message || String(result.reason));
+        });
+        return this._cleanupPromise;
     }
 
     getContentHTML() {
@@ -148,6 +211,7 @@ export class StrudelAIDAW {
                     </div>
                     
                     <div class="status-section">
+                        <span id="audio-playback-status" role="status">Audio initializing</span>
                         <div class="cpu-meter">
                             <span>CPU:</span>
                             <div class="meter"><div class="meter-fill" id="cpu-meter"></div></div>
@@ -650,26 +714,36 @@ stack(
                 throw new Error('Web Audio API is not available in this environment');
             }
             this.audioContext = new AudioContextCtor();
+            console.log("Audio engine: context created");
             
             // Set up analyser for visualization
             this.analyser = this.audioContext.createAnalyser();
             this.analyser.fftSize = 1024;
             this.analyser.connect(this.audioContext.destination);
+            console.log("Audio engine: analyser connected");
             
             // Initialize master gain
             this.masterGain = this.audioContext.createGain();
             this.masterGain.gain.value = this.masterVolume;
             this.masterGain.connect(this.analyser);
+            console.log("Audio engine: gain connected");
             
             // Initialize Strudel engine
             await this.initializeStrudelEngine();
+            console.log("Audio engine: transport selected");
+            if (this._closed) return;
             
             // Load default samples and patterns
             await this.loadDefaultSamples();
             await this.loadDefaultPatterns();
+            if (this._closed) return;
             
-            // Set up real-time processing
-            await this.setupRealTimeProcessing();
+            // Worklet loading can wait for a running AudioContext in browsers.
+            // Prepare it only after the real Play gesture resumes audio, so
+            // mounting an autoplay-suspended window never waits on that worklet.
+            this.playbackMode = this.hasStrudelTransport(this.strudelEngine) ? 'strudel' :
+                (typeof this.audioContext.audioWorklet?.addModule === 'function' ||
+                    typeof this.audioContext.createOscillator === 'function' ? 'local-preview' : 'unavailable');
             
             console.log('✅ Advanced audio engine initialized successfully');
             // Ensure visualization starts now that analyser exists
@@ -681,29 +755,17 @@ stack(
         }
     }
 
+    hasStrudelTransport(engine) {
+        return Boolean(engine && ['evaluate', 'start', 'stop'].every(name => typeof engine[name] === 'function'));
+    }
+
     async initializeStrudelEngine() {
-        try {
-            console.log('🎼 Initializing Strudel engine...');
-            
-            // Check if Strudel is available globally
-            if (window.strudel) {
-                this.strudelEngine = window.strudel;
-                console.log('✅ Using global Strudel engine');
-            } else {
-                // Initialize basic pattern engine
-                this.strudelEngine = {
-                    Pattern: this.createPatternClass(),
-                    samples: new Map(),
-                    oscillators: new Map(),
-                    effects: new Map()
-                };
-                console.log('✅ Using built-in pattern engine');
-            }
-            
-        } catch (error) {
-            console.error('❌ Failed to initialize Strudel engine:', error);
-            throw error;
-        }
+        // Core Pattern exports alone are not an evaluator plus audio transport.
+        if (this.hasStrudelTransport(this.strudelEngine)) return;
+        if (this._sdkSelectionComplete) { this.strudelEngine = null; return; }
+        const engine = [globalThis.window?.strudel, globalThis.window?.Strudel]
+            .find(candidate => this.hasStrudelTransport(candidate));
+        this.strudelEngine = engine || null;
     }
 
     createPatternClass() {
@@ -751,7 +813,7 @@ stack(
         // Create synthesized samples
         for (const [name, config] of Object.entries(defaultSamples)) {
             const synthBuffer = await this.createSynthesizedSample(name);
-            this.strudelEngine.samples.set(name, {
+            this.samples.set(name, {
                 buffer: synthBuffer,
                 category: config.category,
                 loaded: true,
@@ -759,7 +821,7 @@ stack(
             });
         }
         
-        console.log(`✅ Loaded ${this.strudelEngine.samples.size} synthesized samples`);
+        console.log(`✅ Loaded ${this.samples.size} synthesized samples`);
     }
 
     async createSynthesizedSample(name) {
@@ -814,14 +876,22 @@ stack(
         return buffer;
     }
 
-    async setupRealTimeProcessing() {
+    async setupRealTimeProcessing(generation = this._transportGeneration) {
         console.log('⚡ Setting up real-time audio processing...');
         
         // Use AudioWorkletNode for modern audio processing
         try {
             if (this.audioContext.audioWorklet && typeof this.audioContext.audioWorklet.addModule === 'function') {
                 const workletUrl = new URL('../audio/strudel-processor.js', import.meta.url);
-                await this.audioContext.audioWorklet.addModule(workletUrl);
+                this.workletModuleUrl = workletUrl.href;
+                console.log('AudioWorklet module URL:', this.workletModuleUrl);
+                let timer;
+                try {
+                    await Promise.race([this.audioContext.audioWorklet.addModule(workletUrl), new Promise((_, reject) => {
+                        timer = setTimeout(() => reject(new Error('AudioWorklet module load timed out')), this._workletLoadTimeoutMs);
+                    })]);
+                } finally { clearTimeout(timer); }
+                if (this._closed || generation !== this._transportGeneration) return;
                 this.audioNode = new AudioWorkletNode(this.audioContext, 'strudel-processor');
                 this.audioNode.connect(this.masterGain);
                 // Initialize worklet state
@@ -835,8 +905,79 @@ stack(
             }
         } catch (error) {
             console.warn('⚠️ AudioWorklet setup failed:', error);
-            console.log('Real-time processing disabled. Audio playback will still work.');
+            console.log('Local audio preview unavailable; playback requires a complete Strudel SDK transport.');
         }
+    }
+
+    startLocalReference() {
+        if (typeof this.audioContext.createOscillator !== 'function') {
+            this.playbackMode = 'unavailable';
+            throw new Error('No Strudel transport or WebAudio preview is available');
+        }
+        const context = this.audioContext;
+        this._referenceOscillator = context.createOscillator();
+        this._previewOscillators.add(this._referenceOscillator);
+        const gain = context.createGain();
+        this._previewGains.add(gain);
+        gain.gain.value = 0.02;
+        this._referenceOscillator.frequency.value = 220;
+        this._referenceOscillator.connect(gain);
+        gain.connect(this.masterGain);
+        this._referenceOscillator.start();
+        this._localPreviewActive = true;
+        this._nextPreviewBeat = context.currentTime + 0.01;
+        const schedule = () => {
+            if (!this._localPreviewActive || this._closed) return;
+            const now = context.currentTime;
+            if (this._nextPreviewBeat < now - 1) this._nextPreviewBeat = now + 0.01;
+            for (let count = 0; count < 64 && this._nextPreviewBeat < now + 0.1; count++) {
+                const oscillator = context.createOscillator();
+                const envelope = context.createGain();
+                const when = this._nextPreviewBeat;
+                oscillator.frequency.value = 1000;
+                envelope.gain.setValueAtTime(0.6, when);
+                envelope.gain.exponentialRampToValueAtTime(0.0001, when + 0.03);
+                oscillator.connect(envelope);
+                envelope.connect(this.masterGain);
+                this._previewOscillators.add(oscillator);
+                this._previewGains.add(envelope);
+                oscillator.onended = () => {
+                    oscillator.disconnect(); envelope.disconnect();
+                    this._previewOscillators.delete(oscillator); this._previewGains.delete(envelope);
+                };
+                oscillator.start(when); oscillator.stop(when + 0.04);
+                this._previewBeatHistory.push({time: when, frequency: oscillator.frequency.value, bpm: this.bpm});
+                if (this._previewBeatHistory.length > 32) this._previewBeatHistory.shift();
+                this._nextPreviewBeat += 60 / this.bpm;
+            }
+        };
+        schedule();
+        this._metronomeTimer = setInterval(() => {
+            try { schedule(); }
+            catch (error) {
+                this.stopLocalReference(); this.isPlaying = false;
+                if (!this._closed && this._container) {
+                    this.updateTransportButtons(this._container);
+                    this.updateStatus(this._container, 'Audio preview failed');
+                    this.addConsoleMessage(this._container, `Audio preview failed: ${error.message}`, 'error');
+                }
+            }
+        }, 25);
+        this.audioBackend = 'web-audio-reference';
+    }
+
+    stopLocalReference() {
+        this._localPreviewActive = false;
+        if (this._metronomeTimer !== null) clearInterval(this._metronomeTimer);
+        this._metronomeTimer = null;
+        for (const oscillator of this._previewOscillators) {
+            try { oscillator.stop(); } catch {}
+            try { oscillator.disconnect(); } catch {}
+            oscillator.onended = null;
+        }
+        for (const gain of this._previewGains) { try { gain.disconnect(); } catch {} }
+        this._previewOscillators.clear(); this._previewGains.clear();
+        this._referenceOscillator = null;
     }
 
     processAudio(event) {
@@ -911,21 +1052,34 @@ stack(
         console.log(`✅ Loaded ${this.patterns.size} default patterns`);
     }
 
+    importStrudelSDK() {
+        return import(/* @vite-ignore */ 'https://esm.sh/@strudel.cycles/core?bundle');
+    }
+
     async loadStrudelSDK() {
+        if (this._closed) return;
         try {
             // Try to load real Strudel SDK if available
-            if (window.Strudel) {
+            const existing = [window.strudel, window.Strudel].find(engine => this.hasStrudelTransport(engine));
+            if (existing) {
                 console.log('📦 Using real Strudel SDK...');
-                this.strudelEngine = window.Strudel;
+                this.strudelEngine = existing;
             } else {
                 // Load Strudel SDK from an ESM-friendly CDN.
                 // Note: unpkg default build is CJS and throws 'exports is not defined' in browsers.
                 // We prefer esm.sh which serves ESM bundles for direct browser import.
                 console.log('📦 Loading Strudel SDK via ESM CDN...');
                 try {
-                    const mod = await import(/* @vite-ignore */ 'https://esm.sh/@strudel.cycles/core?bundle');
+                    let timer;
+                    let mod;
+                    try {
+                        mod = await Promise.race([this.importStrudelSDK(), new Promise((_, reject) => {
+                            timer = setTimeout(() => reject(new Error('Strudel SDK load timed out')), this._sdkLoadTimeoutMs);
+                        })]);
+                    } finally { clearTimeout(timer); }
+                    if (this._closed) return;
                     const engine = mod?.default || mod?.Strudel || mod;
-                    if (engine) {
+                    if (this.hasStrudelTransport(engine)) {
                         this.strudelEngine = engine;
                         console.log('✅ Strudel SDK loaded via ESM import');
                     } else {
@@ -934,13 +1088,11 @@ stack(
                     }
                 } catch (e) {
                     console.warn('⚠️ ESM import failed, falling back to global loader:', e);
-                    // Secondary attempt: try jsDelivr with ?module hint (still may be CJS depending on package config)
-                    await new Promise((resolve) => setTimeout(resolve, 300));
-                    this.setupFallbackEngine();
+                    if (!this._closed) this.setupFallbackEngine();
                 }
             }
             
-            if (!this.strudelEngine) {
+            if (!this.hasStrudelTransport(this.strudelEngine)) {
                 this.setupFallbackEngine();
             }
             
@@ -951,15 +1103,10 @@ stack(
     }
 
     setupFallbackEngine() {
-        console.log('📦 Using fallback Strudel engine interface');
-        this.strudelEngine = {
-            // Fallback Strudel engine interface
-            evaluate: (code) => this.evaluateStrudelCode(code),
-            setTempo: (bpm) => this.bpm = bpm,
-            stop: () => this.stopStrudel(),
-            start: () => this.startStrudel()
-        };
-        console.log('✅ Fallback engine ready');
+        this._sdkSelectionComplete = true;
+        // The built-in worklet provides a real metronome/reference tone, not a Strudel compiler.
+        this.strudelEngine = null;
+        console.log('Strudel transport unavailable; local audio preview will be used if WebAudio is available.');
     }
 
     onCodeChange(window) {
@@ -1122,79 +1269,134 @@ stack(
     }
 
     async updateLiveAudio(window) {
-        try {
-            // Re-evaluate the current code with new parameters
-            if (this.strudelEngine) {
-                await this.strudelEngine.evaluate(this.currentCode);
-            }
-        } catch (error) {
-            console.error('Failed to update live audio:', error);
+        if (this.playbackMode !== 'strudel') {
+            this.addConsoleMessage(window, 'Local metronome/reference preview does not compile edited Strudel code.', 'info');
+            return;
         }
+        try {
+            await this.awaitTransport(this.evaluateStrudelCode(this.currentCode));
+        } catch (error) {
+            this.addConsoleMessage(window, `Code evaluation failed: ${error.message}`, 'error');
+        }
+    }
+
+    async awaitAudioCleanup(operation) {
+        let timer;
+        try {
+            return await Promise.race([operation, new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error('Native audio cleanup timed out')), this._transportTimeoutMs);
+            })]);
+        } finally { clearTimeout(timer); }
+    }
+
+    async awaitTransport(operation) {
+        let timer;
+        try {
+            return await Promise.race([operation, new Promise((_, reject) => {
+                timer = setTimeout(() => {
+                    this._transportFaulted = true;
+                    reject(new Error('Strudel transport timed out; close and reopen the app before retrying playback'));
+                }, this._transportTimeoutMs);
+            })]);
+        } finally { clearTimeout(timer); }
     }
 
     async play(window) {
-        if (this.isPlaying) return;
-        
+        if (this.isPlaying || this._playPending || this._closed) return;
+        this._playPending = true;
+        const generation = ++this._transportGeneration;
         try {
+            if (this._transportFaulted) throw new Error('Strudel transport unavailable after timeout; close and reopen the app');
+            if (!this.audioContext || this.audioContext.state === 'closed') throw new Error('Audio engine unavailable');
+            if (this.audioContext.state === 'suspended') await this.awaitTransport(this.audioContext.resume());
+            if (this.audioContext.state !== 'running') throw new Error('Audio context is not running');
+            if (this._closed || generation !== this._transportGeneration) return;
+            if (this.hasStrudelTransport(this.strudelEngine)) {
+                if (!this.currentCode.trim()) throw new Error('Enter a Strudel pattern before playback');
+                await this.awaitTransport(this.evaluateStrudelCode(this.currentCode));
+                if (this._closed || generation !== this._transportGeneration) return;
+                this._sdkActive = true;
+                const starting = Promise.resolve(this.strudelEngine.start());
+                // A timed-out start may resolve later; it still must not restart
+                // audio after Stop, window close, or a failed transport.
+                void starting.then(() => {
+                    if (this._closed || this._transportFaulted || generation !== this._transportGeneration) {
+                        return this.awaitTransport(this.strudelEngine.stop());
+                    }
+                }).catch(() => {});
+                await this.awaitTransport(starting);
+                if (this._closed || generation !== this._transportGeneration) {
+                    await this.awaitTransport(this.strudelEngine.stop());
+                    this._sdkActive = false;
+                    return;
+                }
+                this.playbackMode = 'strudel';
+                this.audioBackend = 'strudel-sdk';
+            } else {
+                if (!this.isUsingWorklet) await this.awaitTransport(this.setupRealTimeProcessing());
+                if (this._closed || generation !== this._transportGeneration) return;
+                if (this.isUsingWorklet && this.audioNode) {
+                    this.audioNode.port.postMessage({type: 'setPlaying', value: true});
+                    this.audioBackend = 'worklet-reference';
+                } else {
+                    this.startLocalReference();
+                }
+                this.playbackMode = 'local-preview';
+            }
             this.isPlaying = true;
             this.updateTransportButtons(window);
-            this.updateStatus(window, 'Playing...');
-            
-            // Resume audio context if suspended
-            if (this.audioContext.state === 'suspended') {
-                await this.audioContext.resume();
-            }
-            
-            // Evaluate and start Strudel code
-            if (this.strudelEngine && this.currentCode.trim()) {
-                await this.strudelEngine.evaluate(this.currentCode);
-                await this.strudelEngine.start();
-            }
-
-            // Notify worklet
-            if (this.isUsingWorklet && this.audioNode) {
-                this.audioNode.port.postMessage({ type: 'setPlaying', value: true });
-            }
-            
-            this.addConsoleMessage(window, '▶️ Playback started', 'info');
-            
+            const status = this.playbackMode === 'strudel' ? 'Playing Strudel pattern' :
+                `Local audio preview — metronome/reference tone (${this.audioBackend === 'web-audio-reference' ? 'native WebAudio fallback' : 'AudioWorklet'}); Strudel code compilation unavailable`;
+            this.updateStatus(window, status);
+            this.addConsoleMessage(window, status, 'info');
         } catch (error) {
-            console.error('Playback failed:', error);
-            this.addConsoleMessage(window, `❌ Playback failed: ${error.message}`, 'error');
-            this.stop(window);
+            // Preserve the evaluation/start failure instead of replacing it with a missing stop().
+            await this.haltAudio();
+            if (!this._closed) {
+                this.updateTransportButtons(window);
+                this.updateStatus(window, 'Playback failed');
+                this.addConsoleMessage(window, `Playback failed: ${error.message}`, 'error');
+            }
+        } finally {
+            this._playPending = false;
         }
     }
 
-    pause(window) {
-        if (!this.isPlaying) return;
-        
+    async haltAudio() {
         this.isPlaying = false;
-        this.updateTransportButtons(window);
-        this.updateStatus(window, 'Paused');
-        
-        if (this.strudelEngine) {
-            this.strudelEngine.stop();
+        this.stopLocalReference();
+        const wasActive = this._sdkActive;
+        this._sdkActive = false;
+        let failure;
+        // Local output must stop before waiting on any external SDK promise.
+        try { this.audioNode?.port.postMessage({type: 'setPlaying', value: false}); }
+        catch (error) { failure = error; }
+        try {
+            if (wasActive && this.hasStrudelTransport(this.strudelEngine)) {
+                await this.awaitTransport(this.strudelEngine.stop());
+            }
+        } catch (error) { failure ||= error; this._sdkActive = wasActive; }
+        // Even if an external SDK stop fails, silence this app's real audio context.
+        if (failure && this.audioContext?.state === 'running') {
+            try { await this.awaitAudioCleanup(this.audioContext.suspend()); }
+            catch (error) { this.audioCleanupErrors.push(error.message); }
         }
-        if (this.isUsingWorklet && this.audioNode) {
-            this.audioNode.port.postMessage({ type: 'setPlaying', value: false });
-        }
-        
-        this.addConsoleMessage(window, '⏸️ Playback paused', 'info');
+        return failure;
     }
 
-    stop(window) {
-        this.isPlaying = false;
+    async pause(window) {
+        return this.stop(window, 'Paused');
+    }
+
+    async stop(window, status = 'Stopped') {
+        this._transportGeneration++;
+        if (!this._closed) this.updateStatus(window, 'Stopping audio…');
+        const failure = await this.haltAudio();
+        if (this._closed) return;
         this.updateTransportButtons(window);
-        this.updateStatus(window, 'Stopped');
-        
-        if (this.strudelEngine) {
-            this.strudelEngine.stop();
-        }
-        if (this.isUsingWorklet && this.audioNode) {
-            this.audioNode.port.postMessage({ type: 'setPlaying', value: false });
-        }
-        
-        this.addConsoleMessage(window, '⏹️ Playback stopped', 'info');
+        this.updateStatus(window, failure ? 'Audio stop failed' : status);
+        this.addConsoleMessage(window, failure ? `Audio stop failed: ${failure.message}` : status,
+            failure ? 'error' : 'info');
     }
 
     updateTransportButtons(window) {
@@ -1202,15 +1404,20 @@ stack(
         const pauseBtn = window.querySelector('#pause-btn');
         const stopBtn = window.querySelector('#stop-btn');
         
-        playBtn.disabled = this.isPlaying;
-        pauseBtn.disabled = !this.isPlaying;
-        stopBtn.disabled = !this.isPlaying;
+        playBtn.disabled = this.isPlaying || this._sdkActive || this._transportFaulted;
+        pauseBtn.disabled = !this.isPlaying && !this._sdkActive;
+        stopBtn.disabled = !this.isPlaying && !this._sdkActive;
     }
 
     setBPM(window, bpm) {
-        this.bpm = parseInt(bpm);
-        if (this.strudelEngine) {
-            this.strudelEngine.setTempo(this.bpm);
+        const value = Number(bpm);
+        if (!Number.isFinite(value) || value <= 0) return;
+        this.bpm = Math.max(60, Math.min(200, value));
+        if (this._localPreviewActive) this._nextPreviewBeat = this.audioContext.currentTime + 60 / this.bpm;
+        if (typeof this.strudelEngine?.setTempo === 'function') {
+            Promise.resolve().then(() => this.strudelEngine.setTempo(this.bpm)).catch(error => {
+                if (!this._closed) this.addConsoleMessage(window, `Tempo update failed: ${error.message}`, 'error');
+            });
         }
         if (this.isUsingWorklet && this.audioNode) {
             this.audioNode.port.postMessage({ type: 'setBPM', value: this.bpm });
@@ -1365,9 +1572,10 @@ note("c2 ~ eb2 ~").sound("sawtooth").lpf(300).gain(0.6)`;
     }
 
     startVisualization() {
-        if (!this.analyser) return;
+        if (!this.analyser || this._closed || this.animationFrame !== null) return;
         
         const animate = () => {
+            if (this._closed) return;
             this.animationFrame = requestAnimationFrame(animate);
             this.drawWaveform();
             this.drawSpectrum();
@@ -1450,8 +1658,8 @@ note("c2 ~ eb2 ~").sound("sawtooth").lpf(300).gain(0.6)`;
     }
 
     updateStatus(window, status) {
-        // Update status display if needed
-        console.log('Status:', status);
+        const node = window.querySelector('#audio-playback-status');
+        if (node) node.textContent = status;
     }
 
     handleG045WorkflowAction(window, action) {
@@ -1758,26 +1966,10 @@ Make it musical and interesting!`,
     }
 
     async evaluateStrudelCode(code) {
-        // Try to use real Strudel evaluation if available
-        if (this.strudelEngine && this.strudelEngine !== this && typeof this.strudelEngine.evaluate === 'function') {
-            try {
-                return await this.strudelEngine.evaluate(code);
-            } catch (error) {
-                console.warn('⚠️ Strudel evaluation failed:', error);
-            }
+        if (!this.hasStrudelTransport(this.strudelEngine)) {
+            throw new Error('Strudel code compilation unavailable in local audio preview');
         }
-        
-        // Fallback: just log the code for now
-        console.log('🎵 Evaluating Strudel code (fallback):', code);
-        return Promise.resolve();
-    }
-
-    startStrudel() {
-        console.log('🎵 Starting Strudel engine');
-    }
-
-    stopStrudel() {
-        console.log('🎵 Stopping Strudel engine');
+        return this.strudelEngine.evaluate(code);
     }
 
     tapTempo(window) {

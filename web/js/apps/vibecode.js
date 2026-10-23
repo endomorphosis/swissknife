@@ -2,8 +2,9 @@
  * VibeCode App - Fixed version with working functionality
  * Simplified but functional AI-Powered Streamlit Development Environment
  *
- * Artifact writes use POST /mcp/tools/call (IDL method request_action).
+ * Native owner actions use reviewed bindings and visible confirmation.
  */
+import { invokeNetworkNativeTool, networkNativeAttributes } from './network-native-tools.js';
 
 async function vibecodeParseToolResponse(response) {
   const raw = await response.text();
@@ -51,19 +52,6 @@ function vibecodeArgumentsForDatasetPublish(tool, toolArguments) {
   return args;
 }
 
-async function vibecodeCallMcpTool(tool, toolArguments) {
-  const response = await fetch('/mcp/tools/call', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      method: 'request_action',
-      tool,
-      arguments: vibecodeArgumentsForDatasetPublish(tool, toolArguments)
-    })
-  });
-  return vibecodeParseToolResponse(response);
-}
-
 class VibeCodeApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -71,6 +59,7 @@ class VibeCodeApp {
     
     // Core configuration  
     this.currentFile = null;
+    this.workspacePath = '/swissknife/vdg/README.md';
     this.recentFiles = [];
     this.language = 'python';
     this.theme = 'dark';
@@ -321,7 +310,7 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
           <div class="header-left">
             <button class="vibe-btn" id="new-file-btn">📄 New</button>
             <button class="vibe-btn" id="save-file-btn">💾 Save</button>
-            <button class="vibe-btn" id="run-btn">▶️ Run</button>
+            <button class="vibe-btn" id="run-btn" ${networkNativeAttributes('vibecode', 'mcp++:ipfs_kit_py/artifacts/put')}>▶️ Run</button>
           </div>
           
           <div class="header-right">
@@ -329,6 +318,14 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             <button class="vibe-btn" id="settings-btn">⚙️</button>
           </div>
         </div>
+
+        <section class="vibecode-workspace" aria-label="Remote workspace" style="padding:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <label>Workspace path <input id="vibecode-workspace-path" aria-label="Virtual workspace path" value="${this.workspacePath}"></label>
+          <button class="vibe-btn" id="vibecode-list-files" data-native-gateway-binding="vibecode.ipfs_kit_py.list_virtual_files" data-native-tool-id="files_ls">List workspace</button>
+          <button class="vibe-btn" id="vibecode-open-file" data-native-gateway-binding="vibecode.ipfs_kit_py.list_virtual_files" data-native-tool-id="files_read">Open remote file</button>
+          <button class="vibe-btn" id="vibecode-write-file" data-native-gateway-binding="vibecode.ipfs_kit_py.list_virtual_files" data-native-tool-id="files_write">Save remote file</button>
+          <output id="vibecode-workspace-result" role="status" aria-live="polite">No remote workspace operation has run.</output>
+        </section>
 
         <!-- Main Content -->
         <div class="main-content">
@@ -369,7 +366,7 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
                 placeholder="Ask AI for help with your code..."
                 rows="3"
               ></textarea>
-              <button class="vibe-btn ai sk-btn sk-btn-primary" id="send-ai-btn">Send</button>
+              <button class="vibe-btn ai sk-btn sk-btn-primary" id="send-ai-btn" data-native-gateway-binding="vibecode.ipfs_accelerate_py.submit_inference" data-native-tool-id="submit_task">Send</button>
             </div>
           </div>
         </div>
@@ -388,6 +385,10 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
   }
 
   setupEventListeners(window) {
+    const root = window.querySelector('.vibecode-container') || window;
+    this.boundEventRoots ||= new WeakSet();
+    if (this.boundEventRoots.has(root)) return;
+    this.boundEventRoots.add(root);
     console.log('🎯 Setting up VibeCode event listeners...');
     
     // File operations
@@ -434,6 +435,11 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
       });
     }
     
+    for (const [id, tool] of [['vibecode-list-files', 'files_ls'], ['vibecode-open-file', 'files_read'], ['vibecode-write-file', 'files_write']]) {
+      const button = window.querySelector(`#${id}`);
+      button?.addEventListener('click', () => this.runWorkspaceOperation(window, tool, button));
+    }
+
     // Code editor events
     const codeEditor = window.querySelector('#code-editor');
     if (codeEditor) {
@@ -443,6 +449,48 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     }
     
     console.log('✅ VibeCode event listeners setup complete');
+  }
+
+  async runWorkspaceOperation(container, toolId, trigger) {
+    const output = container.querySelector('#vibecode-workspace-result');
+    try {
+      if (!['files_ls', 'files_read', 'files_write'].includes(toolId)) throw new Error('Unsupported workspace operation.');
+      const path = String(container.querySelector('#vibecode-workspace-path')?.value || '').trim();
+      if (!path.startsWith('/') || path.includes('\0') || path.split('/').includes('..')) throw new Error('Choose an absolute virtual workspace path without parent traversal.');
+      const { invokeNativeTool } = await import('../live-tool-gateway.js');
+      const payload = { path: toolId === 'files_ls' ? path.slice(0, path.lastIndexOf('/')) || '/' : path };
+      if (toolId === 'files_write') payload.content = container.querySelector('#code-editor')?.value || '';
+      const response = await invokeNativeTool(container, 'vibecode', 'vibecode.ipfs_kit_py.list_virtual_files', { toolId, payload, trigger });
+      if (response === null) {
+        if (output) output.textContent = `${toolId} cancelled before dispatch.`;
+        return null;
+      }
+      if (!response?.ok || response.outcome !== 'executed') throw new Error(response?.error || response?.result?.error || response?.outcome || 'Workspace owner did not execute the request.');
+      this.workspacePath = path;
+      const records = [response.result];
+      let content;
+      for (let index = 0; index < records.length && index < 24; index++) {
+        const record = records[index];
+        if (!record || typeof record !== 'object') continue;
+        if (typeof record.content === 'string') content = record.content;
+        if (typeof record.text === 'string') content = record.text;
+        if (record.result && typeof record.result === 'object') records.push(record.result);
+        for (const item of Array.isArray(record.content) ? record.content : []) {
+          if (item.json && typeof item.json === 'object') records.push(item.json);
+          else if (item.type === 'text' && typeof item.text === 'string') {
+            try { records.push(JSON.parse(item.text)); }
+            catch { content = item.text; }
+          }
+        }
+      }
+      if (toolId === 'files_read' && content !== undefined) container.querySelector('#code-editor').value = content;
+      if (output) output.textContent = `${toolId} acknowledged by ipfs_kit_py; correlation ${response.correlation_id}; receipt ${response.receipt?.receipt_id || 'unavailable'}. ${toolId === 'files_ls' ? JSON.stringify(response.result) : ''}`;
+      return response;
+    } catch (error) {
+      if (output) output.textContent = `${toolId} failed: ${error.message}`;
+      this.updateStatus(container, 'Workspace operation failed');
+      return null;
+    }
   }
 
   newFile(window) {
@@ -489,10 +537,6 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     // produces a genuine content CID. Governed write: explicit user
     // confirmation before the POST, failures surfaced verbatim.
     try {
-      if (!confirm('Save this Streamlit code as an IPFS artifact via ipfs_kit_py?')) {
-        this.updateStatus(window, 'Ready');
-        return;
-      }
       const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
       const { contentCidForBytes, stableStringifyValue, base64ForBytes } = clientModule;
       const record = {
@@ -504,15 +548,16 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
       };
       const bytes = new TextEncoder().encode(stableStringifyValue(record));
       const cid = await contentCidForBytes(bytes);
-      const result = await vibecodeCallMcpTool('mcp++:ipfs_kit_py/artifacts/put', {
+      const result = await invokeNetworkNativeTool(window, 'vibecode', 'mcp++:ipfs_kit_py/artifacts/put', {
         cid,
         bytes_base64: base64ForBytes(bytes),
         profile: 'vibecode-artifact',
         kind: 'streamlit-code',
         service: 'ipfs_kit_py',
         pin: true
-      });
-      if (!result || result.persisted !== true || result.cid !== cid) {
+      }, window.querySelector('#run-btn'));
+      if (result === null) { this.updateStatus(window, 'Run cancelled before dispatch'); return; }
+      if (result.persisted !== true || result.cid !== cid) {
         throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted artifact.');
       }
       previewSection.innerHTML = `
@@ -537,12 +582,12 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     } catch (error) {
       previewSection.innerHTML = `
         <div style="padding: 2rem; background: white; color: black;">
-          <h3>⚠️ Run failed</h3>
+          <h3>${error.preview ? 'Validated artifact preview' : '⚠️ Run failed'}</h3>
           <p style="font-family: monospace;">${String(error.message || error)}</p>
-          <p>The code was not persisted. The error above is the verbatim backend response.</p>
+          <p>${error.preview ? 'The code was not persisted or executed.' : 'The code was not persisted. The error above is the verbatim backend response.'}</p>
         </div>
       `;
-      this.updateStatus(window, 'Run failed');
+      this.updateStatus(window, error.preview ? 'Artifact preview validated' : 'Run failed');
     }
   }
 
@@ -579,22 +624,22 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     // Add loading message
     this.addAIMessage(window, 'Thinking...', 'assistant', true);
 
-    // Ask the real AI backend when one is wired up; never invent a reply.
-    const chat = this.swissknife?.chat || this.desktop?.swissknife?.chat || window.swissknife?.chat;
-    // Remove loading message
-    const loadingMessage = aiMessages.querySelector('.ai-loading');
-    if (loadingMessage) {
-      loadingMessage.remove();
-    }
-    if (typeof chat === 'function') {
-      try {
-        const response = await chat({ message, model: 'gpt-4' });
-        this.addAIMessage(window, response?.message || response?.content || String(response), 'assistant');
-      } catch (error) {
-        this.addAIMessage(window, `AI request failed: ${error.message}`, 'assistant');
+    try {
+      const { invokeNativeTool } = await import('../live-tool-gateway.js');
+      const response = await invokeNativeTool(window, 'vibecode', 'vibecode.ipfs_accelerate_py.submit_inference', {
+        toolId: 'submit_task', trigger: window.querySelector('#send-ai-btn'),
+        payload: { task_type: 'inference', prompt: message, payload: { prompt: message, code: window.querySelector('#code-editor')?.value || '' } },
+      });
+      if (response === null) {
+        aiInput.value = message;
+        return;
       }
-    } else {
-      this.addAIMessage(window, 'AI is not configured: no chat backend is available. Configure an AI provider (Settings → API Keys) to enable the assistant.', 'assistant');
+      if (!response?.ok || response.outcome !== 'executed') throw new Error(response?.error || response?.result?.error || response?.outcome || 'Inference owner did not execute the request.');
+      this.addAIMessage(window, `Inference request acknowledged by ipfs_accelerate_py. Correlation: ${response.correlation_id}; receipt: ${response.receipt?.receipt_id || 'unavailable'}.`, 'assistant');
+    } catch (error) {
+      this.addAIMessage(window, `AI request failed: ${error.message}`, 'assistant');
+    } finally {
+      aiMessages.querySelector('.ai-loading')?.remove();
     }
   }
 
