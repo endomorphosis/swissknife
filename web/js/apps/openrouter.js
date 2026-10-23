@@ -1,11 +1,239 @@
 // SwissKnife Dedicated OpenRouter App
 // Universal LLM Access Hub - Multiple AI Providers Through Single Interface
 
+const OPENROUTER_CATALOG_URL = 'https://openrouter.ai/api/v1/models';
+const CATALOG_CACHE_TTL_MS = 10 * 60 * 1000;
+const CATALOG_ERROR_RETRY_MS = 30 * 1000;
+let catalogSession = null;
+let catalogRequest = null;
+let nextOpenRouterInstance = 0;
+
+// A VDG run explicitly selects this observed public input. The source-level
+// digest makes a different catalog a different inventory/capture input.
+export const OPENROUTER_CATALOG_SNAPSHOT_DESCRIPTOR = Object.freeze({
+    schema: 'swissknife.openrouter-catalog-snapshot.v1',
+    source_url: 'https://openrouter.ai/api/v1/models',
+    observed_at: '2026-10-22T17:51:25.969769+00:00',
+    raw_sha256: '65a3034c116179fac2ba1511796f0e1a014955986295385dfac8fbc35b7271bc',
+    raw_bytes: 787610,
+    model_count: 468,
+    model_ids_sha256: '819a351f4633f638d5d26192f8a57162e8a6ab498aac04e35cd064c3d4947c41',
+    local_url: '/vdg-public-inputs/openrouter/65a3034c116179fac2ba1511796f0e1a014955986295385dfac8fbc35b7271bc.json',
+    provenance_url: '/vdg-public-inputs/openrouter/provenance-19726a9dac6901f79566e387871e286f32633b415ef28fb5f0912e94aa125e3c.json',
+    provenance_sha256: '19726a9dac6901f79566e387871e286f32633b415ef28fb5f0912e94aa125e3c',
+});
+
+export function getOpenRouterCatalogMode() {
+    return import.meta.env?.VITE_VDG_OPENROUTER_CATALOG_SNAPSHOT === '1' ? 'snapshot' : 'live';
+}
+
+let boundCatalogSession = null;
+let boundCatalogRequest = null;
+
+async function sha256Bytes(bytes) {
+    if (!globalThis.crypto?.subtle) throw new Error('OpenRouter snapshot requires SHA-256 verification.');
+    const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function validateSnapshotDescriptor(descriptor) {
+    const sha = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+    if (descriptor.schema !== 'swissknife.openrouter-catalog-snapshot.v1' ||
+        descriptor.source_url !== OPENROUTER_CATALOG_URL ||
+        !sha(descriptor.raw_sha256) || !sha(descriptor.provenance_sha256) || !sha(descriptor.model_ids_sha256) ||
+        !Number.isSafeInteger(descriptor.raw_bytes) || descriptor.raw_bytes <= 0 ||
+        !Number.isSafeInteger(descriptor.model_count) || descriptor.model_count <= 0 ||
+        !Number.isFinite(Date.parse(descriptor.observed_at)) ||
+        descriptor.local_url !== `/vdg-public-inputs/openrouter/${descriptor.raw_sha256}.json` ||
+        descriptor.provenance_url !== `/vdg-public-inputs/openrouter/provenance-${descriptor.provenance_sha256}.json`) {
+        throw new Error('OpenRouter snapshot descriptor is invalid.');
+    }
+}
+
+function validateSnapshotProvenance(provenance, descriptor) {
+    if (provenance?.schema !== 'swissknife.openrouter-observed-public-input.v1' ||
+        provenance.source_url !== descriptor.source_url || provenance.final_url !== descriptor.source_url ||
+        provenance.http_status !== 200 || provenance.observed_at !== descriptor.observed_at ||
+        !Number.isFinite(Date.parse(provenance.requested_at)) || Date.parse(provenance.requested_at) > Date.parse(provenance.observed_at) ||
+        provenance.raw_sha256 !== descriptor.raw_sha256 || provenance.raw_bytes !== descriptor.raw_bytes ||
+        provenance.model_count !== descriptor.model_count || provenance.model_ids_sha256 !== descriptor.model_ids_sha256 ||
+        provenance.raw_filename !== `${descriptor.raw_sha256}.json` ||
+        provenance.reconstructed !== false || provenance.provider_execution !== false ||
+        provenance.gui_acceptance !== false || provenance.work_complete !== false || provenance.completion_authority !== false) {
+        throw new Error('OpenRouter snapshot provenance does not match the declared public observation.');
+    }
+}
+
+// A pure verifier also supports input validation without mounting the app. The
+// actual loader always supplies the source-bound descriptor above.
+export async function verifyOpenRouterCatalogSnapshot(raw, provenanceBytes, descriptor = OPENROUTER_CATALOG_SNAPSHOT_DESCRIPTOR) {
+    validateSnapshotDescriptor(descriptor);
+    if (raw.byteLength !== descriptor.raw_bytes) throw new Error('OpenRouter snapshot raw byte length mismatch.');
+    const [rawSha, provenanceSha] = await Promise.all([sha256Bytes(raw), sha256Bytes(provenanceBytes)]);
+    if (rawSha !== descriptor.raw_sha256 || provenanceSha !== descriptor.provenance_sha256) {
+        throw new Error('OpenRouter snapshot SHA-256 mismatch.');
+    }
+    // Authenticate both original byte sequences before interpreting either as
+    // JSON. No missing/duplicate/replaced model is silently omitted.
+    const decoder = new TextDecoder('utf-8', { fatal: true });
+    const provenance = JSON.parse(decoder.decode(provenanceBytes));
+    validateSnapshotProvenance(provenance, descriptor);
+    const data = JSON.parse(decoder.decode(raw));
+    if (!Array.isArray(data?.data) || data.data.length !== descriptor.model_count || data.data.some(model =>
+        !model || typeof model !== 'object' || Array.isArray(model) ||
+        typeof model.id !== 'string' || model.id !== model.id.trim() ||
+        model.id.indexOf('/') <= 0 || model.id.endsWith('/'))) {
+        throw new Error('OpenRouter snapshot model schema/count mismatch.');
+    }
+    const ids = data.data.map(model => model.id);
+    if (new Set(ids).size !== ids.length || await sha256Bytes(new TextEncoder().encode(JSON.stringify(ids.sort()))) !== descriptor.model_ids_sha256) {
+        throw new Error('OpenRouter snapshot exact model ID set mismatch.');
+    }
+    return data.data;
+}
+
+function boundCatalogSnapshot(entry, cache) {
+    const descriptor = OPENROUTER_CATALOG_SNAPSHOT_DESCRIPTOR;
+    return {
+        models: entry.models,
+        metadata: {
+            mode: 'snapshot', verified: true,
+            input_sha256: descriptor.raw_sha256,
+            model_ids_sha256: descriptor.model_ids_sha256,
+            model_count: descriptor.model_count,
+            raw_bytes: descriptor.raw_bytes,
+            original_source: descriptor.source_url,
+            source: descriptor.source_url,
+            observed_at: descriptor.observed_at,
+            local_url: descriptor.local_url,
+            provenance_url: descriptor.provenance_url,
+            provenance_sha256: descriptor.provenance_sha256,
+            cache, cache_age_ms: Math.max(0, Date.now() - Date.parse(descriptor.observed_at)),
+            cache_ttl_ms: null, retry_at: null, stale: false, error: null,
+        },
+    };
+}
+
+async function readBoundCatalog(timeoutMs) {
+    if (boundCatalogRequest) return boundCatalogSnapshot(await boundCatalogRequest, 'coalesced');
+    if (boundCatalogSession) return boundCatalogSnapshot(boundCatalogSession, 'snapshot-session');
+    const descriptor = OPENROUTER_CATALOG_SNAPSHOT_DESCRIPTOR;
+    validateSnapshotDescriptor(descriptor);
+    const controller = new AbortController();
+    let timer;
+    // Cache publication happens after the bounded operation, so a late response
+    // after timeout cannot populate this session or switch its input.
+    boundCatalogRequest = (async () => {
+        const entry = await Promise.race([
+            (async () => {
+                const readBytes = async url => {
+                    const response = await fetch(url, { signal: controller.signal, credentials: 'same-origin', redirect: 'error', cache: 'no-cache' });
+                    const expectedUrl = new URL(url, window.location.href).href;
+                    if (!response.ok || response.status !== 200 || response.url !== expectedUrl) throw new Error(`OpenRouter snapshot input request failed or redirected: ${url}`);
+                    const bytes = await response.arrayBuffer();
+                    return bytes;
+                };
+                const [raw, provenanceBytes] = await Promise.all([
+                    readBytes(descriptor.local_url),
+                    readBytes(descriptor.provenance_url),
+                ]);
+                return { models: await verifyOpenRouterCatalogSnapshot(raw, provenanceBytes, descriptor) };
+            })(),
+            new Promise((_, reject) => {
+                timer = setTimeout(() => {
+                    controller.abort();
+                    reject(new Error(`OpenRouter snapshot input verification timed out after ${timeoutMs} ms.`));
+                }, timeoutMs);
+            }),
+        ]);
+        boundCatalogSession = entry;
+        return entry;
+    })();
+    try { return boundCatalogSnapshot(await boundCatalogRequest, 'snapshot-verified'); }
+    finally { clearTimeout(timer); boundCatalogRequest = null; }
+}
+
+const modelControlAttributes = (model, action, favorite) => {
+    const escape = value => String(value).replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+    return `data-openrouter-model="${escape(model.id)}" data-openrouter-provider="${escape(model.provider)}" data-openrouter-placement="${favorite ? 'favorites' : 'catalog'}" data-openrouter-action="${action}"`;
+};
+
+function catalogSnapshot(entry, cache) {
+    return {
+        models: entry.models,
+        metadata: {
+            mode: 'live',
+            source: OPENROUTER_CATALOG_URL,
+            observed_at: entry.observed_at,
+            attempted_at: entry.attempted_at,
+            cache,
+            cache_age_ms: entry.observed_at === null ? null : Math.max(0, Date.now() - Date.parse(entry.observed_at)),
+            cache_ttl_ms: CATALOG_CACHE_TTL_MS,
+            retry_at: new Date(entry.refresh_at).toISOString(),
+            stale: Boolean(entry.error && entry.observed_at),
+            error: entry.error,
+        },
+    };
+}
+
+async function readSessionCatalog(timeoutMs) {
+    if (catalogRequest) return catalogSnapshot(await catalogRequest, 'coalesced');
+    if (catalogSession && Date.now() < catalogSession.refresh_at) return catalogSnapshot(catalogSession, 'session');
+    catalogRequest = (async () => {
+        const attempted_at = new Date().toISOString();
+        const controller = new AbortController();
+        let timer;
+        try {
+            const models = await Promise.race([
+                (async () => {
+                    const response = await fetch(OPENROUTER_CATALOG_URL, { signal: controller.signal });
+                    if (!response.ok) throw new Error(`OpenRouter models request failed: ${response.status}`);
+                    const data = await response.json();
+                    if (!Array.isArray(data?.data) || data.data.some(model => !model || typeof model !== 'object' || !(model.id || model.name))) throw new Error('OpenRouter returned an invalid model catalog.');
+                    return data.data;
+                })(),
+                new Promise((_, reject) => {
+                    timer = setTimeout(() => {
+                        controller.abort();
+                        reject(new Error(`OpenRouter catalog request or response body timed out after ${timeoutMs} ms.`));
+                    }, timeoutMs);
+                }),
+            ]);
+            const observed_at = new Date().toISOString();
+            catalogSession = { models, observed_at, attempted_at, error: null, refresh_at: Date.now() + CATALOG_CACHE_TTL_MS };
+        } catch (error) {
+            catalogSession = {
+                models: catalogSession?.models || [],
+                observed_at: catalogSession?.observed_at || null,
+                attempted_at,
+                error: error instanceof Error ? error.message : String(error),
+                refresh_at: Date.now() + CATALOG_ERROR_RETRY_MS,
+            };
+        } finally {
+            clearTimeout(timer);
+        }
+        return catalogSession;
+    })();
+    try { return catalogSnapshot(await catalogRequest, 'network'); }
+    finally { catalogRequest = null; }
+}
+
 class OpenRouterApp {
-    constructor() {
+    constructor({ requestTimeoutMs = 8000 } = {}) {
         this.name = 'OpenRouter Hub';
+        this.requestTimeoutMs = Number.isFinite(requestTimeoutMs) && requestTimeoutMs > 0 ? Math.min(requestTimeoutMs, 30000) : 8000;
+        this.catalogMetadata = null;
+        Object.defineProperty(this, 'catalogMode', { value: getOpenRouterCatalogMode(), enumerable: true });
         // Single live instance for inline handlers (one desktop window per app).
-        if (typeof window !== 'undefined') window.openRouterApp = this;
+        this.instanceId = `openrouter-instance-${++nextOpenRouterInstance}`;
+        this.disposed = false;
+        this.documentClickHandler = null;
+        this.autoSaveTimer = null;
+        this.authenticationModal = null;
+        if (typeof window !== 'undefined') {
+            window.openRouterApp?.dispose?.();
+            window.openRouterApp = this;
+        }
         this.currentTab = 'models';
         this.models = new Map();
         this.conversations = [];
@@ -47,7 +275,7 @@ class OpenRouterApp {
 
     render() {
         return `
-        <div class="openrouter-app">
+        <div class="openrouter-app" data-openrouter-instance="${this.instanceId}">
             <!-- Header with Authentication -->
             <div class="or-header">
                 <div class="or-header-left">
@@ -172,6 +400,7 @@ class OpenRouterApp {
                 </div>
             </div>
 
+            <p class="or-catalog-status" role="status">${this.catalogStatusText().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
             <div class="models-grid" id="models-grid">
                 ${this.favoriteModels.size > 0 ? `
                 <div class="models-section">
@@ -207,10 +436,11 @@ class OpenRouterApp {
                 <div class="model-name">${model.name}</div>
                 <div class="model-actions">
                     <button class="action-btn favorite-btn ${this.favoriteModels.has(model.id) ? 'active' : ''}" 
+                            ${modelControlAttributes(model, 'favorite', isFavorite)}
                             onclick="window.openRouterApp.toggleFavorite('${model.id}')" title="Toggle Favorite">
                         ⭐
                     </button>
-                    <button class="action-btn info-btn" onclick="window.openRouterApp.showModelInfo('${model.id}')" title="Model Info">
+                    <button class="action-btn info-btn" ${modelControlAttributes(model, 'info', isFavorite)} onclick="window.openRouterApp.showModelInfo('${model.id}')" title="Model Info">
                         ℹ️
                     </button>
                 </div>
@@ -230,10 +460,10 @@ class OpenRouterApp {
             </div>
 
             <div class="model-footer">
-                <button class="or-btn or-btn-secondary or-btn-sm sk-btn" onclick="window.openRouterApp.tryModel('${model.id}')">
+                <button class="or-btn or-btn-secondary or-btn-sm sk-btn" ${modelControlAttributes(model, 'try', isFavorite)} onclick="window.openRouterApp.tryModel('${model.id}')">
                     Try Model
                 </button>
-                <button class="or-btn or-btn-primary or-btn-sm sk-btn sk-btn-primary" onclick="window.openRouterApp.setDefaultModel('${model.id}')">
+                <button class="or-btn or-btn-primary or-btn-sm sk-btn sk-btn-primary" ${modelControlAttributes(model, 'default', isFavorite)} aria-pressed="${isCurrentDefault}" onclick="window.openRouterApp.setDefaultModel('${model.id}')">
                     ${isCurrentDefault ? '✓ Default' : 'Set Default'}
                 </button>
             </div>
@@ -552,20 +782,43 @@ class OpenRouterApp {
 
     // Event Handlers and Core Methods
     setupEventListeners() {
-        // Tab switching
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.tab-item')) {
-                const tab = e.target.closest('.tab-item').dataset.tab;
-                this.switchTab(tab);
-            }
-        });
+        if (!this.isCurrentInstance()) return;
+        if (!this.documentClickHandler) {
+            this.documentClickHandler = event => {
+                if (!this.isCurrentInstance()) { this.dispose(); return; }
+                const container = this.getContainer();
+                const tab = event.target.closest?.('.tab-item');
+                if (container && tab && container.contains(tab)) this.switchTab(tab.dataset.tab);
+            };
+            document.addEventListener('click', this.documentClickHandler);
+        }
+        if (this.autoSaveTimer === null) {
+            this.autoSaveTimer = setInterval(() => {
+                if (!this.isCurrentInstance() || !this.getContainer()?.isConnected) { this.dispose(); return; }
+                if (this.settings.autoSave) this.saveSettings();
+            }, 30000);
+        }
+    }
 
-        // Auto-save settings
-        setInterval(() => {
-            if (this.settings.autoSave) {
-                this.saveSettings();
-            }
-        }, 30000); // Save every 30 seconds
+    isCurrentInstance() {
+        return !this.disposed && typeof window !== 'undefined' && window.openRouterApp === this;
+    }
+
+    getContainer() {
+        return document.querySelector(`.openrouter-app[data-openrouter-instance="${this.instanceId}"]`);
+    }
+
+    dispose() {
+        if (this.disposed) return;
+        this.closeModal();
+        this.disposed = true;
+        if (this.documentClickHandler) document.removeEventListener('click', this.documentClickHandler);
+        this.documentClickHandler = null;
+        if (this.autoSaveTimer !== null) clearInterval(this.autoSaveTimer);
+        this.autoSaveTimer = null;
+        this.models.clear();
+        this.providers.clear();
+        if (typeof window !== 'undefined' && window.openRouterApp === this) delete window.openRouterApp;
     }
 
     switchTab(tab) {
@@ -574,9 +827,10 @@ class OpenRouterApp {
     }
 
     updateDisplay() {
-        const container = document.querySelector('.openrouter-app');
+        if (!this.isCurrentInstance()) return;
+        const container = this.getContainer();
         if (container) {
-            container.innerHTML = this.render();
+            container.outerHTML = this.render();
         }
     }
 
@@ -588,36 +842,33 @@ class OpenRouterApp {
     }
 
     async loadModels() {
+        if (!this.isCurrentInstance()) return;
         try {
             console.log('🔄 Loading OpenRouter models...');
 
-            // Real OpenRouter catalog endpoint (public, no key required).
-            let modelList = [];
-            try {
-                const response = await fetch('https://openrouter.ai/api/v1/models');
-                if (!response.ok) throw new Error(`OpenRouter models request failed: ${response.status}`);
-                const data = await response.json();
-                modelList = Array.isArray(data?.data) ? data.data : [];
-            } catch (fetchError) {
-                console.warn('OpenRouter catalog unreachable, no models loaded:', fetchError);
-            }
-
-            if (modelList.length === 0) {
-                console.log('ℹ️ No models returned by the OpenRouter catalog; model list stays empty.');
-                return;
-            }
+            // Reopening a window reuses the complete real catalog observed in
+            // this browser module session. Concurrent windows share one bounded
+            // request, including JSON body consumption. A failed refresh retains
+            // prior real observations with an explicit stale/error status.
+            const { models: modelList, metadata } = await (this.catalogMode === 'snapshot'
+                ? readBoundCatalog(this.requestTimeoutMs)
+                : readSessionCatalog(this.requestTimeoutMs));
+            if (!this.isCurrentInstance()) return;
+            this.catalogMetadata = metadata;
+            this.models.clear();
 
             // Populate models from the real catalog
             modelList.forEach(model => {
                 const id = model.id || model.name;
                 if (!id) return;
                 this.models.set(id, {
+                    ...(this.catalogMode === 'snapshot' ? structuredClone(model) : {}),
                     id,
                     name: model.name || id,
                     provider: id.split('/')[0] || 'unknown',
                     context_length: model.context_length || 0,
-                    pricing: model.pricing || { prompt: 0, completion: 0 },
-                    features: model.description ? ['chat'] : ['chat']
+                    pricing: { ...(model.pricing || { prompt: 0, completion: 0 }) },
+                    features: this.catalogMode === 'snapshot' && model.features !== undefined ? structuredClone(model.features) : ['chat']
                 });
             });
 
@@ -643,11 +894,27 @@ class OpenRouterApp {
                 provider.priceRange.max = Math.max(provider.priceRange.max, maxPrice);
             });
 
-            console.log(`✅ Loaded ${this.models.size} models from ${this.providers.size} providers (live catalog)`);
+            console.log(`Loaded ${this.models.size} OpenRouter models (${metadata.cache}; observed ${metadata.observed_at || 'unavailable'}).`);
             this.updateDisplay();
         } catch (error) {
             console.error('❌ Failed to load models:', error);
+            if (this.catalogMode === 'snapshot') {
+                this.catalogMetadata = { mode: 'snapshot', verified: false, error: error instanceof Error ? error.message : String(error) };
+                this.models.clear();
+                this.providers.clear();
+                throw error;
+            }
         }
+    }
+
+    catalogStatusText() {
+        const metadata = this.catalogMetadata;
+        if (!metadata) return 'OpenRouter catalog has not been requested in this window.';
+        if (metadata.mode === 'snapshot') return metadata.verified
+            ? `Verified OpenRouter catalog snapshot from ${metadata.original_source}, observed ${metadata.observed_at} (age ${Math.max(0, Date.now() - Date.parse(metadata.observed_at))} ms); ${metadata.model_count} models, SHA-256 ${metadata.input_sha256}. This declared input remains fixed for this run.`
+            : `Declared OpenRouter catalog snapshot unavailable: ${metadata.error}`;
+        if (metadata.error) return `${metadata.stale ? `Retaining the actual catalog observed ${metadata.observed_at} (age ${metadata.cache_age_ms} ms). ` : 'No live catalog observation is available. '}OpenRouter catalog unavailable: ${metadata.error} Retry after ${metadata.retry_at}.`;
+        return `Actual OpenRouter catalog observed ${metadata.observed_at}; ${metadata.cache} response, age ${metadata.cache_age_ms} ms. Complete catalog retained for up to ${metadata.cache_ttl_ms / 60000} minutes.`;
     }
 
     async loadUserCredits() {
@@ -812,8 +1079,19 @@ class OpenRouterApp {
 
     // Authentication Methods
     showAuthentication() {
+        if (!this.isCurrentInstance()) return;
+        const app = this.getContainer();
+        if (!app?.isConnected) return;
+        const host = app.closest('.window-content') || app;
+        if (!host.style.position || host.style.position === 'static') host.style.position = 'relative';
+        this.closeModal();
         const modal = document.createElement('div');
         modal.className = 'or-modal';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-label', 'OpenRouter API Configuration');
+        // Stay below the owning titlebar and disappear with the app window.
+        modal.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:10000';
         modal.innerHTML = `
         <div class="modal-content">
             <div class="modal-header">
@@ -835,7 +1113,10 @@ class OpenRouterApp {
             </div>
         </div>
         `;
-        document.body.appendChild(modal);
+        modal.addEventListener('keydown', event => { if (event.key === 'Escape') this.closeModal(); });
+        this.authenticationModal = modal;
+        host.appendChild(modal);
+        modal.querySelector('input')?.focus();
     }
 
     saveApiKey() {
@@ -850,10 +1131,8 @@ class OpenRouterApp {
     }
 
     closeModal() {
-        const modal = document.querySelector('.or-modal');
-        if (modal) {
-            modal.remove();
-        }
+        this.authenticationModal?.remove();
+        this.authenticationModal = null;
     }
 
     // Model Management Methods
@@ -868,9 +1147,22 @@ class OpenRouterApp {
     }
 
     setDefaultModel(modelId) {
+        if (!this.isCurrentInstance()) return;
         this.settings.defaultModel = modelId;
         this.saveSettings();
-        this.updateDisplay();
+        const container = this.getContainer();
+        if (!container) return;
+        // Selecting a default changes these states, not the catalog. Keep
+        // the actual buttons, their listeners, focus and scroll position.
+        for (const button of container.querySelectorAll('[data-openrouter-action="default"]')) {
+            const selected = button.dataset.openrouterModel === modelId;
+            const label = selected ? '✓ Default' : 'Set Default';
+            if (button.textContent.trim() !== label) button.textContent = label;
+            button.setAttribute('aria-pressed', String(selected));
+            button.closest('.model-card')?.classList.toggle('default-model', selected);
+        }
+        const playgroundModel = container.querySelector('#playground-model');
+        if (playgroundModel) playgroundModel.value = modelId;
     }
 
     tryModel(modelId) {

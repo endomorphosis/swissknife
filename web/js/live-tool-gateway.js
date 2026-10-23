@@ -2,6 +2,16 @@ const CATALOG_ROUTE = "/mcp/tools/bindings";
 const CALL_ROUTE = "/mcp/tools/call";
 
 const catalogCache = new Map();
+let dispositionPromise;
+function toolDispositions() {
+  dispositionPromise ||= fetch('/mcp/tools/dispositions', { headers: { accept: 'application/json' }, cache: 'no-store' }).then(async response => {
+    const body = await response.json();
+    if (!response.ok || !Array.isArray(body.entries)) throw new Error('Tool disposition catalog unavailable.');
+    return body.entries;
+  }).catch(error => { dispositionPromise = undefined; throw error; });
+  return dispositionPromise;
+}
+const LOCAL_NEGATIVES = new Set(['calculator', 'clock', 'terminal', 'glasses-preview', 'settings', 'todo', 'calendar', 'cron', 'task-manager', 'music-studio', 'music-studio-unified', 'strudel', 'strudel-ai-daw', 'oauth-login', 'openrouter']);
 
 export async function mountLiveToolGateway(container, appId) {
   if (
@@ -10,7 +20,26 @@ export async function mountLiveToolGateway(container, appId) {
     container.querySelector('[data-testid="live-tool-gateway-panel"]')
   )
     return;
-  const controls = await controlsFor(appId);
+  if (LOCAL_NEGATIVES.has(appId)) {
+    if (['oauth-login', 'openrouter'].includes(appId) && !container.querySelector('[data-external-provider]')) {
+      const link = document.createElement('a');
+      link.id = `${appId}-provider-handoff`;
+      link.dataset.externalProvider = appId;
+      link.href = appId === 'openrouter' ? 'https://openrouter.ai/' : 'https://github.com/login';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = appId === 'openrouter' ? 'Open OpenRouter provider website' : 'Open GitHub identity provider';
+      link.addEventListener('click', event => container.dispatchEvent(new CustomEvent('swissknife:external-provider-result', {
+        bubbles: true, detail: { outcome: 'external-provider', provider: appId, state: 'handoff', trusted: event.isTrusted },
+      })));
+      container.append(link);
+    }
+    return;
+  }
+  const dispositions = await toolDispositions();
+  const forbidden = new Set(dispositions.filter(entry => entry.disposition?.kind === 'server_only').map(entry => `${entry.owner}:${entry.tool_id}`));
+  const controls = (await controlsFor(appId)).flatMap(control => (control.preferred_tool_ids || [control.selected_tool_id])
+    .filter(tool => tool && !forbidden.has(`${control.owner}:${tool}`)).map(tool => ({ ...control, selected_tool_id: tool, safe_payload: control.safe_payloads?.[tool] || control.safe_payload })));
   if (controls.length === 0) return;
 
   const panel = document.createElement("section");
@@ -29,8 +58,9 @@ export async function mountLiveToolGateway(container, appId) {
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.liveGatewayBinding = control.binding_id;
+    button.dataset.gatewayExactTool = control.selected_tool_id;
     button.dataset.testid = `live-gateway-control-${control.binding_id}`;
-    button.textContent = control.label;
+    button.textContent = `${control.label}: ${control.selected_tool_id}`;
     button.disabled = control.status !== "available";
     button.title =
       control.status === "available"
@@ -38,6 +68,7 @@ export async function mountLiveToolGateway(container, appId) {
         : "No currently advertised owner tool matches this application binding.";
     const output = document.createElement("output");
     output.dataset.liveGatewayResult = control.binding_id;
+    output.dataset.gatewayStatus = control.binding_id;
     output.textContent =
       control.status === "available" ? "ready" : "unavailable";
     row.append(button, output);
@@ -47,6 +78,24 @@ export async function mountLiveToolGateway(container, appId) {
     );
   }
   container.append(panel);
+  if (appId === 'mcp-control') {
+    const restricted = document.createElement('section');
+    restricted.className = 'gateway-policy-negatives';
+    for (const entry of dispositions.filter(item => item.disposition?.kind === 'server_only')) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.gatewayPolicyTool = `${entry.owner}:${entry.tool_id}`;
+      button.textContent = `Review ${entry.tool_id} policy`;
+      const output = document.createElement('output');
+      button.addEventListener('click', event => {
+        output.textContent = `Denied: ${entry.disposition.rationale || 'Server policy review is required before dispatch.'}`;
+        container.dispatchEvent(new CustomEvent('swissknife:policy-negative', { bubbles: true,
+          detail: { tool_identity: button.dataset.gatewayPolicyTool, outcome: 'denied', trusted: event.isTrusted } }));
+      });
+      restricted.append(button, output);
+    }
+    container.append(restricted);
+  }
 }
 
 async function controlsFor(appId) {
@@ -75,12 +124,76 @@ async function controlsFor(appId) {
 }
 
 async function invokeControl(button, output, control) {
-  const governed = control.mutates_remote_state === true;
+  return invokeGateway(button.closest('.live-tool-gateway-panel'), button, output, control, {}, 'gateway-button');
+}
+
+/** Invoke an approved binding from the native app action that owns it. */
+export async function invokeNativeTool(container, appId, bindingId, options = {}) {
+  const control = (await controlsFor(appId)).find(item => item.binding_id === bindingId && item.app_id === appId);
+  if (!control) throw new Error(`No declared application binding ${bindingId}.`);
+  const toolId = options.toolId || control.selected_tool_id;
+  const approved = control.preferred_tool_ids || [control.selected_tool_id];
+  if (!toolId || !approved.includes(toolId)) throw new Error(`Tool ${toolId} is not approved for ${bindingId}.`);
+  if ((await toolDispositions()).some(entry => entry.owner === control.owner && entry.tool_id === toolId && entry.disposition?.kind === 'server_only')) throw new Error(`Tool ${toolId} requires server policy review.`);
+  let output = [...container.querySelectorAll('[data-gateway-status]')].find(node => node.dataset.gatewayStatus === bindingId);
+  if (!output) {
+    output = document.createElement('output');
+    output.dataset.gatewayStatus = bindingId;
+    output.setAttribute('aria-live', 'polite');
+    container.append(output);
+  }
+  const trigger = options.trigger || null;
+  if (trigger) trigger.dataset.nativeGatewayBinding = bindingId;
+  return invokeGateway(container, trigger, output, { ...control, selected_tool_id: toolId }, options, 'native-control');
+}
+
+function requestConfirmation(container, control, correlationId, origin) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.dataset.gatewayConfirmation = control.binding_id;
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#0008;display:grid;place-items:center';
+    const dialog = document.createElement('section');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-label', 'Confirm application tool');
+    dialog.style.cssText = 'background:#20232b;color:white;padding:24px;border-radius:12px;max-width:440px';
+    const title = document.createElement('h3');
+    title.textContent = `Confirm ${control.label || control.selected_tool_id}`;
+    const message = document.createElement('p');
+    message.textContent = `${control.selected_tool_id} will run as a dry run. Review this action before continuing.`;
+    const confirm = document.createElement('button');
+    confirm.type = 'button';
+    confirm.dataset.gatewayConfirm = control.binding_id;
+    confirm.textContent = 'Confirm dry run';
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.dataset.gatewayCancel = control.binding_id;
+    cancel.textContent = 'Cancel';
+    const announce = (phase, trusted = false) => container.dispatchEvent(new CustomEvent('swissknife:gateway-confirmation', {
+      bubbles: true, detail: { phase, trusted, binding_id: control.binding_id, tool_id: control.selected_tool_id, correlation_id: correlationId, origin },
+    }));
+    const finish = (accepted, event) => {
+      announce(accepted ? 'confirmed' : 'cancelled', event.isTrusted);
+      overlay.remove();
+      resolve(accepted);
+    };
+    confirm.addEventListener('click', event => finish(true, event), { once: true });
+    cancel.addEventListener('click', event => finish(false, event), { once: true });
+    dialog.append(title, message, confirm, cancel);
+    overlay.append(dialog);
+    container.append(overlay);
+    announce('shown');
+    cancel.focus();
+  });
+}
+
+async function invokeGateway(container, button, output, control, options, origin) {
+  const governed = control.mutates_remote_state === true || control.confirmation_required === true;
   const forcedDryRun = globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true;
   const dryRun = governed || forcedDryRun;
   const correlationId = `desktop:${control.binding_id}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
   const payload =
-    control.safe_payload ??
+    options.payload ?? control.safe_payload ??
     (dryRun
       ? { dry_run: true, scope: control.capability_id, limit: 1 }
       : {
@@ -93,6 +206,15 @@ async function invokeControl(button, output, control) {
   const transport = control.transports?.includes(transportOverride)
     ? transportOverride
     : control.transport;
+  if (button) button.disabled = true;
+  if (governed) {
+    output.textContent = `Confirmation required for ${control.selected_tool_id}.`;
+    if (!await requestConfirmation(container, control, correlationId, origin)) {
+      output.textContent = 'Cancelled before tool dispatch.';
+      if (button) button.disabled = false;
+      return null;
+    }
+  }
   const call = {
     protocol: "swissknife.all-app-tool-gateway.v1",
     route: CALL_ROUTE,
@@ -120,7 +242,6 @@ async function invokeControl(button, output, control) {
     },
     receipt_required: true,
   };
-  button.disabled = true;
   output.textContent = "pending";
   try {
     const response = await fetch(CALL_ROUTE, {
@@ -130,13 +251,14 @@ async function invokeControl(button, output, control) {
     });
     const result = await response.json();
     const receipt = result?.receipt ?? {};
-    output.textContent = `${result.outcome ?? "failed"}; ${result.correlation_id ?? correlationId}; receipt=${receipt.receipt_id ?? "unavailable"}; event=${receipt.event_dag_refs?.[0] ?? "unavailable"}`;
-    button.closest(".live-tool-gateway-panel")?.dispatchEvent(
+    output.textContent = `${control.selected_tool_id} ${result.correlation_id ?? correlationId}; ${result.outcome ?? "failed"}; receipt=${receipt.receipt_id ?? "unavailable"}; event=${receipt.event_dag_refs?.[0] ?? "unavailable"}`;
+    container.dispatchEvent(
       new CustomEvent("swissknife:live-gateway-result", {
         bubbles: true,
-        detail: { control, call, result, http_status: response.status },
+        detail: { control, call, result, origin, http_status: response.status },
       }),
     );
+    return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     output.textContent = `failed; ${correlationId}; ${message}`;
@@ -144,18 +266,20 @@ async function invokeControl(button, output, control) {
     // observation.  Emitting it keeps replay harnesses from waiting forever
     // when a mediator or transport is unavailable, while the evidence gate
     // still rejects the non-executed result.
-    button.closest(".live-tool-gateway-panel")?.dispatchEvent(
+    const result = { ok: false, outcome: 'failed', error: message, correlation_id: correlationId };
+    container.dispatchEvent(
       new CustomEvent("swissknife:live-gateway-result", {
         bubbles: true,
         detail: {
           control,
           call,
-          result: { ok: false, outcome: "failed", error: message },
+          result, origin,
           http_status: 0,
         },
       }),
     );
+    return result;
   } finally {
-    button.disabled = false;
+    if (button) button.disabled = false;
   }
 }

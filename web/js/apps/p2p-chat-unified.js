@@ -1,4 +1,5 @@
 import { runSystemNetworkLocalWorkflow } from './system-network-local-capabilities.js';
+import { invokeNetworkNativeTool, networkNativeAttributes } from './network-native-tools.js';
 import {
   getMCPPlusPlusDesktopClient,
   contentCidForBytes,
@@ -10,6 +11,25 @@ const APP_ID = 'p2p-chat-unified';
 const WORKFLOW_ID = 'p2p-chat-unified.pubsub-offline-recovery';
 const VDA_ID = 'VDA-G030';
 const PUBSUB_TOPIC = '/swissknife/chat/unified/g030';
+async function callUnifiedMcpTool(app, _method, tool, toolArguments, trigger = null) {
+  const container = app.getNativeContainer();
+  app.nativeGatewayStatus = '';
+  const rememberStatus = event => {
+    const { call, origin } = event.detail || {};
+    if (origin !== 'native-control' || call?.app_id !== APP_ID) return;
+    const output = [...container.querySelectorAll('[data-gateway-status]')]
+      .find(node => node.dataset.gatewayStatus === call.binding_id);
+    // The gateway has already rendered the actual owner outcome and receipt.
+    // Keep that exact status when this app replaces its root after the action.
+    app.nativeGatewayStatus = output?.textContent || '';
+  };
+  container?.addEventListener('swissknife:live-gateway-result', rememberStatus);
+  try {
+    return await invokeNetworkNativeTool(container, APP_ID, tool, toolArguments, trigger);
+  } finally {
+    container?.removeEventListener('swissknife:live-gateway-result', rememberStatus);
+  }
+}
 const DEFAULT_PEERS = [
   { id: 'peer-alice-g030', name: 'Alice', status: 'online', trust: 'verified', avatar: 'A' },
   { id: 'peer-bob-g030', name: 'Bob', status: 'offline', trust: 'known', avatar: 'B' },
@@ -17,6 +37,9 @@ const DEFAULT_PEERS = [
 ];
 
 export class UnifiedP2PChatApp {
+  getNativeContainer() {
+    return document.querySelector(`[data-unified-p2p-chat-instance="${cssEscape(this.instanceId)}"]`);
+  }
   constructor(desktop) {
     this.desktop = desktop;
     this.instanceId = `unified-p2p-chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -68,6 +91,7 @@ export class UnifiedP2PChatApp {
     this.persistedReceiptLedgerCid = null;
     this.pendingConfirm = null;
     this.backendStatus = 'Backend persistence has not been attempted yet.';
+    this.nativeGatewayStatus = '';
 
     this.seedConversations();
   }
@@ -215,7 +239,7 @@ export class UnifiedP2PChatApp {
   async persistArtifact(record, kind) {
     const bytes = new TextEncoder().encode(stableStringifyValue(record));
     const cid = await contentCidForBytes(bytes);
-    const res = await this.mcp().post('ipfs_kit_py', '/mcp/artifacts/put', {
+    const res = await callUnifiedMcpTool(this, 'request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
       cid,
       bytes_base64: base64ForBytes(bytes),
       profile: 'p2p-chat-artifact',
@@ -223,7 +247,8 @@ export class UnifiedP2PChatApp {
       service: 'ipfs_kit_py',
       pin: true,
     });
-    if (!res || res.persisted !== true || res.cid !== cid) {
+    if (res === null) return null;
+    if (res.persisted !== true || res.cid !== cid) {
       throw new Error(res?.error || 'ipfs_kit_py did not verify the persisted artifact.');
     }
     return { cid, response: res };
@@ -407,6 +432,12 @@ export class UnifiedP2PChatApp {
           border-right: 0;
           border-left: 1px solid rgba(255,255,255,0.1);
           padding: 12px;
+        }
+        .unified-p2p-chat-app .native-gateway-status {
+          display: block;
+          overflow-wrap: anywhere;
+          font-size: 12px;
+          color: #b9c7c0;
         }
         .search-label {
           display: block;
@@ -677,7 +708,7 @@ export class UnifiedP2PChatApp {
       <div class="message-input-area">
         <div class="message-input-row">
           <textarea class="message-input" data-chat-draft rows="2" aria-label="Message draft">${escapeHtml(this.draft)}</textarea>
-          <button type="button" class="send-button primary-action" data-chat-action="send-pubsub" data-svd-workflow-action="publish-pubsub-message">Send pubsub message</button>
+          <button type="button" ${networkNativeAttributes(APP_ID, 'mcp++:ipfs_kit_py/ipfs_pubsub_publish')} class="send-button primary-action" data-chat-action="send-pubsub" data-svd-workflow-action="publish-pubsub-message">Send pubsub message</button>
           <button type="button" class="secondary-action" data-chat-action="queue-offline" data-svd-workflow-action="queue-offline-delivery">Queue offline</button>
         </div>
         <div class="peer-meta sk-honest-note">Published messages carry the transport's real acknowledgment; the local moderation heuristic and offline queue stay in this browser until you persist them to the backend.</div>
@@ -714,18 +745,20 @@ export class UnifiedP2PChatApp {
       ${this.renderConfirmCard()}
       <section class="workflow-card">
         <h3>${VDA_ID} unified chat workflow</h3>
-        <p class="workflow-summary">Pubsub delivery runs over the browser P2P transport with real acknowledgments. The peer roster, offline queue, moderation review, and audio fallback are browser-local and labeled as such. Channel archives and the receipt ledger persist to the kit backend only behind your explicit confirmation.</p>
+        <p class="workflow-summary">Message publishing and archive actions require your confirmation. Validated previews make no remote change. The peer roster, offline queue, moderation review, and audio fallback remain in your browser.</p>
         <div class="workflow-actions">
-          <button type="button" class="primary-action" data-chat-action="send-pubsub" data-svd-workflow-action="publish-pubsub-message">Publish pubsub delivery</button>
+          <button type="button" ${networkNativeAttributes(APP_ID, 'mcp++:ipfs_kit_py/ipfs_pubsub_publish')} class="primary-action" data-chat-action="send-pubsub" data-svd-workflow-action="publish-pubsub-message">Publish pubsub delivery</button>
           <button type="button" data-chat-action="queue-offline" data-svd-workflow-action="queue-offline-delivery">Queue offline delivery</button>
           <button type="button" data-chat-action="review-moderation" data-svd-workflow-action="review-moderation-context">Review moderation context</button>
-          <button type="button" data-chat-action="persist-receipts" data-svd-workflow-action="emit-delivery-receipt">Persist receipt ledger</button>
+          <button type="button" ${networkNativeAttributes(APP_ID, 'mcp++:ipfs_kit_py/artifacts/put')} data-chat-action="persist-receipts" data-svd-workflow-action="emit-delivery-receipt">Persist receipt ledger</button>
           <button type="button" data-chat-action="activate-audio-fallback" data-svd-workflow-action="activate-audio-fallback">Activate audio fallback</button>
           <button type="button" data-chat-action="recover-offline" data-svd-workflow-action="recover-offline-delivery">Recover offline delivery</button>
-          <button type="button" data-chat-action="persist-channel" data-svd-workflow-action="persist-channel-archive">Persist channel archive</button>
-          <button type="button" data-chat-action="load-channel" data-svd-workflow-action="load-channel-archive" ${this.persistedChannelCid ? '' : 'disabled'}>Load channel archive</button>
+          <button type="button" ${networkNativeAttributes(APP_ID, 'mcp++:ipfs_kit_py/artifacts/put')} data-chat-action="persist-channel" data-svd-workflow-action="persist-channel-archive">Persist channel archive</button>
+          <input data-chat-archive-cid aria-label="Channel archive artifact CID" placeholder="Stored channel archive CID" value="${escapeHtml(this.persistedChannelCid || '')}">
+          <button type="button" ${networkNativeAttributes(APP_ID, 'mcp++:ipfs_kit_py/artifacts/get')} data-chat-action="load-channel" data-svd-workflow-action="load-channel-archive">Load channel archive</button>
         </div>
         <p class="workflow-summary" role="status">${escapeHtml(this.backendStatus)}</p>
+        ${this.nativeGatewayStatus ? `<output class="native-gateway-status" data-gateway-status="last-native-result" role="status" aria-live="polite">${escapeHtml(this.nativeGatewayStatus)}</output>` : ''}
       </section>
 
       <section class="workflow-card marker-list">
@@ -773,8 +806,8 @@ export class UnifiedP2PChatApp {
   renderConfirmCard() {
     if (!this.pendingConfirm) return '';
     const detail = this.pendingConfirm.action === 'persist-channel'
-      ? `This will POST the channel archive (${this.pendingConfirm.bytes} bytes, ${this.pendingConfirm.messages} messages) to ipfs_kit_py /mcp/artifacts/put with pin=true.`
-      : `This will POST the receipt ledger (${this.pendingConfirm.bytes} bytes, ${this.pendingConfirm.count} receipts) to ipfs_kit_py /mcp/artifacts/put with pin=true.`;
+      ? `This will POST the channel archive (${this.pendingConfirm.bytes} bytes, ${this.pendingConfirm.messages} messages) to ipfs_kit_py through POST /mcp/tools/call with pin=true.`
+      : `This will POST the receipt ledger (${this.pendingConfirm.bytes} bytes, ${this.pendingConfirm.count} receipts) to ipfs_kit_py through POST /mcp/tools/call with pin=true.`;
     return `
       <section class="workflow-card" aria-label="Confirm backend write">
         <h4>Confirm backend write</h4>
@@ -814,7 +847,7 @@ export class UnifiedP2PChatApp {
     } else if (action === 'switch-mode') {
       this.switchChatMode(target?.dataset.mode || 'online');
     } else if (action === 'send-pubsub') {
-      await this.publishPubsubDelivery(this.draft || 'VDA-G030 pubsub delivery probe');
+      await this.confirmThenInvokeSend(this.draft || 'VDA-G030 pubsub delivery probe');
     } else if (action === 'queue-offline') {
       await this.queueOfflineDelivery(this.draft || 'VDA-G030 offline delivery probe');
     } else if (action === 'review-moderation') {
@@ -858,7 +891,50 @@ export class UnifiedP2PChatApp {
     if (this.chatMode === 'offline' || peer.status === 'offline') {
       return this.queueOfflineDelivery(content, peerId);
     }
-    return this.publishPubsubDelivery(content, peerId);
+    return this.confirmThenInvokeSend(content, peerId);
+  }
+
+  // Confirmation and transport are owned by the reviewed native gateway.
+  async confirmThenInvokeSend(content, peerId = this.selectedConversation) {
+    const peer = this.peers.get(peerId) || this.peers.get(DEFAULT_PEERS[0].id);
+    if (!content || !peer) return null;
+    return this.invokeConfirmedSend(content, peer.id);
+  }
+
+  async invokeConfirmedSend(content, peerId) {
+    let toolResult = null;
+    try {
+      toolResult = await callUnifiedMcpTool(this, 'request_action', 'mcp++:ipfs_kit_py/ipfs_pubsub_publish', {
+        topic: PUBSUB_TOPIC,
+        peer_id: peerId,
+        content,
+      });
+      if (toolResult === null) { this.backendStatus = 'Send cancelled before dispatch.'; return null; }
+      if (toolResult.published !== true) throw new Error('The owner did not acknowledge a published message.');
+    } catch (error) {
+      if (error.preview) {
+        const message = this.createMessage({ content, peerId, offline: false, delivered: false, moderation: this.buildModerationContext(content, peerId) });
+        message.delivery = 'validated-preview';
+        message.delivered = false;
+        message.ack = error.result;
+        this.appendMessage(peerId, message);
+        this.backendStatus = error.message;
+        await this.saveMessageHistory();
+        return message;
+      }
+      const message = messageFromError(error);
+      this.notifications.push(`Send invoke failed: ${message}`);
+      this.backendStatus = `Send invoke failed: ${message}`;
+      return null;
+    }
+    const message = this.createMessage({ content, peerId, offline: false, delivered: false, moderation: this.buildModerationContext(content, peerId) });
+    message.delivery = 'owner-published';
+    message.delivered = false; // publish acknowledgment is not a recipient-delivery acknowledgment
+    message.ack = toolResult;
+    this.appendMessage(peerId, message);
+    this.backendStatus = 'The owner acknowledged publishing the message.';
+    await this.saveMessageHistory();
+    return message;
   }
 
   async publishPubsubDelivery(content, peerId = this.selectedConversation) {
@@ -1057,6 +1133,7 @@ export class UnifiedP2PChatApp {
       expectedCid: cid,
     };
     this.backendStatus = `Receipt ledger ready (${this.receipts.length} receipts, CID ${cid}). Confirm to persist it to the kit backend.`;
+    await this.confirmBackendWrite();
   }
 
   buildReceiptLedgerRecord() {
@@ -1097,23 +1174,29 @@ export class UnifiedP2PChatApp {
       expectedCid: cid,
     };
     this.backendStatus = `Channel archive ready (${messageCount} messages, CID ${cid}). Confirm to persist it to the kit backend.`;
+    await this.confirmBackendWrite();
   }
 
   async loadChannelArchive() {
-    if (!this.persistedChannelCid) {
-      this.backendStatus = 'No channel archive has been persisted in this session.';
+    const cid = this.getNativeContainer()?.querySelector('[data-chat-archive-cid]')?.value.trim() || this.persistedChannelCid;
+    if (!cid) {
+      this.backendStatus = 'Enter a stored channel archive artifact CID.';
       return;
     }
     try {
-      const artifact = await this.mcp().get('ipfs_kit_py', `/mcp/artifacts/${encodeURIComponent(this.persistedChannelCid)}`);
-      if (!artifact || artifact.found !== true) {
-        throw new Error(artifact?.error || `Artifact ${this.persistedChannelCid} was not found in ipfs_kit_py.`);
+      const artifact = await callUnifiedMcpTool(this, 'request_action', 'mcp++:ipfs_kit_py/artifacts/get', {
+        cid,
+      });
+      if (artifact === null) return;
+      if (artifact.found !== true) {
+        throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
       }
       const bytes = Uint8Array.from(atob(artifact.bytes_base64), character => character.charCodeAt(0));
       const record = JSON.parse(new TextDecoder().decode(bytes));
+      if (record.schema !== 'swissknife.p2p-chat.channel.v1' || !record.conversations || typeof record.conversations !== 'object' || Array.isArray(record.conversations)) throw new Error('The artifact is not a supported channel archive.');
       this.conversations = new Map(Object.entries(record.conversations || {}));
       this.deliveryLog = Array.isArray(record.delivery_log) ? record.delivery_log : [];
-      this.backendStatus = `Channel archive ${this.persistedChannelCid} retrieved from ipfs_kit_py (verified: ${artifact.verified === true}).`;
+      this.backendStatus = `Channel archive ${cid} retrieved from ipfs_kit_py (verified: ${artifact.verified === true}).`;
       await this.saveMessageHistory();
     } catch (error) {
       this.backendStatus = `Channel archive retrieval failed: ${messageFromError(error)}`;
@@ -1133,7 +1216,9 @@ export class UnifiedP2PChatApp {
     }
     try {
       const kind = pending.action === 'persist-channel' ? 'channel-archive' : 'receipt-ledger';
-      const { cid, response } = await this.persistArtifact(pending.record, kind);
+      const persisted = await this.persistArtifact(pending.record, kind);
+      if (persisted === null) { this.backendStatus = 'Artifact write cancelled before dispatch.'; return; }
+      const { cid, response } = persisted;
       if (pending.action === 'persist-channel') {
         this.persistedChannelCid = cid;
         this.recordReceipt('channel', 'persisted', cid, `p2pchat-channel-${Date.now()}`);
@@ -1144,8 +1229,8 @@ export class UnifiedP2PChatApp {
         this.backendStatus = `Receipt ledger persisted to ipfs_kit_py at CID ${cid} (verified: ${response.verified === true}).`;
       }
     } catch (error) {
-      this.backendStatus = `Backend persist failed: ${messageFromError(error)}`;
-      this.notifications.push(`Backend persist failed: ${messageFromError(error)}`);
+      this.backendStatus = error.preview ? error.message : `Backend persist failed: ${messageFromError(error)}`;
+      this.notifications.push(this.backendStatus);
     }
   }
 

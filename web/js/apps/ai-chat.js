@@ -3,9 +3,12 @@
  * Advanced conversational AI with multi-model support, context awareness, and smart features
  */
 
+let nextAIChatInstance = 0;
+
 export class AIChatApp {
   constructor(desktop) {
     this.desktop = desktop;
+    this.instanceId = `ai-chat-instance-${++nextAIChatInstance}`;
     this.swissknife = null;
     this.currentConversation = null;
     this.conversations = [];
@@ -18,6 +21,7 @@ export class AIChatApp {
     this.messageCount = 0;
     this.tokenUsage = { input: 0, output: 0 };
     this.conversationMetrics = new Map();
+    this.selectedFileContext = [];
     
     // Enhanced AI providers and models
     this.aiProviders = {
@@ -125,8 +129,7 @@ export class AIChatApp {
   }
 
   async render() {
-    // Generate a unique ID for this instance
-    this.instanceId = 'ai-chat-' + Date.now();
+    // Instance ownership is separate from stable, window-scoped control IDs.
     
     const content = `
       <div class="ai-chat-container" id="${this.instanceId}">
@@ -154,8 +157,8 @@ export class AIChatApp {
 
           <!-- Model Selection -->
           <div class="model-section">
-            <label for="${this.instanceId}-model-select">Model:</label>
-            <select id="${this.instanceId}-model-select" class="enhanced-select" 
+            <label for="ai-chat-model-select">Model:</label>
+            <select id="ai-chat-model-select" data-ai-chat-control="model" aria-label="Chat model" class="enhanced-select"
                     onchange="window.aiChatInstances?.['${this.instanceId}']?.updateSelectedModel(this.value)">
               ${this.aiProviders[this.selectedProvider].models.map(model => 
                 `<option value="${model}" ${model === this.selectedModel ? 'selected' : ''}>${model}</option>`
@@ -176,6 +179,7 @@ export class AIChatApp {
                 </div>
               `).join('')}
             </div>
+            <output data-chat-context-status role="status">Only available local observations are included; unavailable sources are identified explicitly.</output>
           </div>
 
           <!-- Conversation List -->
@@ -246,9 +250,9 @@ export class AIChatApp {
                 <div class="feature-chip">🌐 Multi-language</div>
               </div>
               <div class="quick-actions">
-                <button class="quick-action-btn" onclick="window.aiChatInstances?.['${this.instanceId}']?.sendQuickAction('Analyze my desktop state')">🖥️ Desktop Analysis</button>
-                <button class="quick-action-btn" onclick="window.aiChatInstances?.['${this.instanceId}']?.sendQuickAction('Help me write code')">💻 Code Assistant</button>
-                <button class="quick-action-btn" onclick="window.aiChatInstances?.['${this.instanceId}']?.sendQuickAction('Explain system performance')">📊 System Health</button>
+                <button class="quick-action-btn" data-native-gateway-binding="ai-chat.ipfs_accelerate_py.submit_inference" data-native-tool-id="submit_task" onclick="window.aiChatInstances?.['${this.instanceId}']?.sendQuickAction('Analyze my desktop state', this)">🖥️ Desktop Analysis</button>
+                <button class="quick-action-btn" data-native-gateway-binding="ai-chat.ipfs_accelerate_py.submit_inference" data-native-tool-id="submit_task" onclick="window.aiChatInstances?.['${this.instanceId}']?.sendQuickAction('Help me write code', this)">💻 Code Assistant</button>
+                <button class="quick-action-btn" data-native-gateway-binding="ai-chat.ipfs_accelerate_py.submit_inference" data-native-tool-id="submit_task" onclick="window.aiChatInstances?.['${this.instanceId}']?.sendQuickAction('Explain system performance', this)">📊 System Health</button>
               </div>
             </div>
           </div>
@@ -272,14 +276,14 @@ export class AIChatApp {
               <div class="input-row">
                 <button class="input-btn" onclick="window.aiChatInstances?.['${this.instanceId}']?.attachFile()" title="Attach File">📎</button>
                 <button class="input-btn" onclick="window.aiChatInstances?.['${this.instanceId}']?.toggleCodeMode()" title="Code Mode">💻</button>
-                <textarea id="${this.instanceId}-input" 
+                <textarea id="ai-chat-input" data-ai-chat-control="input" aria-label="Chat message"
                           class="enhanced-input" 
                           placeholder="Ask me anything... (Shift+Enter for new line)"
                           rows="1"
                           oninput="window.aiChatInstances?.['${this.instanceId}']?.handleInputChange(this.value)"
                           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.aiChatInstances?.['${this.instanceId}']?.sendMessage();}"></textarea>
                 <button class="input-btn voice-input" onclick="window.aiChatInstances?.['${this.instanceId}']?.startVoiceInput()" title="Voice Input">🎤</button>
-                <button class="send-btn" id="${this.instanceId}-send-btn" onclick="window.aiChatInstances?.['${this.instanceId}']?.sendMessage()" title="Send Message">
+                <button class="send-btn" id="ai-chat-send-btn" data-ai-chat-control="send" data-native-gateway-binding="ai-chat.ipfs_accelerate_py.submit_inference" data-native-tool-id="submit_task" disabled onclick="window.aiChatInstances?.['${this.instanceId}']?.sendMessage(this)" title="Send Message">
                   <span class="send-icon">➤</span>
                 </button>
               </div>
@@ -787,16 +791,9 @@ export class AIChatApp {
       </style>
     `;
 
-    // Register this instance globally for inline event handlers AFTER render completes
-    // This needs to be delayed to avoid issues during HTML parsing
-    setTimeout(() => {
-      if (typeof window !== 'undefined') {
-        if (!window.aiChatInstances) {
-          window.aiChatInstances = {};
-        }
-        window.aiChatInstances[this.instanceId] = this;
-      }
-    }, 0);
+    // Register before insertion so the first input/click event has an owner.
+    window.aiChatInstances ||= {};
+    window.aiChatInstances[this.instanceId] = this;
 
     return content;
   }
@@ -821,7 +818,7 @@ export class AIChatApp {
       });
 
       // Update model options
-      const modelSelect = container.querySelector(`#${this.instanceId}-model-select`);
+      const modelSelect = container.querySelector(`#ai-chat-model-select`);
       const provider = this.aiProviders[providerId];
       modelSelect.innerHTML = provider.models.map(model => 
         `<option value="${model}">${model}</option>`
@@ -873,14 +870,14 @@ export class AIChatApp {
     if (tokenCount) tokenCount.textContent = `~${Math.ceil(value.length / 4)} tokens`;
 
     // Auto-resize textarea
-    const textarea = container.querySelector(`#${this.instanceId}-input`);
+    const textarea = container.querySelector(`#ai-chat-input`);
     if (textarea) {
       textarea.style.height = 'auto';
       textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
     }
 
     // Enable/disable send button
-    const sendBtn = container.querySelector(`#${this.instanceId}-send-btn`);
+    const sendBtn = container.querySelector('#ai-chat-send-btn') || container.querySelector(`#${this.instanceId}-send-btn`);
     if (sendBtn) {
       sendBtn.disabled = !value.trim();
     }
@@ -890,7 +887,7 @@ export class AIChatApp {
     const container = this.getContainer();
     if (!container) return;
     
-    const input = container.querySelector(`#${this.instanceId}-input`);
+    const input = container.querySelector(`#ai-chat-input`);
     const message = input.value.trim();
     
     if (!message) return;
@@ -1000,15 +997,15 @@ export class AIChatApp {
     if (tokenCountElement) tokenCountElement.textContent = this.tokenUsage.input + this.tokenUsage.output;
   }
 
-  sendQuickAction(prompt) {
+  sendQuickAction(prompt, trigger = null) {
     const container = this.getContainer();
     if (!container) return;
     
-    const input = container.querySelector(`#${this.instanceId}-input`);
+    const input = container.querySelector(`#ai-chat-input`);
     if (input) {
       input.value = prompt;
       this.handleInputChange(prompt);
-      this.sendMessage();
+      return this.sendMessage(trigger);
     }
   }
 
@@ -1059,117 +1056,144 @@ export class AIChatApp {
   }
 
   selectProvider(providerId) {
-    this.selectedProvider = providerId;
-    
-    // Update UI
-    const container = this.getContainer();
-    container.querySelectorAll('.provider-card').forEach(card => {
-      card.classList.toggle('active', card.dataset.provider === providerId);
-    });
-
-    // Update model options
-    const modelSelect = container.querySelector('#model-select');
     const provider = this.aiProviders[providerId];
-    modelSelect.innerHTML = provider.models.map(model => 
-      `<option value="${model}">${model}</option>`
-    ).join('');
-    
+    if (!provider) return;
+    this.selectedProvider = providerId;
     this.selectedModel = provider.models[0];
+    const container = this.getContainer();
+    if (!container) return;
+    container.querySelectorAll('.provider-card').forEach(card => card.classList.toggle('active', card.dataset.provider === providerId));
+    const modelSelect = container.querySelector('#ai-chat-model-select');
+    if (modelSelect) {
+      modelSelect.innerHTML = provider.models.map(model => `<option value="${model}">${model}</option>`).join('');
+      modelSelect.value = this.selectedModel;
+    }
     this.updateModelCapabilities();
   }
 
   updateModelCapabilities() {
     const provider = this.aiProviders[this.selectedProvider];
-    const container = this.getContainer();
-    
-    // Update connection status
-    const statusText = container.querySelector('.status-text');
-    statusText.textContent = `Connected to ${provider.name}`;
+    const status = this.getContainer()?.querySelector('.status-text');
+    if (status && provider) status.textContent = `${provider.name} selected; owner requests require confirmation.`;
   }
 
-  toggleContextSource(contextId, enabled) {
+  async toggleContextSource(contextId, enabled) {
+    if (!this.contextSources[contextId]) return;
     this.contextSources[contextId].enabled = enabled;
-    
-    // Update context preview if needed
-    if (enabled) {
-      this.gatherContextData(contextId);
-    }
+    const container = this.getContainer();
+    container?.querySelector(`[data-context="${contextId}"]`)?.classList.toggle('enabled', enabled);
+    const state = enabled ? await this.gatherContextData(contextId) : { status: 'disabled' };
+    const status = container?.querySelector('[data-chat-context-status]');
+    if (status) status.textContent = `${this.contextSources[contextId].name}: ${state.status}${state.reason ? ` — ${state.reason}` : ''}.`;
+    return state;
   }
 
   async gatherContextData(contextId) {
-    switch (contextId) {
-      case 'desktop':
-        return this.getDesktopContext();
-      case 'files':
-        return this.getFileContext();
-      case 'system':
-        return this.getSystemContext();
-      case 'p2p':
-        return this.getP2PContext();
-      default:
-        return null;
+    const getters = {
+      desktop: 'getDesktopContext', files: 'getFileContext', code: 'getCodeContext',
+      system: 'getSystemContext', p2p: 'getP2PContext', ipfs: 'getIPFSContext',
+    };
+    try {
+      const getter = getters[contextId];
+      return getter ? await this[getter]() : { type: contextId, status: 'unavailable', reason: 'Unknown local context source' };
+    } catch (error) {
+      return { type: contextId, status: 'unavailable', reason: error.message || String(error) };
     }
   }
 
   getDesktopContext() {
-    const openApps = this.desktop.getOpenApps ? this.desktop.getOpenApps() : [];
+    const windows = this.desktop?.windows;
+    if (!(windows instanceof Map) && typeof this.desktop?.getOpenApps !== 'function') return { type: 'desktop', status: 'unavailable', reason: 'The desktop does not expose its current windows' };
+    const apps = windows instanceof Map ? [...windows.values()] : this.desktop.getOpenApps();
     return {
-      type: 'desktop',
-      openApps: openApps.map(app => app.title),
-      activeApp: this.desktop.getActiveApp ? this.desktop.getActiveApp() : null,
-      timestamp: Date.now()
+      type: 'desktop', status: 'available',
+      openApps: apps.map(app => ({ id: app.appId || app.id || null, title: app.title || null })),
+      activeApp: windows instanceof Map ? apps.find(app => app.element === this.desktop.activeWindow)?.appId || null : this.desktop.getActiveApp?.() || null,
+      observed_at: new Date().toISOString(),
     };
+  }
+
+  updateDesktopContext() {
+    return this.getDesktopContext();
+  }
+
+  addFileContext(data) {
+    const source = data?.file || data;
+    if (!source || typeof source !== 'object') return;
+    const file = Object.fromEntries(['name', 'path', 'cid', 'content'].filter(key => typeof source[key] === 'string').map(key => [key, source[key]]));
+    if (Object.keys(file).length) this.selectedFileContext.push(file);
+  }
+
+  getFileContext() {
+    return this.selectedFileContext.length
+      ? { type: 'files', status: 'available', files: this.selectedFileContext.map(file => ({ ...file })) }
+      : { type: 'files', status: 'unavailable', reason: 'No local file selection has supplied contents or metadata to this chat' };
+  }
+
+  getCodeContext() {
+    const editor = document.querySelector('.vibecode-container #code-editor');
+    return editor ? { type: 'code', status: 'available', source: 'open-local-editor', content: editor.value }
+      : { type: 'code', status: 'unavailable', reason: 'No local editor is open' };
+  }
+
+  getSystemContext() {
+    const browser = window.navigator;
+    if (!browser) return { type: 'system', status: 'unavailable', reason: 'Browser system information is unavailable' };
+    return { type: 'system', status: 'available', scope: 'browser', user_agent: browser.userAgent, language: browser.language, online: browser.onLine };
+  }
+
+  getP2PContext() {
+    return { type: 'p2p', status: 'unavailable', reason: 'No observed local peer state is exposed to this chat' };
+  }
+
+  getIPFSContext() {
+    return { type: 'ipfs', status: 'unavailable', reason: 'No verified IPFS content has been selected for this chat' };
   }
 
   handleInputChange(value) {
     const container = this.getContainer();
-    const charCount = container.querySelector('#char-count');
-    const tokenCount = container.querySelector('#estimated-tokens');
-    
-    charCount.textContent = value.length;
-    tokenCount.textContent = `~${Math.ceil(value.length / 4)} tokens`;
+    if (!container) return;
+    const text = String(value || '');
+    const charCount = container.querySelector(`#${this.instanceId}-char-count`) || container.querySelector('#char-count');
+    const tokenCount = container.querySelector(`#${this.instanceId}-estimated-tokens`) || container.querySelector('#estimated-tokens');
+    if (charCount) charCount.textContent = String(text.length);
+    if (tokenCount) tokenCount.textContent = `~${Math.ceil(text.length / 4)} tokens`;
 
-    // Auto-resize textarea
-    const textarea = container.querySelector('#chat-input');
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    const textarea = container.querySelector(`#ai-chat-input`) || container.querySelector('#chat-input');
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    }
 
-    // Enable/disable send button
-    const sendBtn = container.querySelector('#send-btn');
-    sendBtn.disabled = !value.trim();
+    const sendBtn = container.querySelector('#ai-chat-send-btn') || container.querySelector('#send-btn');
+    if (sendBtn) sendBtn.disabled = !text.trim();
   }
 
-  async sendMessage() {
+  async sendMessage(trigger = null) {
     const container = this.getContainer();
-    const input = container.querySelector('#chat-input');
-    const message = input.value.trim();
-    
-    if (!message) return;
-
-    // Clear input
+    const input = container?.querySelector('#ai-chat-input');
+    const message = input?.value.trim();
+    if (!message || this.isSending) return;
+    this.isSending = true;
     input.value = '';
     this.handleInputChange('');
-
-    // Add user message to chat
     this.addMessage('user', message);
-
-    // Gather context if enabled
-    const context = await this.gatherEnabledContext();
-
-    // Show typing indicator
     this.showTypingIndicator();
-
     try {
-      // Send to AI using real API
-      const response = await this.sendToAI(message, context);
-      this.hideTypingIndicator();
+      const context = await this.gatherEnabledContext();
+      const response = await this.sendToAI(message, context, trigger);
+      if (response === null) {
+        input.value = message;
+        this.handleInputChange(message);
+        return;
+      }
       this.addMessage('assistant', response);
-
-      // Update statistics
       this.updateUsageStats();
     } catch (error) {
+      this.addMessage('error', `AI request failed: ${error.message}`);
+    } finally {
       this.hideTypingIndicator();
-      this.addMessage('error', 'Sorry, I encountered an error: ' + error.message);
+      this.isSending = false;
     }
   }
 
@@ -1188,7 +1212,9 @@ export class AIChatApp {
 
   addMessage(type, content, timestamp = Date.now()) {
     const container = this.getContainer();
-    const messagesContainer = container.querySelector('#chat-messages');
+    if (!container) return;
+    const messagesContainer = container.querySelector(`#${this.instanceId}-messages`) || container.querySelector('#chat-messages') || container.querySelector('.chat-messages');
+    if (!messagesContainer) return;
 
     // Remove welcome message
     const welcomeMessage = messagesContainer.querySelector('.welcome-message');
@@ -1230,7 +1256,9 @@ export class AIChatApp {
 
   showTypingIndicator() {
     const container = this.getContainer();
-    const messagesContainer = container.querySelector('#chat-messages');
+    if (!container) return;
+    const messagesContainer = container.querySelector(`#${this.instanceId}-messages`) || container.querySelector('#chat-messages') || container.querySelector('.chat-messages');
+    if (!messagesContainer) return;
     
     const typingElement = document.createElement('div');
     typingElement.className = 'message assistant typing';
@@ -1249,77 +1277,58 @@ export class AIChatApp {
   }
 
   hideTypingIndicator() {
-    const typingIndicator = document.querySelector('#typing-indicator');
+    const typingIndicator = this.getContainer()?.querySelector('#typing-indicator');
     if (typingIndicator) {
       typingIndicator.remove();
     }
   }
 
-  async sendToAI(message, context) {
-    try {
-      // Use real SwissKnife AI integration
-      if (this.swissknife && typeof this.swissknife.chat === 'function') {
-        // Prepare context string if available
-        let contextStr = '';
-        if (context && Object.keys(context).length > 0) {
-          contextStr = '\n\nContext:\n' + JSON.stringify(context, null, 2);
-        }
-
-        // Send to real AI API
-        const response = await this.swissknife.chat({
-          message: message + contextStr,
-          model: this.selectedModel,
-          provider: this.selectedProvider
-        });
-
-        // Extract message from response
-        const aiMessage = response.message || response.content || response;
-        
-        // Update token usage if available
-        if (response.usage) {
-          this.tokenUsage.input += response.usage.prompt_tokens || 0;
-          this.tokenUsage.output += response.usage.completion_tokens || 0;
-        } else {
-          // Estimate tokens if not provided
-          this.tokenUsage.input += Math.ceil(message.length / 4);
-          this.tokenUsage.output += Math.ceil(aiMessage.length / 4);
-        }
-
-        return aiMessage;
-      } else {
-        // Fallback: Try to use window.swissknife if available
-        if (window.swissknife && typeof window.swissknife.chat === 'function') {
-          const response = await window.swissknife.chat({
-            message: message,
-            model: this.selectedModel
-          });
-          return response.message || response.content || response;
-        }
-
-        // If no AI API available, provide helpful message
-        return `AI integration is not configured. To use AI Chat:
-
-1. Configure API keys in Settings
-2. Ensure SwissKnife backend is running
-3. Select an AI provider from the dropdown
-
-Currently selected: ${this.selectedProvider} / ${this.selectedModel}
-
-For testing, you can:
-- Use the Terminal AI commands
-- Configure OpenAI, Anthropic, or local models
-- Check the API Keys app for configuration`;
-      }
-    } catch (error) {
-      console.error('AI Error:', error);
-      throw new Error(`AI request failed: ${error.message}`);
+  async sendToAI(message, context, trigger = null) {
+    if (!String(message || '').trim()) return null;
+    const { invokeNativeTool } = await import('../live-tool-gateway.js');
+    const container = this.getContainer();
+    const response = await invokeNativeTool(container, 'ai-chat', 'ai-chat.ipfs_accelerate_py.submit_inference', {
+      toolId: 'submit_task',
+      trigger: trigger || container?.querySelector('#ai-chat-send-btn'),
+      payload: {
+        task_type: 'inference', model_id: this.selectedModel, prompt: message,
+        payload: { model_id: this.selectedModel, prompt: message, context },
+      },
+    });
+    if (response === null) return null;
+    if (!response?.ok || response.outcome !== 'executed') {
+      throw new Error(response?.error || response?.result?.error || response?.outcome || 'Inference owner did not execute the request.');
     }
+    const pending = [response.result];
+    let jobId = '';
+    let dryRun = false;
+    for (let index = 0; index < pending.length && index < 24; index++) {
+      const value = pending[index];
+      if (!value || typeof value !== 'object') continue;
+      for (const field of ['message', 'generated_text', 'response_text']) {
+        if (typeof value[field] === 'string' && value[field]) return value[field];
+      }
+      jobId ||= value.task_id || value.job_id || '';
+      dryRun ||= value.dry_run === true || value.receipt?.dry_run === true;
+      if (value.result && typeof value.result === 'object') pending.push(value.result);
+      for (const part of Array.isArray(value.content) ? value.content : []) {
+        if (part.json && typeof part.json === 'object') pending.push(part.json);
+        else if (part.type === 'text' && typeof part.text === 'string') {
+          try { pending.push(JSON.parse(part.text)); }
+          catch { return part.text; }
+        }
+      }
+    }
+    const receipt = response.receipt?.receipt_id || 'unavailable';
+    if (dryRun) return `Inference request validated as a dry run. Correlation: ${response.correlation_id}; receipt: ${receipt}.`;
+    if (jobId) return `Inference task submitted: ${jobId}. Correlation: ${response.correlation_id}; receipt: ${receipt}.`;
+    return `Inference owner acknowledged the request. Correlation: ${response.correlation_id}; receipt: ${receipt}.`;
   }
 
   updateUsageStats() {
     const container = this.getContainer();
-    const messageCountElement = container.querySelector('#message-count');
-    const tokenCountElement = container.querySelector('#token-count');
+    const messageCountElement = container?.querySelector(`#${this.instanceId}-message-count`) || container?.querySelector('#message-count');
+    const tokenCountElement = container?.querySelector(`#${this.instanceId}-token-count`) || container?.querySelector('#token-count');
 
     if (messageCountElement) {
       messageCountElement.textContent = this.messageCount;
@@ -1336,27 +1345,33 @@ For testing, you can:
       this.recognition.start();
       
       const container = this.getContainer();
-      const voiceBtn = container.querySelector('#voice-input-btn');
-      voiceBtn.classList.add('recording');
-      voiceBtn.textContent = '🔴';
+      if (!container) return;
+      const voiceBtn = container.querySelector('#voice-input-btn') || container.querySelector('.voice-input');
+      if (voiceBtn) {
+        voiceBtn.classList.add('recording');
+        voiceBtn.textContent = '🔴';
+      }
     }
   }
 
   handleVoiceInput(transcript) {
     const container = this.getContainer();
-    const input = container.querySelector('#chat-input');
-    input.value = transcript;
+    if (!container) return;
+    const input = container.querySelector(`#ai-chat-input`) || container.querySelector('#chat-input');
+    if (input) input.value = transcript;
     this.handleInputChange(transcript);
 
     // Stop recording
     this.voiceEnabled = false;
-    const voiceBtn = container.querySelector('#voice-input-btn');
-    voiceBtn.classList.remove('recording');
-    voiceBtn.textContent = '🎤';
+    const voiceBtn = container.querySelector('#voice-input-btn') || container.querySelector('.voice-input');
+    if (voiceBtn) {
+      voiceBtn.classList.remove('recording');
+      voiceBtn.textContent = '🎤';
+    }
   }
 
   getContainer() {
-    return document.querySelector('.ai-chat-container');
+    return document.getElementById(this.instanceId);
   }
 
   async loadConversations() {
@@ -1384,8 +1399,10 @@ For testing, you can:
     
     // Clear current chat
     const container = this.getContainer();
-    const messagesContainer = container.querySelector('#chat-messages');
-    messagesContainer.innerHTML = `
+    const messagesContainer = container?.querySelector(`#${this.instanceId}-messages`)
+      || container?.querySelector('#chat-messages')
+      || container?.querySelector('.chat-messages');
+    if (messagesContainer) messagesContainer.innerHTML = `
       <div class="welcome-message sk-empty">
         <div class="welcome-icon">🤖</div>
         <h3>New Conversation Started</h3>
@@ -1398,8 +1415,9 @@ For testing, you can:
 
   updateConversationList() {
     const container = this.getContainer();
-    const listContainer = container.querySelector('#conversation-list');
-    
+    const listContainer = container?.querySelector('#conversation-list') || container?.querySelector('.conversation-list');
+    if (!listContainer) return;
+
     listContainer.innerHTML = this.conversations.map(conv => `
       <div class="conversation-item ${conv.id === this.currentConversation?.id ? 'active' : ''}" 
            data-id="${conv.id}">

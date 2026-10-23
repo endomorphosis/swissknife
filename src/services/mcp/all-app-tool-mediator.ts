@@ -191,10 +191,49 @@ function unwrapMcpResult(value: unknown): unknown {
           : 'Owner adapter rejected the tool call.';
         throw new Error(message);
       }
+      assertOwnerResultSucceeded(result);
       return result;
     }
   }
+  assertOwnerResultSucceeded(value);
   return value;
+}
+
+/** Transport wrappers retain their proof fields, but cannot hide MCP errors. */
+function assertOwnerResultSucceeded(value: unknown): void {
+  const pending: unknown[] = [value];
+  const seen = new Set<object>();
+  const failures = new Set(['failed', 'error', 'unsupported', 'unreachable', 'denied']);
+  while (pending.length) {
+    const candidate = pending.shift();
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate) || seen.has(candidate)) continue;
+    if (seen.size >= 64) throw new Error('Owner adapter returned an excessive result envelope.');
+    seen.add(candidate);
+    const record = candidate as Record<string, unknown>;
+    if (record.isError === true || record.ok === false || record.success === false
+      || failures.has(String(record.outcome || '')) || failures.has(String(record.status || ''))
+      || (record.error && record.ok !== true && record.success !== true)) {
+      const content = Array.isArray(record.content) ? record.content : [];
+      const first = content.find(item => item && typeof item === 'object' && typeof item.text === 'string');
+      const error = record.error;
+      const message = typeof error === 'string' ? error
+        : error && typeof error === 'object' && typeof (error as { message?: unknown }).message === 'string'
+          ? (error as { message: string }).message
+          : first?.text || 'Owner adapter rejected the tool call.';
+      throw new Error(message);
+    }
+    // Follow protocol envelopes, never arbitrary application data fields.
+    for (const key of ['result', 'response']) {
+      if (record[key] && typeof record[key] === 'object') pending.push(record[key]);
+    }
+    for (const item of Array.isArray(record.content) ? record.content : []) {
+      if (!item || typeof item !== 'object') continue;
+      if (item.json && typeof item.json === 'object') pending.push(item.json);
+      if (item.type === 'text' && typeof item.text === 'string') {
+        try { pending.push(JSON.parse(item.text)); } catch { /* Plain tool text is not an envelope. */ }
+      }
+    }
+  }
 }
 
 function sanitizeOwnerResult(value: unknown): unknown {

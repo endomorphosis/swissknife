@@ -1,7 +1,10 @@
 /**
  * Enhanced IPFS Explorer App for SwissKnife Web Desktop
- * Advanced IPFS file management with P2P integration, content pinning, and network analytics
+ * Advanced IPFS file management with P2P integration, content pinning, and network analytics.
+ * File writes use the reviewed artifact binding and visible gateway confirmation.
  */
+
+import { invokeNetworkNativeTool, networkNativeAttributes } from './network-native-tools.js';
 
 export class IPFSExplorerApp {
   constructor(desktop) {
@@ -431,7 +434,7 @@ export class IPFSExplorerApp {
             </div>
             <div class="modal-footer">
               <button class="btn-secondary" id="cancel-upload">Cancel</button>
-              <button class="btn-primary" id="start-upload" disabled>Upload to IPFS</button>
+              <button class="btn-primary" id="start-upload" ${networkNativeAttributes('ipfs-explorer', 'mcp++:ipfs_kit_py/artifacts/put')} disabled>Upload to IPFS</button>
             </div>
           </div>
         </div>
@@ -1084,9 +1087,12 @@ export class IPFSExplorerApp {
     await this.loadInitialData();
   }
 
-  setupEventListeners() {
+  setupEventListeners(container = document.querySelector('.ipfs-explorer-container')) {
+    if (!container || this._boundContainer === container) return;
+    this.container = container;
+    this._boundContainer = container;
     // Tab switching
-    document.addEventListener('click', (e) => {
+    container.addEventListener('click', (e) => {
       if (e.target.classList.contains('tab-btn')) {
         const view = e.target.dataset.view;
         this.switchView(view);
@@ -1094,7 +1100,7 @@ export class IPFSExplorerApp {
     });
 
     // File upload and management
-    document.addEventListener('click', (e) => {
+    container.addEventListener('click', (e) => {
       const buttonHandlers = {
         'add-files': () => this.showUploadModal(),
         'create-folder': () => this.createFolder(),
@@ -1129,6 +1135,20 @@ export class IPFSExplorerApp {
       if (buttonHandlers[e.target.id]) {
         e.preventDefault();
         buttonHandlers[e.target.id]();
+      }
+
+      const viewButton = e.target.closest?.('.view-btn');
+      if (viewButton) {
+        const mode = viewButton.dataset.view;
+        if (mode === 'list' || mode === 'grid') {
+          this.viewMode = mode;
+          document.querySelectorAll('.view-btn').forEach((node) => {
+            node.classList.toggle('active', node === viewButton);
+          });
+          const browser = document.getElementById('content-browser');
+          if (browser) browser.dataset.viewMode = mode;
+          this.showNotification(mode === 'grid' ? 'Grid view' : 'List view', 'info');
+        }
       }
 
       // Quick links
@@ -1255,12 +1275,7 @@ export class IPFSExplorerApp {
       }
     }
     
-    // Fallback to example content
-    return [
-      { name: 'readme.md', type: 'document', size: 1024, hash: 'example-QmXxYyZz...' },
-      { name: 'images', type: 'directory', size: 0, hash: 'example-QmAaBbCc...' },
-      { name: 'data.json', type: 'json', size: 512, hash: 'example-QmDdEeFf...' }
-    ];
+    throw new Error('No local IPFS node is connected. This desktop did not list that CID.');
   }
 
   displayContent(items) {
@@ -1364,8 +1379,8 @@ export class IPFSExplorerApp {
     const stats = {
       'total-pins': this.pinnedContent.size,
       'pinned-size': this.calculatePinnedSize(),
-      'sync-status': 'Synced',
-      'pin-speed': '5/s'
+      'sync-status': 'not measured',
+      'pin-speed': '—'
     };
     
     Object.entries(stats).forEach(([id, value]) => {
@@ -1418,6 +1433,14 @@ export class IPFSExplorerApp {
     this.testGatewayPerformance();
   }
 
+  testGatewayPerformance() {
+    const host = document.getElementById('gateway-tests');
+    const gateway = this.currentGateway || '(none)';
+    if (host) {
+      host.textContent = `No gateway timing sample. Selected gateway ${gateway}. This desktop did not invent a latency.`;
+    }
+  }
+
   async updateNetworkMetrics() {
     // Try to get real network metrics from IPFS
     let metrics = {
@@ -1465,10 +1488,7 @@ export class IPFSExplorerApp {
     charts.forEach(chartId => {
       const element = document.getElementById(chartId);
       if (element) {
-        const value = Math.random() * 100;
-        element.innerHTML = `
-          <div class="mini-chart-bar" style="width: ${value}%; background: ${this.getBarColor(value)}"></div>
-        `;
+        element.textContent = 'not measured';
       }
     });
   }
@@ -1758,77 +1778,18 @@ export class IPFSExplorerApp {
       this.hideUploadModal();
       this.loadExplorerContent();
     } catch (error) {
-      this.showNotification(`Upload failed: ${error.message}`, 'error');
+      this.showNotification(`Upload ${error.preview ? 'preview' : error.cancelled ? 'cancelled' : 'failed'}: ${error.message}`, error.preview || error.cancelled ? 'info' : 'error');
     }
   }
 
   async uploadFileToIPFS(file) {
-    // Try to upload to real IPFS
-    if (this.desktop?.swissknife?.ipfs) {
-      try {
-        const result = await this.desktop.swissknife.ipfs.add(file);
-        const hash = result.cid || result.hash;
-        
-        // Add to pinned content if option is selected
-        const pinAfterUpload = document.getElementById('pin-after-upload');
-        if (pinAfterUpload?.checked) {
-          await this.desktop.swissknife.ipfs.pin(hash);
-          this.pinnedContent.set(hash, {
-            hash,
-            name: file.name,
-            size: file.size,
-            type: this.getFileType(file.name),
-            pinnedAt: Date.now(),
-            status: 'pinned'
-          });
-        }
-        
-        return hash;
-      } catch (error) {
-        console.warn('⚠️ SwissKnife IPFS upload failed:', error);
-      }
-    }
-    
-    // Try window.ipfs
-    if (window.ipfs) {
-      try {
-        const result = await window.ipfs.add(file);
-        const hash = result.cid.toString();
-        
-        // Add to pinned content if option is selected
-        const pinAfterUpload = document.getElementById('pin-after-upload');
-        if (pinAfterUpload?.checked) {
-          await window.ipfs.pin.add(hash);
-          this.pinnedContent.set(hash, {
-            hash,
-            name: file.name,
-            size: file.size,
-            type: this.getFileType(file.name),
-            pinnedAt: Date.now(),
-            status: 'pinned'
-          });
-        }
-        
-        return hash;
-      } catch (error) {
-        console.warn('⚠️ Window IPFS upload failed:', error);
-      }
-    }
-    
-    // Final route: persist the file bytes as a real content-addressed
-    // artifact in the ipfs_kit_py store. The CID is computed over the exact
-    // bytes via contentCidForBytes and verified by the backend — no
-    // fabricated hashes. Governed write: explicit user confirmation first,
-    // failures surface verbatim.
-    if (!confirm(`Upload "${file.name}" (${this.formatBytes(file.size)}) to the IPFS artifact store via ipfs_kit_py?`)) {
-      throw new Error('Upload cancelled by user.');
-    }
+    // The reviewed owner validates the exact file bytes after visible
+    // confirmation. No alternate browser writer runs before policy review.
     const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
-    const client = clientModule.getMCPPlusPlusDesktopClient();
     const { contentCidForBytes, base64ForBytes } = clientModule;
     const bytes = new Uint8Array(await file.arrayBuffer());
     const cid = await contentCidForBytes(bytes);
-    const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+    const result = await invokeNetworkNativeTool(this.container || document.querySelector('.ipfs-explorer-container'), 'ipfs-explorer', 'mcp++:ipfs_kit_py/artifacts/put', {
       cid,
       bytes_base64: base64ForBytes(bytes),
       profile: 'ipfs-explorer-upload',
@@ -1836,7 +1797,8 @@ export class IPFSExplorerApp {
       service: 'ipfs_kit_py',
       pin: document.getElementById('pin-after-upload')?.checked !== false
     });
-    if (!result || result.persisted !== true || result.cid !== cid) {
+    if (result === null) throw Object.assign(new Error('Upload cancelled before dispatch.'), { cancelled: true });
+    if (result.persisted !== true || result.cid !== cid) {
       throw new Error(result?.error || 'ipfs_kit_py did not verify the uploaded artifact.');
     }
     this.pinnedContent.set(cid, {
@@ -1848,7 +1810,7 @@ export class IPFSExplorerApp {
       status: 'pinned',
       verified: result.verified === true
     });
-    eventBus.emit('ipfs:file-added', { filename: file.name, hash: cid, size: file.size });
+    globalThis.eventBus?.emit?.('ipfs:file-added', { filename: file.name, hash: cid, size: file.size });
     return cid;
   }
 
@@ -2041,6 +2003,98 @@ export class IPFSExplorerApp {
     } catch (error) {
       console.error('Error loading settings:', error);
     }
+  }
+
+  createFolder() {
+    const name = window.prompt('Enter folder name:');
+    if (!name || !String(name).trim()) {
+      this.showNotification('Folder creation cancelled', 'info');
+      return;
+    }
+    const folderName = String(name).trim();
+    const browser = document.getElementById('content-browser');
+    if (browser) {
+      const row = document.createElement('div');
+      row.className = 'ipfs-local-entry';
+      row.textContent = `📁 ${folderName}`;
+      browser.prepend(row);
+    }
+    this.showNotification(`Created folder ${folderName}`, 'success');
+  }
+
+  showSettings() {
+    const host = document.querySelector('.ipfs-explorer-container');
+    if (host) {
+      let panel = host.querySelector('#ipfs-settings-panel');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'ipfs-settings-panel';
+        host.prepend(panel);
+      }
+      panel.textContent = `Gateway: ${this.currentGateway || 'unset'}. Settings stay on this desktop.`;
+    }
+    this.showNotification('IPFS Explorer settings are local to this desktop', 'info');
+  }
+
+  toggleAutoPinning() {
+    this.autoPin = !this.autoPin;
+    const button = document.getElementById('auto-pin');
+    if (button) button.setAttribute('aria-pressed', this.autoPin ? 'true' : 'false');
+    this.showNotification(this.autoPin ? 'Auto pin is on for this session' : 'Auto pin is off', 'info');
+  }
+
+  showBulkPinDialog() {
+    const pins = [...(this.pinnedContent?.keys?.() || [])];
+    const list = document.getElementById('pins-list');
+    if (list) {
+      list.textContent = pins.length
+        ? `Local pins: ${pins.join(', ')}`
+        : 'No local pins yet. Upload a file with pin-after-upload to record one.';
+    }
+    this.showNotification(pins.length ? `Bulk pin list has ${pins.length} local pin(s)` : 'No local pins to bulk-pin', 'info');
+  }
+
+  exportPinList() {
+    const pins = [...(this.pinnedContent?.entries?.() || [])].map(([hash, meta]) => `${hash} ${meta?.name || ''}`.trim());
+    const list = document.getElementById('pins-list');
+    const text = pins.length ? pins.join('\n') : 'No local pins to export';
+    if (list) list.textContent = text;
+    this.showNotification(pins.length ? `Exported ${pins.length} local pin(s) into the pin list` : 'No local pins to export', 'info');
+  }
+
+  importPinList() {
+    const input = document.getElementById('file-input');
+    if (input) {
+      input.click();
+      this.showNotification('Choose a pin list file', 'info');
+      return;
+    }
+    this.showNotification('Pin import needs a file input', 'warning');
+  }
+
+  discoverPeers() {
+    const table = document.getElementById('peers-table');
+    if (table) {
+      table.textContent = 'Peer discovery is not bound to one MCP tool on this desktop. No peer list was invented.';
+    }
+    this.showNotification('Peer discovery has no single bound tool', 'info');
+  }
+
+  testConnectivity() {
+    const host = document.getElementById('gateway-tests');
+    const gateway = this.currentGateway || '(none)';
+    if (host) host.textContent = `Connectivity check is local: selected gateway ${gateway}. No tool call was sent.`;
+    this.showNotification(`Gateway selection: ${gateway}`, 'info');
+  }
+
+  optimizeRouting() {
+    this.showNotification('Routing optimization is not bound to a tool. The current gateway stays selected.', 'info');
+  }
+
+  runNetworkDiagnostics() {
+    const note = document.getElementById('gateway-tests');
+    if (note) note.textContent = 'Diagnostics: this surface has no live peer sample. Counts stay at the measured zero.';
+    this.showNotification('Network diagnostics: no live peer sample on this surface', 'info');
   }
 
   showNotification(message, type = 'info') {

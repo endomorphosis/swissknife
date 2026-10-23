@@ -2352,7 +2352,11 @@ async function buildAccelerateCompatCatalog(upstream) {
     { name: 'get_hardware_info', description: 'Return local CPU and memory facts used by hardware recommendation.', inputSchema: { type: 'object' } },
   ];
   const seen = new Set();
-  const tools = [...base, ...aliases, ...realTools].filter(tool => {
+  const contractTools = Object.entries(ACCELERATE_CONTRACT_OPS).map(([name, spec]) => ({
+    name, description: spec.note, inputSchema: { type: 'object', additionalProperties: true },
+    execution_mode: spec.preview_only ? 'validated-preview-only' : spec.kind === 'read' ? 'backend-read' : 'backend-or-validated-preview',
+  }));
+  const tools = [...base, ...contractTools, ...aliases, ...realTools].filter(tool => {
     if (!tool.name || seen.has(tool.name)) return false;
     seen.add(tool.name);
     return true;
@@ -2409,35 +2413,19 @@ function resolveAccelerateUpstreamTool(name, realNames) {
 // hardware_profile -> localHardwareInfo() branch below.
 // ---------------------------------------------------------------------------
 const ACCELERATE_CONTRACT_OPS = {
-  list_models: {
-    module: 'ipfs_accelerate_py.api_backends.api_models_registry',
-    cls: 'api_models',
-    method: 'list_models',
-    kind: 'read',
-    argMap: {},
-    note: 'lists backend model names from the real API model registry',
-  },
-  job_status: {
-    module: 'ipfs_accelerate_py.mcp_server.tools.background_task_tools.native_background_task_tools',
-    func: 'get_task_status',
-    kind: 'read',
-    argMap: { job_id: 'task_id' },
-    note: 'background task / job status from the real task tools',
-  },
-  telemetry: {
-    module: 'ipfs_accelerate_py.mcp_server.tools.monitoring_tools.native_monitoring_tools',
-    func: 'get_performance_metrics',
-    kind: 'read',
-    argMap: {},
-    note: 'aggregated performance metrics from the real monitoring tools',
-  },
-  run_inference_job: {
-    module: 'ipfs_accelerate_py.mcp_server.tools.inference_tools.native_inference_tools',
-    func: 'inference_run',
-    kind: 'write',
-    argMap: { input: 'input_data', job_id: 'task_id' },
-    note: 'real inference entrypoint; confirmation-gated in the UI',
-  },
+  list_models: { module: 'ipfs_accelerate_py.api_backends.api_models_registry', cls: 'api_models', method: 'list_models', kind: 'read', argMap: {}, note: 'Read the real API model registry.' },
+  'HealthChecker.check_detailed': { module: 'ipfs_accelerate_py.hf_model_server.monitoring.health', cls: 'HealthChecker', method: 'check_detailed', kind: 'read', argMap: {}, note: 'Execute the model-server health checker.' },
+  'PrometheusMetrics.generate_metrics': { module: 'ipfs_accelerate_py.hf_model_server.monitoring.metrics', cls: 'PrometheusMetrics', method: 'generate_metrics', require_flag: 'HAVE_PROMETHEUS_CLIENT', kind: 'read', argMap: {}, note: 'Read actual metrics from the compatibility worker process.' },
+  telemetry: { module: 'ipfs_accelerate_py.hf_model_server.monitoring.metrics', cls: 'PrometheusMetrics', method: 'generate_metrics', require_flag: 'HAVE_PROMETHEUS_CLIENT', kind: 'read', argMap: {}, note: 'Read actual Prometheus worker-process telemetry.' },
+  get_task: { module: 'ipfs_accelerate_py.llm_router', func: 'get_task', kind: 'read', argMap: { job_id: 'task_id' }, note: 'Read an actual owner task queue record; a missing record remains null.' },
+  job_status: { module: 'ipfs_accelerate_py.llm_router', func: 'get_task', kind: 'read', argMap: { job_id: 'task_id' }, note: 'Read an actual owner task queue record by job/task ID.' },
+  detect_hardware: { module: 'ipfs_accelerate_py.hf_model_server.hardware.detector', cls: 'HardwareDetector', method: 'get_available_hardware', kind: 'read', argMap: {}, note: 'Execute the real hardware detector; visibility is not production authorization.' },
+  hardware_profile: { module: 'ipfs_accelerate_py.hf_model_server.hardware.detector', cls: 'HardwareDetector', method: 'get_available_hardware', kind: 'read', argMap: {}, note: 'Read real detected hardware platforms.' },
+  'HardwareDetector.get_available_hardware': { module: 'ipfs_accelerate_py.hf_model_server.hardware.detector', cls: 'HardwareDetector', method: 'get_available_hardware', kind: 'read', argMap: {}, note: 'Execute the real hardware detector.' },
+  submit_task: { module: 'ipfs_accelerate_py.llm_router', func: 'submit_task', kind: 'write', argMap: { model_id: 'model_name' }, note: 'Submit to the real owner queue, or validate the real callable without writes in dry-run mode.' },
+  'WorkflowCoordinator.submit_task': { module: 'ipfs_accelerate_py.datasets_integration.workflow', cls: 'WorkflowCoordinator', method: 'submit_task', kind: 'write', preview_only: true, argMap: {}, note: 'Signature-validated preview only: the upstream coordinator is quarantined simulation and cannot be executed live.' },
+  'ProvenanceLogger.log_inference': { module: 'ipfs_accelerate_py.datasets_integration.provenance', cls: 'ProvenanceLogger', method: 'log_inference', kind: 'write', argMap: { model_id: 'model_name' }, note: 'Validate the real provenance method for dry runs; never instantiate its writing constructor in preview mode.' },
+  run_inference_job: { module: 'ipfs_accelerate_py.mcp_server.tools.inference_tools.native_inference_tools', func: 'inference_run', kind: 'write', argMap: { input: 'input_data', model_id: 'model' }, note: 'Real inference callable; dry runs validate its signature without executing inference.' },
 };
 
 const ACCELERATE_CONTRACT_OP_TIMEOUT_MS = 120000;
@@ -2457,36 +2445,72 @@ function accelerateContractWorkerPython() {
 
 const ACCELERATE_CONTRACT_WORKER_CODE = `
 import asyncio
+import contextlib
 import importlib
 import inspect
 import json
 import sys
 import traceback
+import typing
 
 _modules = {}
+_instances = {}
 
-def execute(spec, args):
+def execute(spec, args, preview=False):
     module_path = spec["module"]
     if module_path not in _modules:
         _modules[module_path] = importlib.import_module(module_path)
     module = _modules[module_path]
+    if spec.get("require_flag") and not getattr(module, spec["require_flag"], False):
+        raise RuntimeError("Required real backend dependency is unavailable: " + spec["require_flag"])
     target = module
+    unbound = False
     if spec.get("cls"):
-        target = getattr(module, spec["cls"])()
+        cls = getattr(module, spec["cls"])
+        if preview:
+            target = cls
+            unbound = True
+        else:
+            if spec.get("preview_only"):
+                raise RuntimeError("Entry point is quarantined; only a validated preview is permitted")
+            identity = (module_path, spec["cls"])
+            if identity not in _instances:
+                _instances[identity] = cls()
+            target = _instances[identity]
     func = getattr(target, spec["method"] if spec.get("method") else spec["func"])
+    if not callable(func):
+        raise TypeError("The reviewed entry point is not callable")
     params = dict(args or {})
-    try:
-        sig = inspect.signature(func)
-        accepted = sig.parameters
-        has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in accepted.values())
-        if not has_var_kw:
-            params = {k: v for k, v in params.items() if k in accepted}
-    except (TypeError, ValueError):
-        pass
+    params.pop("dry_run", None)
+    sig = inspect.signature(func)
+    accepted = sig.parameters
+    has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in accepted.values())
+    if not has_var_kw:
+        params = {k: v for k, v in params.items() if k in accepted}
+    bound = sig.bind(None, **params) if unbound else sig.bind(**params)
+    if preview:
+        try:
+            hints = typing.get_type_hints(func)
+        except Exception:
+            hints = {}
+        for key, value in params.items():
+            annotation = hints.get(key)
+            expected = typing.get_origin(annotation) or annotation
+            if expected in (str, int, float, bool, dict, list) and not isinstance(value, expected):
+                raise TypeError(key + " must match the real callable annotation " + str(annotation))
+        return {"ok": True, "dry_run": True, "validation": "real-callable-signature",
+                "entrypoint": module_path + "." + (spec.get("cls") + "." if spec.get("cls") else "") + (spec.get("method") or spec.get("func")),
+                "validated_parameters": sorted(params), "body_executed": False, "mutation_performed": False,
+                "live_execution_allowed": not bool(spec.get("preview_only"))}
     result = func(**params)
     if inspect.isawaitable(result):
         result = asyncio.run(result)
     return result
+
+def json_value(value):
+    if isinstance(value, bytes):
+        return {"encoding": "utf-8", "content": value.decode("utf-8", errors="replace")}
+    return str(value)
 
 for line in sys.stdin:
     line = line.strip()
@@ -2499,15 +2523,12 @@ for line in sys.stdin:
         sys.stdout.flush()
         continue
     try:
-        result = execute(request["spec"], request.get("args") or {})
-        sys.stdout.write(json.dumps({"id": request.get("id"), "ok": True, "result": result}, default=str) + "\\n")
+        with contextlib.redirect_stdout(sys.stderr):
+            result = execute(request["spec"], request.get("args") or {}, request.get("preview") is True)
+        sys.stdout.write(json.dumps({"id": request.get("id"), "ok": True, "result": result}, default=json_value) + "\\n")
     except Exception as exc:
-        sys.stdout.write(json.dumps({
-            "id": request.get("id"),
-            "ok": False,
-            "error": type(exc).__name__ + ": " + str(exc),
-            "traceback": traceback.format_exc(limit=8),
-        }, default=str) + "\\n")
+        sys.stdout.write(json.dumps({"id": request.get("id"), "ok": False,
+            "error": type(exc).__name__ + ": " + str(exc), "traceback": traceback.format_exc(limit=8)}, default=json_value) + "\\n")
     sys.stdout.flush()
 `;
 
@@ -2553,6 +2574,14 @@ function ensureAccelerateContractWorker() {
     state.pending.clear();
     if (accelerateContractWorkerState === state) accelerateContractWorkerState = null;
   });
+  child.on('error', (error) => {
+    for (const waiter of state.pending.values()) {
+      clearTimeout(waiter.timer);
+      waiter.resolve({ id: waiter.id, ok: false, error: `contract worker could not start: ${error.message}` });
+    }
+    state.pending.clear();
+    if (accelerateContractWorkerState === state) accelerateContractWorkerState = null;
+  });
   accelerateContractWorkerState = state;
   return state;
 }
@@ -2574,7 +2603,7 @@ function callAccelerateContractPython(spec, args) {
     }, ACCELERATE_CONTRACT_OP_TIMEOUT_MS);
     state.pending.set(id, { id, resolve, timer });
     try {
-      state.child.stdin.write(JSON.stringify({ id, spec: { module: spec.module, cls: spec.cls, func: spec.func, method: spec.method }, args: renamed }) + '\n');
+      state.child.stdin.write(JSON.stringify({ id, spec: { module: spec.module, cls: spec.cls, func: spec.func, method: spec.method, preview_only: spec.preview_only, require_flag: spec.require_flag }, args: renamed, preview: spec.kind === 'write' && args?.dry_run === true }) + '\n');
     } catch (error) {
       clearTimeout(timer);
       state.pending.delete(id);
@@ -2583,53 +2612,36 @@ function callAccelerateContractPython(spec, args) {
   });
 }
 
-async function callAccelerateContractOp(upstream, name, args) {
+async function callAccelerateContractOp(upstream, name, args, invokePython = callAccelerateContractPython) {
   const spec = ACCELERATE_CONTRACT_OPS[name];
   const baseReceipt = { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: `local:${name}` };
-  if (args?.dry_run === true) {
-    return {
-      content: [{ type: 'json', json: { ok: true, dry_run: true, tool: name, policy: 'adapter-enforced-no-side-effects' } }],
-      receipt: { ...baseReceipt, dry_run: true },
-    };
-  }
-  const outcome = await callAccelerateContractPython(spec, args || {});
-  if (!outcome.ok) {
+  const outcome = await invokePython(spec, args || {});
+  if (!outcome.ok || accelerateResultFailed(outcome.result)) {
     return {
       isError: true,
-      content: [{ type: 'text', text: outcome.error }],
+      content: [{ type: 'json', json: outcome.ok ? outcome.result : { error: outcome.error } }],
       receipt: { ...baseReceipt, status: 'backend_error', module: spec.module, ...(outcome.traceback ? { traceback: outcome.traceback } : {}) },
     };
   }
   return {
     content: [{ type: 'json', json: outcome.result }],
-    receipt: { ...baseReceipt, status: 'ok', module: spec.module, note: spec.note },
+    receipt: { ...baseReceipt, status: 'ok', module: spec.module, note: spec.note, dry_run: args?.dry_run === true, execution_mode: spec.kind === 'write' && args?.dry_run === true ? 'validated_preview' : 'backend_execution' },
   };
+}
+
+function accelerateResultFailed(value) {
+  if (!value || typeof value !== 'object') return false;
+  if (value.isError === true || value.ok === false || value.success === false || value.error || ['error', 'failed', 'failure'].includes(value.status)) return true;
+  if (value.result && accelerateResultFailed(value.result)) return true;
+  return Array.isArray(value.content) && value.content.some(item => item?.type === 'json' && accelerateResultFailed(item.json));
 }
 
 async function callAccelerateCompatTool(upstream, name, args) {
   const catalog = await accelerateCompatCatalog(upstream);
-  if (args?.dry_run === true) {
-    const tool = catalog.tools.find(item => item.name === name);
-    return tool
-      ? {
-        content: [{ type: 'json', json: {
-          ok: true,
-          dry_run: true,
-          tool: tool.name,
-          policy: 'adapter-enforced-no-side-effects',
-        } }],
-        receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, dry_run: true },
-      }
-      : {
-        isError: true,
-        content: [{ type: 'text', text: `Unknown ipfs_accelerate_py tool: ${name}.` }],
-        receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, dry_run: true },
-      };
-  }
   if (name === 'tools_list_categories') {
     return {
       content: [{ type: 'json', json: { categories: catalog.categories } }],
-      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name },
+      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, status: 'ok' },
     };
   }
   if (name === 'tools_list_tools') {
@@ -2637,7 +2649,7 @@ async function callAccelerateCompatTool(upstream, name, args) {
     const tools = category ? catalog.tools.filter(tool => categoryForTool(tool.name) === category) : catalog.tools;
     return {
       content: [{ type: 'json', json: { tools } }],
-      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, category },
+      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, category, status: 'ok' },
     };
   }
   if (name === 'tools_get_schema') {
@@ -2645,13 +2657,13 @@ async function callAccelerateCompatTool(upstream, name, args) {
     const tool = catalog.tools.find(item => item.name === requested);
     return {
       content: [{ type: 'json', json: { name: requested, schema: tool?.inputSchema ?? null, found: Boolean(tool) } }],
-      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, requested_tool: requested },
+      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, requested_tool: requested, status: 'ok' },
     };
   }
   if (name === 'get_mcp_manifest') {
     return {
       content: [{ type: 'json', json: await accelerateCompatManifest(upstream) }],
-      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name },
+      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, status: 'ok' },
     };
   }
   if (name === 'tools_dispatch') {
@@ -2666,7 +2678,7 @@ async function callAccelerateCompatTool(upstream, name, args) {
       return {
         isError: true,
         content: [{ type: 'text', text: 'tools_dispatch requires a non-recursive tool name.' }],
-        receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name },
+        receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, status: 'error' },
       };
     }
     return callAccelerateCompatTool(upstream, dispatchName, dispatchArgs);
@@ -2674,13 +2686,13 @@ async function callAccelerateCompatTool(upstream, name, args) {
   if (name === 'get_hardware_info') {
     return {
       content: [{ type: 'json', json: localHardwareInfo() }],
-      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: 'local_hardware_info' },
+      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: 'local_hardware_info', status: 'ok' },
     };
   }
   if (name === 'hardware_recommend') {
     return {
       content: [{ type: 'json', json: { recommendation: 'cpu', hardware: localHardwareInfo(), request: args } }],
-      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: 'local_hardware_recommend' },
+      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: 'local_hardware_recommend', status: 'ok' },
     };
   }
   // Contract operations with genuine local ipfs_accelerate_py implementations.
@@ -2689,18 +2701,19 @@ async function callAccelerateCompatTool(upstream, name, args) {
   if (ACCELERATE_CONTRACT_OPS[name]) {
     return callAccelerateContractOp(upstream, name, args);
   }
+  if (args?.dry_run === true) return { isError: true, content: [{ type: 'text', text: `No reviewed dry-run entrypoint exists for ${name}.` }], receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, dry_run: true, status: 'error' } };
   const mapped = resolveAccelerateUpstreamTool(name, new Set(catalog.real_tool_names)) ?? (catalog.real_tool_names.includes(name) ? name : null);
   if (!mapped && (name === 'hardware_profile' || name === 'HardwareDetector.get_available_hardware' || name === 'detect_hardware')) {
     return {
       content: [{ type: 'json', json: localHardwareInfo() }],
-      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: 'local_hardware_info', upstream_status: 0 },
+      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: 'local_hardware_info', upstream_status: 0, status: 'ok' },
     };
   }
   if (!mapped) {
     return {
       isError: true,
       content: [{ type: 'text', text: `No upstream mapping found for ${name}.` }],
-      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: null, upstream_status: 0 },
+      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: null, upstream_status: 0, status: 'error' },
     };
   }
   const response = await fetchText(`${upstream}/mcp/tools/${encodeURIComponent(mapped)}`, {
@@ -2708,16 +2721,16 @@ async function callAccelerateCompatTool(upstream, name, args) {
     body: args && typeof args === 'object' ? args : {},
     timeout_ms: 10000,
   });
-  if (!response.ok) {
+  if (!response.ok || accelerateResultFailed(response.json)) {
     return {
       isError: true,
       content: [{ type: 'text', text: response.body || response.error || `upstream status ${response.status}` }],
-      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: mapped, upstream_status: response.status },
+      receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: mapped, upstream_status: response.status, status: 'backend_error' },
     };
   }
   return {
     content: [{ type: 'json', json: response.json ?? response.body }],
-    receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: mapped, upstream_status: response.status },
+    receipt: { adapter: ACCELERATE_COMPAT_NAME, upstream, tool: name, mapped_tool: mapped, upstream_status: response.status, status: 'ok' },
   };
 }
 
@@ -2793,5 +2806,10 @@ module.exports = {
   buildManifestDrift,
   buildReleaseEvidence,
   startAccelerateCompatServer,
+  accelerateCompatTools,
+  callAccelerateCompatTool,
+  callAccelerateContractOp,
+  ACCELERATE_CONTRACT_OPS,
+  ACCELERATE_CONTRACT_WORKER_CODE,
   readJsonIfExists,
 };

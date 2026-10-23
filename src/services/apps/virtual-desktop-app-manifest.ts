@@ -240,10 +240,88 @@ type VirtualDesktopAppManifestEntryInput =
     'canonical_id' | 'launch_owner' | 'backend_capabilities' | 'local_only_rationale' | 'orb_idl_state' | 'ux_scenarios'
   >>;
 
+// These desktop programs explicitly keep their ordinary controls local. A
+// separately confirmed export may still use its own reviewed workflow; it
+// must not materialize an automatic Python-tool panel on every launch.
+export const LOCAL_DESKTOP_NEGATIVE_APP_IDS = new Set([
+  'calculator', 'clock', 'terminal', 'glasses-preview', 'settings', 'todo', 'calendar', 'cron', 'task-manager',
+  'music-studio', 'music-studio-unified', 'strudel', 'strudel-ai-daw', 'oauth-login', 'openrouter',
+]);
+
+// These existing native actions have distinct owner semantics. Artifact writes,
+// reads, and event-DAG operations must never resolve to a peer-list substitute.
+const NETWORK_NATIVE_KIT_OPERATIONS: Readonly<Record<string, readonly string[]>> = {
+  'p2p-chat': ['artifact_write', 'artifact_read', 'event_append'],
+  'p2p-chat-unified': ['artifact_write', 'artifact_read'],
+  'friends-list': ['artifact_write', 'event_append', 'event_history'],
+  'neural-network-designer': ['artifact_write', 'artifact_read'],
+  'mcp-plus-plus': ['artifact_write'],
+  'ipfs-explorer': ['artifact_write'],
+  'vibecode': ['artifact_write'],
+  'notes': ['artifact_write', 'artifact_read', 'event_append'],
+  'cinema': ['artifact_write'],
+};
+const NATIVE_ACCELERATE_OPERATIONS: Readonly<Record<string, readonly string[]>> = {
+  'neural-network-designer': ['model_catalog', 'job_lookup', 'inference_job'],
+  'accelerate-panel': ['model_catalog', 'job_lookup', 'inference_job', 'hardware_snapshot', 'telemetry_snapshot'],
+  'neural-photoshop': ['inference_job'],
+  'training-manager': ['training_preview'],
+  'cinema': ['inference_job'],
+};
+const NATIVE_DATASETS_OPERATIONS: Readonly<Record<string, readonly string[]>> = {
+  'notes': ['semantic_query'],
+  'datasets-browser': ['dataset_search', 'dataset_lineage', 'dataset_preparation', 'dataset_progress'],
+};
+
+function appendNativeNetworkCapabilities(
+  appId: string,
+  base: readonly VirtualDesktopBackendCapability[],
+): readonly VirtualDesktopBackendCapability[] {
+  const operations = NETWORK_NATIVE_KIT_OPERATIONS[appId] || [];
+  const accelerateOperations = NATIVE_ACCELERATE_OPERATIONS[appId] || [];
+  const datasetsOperations = NATIVE_DATASETS_OPERATIONS[appId] || [];
+  if (!operations.length && !accelerateOperations.length && !datasetsOperations.length) return base;
+  return [
+    ...base.map(capability => capability.capability === 'ipfs.kit.pubsub'
+      ? { ...capability, mcp_plus_plus_transport: 'eligible' as const }
+      : capability),
+    ...operations.map(operation => ({
+      id: `${appId}.ipfs_kit_py.native-${operation}`,
+      service: 'ipfs_kit_py' as const,
+      capability: `ipfs.kit.${operation}`,
+      mcp_transport: 'eligible' as const,
+      mcp_plus_plus_transport: 'eligible' as const,
+      policy_class: operation === 'artifact_read' || operation === 'event_history' ? 'read' as const : 'write' as const,
+      receipt_strategy: operation === 'artifact_read' || operation === 'event_history' ? 'receipt-required' as const : 'event-dag-receipt' as const,
+    })),
+    ...accelerateOperations.map(operation => ({
+      id: `${appId}.ipfs_accelerate_py.native-${operation}`,
+      service: 'ipfs_accelerate_py' as const,
+      capability: `ipfs.accelerate.${operation}`,
+      mcp_transport: 'eligible' as const,
+      mcp_plus_plus_transport: 'eligible' as const,
+      policy_class: ['inference_job', 'training_preview'].includes(operation) ? 'heavy_compute' as const : 'read' as const,
+      receipt_strategy: ['inference_job', 'training_preview'].includes(operation) ? 'event-dag-receipt' as const : 'receipt-required' as const,
+    })),
+    ...datasetsOperations.map(operation => ({
+      id: `${appId}.ipfs_datasets_py.native-${operation === 'semantic_query' ? 'semantic-query' : operation}`, service: 'ipfs_datasets_py' as const,
+      capability: `ipfs.datasets.${operation}`, mcp_transport: 'eligible' as const, mcp_plus_plus_transport: 'eligible' as const,
+      policy_class: ['dataset_lineage', 'dataset_preparation'].includes(operation) ? 'write' as const : 'read' as const,
+      receipt_strategy: ['dataset_lineage', 'dataset_preparation'].includes(operation) ? 'event-dag-receipt' as const : 'receipt-required' as const,
+    })),
+  ];
+}
+
 function app(entry: VirtualDesktopAppManifestEntryInput): VirtualDesktopAppManifestEntry {
-  const backend_capabilities = entry.backend_capabilities ?? deriveBackendCapabilities(entry);
+  const localNegative = LOCAL_DESKTOP_NEGATIVE_APP_IDS.has(entry.id);
+  const backend_capabilities = localNegative ? [] : appendNativeNetworkCapabilities(entry.id, entry.backend_capabilities ?? deriveBackendCapabilities(entry));
+  const declaredFamilies = localNegative
+    ? entry.service_families.filter(service => !backendServices.includes(service as VirtualDesktopBackendService))
+    : entry.service_families;
+  const service_families: readonly VirtualDesktopServiceFamily[] = declaredFamilies.length ? declaredFamilies : ['local'];
   return {
     ...entry,
+    service_families,
     canonical_id: entry.canonical_id ?? entry.id,
     launch_owner: entry.launch_owner ?? {
       module: entry.owner_module,

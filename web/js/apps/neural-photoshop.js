@@ -3,6 +3,27 @@
  * Features: Segmentation, Masking, Layering, AI Tools, Geometric Transformations
  */
 
+import { invokeNativeTool } from '../live-tool-gateway.js';
+import { contentCidForBytes } from '../core/mcp-plus-plus-desktop-client.js';
+
+const escapeWorkflow = value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+function workflowOwnerResult(envelope) {
+  if (envelope?.ok !== true || envelope.outcome !== 'executed') throw new Error(envelope?.error?.message || envelope?.error || 'The owner did not execute this request.');
+  let result = envelope.result;
+  for (let depth = 0; depth < 8 && result && typeof result === 'object'; depth++) {
+    if (result.ok === false || result.success === false || result.isError === true || result.error) throw new Error(result.error?.message || result.error || 'The owner rejected this request.');
+    const blocks = result.content?.filter(block => block.type === 'json' && block.json && typeof block.json === 'object') || [];
+    if (blocks.length > 1) throw new Error('The owner returned ambiguous operation data.');
+    if (blocks.length === 1) { result = blocks[0].json; continue; }
+    const text = result.content?.find(block => block.type === 'text')?.text;
+    if (text) { try { result = JSON.parse(text); continue; } catch { throw new Error('The owner returned no verifiable operation data.'); } }
+    if (result.result && typeof result.result === 'object') { result = result.result; continue; }
+    if (!envelope.receipt?.receipt_id || !envelope.correlation_id) throw new Error('The owner response has no verifiable gateway receipt.');
+    return result;
+  }
+  throw new Error('The owner returned no verifiable operation data.');
+}
+
 export class NeuralPhotoshopApp {
   constructor(container, desktop) {
     this.container = container;
@@ -76,18 +97,10 @@ export class NeuralPhotoshopApp {
     this.internalClipboard = null;
 
     this.vdaG042 = {
-      sourceCid: 'bafyneuralphotoshopg042sourcecid',
-      resultCid: 'bafyneuralphotoshopg042resultcid',
-      promptCid: 'bafyneuralphotoshopg042promptprovenance',
-      modelCid: 'bafyneuralphotoshopg042modelprovenance',
-      generationCid: 'bafyneuralphotoshopg042generationprogress',
-      editCid: 'bafyneuralphotoshopg042editprogress',
-      cancelCid: 'bafyneuralphotoshopg042cancellation',
-      denialCid: 'bafyneuralphotoshopg042denial',
-      comparisonCid: 'bafyneuralphotoshopg042comparisonui',
-      receiptPrefix: 'receipt:neural-photoshop:g042',
+      sourceCid: null, resultCid: null, sourceBytes: null, taskId: null,
+      generationState: 'idle',
       prompt: 'restore torn cyanotype portrait, keep original face geometry, preserve archival paper grain',
-      model: 'stabilityai/stable-diffusion-xl-refiner-1.0@sha256:4b8d-g042',
+      model: '',
     };
     
     // The app will be initialized by the desktop system calling initialize()
@@ -459,18 +472,18 @@ export class NeuralPhotoshopApp {
         <!-- Main Content Area -->
         <div class="main-content">
           <!-- Left Sidebar - Tools -->
-          <div class="left-panel ${this.panels.tools ? 'visible' : 'hidden'}">
+          <div class="left-panel">
             <div class="panel-header">
               <h3>🛠️ Tools</h3>
-              <button class="panel-toggle" data-panel="tools">−</button>
+              <button class="panel-toggle" data-panel="tools" aria-label="Collapse tools panel">−</button>
             </div>
-            <div class="tools-panel">
+            <div class="tools-panel" ${this.panels.tools ? '' : 'hidden'}>
               ${this.renderToolsPanel()}
             </div>
             
             <div class="panel-header">
               <h3>⚙️ Properties</h3>
-              <button class="panel-toggle" data-panel="properties">−</button>
+              <button class="panel-toggle" data-panel="properties" aria-label="Collapse properties panel">−</button>
             </div>
             <div class="properties-panel ${this.panels.properties ? 'visible' : 'hidden'}">
               ${this.renderPropertiesPanel()}
@@ -504,7 +517,7 @@ export class NeuralPhotoshopApp {
             <div class="panel-section">
               <div class="panel-header">
                 <h3>🎭 Layers</h3>
-                <button class="panel-toggle" data-panel="layers">−</button>
+                <button class="panel-toggle" data-panel="layers" aria-label="Collapse layers panel">−</button>
               </div>
               <div class="layers-panel ${this.panels.layers ? 'visible' : 'hidden'}">
                 ${this.renderLayersPanel()}
@@ -515,7 +528,7 @@ export class NeuralPhotoshopApp {
             <div class="panel-section">
               <div class="panel-header">
                 <h3>🤖 AI Tools</h3>
-                <button class="panel-toggle" data-panel="ai">−</button>
+                <button class="panel-toggle" data-panel="ai" aria-label="Collapse AI panel">−</button>
               </div>
               <div class="ai-panel ${this.panels.ai ? 'visible' : 'hidden'}">
                 ${this.renderAIPanel()}
@@ -526,7 +539,7 @@ export class NeuralPhotoshopApp {
             <div class="panel-section">
               <div class="panel-header">
                 <h3>📋 History</h3>
-                <button class="panel-toggle" data-panel="history">−</button>
+                <button id="neural-history-panel-toggle" class="panel-toggle" data-panel="history" aria-expanded="${this.panels.history ? 'true' : 'false'}" aria-label="${this.panels.history ? 'Collapse' : 'Expand'} history panel">${this.panels.history ? '−' : '+'}</button>
               </div>
               <div class="history-panel ${this.panels.history ? 'visible' : 'hidden'}">
                 ${this.renderHistoryPanel()}
@@ -1055,6 +1068,25 @@ export class NeuralPhotoshopApp {
             transform: translateX(100%);
           }
         }
+
+        /* Window size is independent of the desktop viewport. Keep the image
+           inside its own scroll area so it cannot push panels out of a small
+           window or cover the controls and real confirmation inputs. */
+        .window[data-app-id="neural-photoshop"] > .window-content { container-type: size; position: relative; }
+        .neural-photoshop-container { min-width: 0; min-height: 0; width: 100%; position: relative; height: 420px; height: 100cqh; }
+        .neural-photoshop-container > .menu-bar { flex: 0 0 auto; overflow-x: auto; }
+        .neural-photoshop-container > .main-content { flex: 1 1 0; flex-direction: row; min-width: 0; min-height: 0; width: 100%; position: relative; }
+        .neural-photoshop-container .left-panel,
+        .neural-photoshop-container .right-panel { position: relative; flex: 0 0 clamp(160px, 25%, 240px); width: auto; min-width: 0; min-height: 0; height: auto; max-height: 100%; overflow-y: auto; overflow-x: hidden; transform: none; }
+        .neural-photoshop-container .canvas-area { flex: 1 1 0; min-width: 0; min-height: 0; overflow: hidden; }
+        .neural-photoshop-container .canvas-container { min-width: 0; min-height: 0; display: block; }
+        .neural-photoshop-container .main-canvas { display: block; max-width: none; }
+        .neural-photoshop-container .panel-section { display: block; position: static; inset: auto; width: auto; height: auto; }
+        .neural-photoshop-container .ai-panel { position: static; inset: auto; width: auto; height: auto; max-height: none; display: block; }
+        .neural-photoshop-container [hidden] { display: none !important; }
+        .neural-photoshop-container .vda-g042-actions { grid-template-columns: minmax(0, 1fr); }
+        .neural-photoshop-container .vda-g042-actions input,
+        .neural-photoshop-container .vda-g042-actions textarea { box-sizing: border-box; width: 100%; min-width: 0; }
         
         /* Drag and drop styles */
         .canvas-area.drag-over {
@@ -1338,120 +1370,31 @@ export class NeuralPhotoshopApp {
   }
 
   renderVdaG042WorkflowPanel() {
-    const workflow = this.vdaG042;
     return `
-      <section class="vda-g042-panel"
-               data-svd-workflow="neural-photoshop.source-result-provenance-edit"
-               data-workflow-state="ready"
-               aria-labelledby="vda-g042-title">
-        <div class="vda-g042-header">
-          <div>
-            <div id="vda-g042-title" class="property-label">VDA-G042 IPFS generation workflow</div>
-            <div class="vda-g042-subtitle">Source, result, prompt, model, progress, cancellation, denial, and comparison evidence.</div>
-          </div>
-          <span class="vda-g042-badge">Ready</span>
+      <section class="vda-g042-panel" data-svd-workflow="neural-photoshop.source-result-provenance-edit" data-workflow-state="idle" aria-labelledby="vda-g042-title">
+        <div class="vda-g042-header"><div><div id="vda-g042-title" class="property-label">Image request and provenance</div>
+          <div class="vda-g042-subtitle">Review an owner request. A validated preview does not generate or store an image.</div></div><span class="vda-g042-badge">Idle</span></div>
+        <div class="vda-g042-actions">
+          <label>Source artifact CID <input data-source-cid-input aria-label="Artifact CID" placeholder="bafy…" value=""></label>
+          <button class="ai-tool-btn" data-svd-workflow-action="load-source-cid" data-native-gateway-binding="neural-photoshop.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat">Read source bytes</button>
+          <label>Generation prompt <textarea data-generation-prompt>${escapeWorkflow(this.vdaG042.prompt)}</textarea></label>
+          <label>Model <input data-generation-model placeholder="Reviewed owner default when empty" value="${escapeWorkflow(this.vdaG042.model)}"></label>
+          <button class="ai-tool-btn" data-svd-workflow-action="start-generation" data-native-gateway-binding="neural-photoshop.ipfs_accelerate_py.run_inference_job" data-native-tool-id="run_inference_job">Review generation request</button>
+          <button class="ai-tool-btn" data-svd-workflow-action="apply-edit-progress">Inspect local edit history</button>
+          <button class="ai-tool-btn" data-svd-workflow-action="cancel-generation">Clear local request view</button>
+          <button class="ai-tool-btn" data-svd-workflow-action="simulate-policy-denial">Inspect policy requirements</button>
+          <button class="ai-tool-btn" data-svd-workflow-action="open-comparison-ui">Inspect comparison state</button>
         </div>
-
-        <div class="vda-g042-actions" aria-label="Neural Photoshop VDA-G042 workflow actions">
-          <button class="ai-tool-btn" data-svd-workflow-action="load-source-cid" aria-label="Load source CID for Neural Photoshop">
-            Source CID
-          </button>
-          <button class="ai-tool-btn" data-svd-workflow-action="start-generation" aria-label="Start governed generation and provenance capture">
-            Generate
-          </button>
-          <button class="ai-tool-btn" data-svd-workflow-action="apply-edit-progress" aria-label="Apply tracked Neural Photoshop edit">
-            Edit
-          </button>
-          <button class="ai-tool-btn" data-svd-workflow-action="cancel-generation" aria-label="Cancel queued Neural Photoshop generation">
-            Cancel
-          </button>
-          <button class="ai-tool-btn" data-svd-workflow-action="simulate-policy-denial" aria-label="Simulate policy denial for unsafe edit">
-            Denial
-          </button>
-          <button class="ai-tool-btn" data-svd-workflow-action="open-comparison-ui" aria-label="Open source result comparison UI">
-            Compare
-          </button>
-        </div>
-
         <div class="vda-g042-grid">
-          <article data-svd-vda-marker="source-result-cids"
-                   data-source-cid-state="loaded"
-                   data-result-cid-state="pending"
-                   class="vda-g042-card">
-            <strong>Source and result CIDs</strong>
-            <span>source CID ${workflow.sourceCid}</span>
-            <span class="vda-result-cid">result CID pending-result</span>
-            <span>retrieval manifest ${workflow.sourceCid}retrievalmanifest</span>
-            <span>${workflow.receiptPrefix}:source-result-cids:retrieval-ready</span>
-          </article>
-
-          <article data-svd-vda-marker="prompt-model-provenance"
-                   data-prompt-provenance-state="recorded"
-                   data-model-provenance-state="recorded"
-                   class="vda-g042-card">
-            <strong>Prompt and model provenance</strong>
-            <span>prompt: ${workflow.prompt}</span>
-            <span>prompt CID ${workflow.promptCid}</span>
-            <span>model: ${workflow.model}</span>
-            <span>model CID ${workflow.modelCid}</span>
-            <span>${workflow.receiptPrefix}:prompt-model-provenance:recorded</span>
-          </article>
-
-          <article data-svd-vda-marker="generation-progress"
-                   data-generation-state="queued"
-                   class="vda-g042-card">
-            <strong>Generation progress</strong>
-            <progress value="12" max="100" data-generation-progress="12" aria-label="Generation progress"></progress>
-            <span>generation job job:neural-photoshop:g042:sdxl-refine-01</span>
-            <span>progress CID ${workflow.generationCid}</span>
-            <span>${workflow.receiptPrefix}:generation-progress:queued</span>
-          </article>
-
-          <article data-svd-vda-marker="edit-progress"
-                   data-edit-state="idle"
-                   class="vda-g042-card">
-            <strong>Edit progress</strong>
-            <progress value="0" max="100" data-edit-progress="0" aria-label="Edit progress"></progress>
-            <span>edit mask: archival tear repair, strength 0.42</span>
-            <span>edit CID ${workflow.editCid}</span>
-            <span>${workflow.receiptPrefix}:edit-progress:ready</span>
-          </article>
-
-          <article data-svd-vda-marker="cancellation"
-                   data-cancellation-state="available"
-                   class="vda-g042-card">
-            <strong>Cancellation</strong>
-            <span>queued cancellation target job:neural-photoshop:g042:sdxl-refine-queued</span>
-            <span>cancel CID ${workflow.cancelCid}</span>
-            <span>${workflow.receiptPrefix}:cancellation:available</span>
-          </article>
-
-          <article data-svd-vda-marker="denial"
-                   data-denial-state="available"
-                   role="status"
-                   aria-live="polite"
-                   class="vda-g042-card">
-            <strong>Denial</strong>
-            <span>policy denial route: disallowed biometric identity alteration rejected before generation</span>
-            <span>denial CID ${workflow.denialCid}</span>
-            <span>${workflow.receiptPrefix}:denial:available</span>
-          </article>
-
-          <article data-svd-vda-marker="comparison-ui"
-                   data-comparison-state="ready"
-                   class="vda-g042-card vda-g042-comparison">
-            <strong>Comparison UI</strong>
-            <div class="vda-g042-compare-strip" role="img" aria-label="Before and after comparison">
-              <div class="vda-g042-before" data-comparison-pane="source">Source</div>
-              <div class="vda-g042-after" data-comparison-pane="result">Result</div>
-            </div>
-            <input type="range" min="0" max="100" value="50" data-comparison-slider aria-label="Comparison split" />
-            <span>comparison CID ${workflow.comparisonCid}</span>
-            <span>${workflow.receiptPrefix}:comparison-ui:ready</span>
-          </article>
+          <article data-svd-vda-marker="source-result-cids" data-source-cid-state="not-loaded" data-result-cid-state="unavailable" class="vda-g042-card"><strong>Source and result</strong><span data-source-result>No source bytes have been read.</span><span class="vda-result-cid">No generated result artifact.</span></article>
+          <article data-svd-vda-marker="prompt-model-provenance" data-prompt-provenance-state="local-draft" data-model-provenance-state="unverified" class="vda-g042-card"><strong>Prompt and model</strong><span>The form is a local draft. No prompt or model artifact has been persisted.</span></article>
+          <article data-svd-vda-marker="generation-progress" data-generation-state="idle" class="vda-g042-card"><strong>Generation status</strong><span data-generation-status>No generation job has been submitted. Progress is unavailable.</span></article>
+          <article data-svd-vda-marker="edit-progress" data-edit-state="local-only" class="vda-g042-card"><strong>Local edits</strong><span data-edit-status>No edit history inspected.</span></article>
+          <article data-svd-vda-marker="cancellation" data-cancellation-state="no-backend-cancellation" class="vda-g042-card"><strong>Request view</strong><span data-cancellation-status>Clearing this view does not cancel a backend job.</span></article>
+          <article data-svd-vda-marker="denial" data-denial-state="not-evaluated" role="status" class="vda-g042-card"><strong>Policy</strong><span data-policy-status>No policy decision requested.</span></article>
+          <article data-svd-vda-marker="comparison-ui" data-comparison-state="unavailable" class="vda-g042-card"><strong>Comparison</strong><span data-comparison-status>A verified source and generated result are required for comparison.</span></article>
         </div>
-      </section>
-    `;
+      </section>`;
   }
 
   renderHistoryPanel() {
@@ -1468,6 +1411,10 @@ export class NeuralPhotoshopApp {
   }
 
   setupEventHandlers(container) {
+    const root = container.querySelector('.neural-photoshop-container') || container;
+    this.boundEventRoots ||= new WeakSet();
+    if (this.boundEventRoots.has(root)) return;
+    this.boundEventRoots.add(root);
     // Canvas setup
     this.setupCanvas(container);
     
@@ -1484,6 +1431,7 @@ export class NeuralPhotoshopApp {
     this.setupAIHandlers(container);
 
     this.setupVdaG042Handlers(container);
+    this.setupPanelHandlers(container);
     
     // Canvas interaction handlers
     this.setupCanvasHandlers(container);
@@ -1493,6 +1441,26 @@ export class NeuralPhotoshopApp {
     
     // Keyboard shortcuts
     this.setupKeyboardHandlers();
+  }
+
+  setupPanelHandlers(container) {
+    const labels = { tools: 'tools', properties: 'properties', layers: 'layers', ai: 'AI', history: 'history' };
+    for (const button of container.querySelectorAll('.panel-toggle[data-panel]')) {
+      const panel = button.dataset.panel;
+      const content = container.querySelector(`.${panel}-panel`);
+      if (!content) continue;
+      const update = () => {
+        const expanded = this.panels[panel] === true;
+        content.hidden = !expanded;
+        content.classList.toggle('hidden', !expanded);
+        content.classList.toggle('visible', expanded);
+        button.setAttribute('aria-expanded', String(expanded));
+        button.setAttribute('aria-label', `${expanded ? 'Collapse' : 'Expand'} ${labels[panel]} panel`);
+        button.textContent = expanded ? '−' : '+';
+      };
+      update();
+      button.addEventListener('click', () => { this.panels[panel] = !this.panels[panel]; update(); });
+    }
   }
 
   setupCanvas(container) {
@@ -1668,95 +1636,115 @@ export class NeuralPhotoshopApp {
   }
 
   setupVdaG042Handlers(container) {
-    container.querySelector('[data-svd-workflow-action="load-source-cid"]')?.addEventListener('click', () => {
-      this.markVdaG042SourceLoaded(container);
-    });
-    container.querySelector('[data-svd-workflow-action="start-generation"]')?.addEventListener('click', () => {
-      this.markVdaG042GenerationComplete(container);
-    });
-    container.querySelector('[data-svd-workflow-action="apply-edit-progress"]')?.addEventListener('click', () => {
-      this.markVdaG042EditComplete(container);
-    });
-    container.querySelector('[data-svd-workflow-action="cancel-generation"]')?.addEventListener('click', () => {
-      this.markVdaG042Cancelled(container);
-    });
-    container.querySelector('[data-svd-workflow-action="simulate-policy-denial"]')?.addEventListener('click', () => {
-      this.markVdaG042Denied(container);
-    });
-    container.querySelector('[data-svd-workflow-action="open-comparison-ui"]')?.addEventListener('click', () => {
-      this.markVdaG042ComparisonOpen(container);
-    });
-  }
-
-  markVdaG042SourceLoaded(container) {
-    const source = container.querySelector('[data-source-cid-state]');
-    if (source) {
-      source.dataset.sourceCidState = 'loaded';
-      source.dataset.resultCidState = 'source-ready';
+    const handlers = {
+      'load-source-cid': 'markVdaG042SourceLoaded', 'start-generation': 'markVdaG042GenerationComplete',
+      'apply-edit-progress': 'markVdaG042EditComplete', 'cancel-generation': 'markVdaG042Cancelled',
+      'simulate-policy-denial': 'markVdaG042Denied', 'open-comparison-ui': 'markVdaG042ComparisonOpen',
+    };
+    for (const [action, method] of Object.entries(handlers)) {
+      const button = container.querySelector(`[data-svd-workflow-action="${action}"]`);
+      if (!button || button.dataset.workflowListener === 'attached') continue;
+      button.dataset.workflowListener = 'attached';
+      button.addEventListener('click', () => this[method](container, button));
     }
-    this.updateVdaG042Status(container, 'Source ready');
   }
 
-  markVdaG042GenerationComplete(container) {
+  async markVdaG042SourceLoaded(container, trigger = null) {
+    const cid = container.querySelector('[data-source-cid-input]')?.value.trim();
+    const source = container.querySelector('[data-source-cid-state]');
+    const message = container.querySelector('[data-source-result]');
+    if (!cid) { if (message) message.textContent = 'Enter a source artifact CID first.'; return; }
+    this.vdaG042.sourceCid = null; this.vdaG042.sourceBytes = null;
+    try {
+      const response = await invokeNativeTool(container, 'neural-photoshop', 'neural-photoshop.ipfs_kit_py.retrieve_content', { toolId: 'ipfs_cat', payload: { cid }, trigger });
+      if (response === null) { if (message) message.textContent = 'Cancelled before reading source bytes.'; return; }
+      const result = workflowOwnerResult(response);
+      if (typeof result.bytes_base64 !== 'string') throw new Error('The owner returned no source bytes.');
+      const bytes = Uint8Array.from(atob(result.bytes_base64), char => char.charCodeAt(0));
+      if (await contentCidForBytes(bytes) !== cid || (result.cid && result.cid !== cid)) throw new Error('Source bytes do not match the requested CID.');
+      this.vdaG042.sourceCid = cid; this.vdaG042.sourceBytes = bytes;
+      if (source) source.dataset.sourceCidState = 'verified-bytes';
+      if (message) message.textContent = `Verified source ${cid}: ${bytes.length} bytes.`;
+      this.appendVdaG042Receipt(container, response);
+      this.updateVdaG042Status(container, 'Source verified');
+    } catch (error) {
+      if (source) source.dataset.sourceCidState = 'error';
+      if (message) message.textContent = `Source read failed: ${error.message}`;
+      this.updateVdaG042Status(container, 'Source error');
+    }
+  }
+
+  async markVdaG042GenerationComplete(container, trigger = null) {
+    const prompt = container.querySelector('[data-generation-prompt]')?.value.trim();
+    let model = container.querySelector('[data-generation-model]')?.value.trim();
+    const status = container.querySelector('[data-generation-status]');
     const generation = container.querySelector('[data-generation-state]');
-    const progress = container.querySelector('[data-generation-progress]');
-    const source = container.querySelector('[data-source-cid-state]');
-    const result = container.querySelector('.vda-result-cid');
-    if (generation) generation.dataset.generationState = 'completed';
-    if (progress) {
-      progress.value = 100;
-      progress.dataset.generationProgress = '100';
-      progress.textContent = '100';
+    if (!prompt) { if (status) status.textContent = 'Enter a generation prompt first.'; return; }
+    try {
+      if (!model) {
+        const catalogResponse = await fetch('/mcp/tools/bindings?app_id=neural-photoshop', { cache: 'no-store' });
+        if (!catalogResponse.ok) throw new Error('The reviewed model catalog is unavailable.');
+        const catalog = await catalogResponse.json();
+        const control = catalog.controls?.find(item => item.binding_id === 'neural-photoshop.ipfs_accelerate_py.run_inference_job');
+        const defaults = control?.safe_payloads?.run_inference_job || control?.safe_payload;
+        model = defaults?.model || defaults?.model_id || defaults?.model_name;
+        if (typeof model !== 'string' || !model.trim()) throw new Error('No reviewed owner model is available. Enter an actual model before requesting inference.');
+        container.querySelector('[data-generation-model]').value = model;
+      }
+      const response = await invokeNativeTool(container, 'neural-photoshop', 'neural-photoshop.ipfs_accelerate_py.run_inference_job', {
+        toolId: 'run_inference_job', trigger,
+        payload: { input: prompt, task_type: 'image_generation', ...(model ? { model } : {}), ...(this.vdaG042.sourceCid ? { source_cid: this.vdaG042.sourceCid } : {}) },
+      });
+      if (response === null) { if (status) status.textContent = 'Cancelled before owner dispatch.'; return; }
+      const result = workflowOwnerResult(response);
+      if (result.dry_run !== true || result.body_executed !== false || result.mutation_performed !== false || result.task_id || result.job_id) {
+        throw new Error('The owner did not verify a no-side-effect inference preview. No generation completion is claimed.');
+      }
+      this.vdaG042.taskId = null;
+      this.vdaG042.generationState = 'validated-preview';
+      if (generation) generation.dataset.generationState = this.vdaG042.generationState;
+      if (status) status.textContent = 'Validated owner preview. No image was generated, job submitted, or result stored.';
+      this.appendVdaG042Receipt(container, response);
+      this.updateVdaG042Status(container, 'Preview validated');
+    } catch (error) {
+      this.vdaG042.generationState = 'error';
+      if (generation) generation.dataset.generationState = 'error';
+      if (status) status.textContent = `Generation request failed: ${error.message}`;
+      this.updateVdaG042Status(container, 'Generation error');
     }
-    if (source) source.dataset.resultCidState = 'stored';
-    if (result) {
-      result.textContent = `result CID ${this.vdaG042.resultCid}`;
-    }
-    this.appendVdaG042Receipt(container, `${this.vdaG042.receiptPrefix}:generation-progress:completed`);
-    this.updateVdaG042Status(container, 'Generated');
   }
 
   markVdaG042EditComplete(container) {
-    const edit = container.querySelector('[data-edit-state]');
-    const progress = container.querySelector('[data-edit-progress]');
-    if (edit) edit.dataset.editState = 'completed';
-    if (progress) {
-      progress.value = 100;
-      progress.dataset.editProgress = '100';
-      progress.textContent = '100';
-    }
-    this.appendVdaG042Receipt(container, `${this.vdaG042.receiptPrefix}:edit-progress:completed`);
-    this.updateVdaG042Status(container, 'Edited');
+    const status = container.querySelector('[data-edit-status]');
+    if (status) status.textContent = `${this.canvasHistory.length} local canvas history entries. No edit artifact has been persisted.`;
+    this.updateVdaG042Status(container, 'Local history');
   }
 
   markVdaG042Cancelled(container) {
-    const cancellation = container.querySelector('[data-cancellation-state]');
-    if (cancellation) cancellation.dataset.cancellationState = 'cancelled';
-    this.appendVdaG042Receipt(container, `${this.vdaG042.receiptPrefix}:cancellation:cancelled`);
-    this.updateVdaG042Status(container, 'Cancelled');
+    const status = container.querySelector('[data-cancellation-status]');
+    if (status) status.textContent = this.vdaG042.taskId ? `Local view cleared; owner task ${this.vdaG042.taskId} was not cancelled.` : 'Local preview cleared. No backend cancellation was requested.';
+    this.vdaG042.generationState = 'idle';
+    const generation = container.querySelector('[data-generation-state]');
+    const generationStatus = container.querySelector('[data-generation-status]');
+    if (generation) generation.dataset.generationState = 'idle';
+    if (generationStatus) generationStatus.textContent = 'No active local generation request view. Historical gateway receipts remain available.';
+    this.updateVdaG042Status(container, 'Local view cleared');
   }
 
   markVdaG042Denied(container) {
-    const denial = container.querySelector('[data-denial-state]');
-    if (denial) {
-      denial.dataset.denialState = 'denied';
-      const detail = document.createElement('span');
-      detail.textContent = ` ${this.vdaG042.receiptPrefix}:denial:policy-rejected default_deny unsafe biometric identity alteration`;
-      denial.appendChild(detail);
-    }
-    this.updateVdaG042Status(container, 'Denied');
+    const status = container.querySelector('[data-policy-status]');
+    if (status) status.textContent = 'Generation requires an explicit confirmation and owner policy decision. This local inspection does not claim a denial.';
+    this.updateVdaG042Status(container, 'Policy information');
   }
 
   markVdaG042ComparisonOpen(container) {
-    const comparison = container.querySelector('[data-comparison-state]');
-    const slider = container.querySelector('[data-comparison-slider]');
-    if (comparison) comparison.dataset.comparisonState = 'open';
-    if (slider) slider.value = '64';
-    this.appendVdaG042Receipt(container, `${this.vdaG042.receiptPrefix}:comparison-ui:opened`);
-    this.updateVdaG042Status(container, 'Compare');
+    const status = container.querySelector('[data-comparison-status]');
+    if (status) status.textContent = 'No verified generated result is available for comparison.';
+    this.updateVdaG042Status(container, 'Comparison unavailable');
   }
 
-  appendVdaG042Receipt(container, receipt) {
+  appendVdaG042Receipt(container, response) {
+    const receipt = `Gateway receipt ${response.receipt.receipt_id}; correlation ${response.correlation_id}`;
     const panel = container.querySelector('[data-svd-workflow="neural-photoshop.source-result-provenance-edit"]');
     if (!panel || panel.textContent.includes(receipt)) return;
     const node = document.createElement('span');
@@ -2758,9 +2746,18 @@ export class NeuralPhotoshopApp {
   
   showStyleSelectionDialog() {
     return new Promise((resolve) => {
-      const dialog = document.createElement('div');
+      const owner = this.container;
+      if (!owner?.isConnected || !owner.ownerDocument) { resolve(null); return; }
+      this.closeStyleSelection?.(null);
+      const doc = owner.ownerDocument;
+      const previousFocus = doc.activeElement;
+      const dialog = doc.createElement('div');
+      dialog.dataset.neuralPhotoshopDialog = 'style';
+      dialog.setAttribute('role', 'dialog');
+      dialog.setAttribute('aria-modal', 'true');
+      dialog.setAttribute('aria-label', 'Select art style');
       dialog.style.cssText = `
-        position: fixed;
+        position: absolute;
         top: 0;
         left: 0;
         right: 0;
@@ -2788,20 +2785,38 @@ export class NeuralPhotoshopApp {
         </div>
       `;
       
+      let finished = false;
+      let observer;
+      const finish = value => {
+        if (finished) return;
+        finished = true;
+        observer?.disconnect();
+        dialog.remove();
+        if (this.closeStyleSelection === finish) this.closeStyleSelection = null;
+        if (previousFocus?.isConnected && owner.contains(previousFocus)) previousFocus.focus();
+        resolve(value);
+      };
+      this.closeStyleSelection = finish;
       dialog.querySelectorAll('.style-btn').forEach(btn => {
         btn.style.cssText = 'background: #4ade80; color: white; border: none; padding: 15px; border-radius: 5px; cursor: pointer;';
-        btn.addEventListener('click', () => {
-          resolve(btn.dataset.style);
-          dialog.remove();
-        });
+        btn.addEventListener('click', () => finish(btn.dataset.style));
       });
-      
-      dialog.querySelector('#cancel-style').addEventListener('click', () => {
-        resolve(null);
-        dialog.remove();
+      dialog.querySelector('#cancel-style').addEventListener('click', () => finish(null));
+      dialog.addEventListener('click', event => { if (event.target === dialog) finish(null); });
+      dialog.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        event.preventDefault();
+        event.stopPropagation();
+        finish(null);
       });
-      
-      document.body.appendChild(dialog);
+      // The local chooser belongs to this window. Closing or replacing its
+      // content must also settle the pending action and release its overlay.
+      owner.appendChild(dialog);
+      observer = new doc.defaultView.MutationObserver(() => {
+        if (!owner.isConnected || !dialog.isConnected) finish(null);
+      });
+      observer.observe(doc.documentElement, { childList: true, subtree: true });
+      dialog.querySelector('#cancel-style').focus();
     });
   }
 
@@ -2911,11 +2926,15 @@ export class NeuralPhotoshopApp {
   // Utility methods
 
   showAIProgress(message) {
+    const owner = this.container;
+    if (!owner?.isConnected) return;
+    this.hideAIProgress();
     // Create progress overlay
-    const overlay = document.createElement('div');
+    const overlay = owner.ownerDocument.createElement('div');
     overlay.id = 'ai-progress-overlay';
+    overlay.dataset.neuralPhotoshopProgress = '';
     overlay.style.cssText = `
-      position: fixed;
+      position: absolute;
       top: 0;
       left: 0;
       right: 0;
@@ -2938,22 +2957,24 @@ export class NeuralPhotoshopApp {
     // Add spinner animation
     const style = document.createElement('style');
     style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
-    document.head.appendChild(style);
-    
-    document.body.appendChild(overlay);
+    overlay.appendChild(style);
+    owner.appendChild(overlay);
   }
 
   hideAIProgress() {
-    const overlay = document.getElementById('ai-progress-overlay');
+    const overlay = this.container?.querySelector('[data-neural-photoshop-progress]');
     if (overlay) {
       overlay.remove();
     }
   }
 
   showNotification(message) {
-    const notification = document.createElement('div');
+    const owner = this.container;
+    if (!owner?.isConnected) return;
+    const notification = owner.ownerDocument.createElement('div');
+    notification.dataset.neuralPhotoshopNotification = '';
     notification.style.cssText = `
-      position: fixed;
+      position: absolute;
       top: 20px;
       right: 20px;
       background: rgba(0, 0, 0, 0.9);
@@ -2966,7 +2987,7 @@ export class NeuralPhotoshopApp {
     `;
     notification.textContent = message;
     
-    document.body.appendChild(notification);
+    owner.appendChild(notification);
     
     setTimeout(() => {
       notification.remove();

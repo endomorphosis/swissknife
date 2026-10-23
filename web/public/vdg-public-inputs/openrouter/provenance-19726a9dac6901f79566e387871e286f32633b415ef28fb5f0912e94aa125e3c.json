@@ -1,0 +1,23 @@
+{
+  "schema": "swissknife.openrouter-observed-public-input.v1",
+  "source_url": "https://openrouter.ai/api/v1/models",
+  "requested_at": "2026-10-22T17:51:25.773869+00:00",
+  "observed_at": "2026-10-22T17:51:25.969769+00:00",
+  "http_status": 200,
+  "final_url": "https://openrouter.ai/api/v1/models",
+  "response_headers": {
+    "Content-Type": "application/json",
+    "Date": "Thu, 22 Oct 2026 17:51:25 GMT",
+    "Cache-Control": "public, max-age=120, stale-while-revalidate=3600, stale-if-error=3600"
+  },
+  "raw_sha256": "65a3034c116179fac2ba1511796f0e1a014955986295385dfac8fbc35b7271bc",
+  "raw_bytes": 787610,
+  "model_count": 468,
+  "model_ids_sha256": "819a351f4633f638d5d26192f8a57162e8a6ab498aac04e35cd064c3d4947c41",
+  "raw_filename": "65a3034c116179fac2ba1511796f0e1a014955986295385dfac8fbc35b7271bc.json",
+  "reconstructed": false,
+  "provider_execution": false,
+  "gui_acceptance": false,
+  "work_complete": false,
+  "completion_authority": false
+}

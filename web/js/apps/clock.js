@@ -5,60 +5,7 @@
 
 const VDA_G034_WORKFLOW = 'clock.timer-reminder-scheduling';
 
-// --- Real backend wiring (ipfs_kit_py over the MCP++ desktop client).
-// No fixture CIDs or receipt strings are kept anywhere in this app: every
-// CID shown is computed from real record bytes (canonical
-// CIDv1-raw+sha2-256, same semantics as the supervisor gateway) or
-// returned by a live backend call. Backend-mutating calls are always
-// confirmation-gated and surface failures verbatim. The clock face,
-// stopwatch, and compact strip are honestly local (labeled "local").
-
-async function clockKitClient() {
-  const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
-  const client = clientModule.getMCPPlusPlusDesktopClient();
-  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
-  return client;
-}
-
-async function clockCanonicalCid(record) {
-  const { contentCidForBytes, stableStringifyValue } = await import('../core/mcp-plus-plus-desktop-client.js');
-  return contentCidForBytes(new TextEncoder().encode(stableStringifyValue(record)));
-}
-
-async function clockCanonicalBytesBase64(record) {
-  const { base64ForBytes, stableStringifyValue } = await import('../core/mcp-plus-plus-desktop-client.js');
-  return base64ForBytes(new TextEncoder().encode(stableStringifyValue(record)));
-}
-
-async function clockPersistArtifact(client, record, { kind, profile }) {
-  const cid = await clockCanonicalCid(record);
-  const bytesBase64 = await clockCanonicalBytesBase64(record);
-  const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
-    cid,
-    bytes_base64: bytesBase64,
-    profile,
-    kind,
-    service: 'ipfs_kit_py',
-    pin: true
-  });
-  if (!result || result.persisted !== true || result.cid !== cid) {
-    throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted artifact.');
-  }
-  return { cid, result };
-}
-
-async function clockAppendDagEvent(client, event) {
-  const appended = await client.post('ipfs_kit_py', '/mcp/dag/append', { event });
-  if (!appended?.event_cid) {
-    throw new Error(appended?.error || 'ipfs_kit_py event DAG did not return an event CID.');
-  }
-  return appended.event_cid;
-}
-
-function clockConfirmBackendWrite(message) {
-  if (typeof window === 'undefined') return false;
-  return window.confirm(message);
-}
+// Visible clock controls stay in the browser. They do not call a tool.
 
 export class ClockApp {
   constructor(desktop) {
@@ -1056,8 +1003,7 @@ export class ClockApp {
       compactUiState: 'local',
       timerLabel: 'Focus timer',
       timerDurationMs: 90_000,
-      // Real backend CIDs collected as actions complete; null means "not
-      // performed yet" — never fixture strings.
+      // Local workflow fields. Null means the browser has not recorded that step.
       timerReceiptCid: null,
       timerEventCid: null,
       reminderPolicyCid: null,
@@ -1075,7 +1021,7 @@ export class ClockApp {
       receiptRefs: [],
       checkpointRefs: [],
       actionLog: [
-        'workflow ready — clock face, stopwatch, and compact strip are local UI; timer/alarm/reminder persists are confirmation-gated backend writes'
+        'workflow ready — clock controls stay local-only'
       ]
     };
   }
@@ -1103,7 +1049,7 @@ export class ClockApp {
         <div class="clock-workflow-head">
           <div>
             <h3>VDA-G034 governed clock workflow</h3>
-            <p>Clock face rendering, the stopwatch, and the compact strip are local UI — no backend claim is made. Timers, alarms, and reminders persist to the ipfs_kit_py backend behind explicit confirmation, and backend failures surface verbatim.</p>
+            <p>Clock face, stopwatch, timer, alarms, reminders, permission recovery, and the compact strip stay in this browser. Every visible control is local-only and calls no tool.</p>
           </div>
           <span class="clock-workflow-status" id="vda-g034-status" role="status" aria-live="polite">Status: ${this.escapeHtml(state.status)}</span>
         </div>
@@ -1190,88 +1136,31 @@ export class ClockApp {
     };
   }
 
-  async startVdaG034TimerReceipt() {
-    if (!clockConfirmBackendWrite(
-      `Start the "${this.vdaG034.timerLabel}" (${this.formatStopwatchTime(this.vdaG034.timerDurationMs)}) with a backend receipt?\n\nPersists a timer-start artifact and appends a timer event to the ipfs_kit_py event DAG.`
-    )) {
-      this.vdaG034.status = 'timer start cancelled — timer not started';
-      this.refreshVdaG034Workflow();
-      return;
-    }
-    this.vdaG034.status = 'persisting timer receipt…';
-    this.refreshVdaG034Workflow();
-    try {
-      const client = await clockKitClient();
-      const timerRecord = {
-        schema: 'swissknife.clock.timer-start.v1',
-        label: this.vdaG034.timerLabel,
-        duration_ms: this.vdaG034.timerDurationMs,
-        started_at: new Date().toISOString()
-      };
-      const persisted = await clockPersistArtifact(client, timerRecord, { kind: 'timer-start', profile: 'clock-artifact' });
-      const eventCid = await clockAppendDagEvent(client, {
-        event_type: 'clock.timer.started',
-        timer_cid: persisted.cid,
-        label: this.vdaG034.timerLabel,
-        duration_ms: this.vdaG034.timerDurationMs,
-        parents: []
-      });
-      const now = Date.now();
-      this.timer.duration = this.vdaG034.timerDurationMs;
-      this.timer.remaining = this.vdaG034.timerDurationMs;
-      this.timer.startTime = now;
-      this.timer.endTime = now + this.vdaG034.timerDurationMs;
-      this.timer.isRunning = true;
-      this.vdaG034.timerState = 'issued';
-      this.vdaG034.timerReceiptCid = persisted.cid;
-      this.vdaG034.timerEventCid = eventCid;
-      this.vdaG034.receiptRefs = [...new Set([...this.vdaG034.receiptRefs, persisted.cid, eventCid])];
-      this.vdaG034.checkpointRefs = [...new Set([...this.vdaG034.checkpointRefs, eventCid])];
-      this.vdaG034.status = `timer receipt issued: ${persisted.cid}`;
-      this.vdaG034.actionLog.push(`start-timer-with-receipt:${persisted.cid}`);
-      this.currentView = 'timer';
-    } catch (error) {
-      this.vdaG034.status = `timer receipt failed: ${error.message} (timer not started)`;
-      this.vdaG034.actionLog.push(`start-timer-with-receipt:failed:${error.message}`);
-    }
+  startVdaG034TimerReceipt() {
+    const now = Date.now();
+    this.timer.duration = this.vdaG034.timerDurationMs;
+    this.timer.remaining = this.vdaG034.timerDurationMs;
+    this.timer.startTime = now;
+    this.timer.endTime = now + this.vdaG034.timerDurationMs;
+    this.timer.isRunning = true;
+    this.vdaG034.timerState = 'running';
+    this.vdaG034.status = 'timer started locally';
+    this.vdaG034.actionLog.push('start-timer-with-receipt:local');
+    this.currentView = 'timer';
     this.saveVdaG034EvidenceToStorage();
     this.refreshContent();
     this.refreshVdaG034Workflow();
   }
 
-  async applyVdaG034ReminderPolicy() {
-    if (!clockConfirmBackendWrite(
-      `Apply the reminder policy and persist it?\n\nWrites a reminder-policy artifact to the ipfs_kit_py backend: "${this.vdaG034.reminderPolicy}"`
-    )) {
-      this.vdaG034.status = 'reminder policy not applied';
-      this.refreshVdaG034Workflow();
-      return;
-    }
-    this.vdaG034.status = 'persisting reminder policy…';
-    this.refreshVdaG034Workflow();
-    try {
-      const client = await clockKitClient();
-      const policyRecord = {
-        schema: 'swissknife.clock.reminder-policy.v1',
-        policy: this.vdaG034.reminderPolicy,
-        applied_at: new Date().toISOString()
-      };
-      const persisted = await clockPersistArtifact(client, policyRecord, { kind: 'reminder-policy', profile: 'clock-artifact' });
-      this.vdaG034.reminderPolicyState = 'active';
-      this.vdaG034.reminderPolicyCid = persisted.cid;
-      this.vdaG034.receiptRefs = [...new Set([...this.vdaG034.receiptRefs, persisted.cid])];
-      this.vdaG034.checkpointRefs = [...new Set([...this.vdaG034.checkpointRefs, persisted.cid])];
-      this.vdaG034.status = `reminder policy active: ${persisted.cid}`;
-      this.vdaG034.actionLog.push(`apply-reminder-policy:${persisted.cid}`);
-    } catch (error) {
-      this.vdaG034.status = `reminder policy failed: ${error.message}`;
-      this.vdaG034.actionLog.push(`apply-reminder-policy:failed:${error.message}`);
-    }
+  applyVdaG034ReminderPolicy() {
+    this.vdaG034.reminderPolicyState = 'active';
+    this.vdaG034.status = 'reminder policy active (local)';
+    this.vdaG034.actionLog.push('apply-reminder-policy:local');
     this.saveVdaG034EvidenceToStorage();
     this.refreshVdaG034Workflow();
   }
 
-  async scheduleVdaG034ClockReminder() {
+  scheduleVdaG034ClockReminder() {
     const existing = this.alarms.find(alarm => alarm.label === this.vdaG034.scheduledAlarm.label);
     const alarm = {
       id: existing?.id || Math.max(0, ...this.alarms.map(item => item.id)) + 1,
@@ -1282,51 +1171,20 @@ export class ClockApp {
       sound: 'chime',
       receipt: null
     };
-    if (!clockConfirmBackendWrite(
-      `Schedule "${alarm.label}" at ${alarm.time} and persist the scheduling record?\n\nWrites a scheduling artifact to the ipfs_kit_py backend.`
-    )) {
-      this.vdaG034.status = 'reminder scheduling cancelled';
-      this.refreshVdaG034Workflow();
-      return;
+    if (existing) {
+      Object.assign(existing, alarm);
+    } else {
+      this.alarms.unshift(alarm);
     }
-    this.vdaG034.status = 'persisting scheduling record…';
-    this.refreshVdaG034Workflow();
-    try {
-      const client = await clockKitClient();
-      const schedulingRecord = {
-        schema: 'swissknife.clock.scheduling.v1',
-        label: alarm.label,
-        time: alarm.time,
-        repeat: alarm.repeat,
-        sound: alarm.sound,
-        scheduled_at: new Date().toISOString()
-      };
-      const persisted = await clockPersistArtifact(client, schedulingRecord, { kind: 'scheduling', profile: 'clock-artifact' });
-      alarm.receipt = persisted.cid;
-      if (existing) {
-        Object.assign(existing, alarm);
-      } else {
-        this.alarms.unshift(alarm);
-      }
-      this.vdaG034.schedulingState = 'scheduled';
-      this.vdaG034.schedulingCid = persisted.cid;
-      this.vdaG034.scheduledAlarm.receipt = persisted.cid;
-      this.vdaG034.receiptRefs = [...new Set([...this.vdaG034.receiptRefs, persisted.cid])];
-      this.vdaG034.checkpointRefs = [...new Set([...this.vdaG034.checkpointRefs, persisted.cid])];
-      this.vdaG034.status = `scheduled ${alarm.label} at ${alarm.time}: ${persisted.cid}`;
-      this.vdaG034.actionLog.push(`schedule-clock-reminder:${persisted.cid}`);
-    } catch (error) {
-      this.vdaG034.status = `scheduling failed: ${error.message} (alarm kept local-only)`;
-      this.vdaG034.actionLog.push(`schedule-clock-reminder:failed:${error.message}`);
-    }
+    this.vdaG034.schedulingState = 'scheduled';
+    this.vdaG034.status = `scheduled ${alarm.label} at ${alarm.time} (local)`;
+    this.vdaG034.actionLog.push('schedule-clock-reminder:local');
     this.saveVdaG034EvidenceToStorage();
     this.refreshVdaG034Workflow();
     if (this.currentView === 'alarm') this.refreshContent();
   }
 
-  // Local-only permission recovery (no prompt, no backend). Used by the
-  // automatic timer-completion path and by the workflow button before its
-  // confirmation-gated persist.
+  // Local-only permission recovery. Used by timer completion and the workflow button.
   recoverVdaG034PermissionLocal() {
     const browserPermission = this.readNotificationPermission();
     this.vdaG034.permissionState = browserPermission === 'granted' ? 'granted' : 'recovered';
@@ -1336,40 +1194,11 @@ export class ClockApp {
     return this.vdaG034.permissionState;
   }
 
-  // Permission recovery itself is local browser behavior (labeled as
-  // such); persisting the recovery record is confirmation-gated.
-  async recoverVdaG034Permission() {
+  // Permission recovery reads the browser permission and stays local.
+  recoverVdaG034Permission() {
     this.recoverVdaG034PermissionLocal();
-    if (!clockConfirmBackendWrite(
-      `Persist the permission-recovery record?\n\nWrites a permission-recovery artifact to the ipfs_kit_py backend: ${this.vdaG034.permissionState}.`
-    )) {
-      this.vdaG034.status = `permission ${this.vdaG034.permissionState} (local) — recovery record not persisted`;
-      this.vdaG034.actionLog.push('recover-notification-permission:local');
-      this.saveVdaG034EvidenceToStorage();
-      this.refreshVdaG034Workflow();
-      return;
-    }
-    this.vdaG034.status = 'persisting permission-recovery record…';
-    this.refreshVdaG034Workflow();
-    try {
-      const client = await clockKitClient();
-      const recoveryRecord = {
-        schema: 'swissknife.clock.permission-recovery.v1',
-        browser_permission: this.readNotificationPermission(),
-        recovered_state: this.vdaG034.permissionState,
-        strategy: this.vdaG034.permissionRecovery,
-        recorded_at: new Date().toISOString()
-      };
-      const persisted = await clockPersistArtifact(client, recoveryRecord, { kind: 'permission-recovery', profile: 'clock-artifact' });
-      this.vdaG034.permissionRecoveryCid = persisted.cid;
-      this.vdaG034.receiptRefs = [...new Set([...this.vdaG034.receiptRefs, persisted.cid])];
-      this.vdaG034.checkpointRefs = [...new Set([...this.vdaG034.checkpointRefs, persisted.cid])];
-      this.vdaG034.status = `permission ${this.vdaG034.permissionState}: ${persisted.cid}`;
-      this.vdaG034.actionLog.push(`recover-notification-permission:${persisted.cid}`);
-    } catch (error) {
-      this.vdaG034.status = `permission ${this.vdaG034.permissionState} (local); persist failed: ${error.message}`;
-      this.vdaG034.actionLog.push(`recover-notification-permission:failed:${error.message}`);
-    }
+    this.vdaG034.status = `permission ${this.vdaG034.permissionState} (local)`;
+    this.vdaG034.actionLog.push('recover-notification-permission:local');
     this.saveVdaG034EvidenceToStorage();
     this.refreshVdaG034Workflow();
   }

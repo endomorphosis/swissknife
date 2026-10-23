@@ -1551,6 +1551,18 @@ CPU % and network throughput are not measurable from a browser and are not shown
     }
   }
 
+  showSettings() {
+    const host = document.getElementById('conversation-messages') || document.querySelector('.navi-app, .navi-container');
+    if (!host) return;
+    let note = document.getElementById('navi-settings-note');
+    if (!note) {
+      note = document.createElement('div');
+      note.id = 'navi-settings-note';
+      host.prepend(note);
+    }
+    note.textContent = 'NAVI settings stay on this desktop. No backend call was made.';
+  }
+
   clearConversation() {
     if (confirm('Clear conversation history?')) {
       this.conversations = [];

@@ -832,10 +832,10 @@ console.log(result);</code></pre>
       if (downloadModal) downloadModal.style.display = 'none';
       this.renderModelDetails(window);
       this.renderModelList(window);
-      this.desktop.showNotification(`${model.name} saved to your local library`, 'success');
+      this.showNotification(`${model.name} saved to your local library`, 'success');
     } catch (error) {
       if (downloadModal) downloadModal.style.display = 'none';
-      this.desktop.showNotification(`Failed to save ${model.name}: ${error.message}`, 'error');
+      this.showNotification(`Failed to save ${model.name}: ${error.message}`, 'error');
     }
   }
 
@@ -848,9 +848,9 @@ console.log(result);</code></pre>
         this.renderModelDetails(window);
         this.renderModelList(window);
         
-        this.desktop.showNotification(`${model.name} uninstalled successfully`, 'success');
+        this.showNotification(`${model.name} uninstalled successfully`, 'success');
       } catch (error) {
-        this.desktop.showNotification(`Failed to uninstall ${model.name}: ${error.message}`, 'error');
+        this.showNotification(`Failed to uninstall ${model.name}: ${error.message}`, 'error');
       }
     }
   }
@@ -864,7 +864,7 @@ console.log(result);</code></pre>
       });
 
       if (result.success) {
-        this.desktop.showNotification(`${model.name} loaded successfully`, 'success');
+        this.showNotification(`${model.name} loaded successfully`, 'success');
         
         // Open AI Chat with the loaded model
         this.desktop.openApp('AIChat', { 
@@ -872,10 +872,10 @@ console.log(result);</code></pre>
           modelInstance: result.modelInstance 
         });
       } else {
-        this.desktop.showNotification(`Failed to load ${model.name}: ${result.error}`, 'error');
+        this.showNotification(`Failed to load ${model.name}: ${result.error}`, 'error');
       }
     } catch (error) {
-      this.desktop.showNotification(`Failed to load ${model.name}: ${error.message}`, 'error');
+      this.showNotification(`Failed to load ${model.name}: ${error.message}`, 'error');
     }
   }
 
@@ -884,9 +884,9 @@ console.log(result);</code></pre>
       await this.loadModels();
       await this.loadInstalledModels();
       this.renderModelList(window);
-      this.desktop.showNotification('Model list refreshed', 'success');
+      this.showNotification('Model list refreshed', 'success');
     } catch (error) {
-      this.desktop.showNotification('Failed to refresh models: ' + error.message, 'error');
+      this.showNotification('Failed to refresh models: ' + error.message, 'error');
     }
   }
 
@@ -912,12 +912,12 @@ console.log(result);</code></pre>
         if (result.success) {
           await this.loadInstalledModels();
           this.renderModelList(window);
-          this.desktop.showNotification(`${modelName} imported successfully`, 'success');
+          this.showNotification(`${modelName} imported successfully`, 'success');
         } else {
-          this.desktop.showNotification(`Failed to import model: ${result.error}`, 'error');
+          this.showNotification(`Failed to import model: ${result.error}`, 'error');
         }
       } catch (error) {
-        this.desktop.showNotification('Failed to import model: ' + error.message, 'error');
+        this.showNotification('Failed to import model: ' + error.message, 'error');
       }
     };
     

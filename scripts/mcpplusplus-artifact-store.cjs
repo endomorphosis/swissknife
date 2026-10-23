@@ -595,15 +595,27 @@ function createArtifactStore({ service, isKitService = false } = {}) {
     }
     const attempts = [];
 
+    let heliaTimer;
     try {
+      // A cold Helia start dials peers with no overall bound. The tools/call
+      // response waits on this put, so an unbounded dial never reaches the
+      // disk block that already verifies the same bytes.
+      const heliaResult = await new Promise((resolve, reject) => {
+        heliaTimer = setTimeout(() => {
+          reject(new Error("Helia persist exceeded 750ms; the disk block is the fallback."));
+        }, 750);
+        putHeliaBlock({ cid, bytes: raw, pin }).then(resolve, reject);
+      });
+      clearTimeout(heliaTimer);
       return {
-        ...(await putHeliaBlock({ cid, bytes: raw, pin })),
+        ...heliaResult,
         profile,
         kind,
         service,
         attempts,
       };
     } catch (error) {
+      clearTimeout(heliaTimer);
       attempts.push(recordError("helia", error));
     }
 

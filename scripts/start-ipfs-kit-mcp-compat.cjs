@@ -31,6 +31,9 @@ const {
 const { getEventDagService } = require("./mcpplusplus-event-dag.cjs");
 const { PROFILE_H_METHODS, ProfileHAdapterError, createProfileHAdapter } = require("./mcpplusplus-profile-h-adapter.cjs");
 const { PROFILE_G_METHODS, PROFILE_G_REST_PATH, ProfileGAdapterError, createKitProfileGAdapter } = require("./mcpplusplus-profile-g-adapter.cjs");
+const { createKitToolExecutor } = require("./ipfs-kit-artifact-cat.cjs");
+const { createKuboKitToolExecutor } = require("./ipfs-kit-kubo-tools.cjs");
+const { GOVERNED_TOOL_DEFINITIONS, createGovernedKitExecutor } = require("./ipfs-kit-governed-tools.cjs");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 const WORKSPACE_ROOT = path.resolve(REPO_ROOT, "..");
@@ -58,8 +61,12 @@ const artifactStore = createArtifactStore({
   service: "ipfs_kit_py",
   isKitService: true,
 });
+const executeKuboTool = createKuboKitToolExecutor();
+const executeKitTool = createKitToolExecutor({ artifactStore, callKitWorker: async (name, args) =>
+  (await executeKuboTool(name, args)) ?? callKitWorker(name, args) });
 const profileCService = getProfileCService("ipfs_kit_py");
 const eventDag = getEventDagService("ipfs_kit_py");
+const executeGovernedKitTool = createGovernedKitExecutor({ persistArtifact: persistArtifactRequest, getArtifact: getArtifactResponse, eventDag });
 const profileH = createProfileHAdapter({ service: "ipfs_kit_py" });
 const profileG = createKitProfileGAdapter({ workspaceRoot: WORKSPACE_ROOT });
 let profileAPersistence;
@@ -449,7 +456,7 @@ function loadKitTools() {
   // Runtime discovery is intentionally merged with the maintained manifest.
   // Some ipfs_kit_py installations expose only a partial registry during
   // startup; publishing that subset would silently hide usable capabilities.
-  const all = [...metaTools(), ...discovered, ...fallback];
+  const all = [...metaTools(), ...GOVERNED_TOOL_DEFINITIONS, ...discovered, ...fallback];
   const seen = new Set();
   return all
     .filter((tool) => {
@@ -587,6 +594,12 @@ async function callKitTool(payload) {
     payload.arguments ??
     payload.args ??
     {};
+  const governedResult = await executeGovernedKitTool(name, args);
+  if (governedResult !== null) {
+    return { ...(governedResult.ok ? {} : { isError: true }),
+      content: [{ type: 'json', json: governedResult.ok ? governedResult.result : { success: false, error: governedResult.error } }],
+      receipt: receipt(name, { status: governedResult.ok ? 'ok' : 'error' }) };
+  }
   // Meta tools are handled locally (no backend invocation needed).
   if (name === "tools_list_categories") {
     const grouped = groupTools(
@@ -652,7 +665,7 @@ async function callKitTool(payload) {
       };
     }
     try {
-      const result = await callKitWorker(found.name, params);
+      const result = await executeKitTool(found.name, params);
       if (!result.ok) {
         return {
           isError: true,
@@ -680,11 +693,11 @@ async function callKitTool(payload) {
       receipt: receipt(name, { status: "not_found" }),
     };
   }
-  // Execute the genuine backend implementation via the persistent Python
-  // worker. Never fabricate success: the worker invokes the real
-  // ipfs_kit_py tool and returns its actual result or honest error.
+  // Read verified artifacts for ipfs_cat, otherwise execute the genuine
+  // backend via its persistent Python worker. Both paths return actual
+  // content or an honest error, including when dry_run is requested.
   try {
-    const result = await callKitWorker(name, args);
+    const result = await executeKitTool(name, args);
     if (!result.ok) {
       return {
         isError: true,
@@ -938,6 +951,7 @@ function receipt(tool, extra = {}) {
   return {
     adapter: "swissknife-ipfs-kit-compat",
     tool,
+    status: "ok",
     generated_at: new Date().toISOString(),
     ...extra,
   };

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
+import { getIPFSKitDescriptorPack } from '../../src/services/ipfs/mcp-ipfs-kit-descriptor-pack';
 import {
   ALL_APP_EXECUTABLE_BACKEND_CONTRACT,
   ALL_APP_EXECUTABLE_BACKEND_CONTRACT_ID,
@@ -130,12 +131,8 @@ describe('SVD-103 all-app executable backend disposition contract', () => {
     expect(new Set(bindings.map(binding => binding.mediated_intent.intent_id)).size).toBe(bindings.length);
     expect(new Set(bindings.map(binding => binding.ui_control.control_id)).size).toBe(bindings.length);
 
-    const kitManifest = JSON.parse(readFileSync(join(
-      process.cwd(),
-      'src/services/ipfs/mcp-ipfs-kit-tools-manifest.json',
-    ), 'utf8')) as { tools: Array<{ name: string }> };
     const descriptorToolIds = {
-      ipfs_kit_py: new Set(kitManifest.tools.map(tool => tool.name)),
+      ipfs_kit_py: new Set(getIPFSKitDescriptorPack().backend_bindings.map(binding => binding.tool_function)),
       // The datasets server intentionally exposes the four standard MCP++
       // hierarchy operations at runtime in addition to its static domain pack.
       ipfs_datasets_py: new Set([

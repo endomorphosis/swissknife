@@ -6,8 +6,23 @@ import {
   stableStringifyValue,
   base64ForBytes,
 } from '../core/mcp-plus-plus-desktop-client.js';
+import { invokeNetworkNativeTool, networkNativeAttributes } from './network-native-tools.js';
 
 const TABS = ['overview', 'tools', 'protocol', 'diagnostics', 'events', 'policy', 'artifacts'];
+
+const DESKTOP_IDL_METHODS = Object.freeze([
+  'read_status',
+  'read_receipts',
+  'request_action',
+  'request_fallback',
+]);
+
+function idlMethodsForSurface(surfaceId) {
+  if (surfaceId === 'agent-supervisor') {
+    return Object.freeze([...DESKTOP_IDL_METHODS, 'request_prompt_steering']);
+  }
+  return DESKTOP_IDL_METHODS;
+}
 
 const PROTOCOL_OPERATIONS = Object.freeze([
   { profile: 'A', method: 'interfaces/list', description: 'List CID-addressed MCP-IDL interfaces.', params: {} },
@@ -64,6 +79,7 @@ export class MCPPlusPlusExplorerApp {
     this.state = {
       activeTab: 'overview',
       selectedService: this.services[0]?.id || '',
+      idlSurface: 'desktop',
       snapshots: new Map(),
       status: 'idle',
       message: 'Refresh to inspect the configured MCP++ services.',
@@ -200,7 +216,26 @@ export class MCPPlusPlusExplorerApp {
           <button type="button" data-action="open-diagnostics">Inspect diagnostics</button>
         </div>
       </section>
+      ${this.renderIdlMethods()}
       ${this.renderVdaG053Workflow()}
+    `;
+  }
+
+  renderIdlMethods() {
+    const surface = this.state.idlSurface === 'agent-supervisor' ? 'agent-supervisor' : 'desktop';
+    const methods = idlMethodsForSurface(surface);
+    return `
+      <section class="mcppp-section" aria-label="IDL methods">
+        <div class="mcppp-section-heading"><h3>IDL methods</h3><span>${escapeHtml(surface)}</span></div>
+        <label for="mcppp-idl-surface">Surface</label>
+        <select id="mcppp-idl-surface">
+          <option value="desktop" ${surface === 'desktop' ? 'selected' : ''}>Desktop</option>
+          <option value="agent-supervisor" ${surface === 'agent-supervisor' ? 'selected' : ''}>agent-supervisor</option>
+        </select>
+        <ul class="mcppp-idl-methods">
+          ${methods.map(method => `<li data-idl-method="${escapeAttribute(method)}"><code>${escapeHtml(method)}</code></li>`).join('')}
+        </ul>
+      </section>
     `;
   }
 
@@ -214,7 +249,7 @@ export class MCPPlusPlusExplorerApp {
         <h4>${escapeHtml(title)}</h4>
         ${body}
         <div class="mcppp-actions mcppp-actions-spaced">
-          <button type="button" data-svd-workflow-action="${action}" data-action="${action}">${escapeHtml(actionLabel)}</button>
+          <button type="button" ${action === 'open-evidence-drilldown' ? networkNativeAttributes('mcp-plus-plus', 'mcp++:ipfs_kit_py/artifacts/put') : ''} data-svd-workflow-action="${action}" data-action="${action}">${escapeHtml(actionLabel)}</button>
         </div>
       </article>`;
     const resultBlock = value => value === null || value === undefined
@@ -270,7 +305,7 @@ export class MCPPlusPlusExplorerApp {
     return `
       <section class="mcppp-section" aria-label="Confirm evidence persist">
         <div class="mcppp-section-heading"><h3>Confirm evidence persist</h3></div>
-        <p class="mcppp-note">This will POST the evidence bundle (${pending.bytes} bytes, CID ${escapeHtml(pending.expectedCid)}) to <code>ipfs_kit_py /mcp/artifacts/put</code> with pin=true. The store verifies the CID over the exact bytes sent.</p>
+        <p class="mcppp-note">Review the evidence bundle (${pending.bytes} bytes, expected CID ${escapeHtml(pending.expectedCid)}). The owner verifies these exact bytes. A validated preview creates no stored artifact.</p>
         <div class="mcppp-actions">
           <button type="button" data-action="confirm-evidence-persist">Confirm persist</button>
           <button type="button" data-action="cancel-evidence-persist">Cancel</button>
@@ -452,6 +487,7 @@ export class MCPPlusPlusExplorerApp {
     this.state.diag.pendingConfirm = { bundle, bytes: bytes.length, expectedCid };
     this.state.message = `Evidence bundle ready (CID ${expectedCid}). Confirm to persist it to the kit backend.`;
     this.update();
+    await this.confirmEvidencePersist();
   }
 
   async confirmEvidencePersist() {
@@ -465,7 +501,7 @@ export class MCPPlusPlusExplorerApp {
     try {
       const bytes = new TextEncoder().encode(stableStringifyValue(pending.bundle));
       const cid = await contentCidForBytes(bytes);
-      const res = await this.client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+      const res = await invokeNetworkNativeTool(this.container, 'mcp-plus-plus', 'mcp++:ipfs_kit_py/artifacts/put', {
         cid,
         bytes_base64: base64ForBytes(bytes),
         profile: 'mcppp-explorer-artifact',
@@ -473,7 +509,8 @@ export class MCPPlusPlusExplorerApp {
         service: 'ipfs_kit_py',
         pin: true,
       });
-      if (!res || res.persisted !== true || res.cid !== cid) {
+      if (res === null) { this.state.message = 'Evidence persistence cancelled before dispatch.'; this.update(); return; }
+      if (res.persisted !== true || res.cid !== cid) {
         throw new Error(res?.error || 'ipfs_kit_py did not verify the persisted evidence artifact.');
       }
       this.state.diag.evidence = pending.bundle;
@@ -481,8 +518,8 @@ export class MCPPlusPlusExplorerApp {
       this.state.message = `Evidence bundle persisted to ipfs_kit_py at CID ${cid} (verified: ${res.verified === true}).`;
       this.diagLog(`open-evidence-drilldown: bundle persisted at ${cid}`);
     } catch (error) {
-      this.state.message = `Evidence persist failed: ${messageFor(error)}`;
-      this.diagLog(`open-evidence-drilldown failed: ${messageFor(error)}`);
+      this.state.message = error.preview ? error.message : `Evidence persist failed: ${messageFor(error)}`;
+      this.diagLog(`open-evidence-drilldown ${error.preview ? 'preview' : 'failed'}: ${messageFor(error)}`);
     }
     this.update();
   }
@@ -491,7 +528,7 @@ export class MCPPlusPlusExplorerApp {
     const availability = snapshot?.available ? 'available' : snapshot ? 'unavailable' : 'unknown';
     const profiles = snapshot?.profiles?.length ? snapshot.profiles.join(', ') : 'not negotiated';
     return `
-      <button type="button" class="mcppp-service-card ${this.state.selectedService === service.id ? 'is-selected' : ''}" data-service="${service.id}">
+      <button type="button" class="mcppp-service-card ${this.state.selectedService === service.id ? 'is-selected' : ''}" data-service="${service.id}" aria-label="${escapeAttribute(service.label)}">
         <span class="mcppp-dot is-${availability}"></span>
         <strong>${escapeHtml(service.label)}</strong>
         <span>${snapshot ? `${snapshot.toolCount} tools` : 'not inspected'}</span>
@@ -652,6 +689,10 @@ export class MCPPlusPlusExplorerApp {
       this.ensureSelectedTool();
       this.update();
     }));
+    this.container.querySelector('#mcppp-idl-surface')?.addEventListener('change', event => {
+      this.state.idlSurface = event.target.value === 'agent-supervisor' ? 'agent-supervisor' : 'desktop';
+      this.update();
+    });
     this.container.querySelectorAll('.mcppp-service-selector select').forEach(select => select.addEventListener('change', event => {
       this.state.selectedService = event.target.value;
       this.state.eventHistory = [];

@@ -1954,7 +1954,8 @@ export class FileManagerApp {
     const fileList = window.querySelector('#file-list');
     const fileCount = window.querySelector('#file-count');
     const selectionInfo = window.querySelector('#selection-info');
-    
+    if (!fileList) return;
+
     fileList.innerHTML = '';
     
     this.files.forEach((file, index) => {
@@ -1965,7 +1966,7 @@ export class FileManagerApp {
       
       const icon = file.type === 'directory' ? '📁' : this.getFileIcon(file.name);
       const size = file.type === 'directory' ? '' : this.formatFileSize(file.size);
-      const modified = file.modified.toLocaleDateString();
+      const modified = this.formatDate(file.modified);
       
       if (this.viewMode === 'grid') {
         fileItem.innerHTML = `
@@ -1986,14 +1987,14 @@ export class FileManagerApp {
       fileList.appendChild(fileItem);
     });
     
-    fileCount.textContent = `${this.files.length} items`;
-    
+    if (fileCount) fileCount.textContent = `${this.files.length} items`;
+    const downloadBtn = window.querySelector('#download-btn');
     if (this.selectedFiles.size > 0) {
-      selectionInfo.textContent = `${this.selectedFiles.size} selected`;
-      window.querySelector('#download-btn').disabled = false;
+      if (selectionInfo) selectionInfo.textContent = `${this.selectedFiles.size} selected`;
+      if (downloadBtn) downloadBtn.disabled = false;
     } else {
-      selectionInfo.textContent = '';
-      window.querySelector('#download-btn').disabled = true;
+      if (selectionInfo) selectionInfo.textContent = '';
+      if (downloadBtn) downloadBtn.disabled = true;
     }
   }
 
@@ -2011,10 +2012,9 @@ export class FileManagerApp {
     const gridBtn = window.querySelector('#grid-view-btn');
     const listBtn = window.querySelector('#list-view-btn');
     
-    fileList.className = `file-list ${mode}-view`;
-    
-    gridBtn.classList.toggle('active', mode === 'grid');
-    listBtn.classList.toggle('active', mode === 'list');
+    if (fileList) fileList.className = `file-list ${mode}-view`;
+    if (gridBtn) gridBtn.classList.toggle('active', mode === 'grid');
+    if (listBtn) listBtn.classList.toggle('active', mode === 'list');
     
     this.updateFileList(window);
   }
@@ -2030,7 +2030,8 @@ export class FileManagerApp {
     }
     
     this.currentPath = path;
-    window.querySelector('#path-input').value = path;
+    const pathInput = window.querySelector('#path-input');
+    if (pathInput) pathInput.value = path;
     this.selectedFiles.clear();
     
     await this.loadFiles();
@@ -2039,9 +2040,10 @@ export class FileManagerApp {
   }
 
   updateBreadcrumb(window) {
-    const breadcrumb = window.querySelector('#breadcrumb');
+    const breadcrumb = window.querySelector('#path-breadcrumb');
+    if (!breadcrumb) return;
     const parts = this.currentPath.split('/').filter(p => p);
-    
+
     breadcrumb.innerHTML = '<span class="breadcrumb-item" data-path="/">🏠</span>';
     
     let currentPath = '';
@@ -2172,18 +2174,17 @@ export class FileManagerApp {
     const localStorage = window.querySelector('#local-storage');
     
     try {
-      // Check IPFS status
-      const ipfsInfo = await this.swissknife.storage.status();
-      ipfsStatus.textContent = ipfsInfo.connected ? 'Connected' : 'Disconnected';
-      ipfsStatus.style.color = ipfsInfo.connected ? 'green' : 'red';
-      
-      // Check local storage usage
-      const usage = this.getLocalStorageUsage();
-      localStorage.textContent = this.formatFileSize(usage);
-      
+      const ipfsInfo = await this.swissknife?.storage?.status?.();
+      if (ipfsStatus) {
+        ipfsStatus.textContent = ipfsInfo?.connected ? 'Connected' : (ipfsInfo ? 'Disconnected' : 'No storage adapter');
+        ipfsStatus.style.color = ipfsInfo?.connected ? 'green' : 'red';
+      }
+      if (localStorage) localStorage.textContent = this.formatFileSize(this.getLocalStorageUsage());
     } catch (error) {
-      ipfsStatus.textContent = 'Error';
-      ipfsStatus.style.color = 'red';
+      if (ipfsStatus) {
+        ipfsStatus.textContent = 'Error';
+        ipfsStatus.style.color = 'red';
+      }
     }
   }
 
@@ -2409,14 +2410,28 @@ export class FileManagerApp {
   }
 
   autoOrganize(container) {
-    console.log('🤖 Auto-organizing files...');
-    // AI auto-organization - requires AI service integration
-    if (this.desktop?.swissknife?.ai) {
-      this.showNotification('AI analyzing files for organization...', 'info');
-      // Future: Implement AI-powered file organization
-    } else {
-      this.showNotification('AI service not available. Configure AI integration first.', 'warning');
+    const extensionOf = (file) => {
+      if (!file || file.type === 'directory') return 'folder';
+      const named = String(file.extension || file.name || '').toLowerCase();
+      const dot = named.lastIndexOf('.');
+      return dot >= 0 ? named.slice(dot + 1) : (named || 'other');
+    };
+    this.files.sort((left, right) => {
+      const byType = extensionOf(left).localeCompare(extensionOf(right));
+      if (byType !== 0) return byType;
+      return String(left.name || '').localeCompare(String(right.name || ''));
+    });
+    this.updateFileList(container);
+    const counts = new Map();
+    for (const file of this.files) {
+      const key = extensionOf(file);
+      counts.set(key, (counts.get(key) || 0) + 1);
     }
+    const summary = [...counts.entries()].map(([key, count]) => `${key} ${count}`).join(', ');
+    this.showNotification(
+      summary ? `Organized ${this.files.length} items by type: ${summary}` : 'No files to organize',
+      'success',
+    );
   }
 
   findDuplicates(container) {
@@ -2445,14 +2460,21 @@ export class FileManagerApp {
   }
 
   generateSmartTags(container) {
-    console.log('🏷️ Generating smart tags...');
-    // Smart tagging - requires AI service integration
-    if (this.desktop?.swissknife?.ai) {
-      this.showNotification('AI analyzing files for smart tags...', 'info');
-      // Future: Implement AI-powered smart tagging
-    } else {
-      this.showNotification('AI service not available. Configure AI integration first.', 'warning');
+    const counts = new Map();
+    for (const file of this.files || []) {
+      if (!file || file.type === 'directory' || file.type === 'folder') continue;
+      const name = String(file.name || '');
+      const dot = name.lastIndexOf('.');
+      const tag = dot >= 0 ? name.slice(dot + 1).toLowerCase() : 'untagged';
+      file.tags = [tag];
+      counts.set(tag, (counts.get(tag) || 0) + 1);
     }
+    if (typeof this.updateFileList === 'function') this.updateFileList(container);
+    const summary = [...counts.entries()].map(([tag, count]) => `${tag} ${count}`).join(', ');
+    this.showNotification(
+      summary ? `Tagged files from their names: ${summary}` : 'No files to tag',
+      'success',
+    );
   }
 
   updateOperationButtons(container) {

@@ -7,6 +7,7 @@
 // global-only capability. See `web/js/core/ipfs-accelerate-global-adapter.js`
 // for why this app no longer dynamically imports raw
 // `ipfs_accelerate_js/src` source.
+import { invokeNativeTool } from '../live-tool-gateway.js';
 import { loadLocalIPFSAccelerateClass } from '../core/ipfs-accelerate-global-adapter.js';
 
 // Export class for ES6 module compatibility
@@ -197,41 +198,9 @@ export class TrainingManagerApp {
     ensureDefaultTelemetry();
     ensureDefaultResumeRecovery();
     ensureDefaultCancellationConfirmation();
-    if (!trainingJobs.some(job => job.id === VDA_G032_JOB_ID)) {
-      const seedJob = createGovernedTrainingJob({
-        id: VDA_G032_JOB_ID,
-        name: 'VDA-G032 governed resume candidate',
-        status: 'paused',
-        progress: 62,
-        currentEpoch: 6
-      });
-      seedJob.demoSeed = true;
-      seedJob.simulated = true;
-      seedJob.currentLoss = 0.3842;
-      seedJob.currentAccuracy = 0.842;
-      seedJob.validationLoss = 0.4218;
-      seedJob.validationAccuracy = 0.817;
-      seedJob.checkpoints = [
-        createCheckpoint(seedJob, 3, 'capacity-balanced'),
-        createCheckpoint(seedJob, 6, 'resume-ready')
-      ];
-      seedJob.resume = {
-        state: 'checkpoint_available',
-        checkpointCid: seedJob.checkpoints[1].cid,
-        checkpointEpoch: 6,
-        recoveryMessage: 'Resume recovery ready from checkpoint epoch 6 with queue token preserved.'
-      };
-      seedJob.telemetry = { ...telemetrySnapshot };
-      seedJob.capacity = { ...capacityQueue, jobPosition: 1 };
-      seedJob.cancellation = { ...lastCancellationConfirmation };
-      addJobLog(seedJob, 'Recovered paused job from checkpoint manifest.');
-      addJobLog(seedJob, 'Capacity queue token preserved for resume recovery.');
-      trainingJobs.unshift(seedJob);
-      activeJob = seedJob;
-      saveTrainingHistory();
-    } else if (!activeJob) {
-      activeJob = trainingJobs.find(job => job.id === VDA_G032_JOB_ID) || trainingJobs[0] || null;
-    }
+    // Saved history remains available, but opening the app cannot manufacture
+    // a paused run, checkpoint, metric, admission token, or backend receipt.
+    if (!activeJob) activeJob = trainingJobs[0] || null;
     renderJobsList();
     renderJobDetails();
     renderProgressMonitor();
@@ -272,79 +241,32 @@ export class TrainingManagerApp {
   }
 
   function ensureDefaultTrainingDataset() {
-    if (datasets.some(dataset => dataset.id === VDA_G032_DATASET_ID)) return;
-    datasets.unshift({
-      id: VDA_G032_DATASET_ID,
-      name: 'Curated vision safety sample',
-      files: ['labels.parquet', 'images.car', 'splits.json'],
-      size: 47_185_920,
-      type: 'ipfs',
-      created: new Date('2026-07-21T09:00:00.000Z').toISOString(),
-      rootCid: localContentRef('vda-g032-dataset-root'),
-      provenance: {
-        source: 'ipfs_datasets_py.load_dataset',
-        datasetCid: localContentRef('vda-g032-dataset-root'),
-        manifestCid: localContentRef('vda-g032-dataset-manifest'),
-        license: 'internal-eval',
-        split: 'train=80 validation=20',
-        rows: 12480,
-        policyDecision: 'allow-with-receipt',
-        receiptId: 'receipt:training-manager:dataset-provenance:v1'
-      }
-    });
-    persistDatasets();
+    // Datasets come only from imported or saved user records.
   }
 
   function ensureDefaultCapacityQueue() {
-    if (capacityQueue) return;
-    capacityQueue = {
-      queueId: 'queue:training-manager:accelerate:g032',
-      availableSlots: 2,
-      activeSlots: 1,
-      queuedJobs: 1,
-      jobPosition: 1,
-      capacityClass: 'webgpu-preferred-webgl-fallback',
-      policy: 'heavy_compute requires queue admission and receipt'
-    };
-    localStorage.setItem(TRAINING_MANAGER_STORAGE_KEYS.queue, JSON.stringify(capacityQueue));
+    if (capacityQueue?.state === 'not_observed') return;
+    capacityQueue = { state: 'not_observed', queueId: null, availableSlots: null,
+      activeSlots: null, queuedJobs: null, jobPosition: null,
+      policy: 'No live queue admission has been observed. Training execution is unavailable.' };
   }
 
   function ensureDefaultTelemetry() {
-    if (telemetrySnapshot) return;
-    telemetrySnapshot = {
-      step: 'warmup',
-      samplesPerSecond: 384,
-      gpuMemoryMb: 1536,
-      queueWaitSeconds: 18,
-      lossTrend: 'down',
-      accuracyTrend: 'up',
-      receiptId: 'receipt:training-manager:telemetry:g032'
-    };
-    localStorage.setItem(TRAINING_MANAGER_STORAGE_KEYS.telemetry, JSON.stringify(telemetrySnapshot));
+    if (telemetrySnapshot?.state === 'not_observed') return;
+    telemetrySnapshot = { state: 'not_observed', step: 'not observed', samplesPerSecond: null,
+      gpuMemoryMb: null, queueWaitSeconds: null, lossTrend: 'not observed', accuracyTrend: 'not observed', receiptId: null };
   }
 
   function ensureDefaultResumeRecovery() {
-    if (resumeRecovery) return;
-    resumeRecovery = {
-      state: 'checkpoint_available',
-      checkpointCid: localContentRef('vda-g032-resume-checkpoint'),
-      checkpointEpoch: 6,
-      recoveryToken: 'resume:g032:epoch-6',
-      message: 'Resume recovery will requeue the job with checkpoint and provenance refs intact.'
-    };
-    localStorage.setItem(TRAINING_MANAGER_STORAGE_KEYS.resume, JSON.stringify(resumeRecovery));
+    if (resumeRecovery?.state === 'unavailable') return;
+    resumeRecovery = { state: 'unavailable', checkpointCid: null, checkpointEpoch: null, recoveryToken: null,
+      message: 'No owner checkpoint or supported training-resume operation has been observed.' };
   }
 
   function ensureDefaultCancellationConfirmation() {
-    if (lastCancellationConfirmation) return;
-    lastCancellationConfirmation = {
-      required: true,
-      phrase: 'STOP-G032',
-      state: 'armed',
-      receiptId: 'receipt:training-manager:cancellation-policy:g032',
-      message: 'Cancellation requires explicit confirmation and preserves checkpoint receipts.'
-    };
-    localStorage.setItem(TRAINING_MANAGER_STORAGE_KEYS.cancellation, JSON.stringify(lastCancellationConfirmation));
+    if (lastCancellationConfirmation?.state === 'unavailable') return;
+    lastCancellationConfirmation = { required: false, phrase: '', state: 'unavailable', receiptId: null,
+      message: 'No supported owner training cancellation operation is available.' };
   }
 
   function createGovernedTrainingJob(overrides = {}) {
@@ -417,14 +339,14 @@ export class TrainingManagerApp {
   function getDatasetProvenance(datasetId = VDA_G032_DATASET_ID) {
     const dataset = datasets.find(item => item.id === datasetId) || datasets[0] || {};
     return dataset.provenance || {
-      source: 'ipfs_datasets_py.load_dataset',
-      datasetCid: localContentRef('fallback-dataset'),
-      manifestCid: localContentRef('fallback-manifest'),
+      source: 'No imported dataset provenance has been verified',
+      datasetCid: 'not observed',
+      manifestCid: null,
       license: 'unknown',
-      split: 'train=80 validation=20',
-      rows: 0,
-      policyDecision: 'pending',
-      receiptId: 'receipt:training-manager:dataset-provenance:pending'
+      split: 'not configured',
+      rows: null,
+      policyDecision: 'not_observed',
+      receiptId: null
     };
   }
 
@@ -432,16 +354,16 @@ export class TrainingManagerApp {
     const container = document.querySelector('.training-manager-container');
     if (!container) return;
     const provenance = activeJob?.provenance || getDatasetProvenance();
-    const queue = activeJob?.capacity || capacityQueue;
-    const telemetry = activeJob?.telemetry || telemetrySnapshot;
-    const cancellation = activeJob?.cancellation || lastCancellationConfirmation;
-    const resume = activeJob?.resume || resumeRecovery;
+    const queue = capacityQueue;
+    const telemetry = telemetrySnapshot;
+    const cancellation = lastCancellationConfirmation;
+    const resume = resumeRecovery;
     setText(container, '#workflow-provenance-cid', provenance.datasetCid);
-    setText(container, '#workflow-queue-state', `${queue.availableSlots} slots / position ${queue.jobPosition}`);
-    setText(container, '#workflow-telemetry-state', `${telemetry.samplesPerSecond} samples/s`);
+    setText(container, '#workflow-queue-state', queue.state === 'not_observed' ? 'not observed' : `${queue.availableSlots} slots / position ${queue.jobPosition}`);
+    setText(container, '#workflow-telemetry-state', telemetry.state === 'not_observed' ? 'not observed' : `${telemetry.samplesPerSecond} samples/s`);
     setText(container, '#workflow-cancel-state', cancellation.state || 'armed');
-    setText(container, '#workflow-checkpoint-state', resume.checkpointCid);
-    setText(container, '#workflow-checkpoint-copy', `latest epoch ${resume.checkpointEpoch}; artifacts stored through IPFS Kit receipts.`);
+    setText(container, '#workflow-checkpoint-state', resume.checkpointCid || 'not observed');
+    setText(container, '#workflow-checkpoint-copy', resume.checkpointCid ? `Historical checkpoint epoch ${resume.checkpointEpoch}; owner persistence has not been reverified.` : 'No owner checkpoint or persistence receipt observed.');
     setText(container, '#workflow-resume-state', resume.state);
     setText(container, '#workflow-resume-copy', resume.recoveryMessage || resume.message || 'Resume recovery is ready.');
   }
@@ -464,7 +386,7 @@ export class TrainingManagerApp {
 
   function setText(root, selector, value) {
     const element = root.querySelector(selector);
-    if (element) element.textContent = String(value || '');
+    if (element) element.textContent = String(value ?? '');
   }
 
   async function initializeP2PSystem() {
@@ -694,8 +616,8 @@ export class TrainingManagerApp {
         <!-- Header Toolbar -->
         <div class="training-toolbar">
           <div class="toolbar-section">
-            <button class="btn btn-primary workflow-primary" id="launch-governed-training" data-svd-workflow="${VDA_G032_WORKFLOW}" data-svd-workflow-action="launch-governed-training" data-capability-id="ipfs.accelerate.jobs">Start governed training job</button>
-            <button class="btn btn-primary sk-btn sk-btn-primary" id="new-training">🎯 New Training</button>
+            <button class="btn btn-primary workflow-primary" id="launch-governed-training" data-native-gateway-binding="training-manager.ipfs_accelerate_py.preview_training_task" data-native-tool-id="submit_task" data-svd-workflow="${VDA_G032_WORKFLOW}" data-svd-workflow-action="launch-governed-training" data-capability-id="ipfs.accelerate.training_preview">Preview owner task (training unavailable)</button>
+            <button class="btn btn-primary sk-btn sk-btn-primary" id="new-training">🎯 Local Simulation</button>
             <button class="btn btn-secondary" id="import-dataset">📊 Import Dataset</button>
             <button class="btn btn-secondary" id="load-model">🧠 Load Model</button>
           </div>
@@ -719,6 +641,8 @@ export class TrainingManagerApp {
           </div>
         </div>
 
+        <output id="training-owner-preview" role="status" aria-live="polite" data-preview-state="not_run">Training execution is unavailable. The owner task preview validates the real callable without queuing work.</output>
+        <pre id="training-owner-envelope"></pre>
         <section class="workflow-governance" data-svd-workflow="${VDA_G032_WORKFLOW}">
           <div class="workflow-card" data-svd-vda-marker="provenance">
             <span class="workflow-label">Provenance</span>
@@ -727,23 +651,23 @@ export class TrainingManagerApp {
           </div>
           <div class="workflow-card" data-svd-vda-marker="capacity-queue">
             <span class="workflow-label">Capacity queue</span>
-            <strong id="workflow-queue-state">${capacityQueue.availableSlots} slots / position ${capacityQueue.jobPosition}</strong>
+            <strong id="workflow-queue-state">${capacityQueue.state === 'not_observed' ? 'not observed' : `${capacityQueue.availableSlots} slots / position ${capacityQueue.jobPosition}`}</strong>
             <span>${capacityQueue.policy}</span>
           </div>
           <div class="workflow-card" data-svd-vda-marker="telemetry">
             <span class="workflow-label">Telemetry</span>
-            <strong id="workflow-telemetry-state">${telemetrySnapshot.samplesPerSecond} samples/s</strong>
-            <span>loss ${telemetrySnapshot.lossTrend}; accuracy ${telemetrySnapshot.accuracyTrend}; receipt ${telemetrySnapshot.receiptId}</span>
+            <strong id="workflow-telemetry-state">${telemetrySnapshot.state === 'not_observed' ? 'not observed' : `${telemetrySnapshot.samplesPerSecond} samples/s`}</strong>
+            <span>loss ${telemetrySnapshot.lossTrend}; accuracy ${telemetrySnapshot.accuracyTrend}; receipt ${telemetrySnapshot.receiptId || 'none observed'}</span>
           </div>
           <div class="workflow-card" data-svd-vda-marker="cancellation-confirmation">
             <span class="workflow-label">Cancellation confirmation</span>
             <strong id="workflow-cancel-state">${lastCancellationConfirmation.state}</strong>
-            <span>Type ${lastCancellationConfirmation.phrase} before cancellation is accepted.</span>
+            <span>${lastCancellationConfirmation.message}</span>
           </div>
           <div class="workflow-card" data-svd-vda-marker="checkpoints">
             <span class="workflow-label">Checkpoints</span>
-            <strong id="workflow-checkpoint-state">${resumeRecovery.checkpointCid}</strong>
-            <span id="workflow-checkpoint-copy">latest epoch ${resumeRecovery.checkpointEpoch}; artifacts stored through IPFS Kit receipts.</span>
+            <strong id="workflow-checkpoint-state">${resumeRecovery.checkpointCid || 'not observed'}</strong>
+            <span id="workflow-checkpoint-copy">No owner checkpoint or persistence receipt observed.</span>
           </div>
           <div class="workflow-card" data-svd-vda-marker="resume-recovery">
             <span class="workflow-label">Resume recovery</span>
@@ -1017,73 +941,44 @@ export class TrainingManagerApp {
     container.querySelector('#dataset-files').addEventListener('change', handleDatasetUpload);
   }
 
-  function launchGovernedTrainingWorkflow() {
-    ensureDefaultTrainingDataset();
-    ensureDefaultCapacityQueue();
-    ensureDefaultTelemetry();
-    ensureDefaultResumeRecovery();
-    ensureDefaultCancellationConfirmation();
-
-    const existing = trainingJobs.find(job => job.id === VDA_G032_JOB_ID);
-    const job = existing || createGovernedTrainingJob({
-      id: VDA_G032_JOB_ID,
-      name: 'VDA-G032 governed training run',
-      status: 'queued',
-      progress: 8,
-      currentEpoch: 1
-    });
-    if (!existing) {
-      trainingJobs.unshift(job);
+  async function launchGovernedTrainingWorkflow(event) {
+    event?.preventDefault?.();
+    const trigger = event?.currentTarget || null;
+    const container = trigger?.closest('.training-manager-container') || document.querySelector('.training-manager-container');
+    const status = container?.querySelector('#training-owner-preview');
+    const details = container?.querySelector('#training-owner-envelope');
+    if (!status) return;
+    status.dataset.previewState = 'awaiting_confirmation';
+    status.textContent = 'Review the owner task preview. Training execution remains unavailable.';
+    try {
+      const envelope = await invokeNativeTool(container, 'training-manager', 'training-manager.ipfs_accelerate_py.preview_training_task', {
+        toolId: 'submit_task',
+        payload: { prompt: 'Validate this training configuration only. No training operation is available; do not enqueue or execute work.' },
+        trigger,
+      });
+      if (!envelope) {
+        status.dataset.previewState = 'cancelled'; status.textContent = 'Cancelled before owner dispatch; no task or training job was created.'; return;
+      }
+      if (details) details.textContent = JSON.stringify(envelope, null, 2);
+      if (envelope.ok !== true || envelope.outcome !== 'executed') throw new Error(envelope.error?.message || envelope.error || envelope.result?.error || 'Owner preview failed.');
+      let value = envelope.result;
+      for (let depth = 0; depth < 8 && value && typeof value === 'object'; depth++) {
+        if (value.ok === false || value.success === false || value.isError === true || value.error) throw new Error(value.error?.message || value.error || 'Owner rejected the preview.');
+        const blocks = value.content?.filter(item => item.type === 'json' && item.json && typeof item.json === 'object') || [];
+        if (blocks.length > 1) throw new Error('Owner returned ambiguous preview data.');
+        if (blocks.length === 1) value = blocks[0].json;
+        else if (value.result && typeof value.result === 'object') value = value.result;
+        else break;
+      }
+      if (value?.dry_run !== true || value?.body_executed !== false || value?.mutation_performed !== false) {
+        throw new Error('Owner did not verify a no-side-effect signature preview. Training remains unavailable.');
+      }
+      status.dataset.previewState = 'preview';
+      status.textContent = `Owner task preview validated; no training job, metrics, checkpoint, or remote change was created. ${envelope.correlation_id}; receipt ${envelope.receipt?.receipt_id || 'unavailable'}`;
+    } catch (error) {
+      status.dataset.previewState = 'failed';
+      status.textContent = `Preview failed: ${error instanceof Error ? error.message : String(error)} No training completion is claimed.`;
     }
-
-    job.status = capacityQueue.activeSlots >= capacityQueue.availableSlots ? 'pending' : 'running';
-    job.progress = Math.max(job.progress || 0, 18);
-    job.currentEpoch = Math.max(job.currentEpoch || 0, 2);
-    job.currentLoss = 0.9124;
-    job.currentAccuracy = 0.673;
-    job.validationLoss = 1.036;
-    job.validationAccuracy = 0.641;
-    job.capacity = { ...capacityQueue, jobPosition: 1 };
-    job.telemetry = {
-      ...telemetrySnapshot,
-      step: `epoch-${job.currentEpoch}`,
-      queueWaitSeconds: 0,
-      samplesPerSecond: telemetrySnapshot.samplesPerSecond + 24
-    };
-    job.provenance = getDatasetProvenance();
-    job.cancellation = { ...lastCancellationConfirmation, state: 'confirmation_required' };
-    if (!Array.isArray(job.checkpoints)) job.checkpoints = [];
-    if (!job.checkpoints.some(checkpoint => checkpoint.epoch === job.currentEpoch)) {
-      job.checkpoints.push(createCheckpoint(job, job.currentEpoch, 'launch-observation'));
-    }
-    const latestCheckpoint = [...job.checkpoints].sort((a, b) => b.epoch - a.epoch)[0];
-    job.resume = {
-      state: 'resume_recovery_ready',
-      checkpointCid: latestCheckpoint.cid,
-      checkpointEpoch: latestCheckpoint.epoch,
-      recoveryMessage: 'Resume recovery can restore optimizer state and queue token from the latest checkpoint.'
-    };
-    telemetrySnapshot = { ...job.telemetry };
-    resumeRecovery = {
-      state: job.resume.state,
-      checkpointCid: job.resume.checkpointCid,
-      checkpointEpoch: job.resume.checkpointEpoch,
-      recoveryToken: `resume:g032:epoch-${job.resume.checkpointEpoch}`,
-      message: job.resume.recoveryMessage
-    };
-    localStorage.setItem(TRAINING_MANAGER_STORAGE_KEYS.telemetry, JSON.stringify(telemetrySnapshot));
-    localStorage.setItem(TRAINING_MANAGER_STORAGE_KEYS.resume, JSON.stringify(resumeRecovery));
-    addJobLog(job, `Validated dataset provenance ${job.provenance.datasetCid}.`);
-    addJobLog(job, `Admitted through capacity queue ${job.capacity.queueId}.`);
-    addJobLog(job, `Telemetry receipt ${job.telemetry.receiptId} attached.`);
-    addJobLog(job, `Checkpoint ${job.resume.checkpointCid} is available for resume recovery.`);
-    activeJob = job;
-    saveTrainingHistory();
-    renderJobsList();
-    renderJobDetails();
-    renderProgressMonitor();
-    updateWorkflowGovernance();
-    updateJobStats();
   }
 
   function renderJobsList() {
@@ -1097,7 +992,7 @@ export class TrainingManagerApp {
         <div class="empty-state sk-empty">
           <p>No training jobs yet</p>
           <button class="btn btn-primary sk-btn sk-btn-primary" onclick="document.querySelector('#new-training').click()">
-            🎯 Start Your First Training
+            🎯 Configure Local Simulation
           </button>
         </div>
       `;
@@ -1387,7 +1282,7 @@ export class TrainingManagerApp {
             <h5>Capacity queue</h5>
             <dl>
               <div><dt>Queue</dt><dd>${capacity.queueId}</dd></div>
-              <div><dt>Slots</dt><dd>${capacity.activeSlots}/${capacity.availableSlots} active</dd></div>
+              <div><dt>Slots</dt><dd>${capacity.state === 'not_observed' ? 'not observed' : `${capacity.activeSlots}/${capacity.availableSlots}`} active</dd></div>
               <div><dt>Queued</dt><dd>${capacity.queuedJobs} waiting; this job position ${capacity.jobPosition}</dd></div>
               <div><dt>Capacity</dt><dd>${capacity.capacityClass}</dd></div>
             </dl>
@@ -1397,7 +1292,7 @@ export class TrainingManagerApp {
             <h5>Training telemetry</h5>
             <dl>
               <div><dt>Step</dt><dd>${telemetry.step}</dd></div>
-              <div><dt>Throughput</dt><dd>${telemetry.samplesPerSecond} samples/s</dd></div>
+              <div><dt>Throughput</dt><dd>${telemetry.state === 'not_observed' ? 'not observed' : `${telemetry.samplesPerSecond} samples/s`}</dd></div>
               <div><dt>Memory</dt><dd>${telemetry.gpuMemoryMb} MB</dd></div>
               <div><dt>Receipt</dt><dd>${telemetry.receiptId}</dd></div>
             </dl>
@@ -2112,9 +2007,9 @@ export class TrainingManagerApp {
     const completedJobs = trainingJobs.filter(job => job.status === 'completed').length;
     const totalJobs = trainingJobs.length;
     
-    document.querySelector('#active-jobs').textContent = activeJobs;
-    document.querySelector('#completed-jobs').textContent = completedJobs;
-    document.querySelector('#total-jobs').textContent = totalJobs;
+    document.querySelector('#active-jobs').textContent = String(activeJobs);
+    document.querySelector('#completed-jobs').textContent = String(completedJobs);
+    document.querySelector('#total-jobs').textContent = String(totalJobs);
   }
 
   function formatElapsedTime(startTime) {
@@ -2166,31 +2061,31 @@ export class TrainingManagerApp {
     const charts = document.querySelector('#progress-charts');
     if (!charts) return;
     const job = activeJob || trainingJobs[0] || null;
-    const telemetry = job?.telemetry || telemetrySnapshot;
-    const capacity = job?.capacity || capacityQueue;
-    const resume = job?.resume || resumeRecovery;
-    const checkpoints = job?.checkpoints || [];
+    const telemetry = telemetrySnapshot;
+    const capacity = capacityQueue;
+    const resume = resumeRecovery;
+    const checkpoints = []; // Historical job details are not current owner evidence.
     charts.innerHTML = `
       <div class="telemetry-grid" data-svd-workflow="${VDA_G032_WORKFLOW}">
         <div class="telemetry-card" data-svd-vda-marker="capacity-queue">
           <span>Queue</span>
-          <strong>${capacity.activeSlots}/${capacity.availableSlots}</strong>
-          <small>${capacity.queuedJobs} queued; position ${capacity.jobPosition}</small>
+          <strong>${capacity.state === 'not_observed' ? 'not observed' : `${capacity.activeSlots}/${capacity.availableSlots}`}</strong>
+          <small>${capacity.state === 'not_observed' ? 'No live admission evidence' : `${capacity.queuedJobs} queued; position ${capacity.jobPosition}`}</small>
         </div>
         <div class="telemetry-card" data-svd-vda-marker="telemetry">
           <span>Throughput</span>
-          <strong>${telemetry.samplesPerSecond} samples/s</strong>
-          <small>${telemetry.step}; ${telemetry.receiptId}</small>
+          <strong>${telemetry.state === 'not_observed' ? 'not observed' : `${telemetry.samplesPerSecond} samples/s`}</strong>
+          <small>${telemetry.step}; ${telemetry.receiptId || 'no receipt observed'}</small>
         </div>
         <div class="telemetry-card" data-svd-vda-marker="checkpoints">
           <span>Checkpoints</span>
           <strong>${checkpoints.length}</strong>
-          <small>${resume.checkpointCid}</small>
+          <small>${resume.checkpointCid || 'No owner checkpoint observed'}</small>
         </div>
         <div class="telemetry-card" data-svd-vda-marker="resume-recovery">
           <span>Resume</span>
           <strong>${resume.state}</strong>
-          <small>${resume.recoveryToken || resume.checkpointCid}</small>
+          <small>${resume.recoveryToken || resume.checkpointCid || 'No owner recovery evidence'}</small>
         </div>
       </div>
     `;

@@ -2,22 +2,19 @@
  * P2P Chat Application for SwissKnife Virtual Desktop
  * Enables direct peer-to-peer messaging using libp2p with enhanced design language
  *
- * Backend contract: chat messages go out as REAL libp2p pubsub publishes via
- * this.libp2p.publish() (resolved from the desktop P2P API, mirroring
- * p2p-chat-unified). When no P2P transport exists, messages are honestly
- * marked unsent — never simulated. Chat history persists through the genuine
- * MCP++ desktop client to the ipfs_kit_py artifact store
- * (POST /mcp/artifacts/put) behind an explicit user confirmation; backend
- * failures surface verbatim.
+ * Native sends, archives, and event-DAG actions use exact reviewed owner
+ * bindings. The shared gateway owns confirmation and transport policy.
+ * Mutation previews remain previews and never create stored-history or
+ * recipient-delivery claims. Backend failures remain visible.
  */
 
 import { contentCidForBytes, stableStringifyValue, base64ForBytes } from '../core/mcp-plus-plus-desktop-client.js';
+import { invokeNetworkNativeTool, networkNativeAttributes } from './network-native-tools.js';
 
 const PUBSUB_TOPIC = '/swissknife/chat/g047';
 
-async function backendClient() {
-  const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
-  return clientModule.getMCPPlusPlusDesktopClient();
+async function callChatMcpTool(app, _method, tool, toolArguments, trigger = null) {
+  return invokeNetworkNativeTool(app.getNativeContainer(), 'p2p-chat', tool, toolArguments, trigger);
 }
 
 function bytesFromBase64(b64) {
@@ -28,6 +25,9 @@ function bytesFromBase64(b64) {
 }
 
 export class P2PChatApp {
+  getNativeContainer() {
+    return document.querySelector(`[data-p2p-chat-instance="${this.instanceId}"]`);
+  }
   constructor(desktop) {
     this.desktop = desktop;
     this.peerId = null;
@@ -416,7 +416,7 @@ export class P2PChatApp {
 
   async render() {
     const content = `
-      <div class="p2p-chat-app">
+      <div class="p2p-chat-app" data-p2p-chat-instance="${this.instanceId}">
         <style>
           .p2p-chat-app {
             height: 100%;
@@ -1074,13 +1074,16 @@ export class P2PChatApp {
             <button class="control-btn" onclick="window.p2pChatInstances?.['${this.instanceId}']?.discoverPeers()" ${this.connectionStatus !== 'connected' ? 'disabled' : ''}>
               🔍 Discover Peers
             </button>
-            <button class="control-btn" onclick="window.p2pChatInstances?.['${this.instanceId}']?.broadcastMessage()" ${this.connectionStatus !== 'connected' ? 'disabled' : ''}>
-              📢 Broadcast Message
+            <label>Broadcast topic <input data-chat-publish-topic aria-label="Broadcast topic" value="${PUBSUB_TOPIC}"></label>
+            <label>Broadcast message <textarea data-chat-broadcast-message aria-label="Broadcast message" placeholder="Write a message to review"></textarea></label>
+            <button class="control-btn" ${networkNativeAttributes('p2p-chat', 'mcp++:ipfs_kit_py/ipfs_pubsub_publish')} onclick="window.p2pChatInstances?.['${this.instanceId}']?.broadcastMessage()">
+              📢 Review broadcast
             </button>
-            <button class="control-btn" onclick="window.p2pChatInstances?.['${this.instanceId}']?.saveHistory()" title="Persist chat history to ipfs_kit_py (confirmation-gated)">
+            <button class="control-btn" ${networkNativeAttributes('p2p-chat', 'mcp++:ipfs_kit_py/artifacts/put')} onclick="window.p2pChatInstances?.['${this.instanceId}']?.saveHistory()" title="Persist chat history to ipfs_kit_py (confirmation-gated)">
               💾 Save History
             </button>
-            <button class="control-btn" onclick="window.p2pChatInstances?.['${this.instanceId}']?.loadHistory()" title="Load chat history from an ipfs_kit_py artifact CID">
+            <input data-chat-history-cid aria-label="Chat history artifact CID" placeholder="Stored chat history CID">
+            <button class="control-btn" ${networkNativeAttributes('p2p-chat', 'mcp++:ipfs_kit_py/artifacts/get')} onclick="window.p2pChatInstances?.['${this.instanceId}']?.loadHistory()" title="Load chat history from an ipfs_kit_py artifact CID">
               📂 Load History
             </button>
           </div>
@@ -1225,6 +1228,7 @@ export class P2PChatApp {
                     placeholder="Type your message..."
                     onkeydown="window.p2pChatInstances?.['${this.instanceId}']?.handleInputKeyDown(event)"></textarea>
           <button class="send-btn" 
+                  ${networkNativeAttributes('p2p-chat', 'mcp++:ipfs_kit_py/ipfs_pubsub_publish')}
                   onclick="window.p2pChatInstances?.['${this.instanceId}']?.sendMessage()">
             📤 Send
           </button>
@@ -1245,7 +1249,7 @@ export class P2PChatApp {
           <button type="button" data-svd-primary-control="p2p-chat-legacy-primary" data-svd-workflow-action="document-legacy-alias" onclick="window.p2pChatInstances?.['${this.instanceId}']?.documentLegacyAlias()">
             Legacy alias
           </button>
-          <button type="button" data-svd-workflow-action="publish-pubsub-provenance" onclick="window.p2pChatInstances?.['${this.instanceId}']?.publishPubsubProvenance()">
+          <button type="button" ${networkNativeAttributes('p2p-chat', 'mcp++:ipfs_kit_py/artifacts/put')} data-svd-workflow-action="publish-pubsub-provenance" onclick="window.p2pChatInstances?.['${this.instanceId}']?.publishPubsubProvenance()">
             Pubsub proof
           </button>
           <button type="button" data-svd-workflow-action="queue-offline-state" onclick="window.p2pChatInstances?.['${this.instanceId}']?.showOfflineQueue()">
@@ -1324,16 +1328,10 @@ export class P2PChatApp {
       last_send_outcome: this.lastSendOutcome,
       offline_queue_depth: this.offlineQueue.length
     };
-    const confirmed = await this.confirmGovernedWrite({
-      title: 'Persist pubsub provenance',
-      description: `Write the pubsub route record (topic ${PUBSUB_TOPIC}) to the ipfs_kit_py artifact store (pinned)?`
-    });
-    if (!confirmed) return;
     try {
-      const client = await backendClient();
       const bytes = new TextEncoder().encode(stableStringifyValue(record));
       const cid = await contentCidForBytes(bytes);
-      const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+      const result = await callChatMcpTool(this, 'request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
         cid,
         bytes_base64: base64ForBytes(bytes),
         profile: 'p2p-chat-provenance',
@@ -1341,7 +1339,8 @@ export class P2PChatApp {
         service: 'ipfs_kit_py',
         pin: true
       });
-      if (!result || result.persisted !== true || result.cid !== cid) {
+      if (result === null) return;
+      if (result.persisted !== true || result.cid !== cid) {
         throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted provenance artifact.');
       }
       this.workflowState.pubsub = 'provenance-persisted';
@@ -1356,8 +1355,8 @@ export class P2PChatApp {
       this.showNotification(`Provenance persisted: ${cid}`, 'success');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.workflowState.pubsub = 'persist-failed';
-      this.showNotification(`Provenance persist failed: ${message}`, 'error');
+      this.workflowState.pubsub = error.preview ? 'validated-preview' : 'persist-failed';
+      this.showNotification(`Provenance ${error.preview ? 'preview' : 'persist failed'}: ${message}`, error.preview ? 'info' : 'error');
     }
     this.recordLegacyWorkflowStep('pubsub');
   }
@@ -1415,16 +1414,10 @@ export class P2PChatApp {
         }))
       }))
     };
-    const confirmed = await this.confirmGovernedWrite({
-      title: 'Save chat history',
-      description: `Persist chat history (${record.conversations.length} conversation(s)) to the ipfs_kit_py artifact store (pinned)?`
-    });
-    if (!confirmed) return;
     try {
-      const client = await backendClient();
       const bytes = new TextEncoder().encode(stableStringifyValue(record));
       const cid = await contentCidForBytes(bytes);
-      const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+      const result = await callChatMcpTool(this, 'request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
         cid,
         bytes_base64: base64ForBytes(bytes),
         profile: 'p2p-chat-history',
@@ -1432,12 +1425,13 @@ export class P2PChatApp {
         service: 'ipfs_kit_py',
         pin: true
       });
-      if (!result || result.persisted !== true || result.cid !== cid) {
+      if (result === null) return;
+      if (result.persisted !== true || result.cid !== cid) {
         throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted history artifact.');
       }
       let dagNote = '';
       try {
-        const dagResult = await client.post('ipfs_kit_py', '/mcp/dag/append', {
+        const dagResult = await callChatMcpTool(this, 'request_action', 'mcp++:ipfs_kit_py/dag/append', {
           event: {
             event_type: 'p2p-chat.history.saved',
             history_cid: cid,
@@ -1451,7 +1445,7 @@ export class P2PChatApp {
       this.showNotification(`History saved: ${cid}${dagNote}`, 'success');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.showNotification(`History save failed: ${message}`, 'error');
+      this.showNotification(`History ${error.preview ? 'preview' : 'save failed'}: ${message}`, error.preview ? 'info' : 'error');
     }
   }
 
@@ -1459,18 +1453,16 @@ export class P2PChatApp {
    * 📂 Load chat history: fetch a real history artifact live from ipfs_kit_py.
    */
   async loadHistory() {
-    const cid = await this.promptForCid(
-      'Load chat history',
-      'Enter the CID of a chat history artifact stored in ipfs_kit_py.'
-    );
-    if (!cid) return;
+    const cid = this.getNativeContainer()?.querySelector('[data-chat-history-cid]')?.value.trim();
+    if (!cid) { this.showNotification('Enter a stored chat history artifact CID.', 'info'); return; }
     try {
-      const client = await backendClient();
-      const artifact = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(cid));
+      const artifact = await callChatMcpTool(this, 'request_action', 'mcp++:ipfs_kit_py/artifacts/get', { cid });
+      if (artifact === null) return;
       if (!artifact || artifact.found !== true) {
         throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
       }
       const record = JSON.parse(new TextDecoder().decode(bytesFromBase64(artifact.bytes_base64 || '')));
+      if (record.schema !== 'swissknife.p2p-chat.history.v1' || !Array.isArray(record.conversations)) throw new Error('The artifact is not a supported chat history record.');
       const conversations = Array.isArray(record.conversations) ? record.conversations : [];
       for (const conv of conversations) {
         this.conversations.set(conv.peer_id, (conv.messages || []).map(m => ({
@@ -1499,7 +1491,7 @@ export class P2PChatApp {
         <div class="pc-governed-confirm-dialog" role="dialog" aria-modal="true" aria-label="${this.escapeHtml(title)}">
           <h3>${this.escapeHtml(title)}</h3>
           <p>${this.escapeHtml(description)}</p>
-          <p class="pc-governed-target">Target: ipfs_kit_py · POST /mcp/artifacts/put (pinned)</p>
+          <p class="pc-governed-target">Target: ipfs_kit_py · POST /mcp/tools/call (pinned)</p>
           <label class="pc-governed-check">
             <input type="checkbox">
             <span>I confirm this governed write. I have reviewed the data being persisted.</span>
@@ -1596,14 +1588,31 @@ export class P2PChatApp {
     }
   }
 
-  broadcastMessage() {
-    if (this.connectionStatus === 'connected' && this.peers.size > 0) {
-      const message = prompt('Enter message to broadcast to all peers:');
-      if (message) {
-        this.p2pManager.broadcast(message);
-        this.showNotification('📢 Message broadcasted!', 'success');
-      }
+  async broadcastMessage() {
+    const container = this.getNativeContainer();
+    const topic = container?.querySelector('[data-chat-publish-topic]')?.value.trim();
+    const message = container?.querySelector('[data-chat-broadcast-message]')?.value.trim();
+    if (!topic || !message) {
+      this.showNotification('Enter a broadcast topic and message before review.', 'info');
+      return;
     }
+    try {
+      const result = await callChatMcpTool(this, 'request_action', 'mcp++:ipfs_kit_py/ipfs_pubsub_publish', {
+        topic,
+        content: message
+      });
+      if (result === null) return;
+      if (result?.published !== true) throw new Error('The owner did not acknowledge a published message.');
+      this.lastSendOutcome = { status: 'published', topic, at: new Date(), ack: result };
+      this.showNotification('Broadcast published by the owner.', 'success');
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+      this.lastSendOutcome = error.preview
+        ? { status: 'validated-preview', topic, at: new Date(), ack: error.result }
+        : { status: 'failed', topic, error: text, at: new Date() };
+      this.showNotification(`Broadcast ${error.preview ? 'preview' : 'invoke failed'}: ${text}`, error.preview ? 'info' : 'error');
+    }
+    this.updateWorkflowPanel();
   }
 
   selectPeer(peerId) {
@@ -1625,20 +1634,43 @@ export class P2PChatApp {
     }
   }
 
-  sendMessage() {
+  async sendMessage() {
     const input = document.getElementById(`${this.instanceId}-message-input`);
-    const message = input.value.trim();
-    
+    const message = input?.value.trim();
     if (!message || !this.currentChatPeer) return;
 
-    // Send message through P2P manager
-    this.p2pManager.sendMessage(this.currentChatPeer, message);
-    
-    // Clear input
+    const sent = await this.invokeConfirmedSend(this.currentChatPeer, message);
+    if (!sent) return;
     input.value = '';
-    
-    // Update display
     this.updateDisplay();
+  }
+
+  // The shared gateway owns confirmation and policy. A validated preview is
+  // never promoted into a browser publish or a delivery acknowledgment.
+  async invokeConfirmedSend(peerId, content) {
+    try {
+      const result = await callChatMcpTool(this, 'request_action', 'mcp++:ipfs_kit_py/ipfs_pubsub_publish', {
+        topic: PUBSUB_TOPIC,
+        peer_id: peerId,
+        content
+      });
+      if (result === null) return false;
+      if (result?.published !== true) throw new Error('The owner did not acknowledge a published message.');
+      this.addMessageToConversation(peerId, { id: `owner-${Date.now()}`, content, sender: 'self', timestamp: new Date(), type: 'text', transport: 'owner-pubsub', ack: result });
+      this.lastSendOutcome = { status: 'published', at: new Date(), ack: result };
+      return true;
+    } catch (error) {
+      if (error.preview) {
+        this.addMessageToConversation(peerId, { id: `preview-${Date.now()}`, content, sender: 'self', timestamp: new Date(), type: 'text', transport: 'dry-run', delivered: false, ack: error.result });
+        this.lastSendOutcome = { status: 'validated-preview', at: new Date() };
+        this.showNotification(error.message, 'info');
+        return true;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      this.lastSendOutcome = { status: 'failed', error: message, at: new Date() };
+      this.showNotification(`Send invoke failed: ${message}`, 'error');
+      return;
+    }
   }
 
   addMessageToConversation(peerId, message) {
@@ -1692,6 +1724,9 @@ export class P2PChatApp {
     // Update network controls
     const controls = document.querySelectorAll(`#window-${this.instanceId} .control-btn`);
     controls.forEach(btn => {
+      // Governed owner review is independent of a browser peer connection.
+      // The owner gateway still enforces availability, consent, and dry-run.
+      if (btn.dataset.nativeGatewayBinding) { btn.disabled = false; return; }
       const text = btn.textContent.trim();
       if (text.includes('Connect')) {
         btn.disabled = this.connectionStatus === 'connected';

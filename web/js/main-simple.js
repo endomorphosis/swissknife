@@ -1,6 +1,6 @@
 // SwissKnife Web Desktop - Main Application (Simplified for Testing)
 import { mountAllAppBackendStatus } from './all-app-backend-status.js';
-import { mountLiveToolGateway } from './live-tool-gateway.js';
+import { mountLiveToolGateway, invokeNativeTool } from './live-tool-gateway.js';
 
 console.log('SwissKnife Web Desktop starting...');
 
@@ -11,7 +11,7 @@ console.log('SwissKnife Web Desktop starting...');
 // manifest aliases resolve to their canonical app id, unknown ids to null.
 const VIRTUAL_DESKTOP_ALIAS_TO_ID = new Map([
     ['code-editor', 'vibecode'],
-    ['strudel-grandma', 'strudel'],
+    ['strudel-grandma', 'music-studio'],
     ['p2p-chat-offline', 'p2p-chat'],
 ]);
 
@@ -485,6 +485,10 @@ class SwissKnifeDesktop {
     }
     
     setupEventListeners() {
+        if (this._desktopListenersBound) {
+            return;
+        }
+        this._desktopListenersBound = true;
         console.log('🎯 Setting up event listeners...');
         
         // Desktop icon clicks - changed to single click
@@ -586,6 +590,10 @@ class SwissKnifeDesktop {
             const existingWindow = Array.from(this.windows.values())
                 .find(w => w.appId === appId);
             if (existingWindow) {
+                if (existingWindow.minimized && existingWindow.element) {
+                    existingWindow.element.style.display = 'block';
+                    existingWindow.minimized = false;
+                }
                 this.focusWindow(existingWindow.element);
                 return;
             }
@@ -671,9 +679,9 @@ class SwissKnifeDesktop {
                 <span class="window-icon">${options.icon}</span>
                 <span class="window-title">${options.title}</span>
                 <div class="window-controls">
-                    <button class="window-control minimize" title="Minimize">−</button>
-                    <button class="window-control maximize" title="Maximize">□</button>
-                    <button class="window-control close" title="Close">×</button>
+                    <button class="window-control minimize" data-action="minimize" title="Minimize" aria-label="Minimize">−</button>
+                    <button class="window-control maximize" data-action="maximize" title="Maximize" aria-label="Maximize">□</button>
+                    <button class="window-control close" data-action="close" title="Close" aria-label="Close">×</button>
                 </div>
             </div>
             <div class="window-content">
@@ -786,7 +794,7 @@ class SwissKnifeDesktop {
                     break;
 
                 case 'GlassesPreviewApp':
-                    this.createGlassesPreviewSurface(contentElement);
+                    await this.createGlassesPreviewSurface(contentElement);
                     break;
 
                 case 'ORBAutoUILauncher':
@@ -1007,6 +1015,8 @@ class SwissKnifeDesktop {
         await vibeCode.initialize();
         const html = await vibeCode.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
+        vibeCode.setupEventListeners(contentElement);
         return vibeCode;
     }
 
@@ -1016,6 +1026,7 @@ class SwissKnifeDesktop {
         await strudelAI.initialize();
         const html = await strudelAI.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         // Ensure the component wires up events and audio after content is in DOM
         if (typeof strudelAI.mount === 'function') {
             await strudelAI.mount(contentElement);
@@ -1029,6 +1040,7 @@ class SwissKnifeDesktop {
         await aiChat.initialize();
         const html = await aiChat.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return aiChat;
     }
 
@@ -1038,6 +1050,7 @@ class SwissKnifeDesktop {
         await fileManager.initialize();
         const html = await fileManager.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         if (typeof fileManager.setupEventListeners === 'function') {
             fileManager.setupEventListeners(contentElement);
         }
@@ -1050,6 +1063,7 @@ class SwissKnifeDesktop {
         await taskManager.initialize();
         const html = await taskManager.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return taskManager;
     }
 
@@ -1089,6 +1103,7 @@ class SwissKnifeDesktop {
             await huggingFace.initialize();
             const html = huggingFace.render();
             contentElement.innerHTML = html;
+        this.setupEventListeners();
             
             // Setup event handlers
             if (huggingFace.setupEventListeners) {
@@ -1116,6 +1131,7 @@ class SwissKnifeDesktop {
             await openRouter.initialize();
             const html = openRouter.render();
             contentElement.innerHTML = html;
+        this.setupEventListeners();
             
             // Setup event handlers
             if (openRouter.setupEventListeners) {
@@ -1151,6 +1167,13 @@ class SwissKnifeDesktop {
                 const config = await ipfsExplorer.render();
                 contentElement.innerHTML = config.content || 'IPFS Explorer loading...';
             }
+            if (typeof ipfsExplorer.setupEventListeners === 'function') {
+                ipfsExplorer.setupEventListeners(contentElement);
+            } else if (typeof ipfsExplorer.mount === 'function') {
+                await ipfsExplorer.mount(contentElement);
+            } else {
+                this.setupEventListeners();
+            }
             return ipfsExplorer;
         } catch (error) {
             console.error('Failed to load IPFS Explorer app:', error);
@@ -1177,6 +1200,13 @@ class SwissKnifeDesktop {
             } else {
                 contentElement.innerHTML = 'Device Manager loading...';
             }
+            if (typeof deviceManager.setupEventListeners === 'function') {
+                deviceManager.setupEventListeners(contentElement);
+            } else if (typeof deviceManager.mount === 'function') {
+                await deviceManager.mount(contentElement);
+            } else {
+                this.setupEventListeners();
+            }
             return deviceManager;
         } catch (error) {
             console.error('Failed to load Device Manager app:', error);
@@ -1197,6 +1227,7 @@ class SwissKnifeDesktop {
         await settings.initialize();
         const html = await settings.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return settings;
     }
 
@@ -1205,6 +1236,7 @@ class SwissKnifeDesktop {
         const mcpControl = new MCPControlApp();
         const html = await mcpControl.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         // Store global reference for other apps to use
         window.mcpControlApp = mcpControl;
         return mcpControl;
@@ -1224,6 +1256,7 @@ class SwissKnifeDesktop {
                 }
                 const html = await apiKeys.render();
                 contentElement.innerHTML = html;
+        this.setupEventListeners();
                 return apiKeys;
             } else {
                 throw new Error('APIKeysApp not found on window object');
@@ -1246,6 +1279,7 @@ class SwissKnifeDesktop {
         const github = new GitHubApp();
         const html = await github.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         // Store global reference for OAuth integration
         window.githubApp = github;
         return github;
@@ -1256,6 +1290,7 @@ class SwissKnifeDesktop {
         const oauth = new OAuthLoginSystem();
         const html = await oauth.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         // Store global reference for other apps to use
         window.oauthSystem = oauth;
         return oauth;
@@ -1267,6 +1302,7 @@ class SwissKnifeDesktop {
         await cron.initialize();
         const html = await cron.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return cron;
     }
 
@@ -1281,6 +1317,13 @@ class SwissKnifeDesktop {
                 contentElement.innerHTML = windowContent;
             } else {
                 contentElement.innerHTML = 'NAVI loading...';
+            }
+            if (typeof navi.setupEventListeners === 'function') {
+                navi.setupEventListeners(contentElement);
+            } else if (typeof navi.mount === 'function') {
+                await navi.mount(contentElement);
+            } else {
+                this.setupEventListeners();
             }
             return navi;
         } catch (error) {
@@ -1302,6 +1345,7 @@ class SwissKnifeDesktop {
         await calculator.initialize();
         const html = await calculator.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return calculator;
     }
 
@@ -1311,6 +1355,7 @@ class SwissKnifeDesktop {
         await clock.initialize();
         const html = await clock.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return clock;
     }
 
@@ -1321,6 +1366,7 @@ class SwissKnifeDesktop {
             await calendar.initialize();
             const html = await calendar.render();
             contentElement.innerHTML = html;
+        this.setupEventListeners();
             return calendar;
         } catch (error) {
             console.error('Failed to load Calendar app:', error);
@@ -1342,6 +1388,7 @@ class SwissKnifeDesktop {
             await todo.initialize();
             const html = await todo.createWindowConfig();
             contentElement.innerHTML = html;
+        this.setupEventListeners();
             todo.setupEventListeners(contentElement);
             return todo;
         } catch (error) {
@@ -1382,6 +1429,7 @@ class SwissKnifeDesktop {
         await imageViewer.initialize();
         const html = await imageViewer.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return imageViewer;
     }
 
@@ -1391,6 +1439,7 @@ class SwissKnifeDesktop {
         await notes.initialize();
         const html = await notes.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return notes;
     }
 
@@ -1400,6 +1449,7 @@ class SwissKnifeDesktop {
         await systemMonitor.initialize();
         const html = await systemMonitor.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return systemMonitor;
     }
 
@@ -1418,6 +1468,7 @@ class SwissKnifeDesktop {
                 contentElement.innerHTML = html.content;
             } else if (typeof html === 'string') {
                 contentElement.innerHTML = html;
+        this.setupEventListeners();
             } else {
                 // Create a professional interface directly
                 contentElement.innerHTML = `
@@ -1508,7 +1559,14 @@ class SwissKnifeDesktop {
                     </div>
                 `;
             }
-            
+            if (typeof neuralPhotoshop.setupEventListeners === 'function') {
+                neuralPhotoshop.setupEventListeners(contentElement);
+            } else if (typeof neuralPhotoshop.mount === 'function') {
+                await neuralPhotoshop.mount(contentElement);
+            } else {
+                this.setupEventListeners();
+            }
+
             console.log('✅ Neural Photoshop app initialized successfully');
             return neuralPhotoshop;
         } catch (error) {
@@ -1541,6 +1599,7 @@ class SwissKnifeDesktop {
         await cinema.initialize();
         const html = await cinema.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return cinema;
     }
 
@@ -1588,6 +1647,7 @@ class SwissKnifeDesktop {
                 await p2pApp.initialize();
                 const html = await p2pApp.render();
                 contentElement.innerHTML = html;
+        this.setupEventListeners();
                 return p2pApp;
             } else if (window.createP2PNetworkApp) {
                 // Fall back to function-based creation
@@ -1598,6 +1658,7 @@ class SwissKnifeDesktop {
                 if (p2pApp.render) {
                     const html = await p2pApp.render();
                     contentElement.innerHTML = html;
+        this.setupEventListeners();
                 } else if (p2pApp.init) {
                     await p2pApp.init(contentElement);
                 }
@@ -1623,6 +1684,7 @@ class SwissKnifeDesktop {
         await neuralNetworkDesigner.initialize();
         const html = await neuralNetworkDesigner.createWindow();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return neuralNetworkDesigner;
     }
     
@@ -1648,6 +1710,7 @@ class SwissKnifeDesktop {
             await training.initialize();
             const html = await training.render();
             contentElement.innerHTML = html;
+        this.setupEventListeners();
             return training;
         }
     }
@@ -1699,6 +1762,7 @@ class SwissKnifeDesktop {
         } else {
             console.error('GrandmaStrudelDAW not found in module');
             contentElement.innerHTML = '<div style="padding: 20px;">Error: Could not load Strudel app</div>';
+            this.setupEventListeners();
         }
     }
     
@@ -1709,6 +1773,7 @@ class SwissKnifeDesktop {
             await musicStudio.initialize();
             const html = await musicStudio.render();
             contentElement.innerHTML = html;
+        this.setupEventListeners();
             return musicStudio;
         }
     }
@@ -1720,6 +1785,7 @@ class SwissKnifeDesktop {
             window.renderMusicStudioApp(contentElement);
         } else {
             contentElement.innerHTML = '<div style="padding: 20px;">Music Studio Classic loading...</div>';
+            this.setupEventListeners();
         }
     }
     
@@ -1729,6 +1795,7 @@ class SwissKnifeDesktop {
         await p2pChat.initialize();
         const html = await p2pChat.render();
         contentElement.innerHTML = html;
+        this.setupEventListeners();
         return p2pChat;
     }
 
@@ -1831,11 +1898,15 @@ class SwissKnifeDesktop {
                 </div>
             </div>
         `;
+        this.setupEventListeners();
     }
 
     async createDatasetsBrowserSurface(contentElement) {
-        const { invokeDescriptorOperation, renderEnvelopeHTML } = await import('./core/mcp-descriptor-registry.js');
-        const datasetId = 'customer-support-intents';
+        const operations = {
+            semantic_search: 'search_dataset', record_provenance: 'record_dataset_provenance',
+            index: 'preview_dataset_preparation', sync_status: 'read_dataset_progress',
+        };
+        const nativeAttributes = tool => `data-native-gateway-binding="datasets-browser.ipfs_datasets_py.${operations[tool]}" data-native-tool-id="${tool}"`;
 
         contentElement.innerHTML = `
             <div class="generated-service-surface generated-mcp-app datasets-browser-workflow sk-app"
@@ -1846,7 +1917,7 @@ class SwissKnifeDesktop {
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
                     <div style="min-width:220px; flex:1;">
                         <h2 style="margin:0 0 6px; font-size:22px;">IPFS Datasets Browser</h2>
-                        <p class="sk-honest-note">Dataset catalog, semantic search, provenance, preparation jobs, schema filters, error recovery, and progress are invoked through ipfs_datasets_py descriptors via the app capability gateway. Nothing on this surface is pre-computed: every status below reports a gateway envelope returned in this session, or states plainly that the operation has not run yet.</p>
+                        <p class="sk-honest-note">Search reads the declared live semantic collection. Provenance and dataset preparation require your confirmation and validate a request without writing or creating a job. Backend status reads actual IPFS availability. Local filter validation sends no request.</p>
                     </div>
                     <span class="sk-badge" style="text-transform:uppercase;">VDA-G048</span>
                 </div>
@@ -1855,30 +1926,31 @@ class SwissKnifeDesktop {
                     <section class="sk-card" data-svd-vda-marker="dataset-cid">
                         <h3 class="sk-section-head">Dataset</h3>
                         <div style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
-                            <span>Selected dataset: <code class="sk-code">${datasetId}</code></span>
-                            <span>Descriptor: <code class="sk-code">ipfs_datasets_py.list_datasets -&gt; ipfs.datasets.operation.list_datasets</code></span>
-                            <span id="datasets-catalog-status">Catalog identity is reported by gateway envelopes (Search, Provenance, Prepare); this surface asserts no dataset CID of its own.</span>
+                            <label>Dataset ID or CID <input data-datasets-id class="sk-input" aria-label="Dataset ID or CID" placeholder="Actual dataset identifier for provenance and status"></label>
+                            <label>Preparation records (JSON) <textarea data-datasets-source class="sk-input" aria-label="Preparation dataset records" placeholder='{"data":[{"text":"your actual record"}]}'></textarea></label>
+                            <span id="datasets-catalog-status">An empty preparation source uses the reviewed owner catalog records, displayed before confirmation. No dataset CID or job is invented.</span>
                         </div>
                     </section>
 
                     <section class="sk-card" data-svd-vda-marker="semantic-operation">
                         <h3 class="sk-section-head">Semantic Operation</h3>
+                        <label>Query <input data-datasets-query class="sk-input" aria-label="Semantic dataset query" value="desktop note provenance"></label>
                         <div id="datasets-semantic-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            semantic_search has not run yet in this session. Search invokes ipfs.datasets.operation.semantic_search ("refund policy escalation", top_k 5) with the staged filters.
+                            No search has run. Search uses the actual collection and embedding model declared by the owner catalog, with your query and staged filters.
                         </div>
                     </section>
 
                     <section class="sk-card" data-svd-vda-marker="provenance-operation">
                         <h3 class="sk-section-head">Provenance Operation</h3>
                         <div id="datasets-provenance-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            record_provenance has not run yet in this session. It is a governed write and is invoked with execution_mode "confirmed" only when Provenance is chosen.
+                            No provenance request has run. Review the actual dataset context, then confirm a dry-run validation; no provenance record is persisted.
                         </div>
                     </section>
 
                     <section class="sk-card" data-svd-vda-marker="preparation-job">
-                        <h3 class="sk-section-head">Preparation Job</h3>
+                        <h3 class="sk-section-head">Preparation Preview</h3>
                         <div id="datasets-preparation-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            No preparation job has been invoked yet in this session. Prepare invokes the descriptor index operation with execution_mode "confirmed".
+                            No preparation request has run. Prepare validates the genuine process_dataset callable signature for the actual records; it does not execute processing or create an index or job.
                         </div>
                     </section>
 
@@ -1909,21 +1981,21 @@ class SwissKnifeDesktop {
                     </section>
 
                     <section class="sk-card" data-svd-vda-marker="progress-ui">
-                        <h3 class="sk-section-head">Progress</h3>
+                        <h3 class="sk-section-head">Backend Status</h3>
                         <div style="display:grid; gap:8px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
-                            <progress id="datasets-progress-bar" max="100" aria-label="Dataset preparation progress" style="width:100%;"></progress>
-                            <span id="datasets-progress-status" role="status" aria-live="polite">No sync_status read yet in this session; the bar stays indeterminate until a gateway envelope reports progress.</span>
+                            <progress id="datasets-progress-bar" max="100" aria-label="Preparation progress unavailable" style="width:100%;"></progress>
+                            <span id="datasets-progress-status" role="status" aria-live="polite">No sync_status read yet. This operation reports actual IPFS availability; it does not provide preparation job progress.</span>
                         </div>
                     </section>
                 </div>
 
                 <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="sk-btn" data-svd-workflow-action="run-semantic-search" data-action="semantic-search" aria-label="Run primary semantic dataset search">Search</button>
-                    <button class="sk-btn" data-svd-workflow-action="record-provenance" data-action="record-provenance" aria-label="Record dataset provenance">Provenance</button>
-                    <button class="sk-btn" data-svd-workflow-action="start-preparation-job" data-action="prepare-dataset" aria-label="Start dataset preparation job">Prepare</button>
+                    <button ${nativeAttributes('semantic_search')} class="sk-btn" data-svd-workflow-action="run-semantic-search" data-action="semantic-search" aria-label="Run primary semantic dataset search">Search</button>
+                    <button ${nativeAttributes('record_provenance')} class="sk-btn" data-svd-workflow-action="record-provenance" data-action="record-provenance" aria-label="Record dataset provenance">Provenance</button>
+                    <button ${nativeAttributes('index')} class="sk-btn" data-svd-workflow-action="start-preparation-job" data-action="prepare-dataset" aria-label="Preview dataset preparation request">Prepare</button>
                     <button class="sk-btn" data-svd-workflow-action="apply-schema-filter" data-action="apply-schema-filter" aria-label="Apply schema and split filters">Apply Filters</button>
                     <button class="sk-btn" data-svd-workflow-action="show-schema-error" data-action="show-schema-error" aria-label="Show schema error recovery">Recover Error</button>
-                    <button class="sk-btn" data-svd-workflow-action="refresh-progress" data-action="refresh-progress" aria-label="Refresh preparation progress">Progress</button>
+                    <button ${nativeAttributes('sync_status')} class="sk-btn" data-svd-workflow-action="refresh-progress" data-action="refresh-progress" aria-label="Read actual IPFS backend status">Progress</button>
                 </div>
 
                 <div id="datasets-envelope-result" style="margin-top:14px;"></div>
@@ -1932,6 +2004,7 @@ class SwissKnifeDesktop {
                 </ol>
             </div>
         `;
+        this.setupEventListeners();
 
         const semanticStatus = contentElement.querySelector('#datasets-semantic-status');
         const provenanceStatus = contentElement.querySelector('#datasets-provenance-status');
@@ -1952,52 +2025,83 @@ class SwissKnifeDesktop {
             log.appendChild(item);
         };
 
-        const runOperation = async (operation, input, { execution_mode, statusEl } = {}) => {
+        let catalogPromise;
+        const controls = () => catalogPromise ||= fetch('/mcp/tools/bindings?app_id=datasets-browser', { cache: 'no-store' }).then(async response => {
+            if (!response.ok) throw new Error('The declared dataset owner binding catalog is unavailable.');
+            const catalog = (await response.json()).controls || [];
+            const identity = catalog.flatMap(control => Object.values(control.safe_payloads || {})).find(payload => payload?.cid)?.cid;
+            if (identity && !contentElement.querySelector('[data-datasets-id]').value.trim()) contentElement.querySelector('[data-datasets-id]').value = identity;
+            return catalog;
+        }).catch(error => { catalogPromise = null; throw error; });
+        const ownerResult = envelope => {
+            if (envelope.ok !== true || envelope.outcome !== 'executed') throw new Error(envelope.error?.message || envelope.error || 'Owner did not execute the request.');
+            let value = envelope.result;
+            for (let depth = 0; depth < 8 && value && typeof value === 'object'; depth++) {
+                if (value.ok === false || value.success === false || value.isError === true || value.error || value.status === 'error') throw new Error(value.error?.message || value.error || value.message || 'Owner rejected the operation.');
+                const blocks = value.content?.filter(item => item.type === 'json' && item.json && typeof item.json === 'object') || [];
+                if (blocks.length > 1) throw new Error('Owner returned ambiguous operation data.');
+                if (blocks.length === 1) value = blocks[0].json;
+                else if (value.result && typeof value.result === 'object') value = value.result;
+                else return value;
+            }
+            if (value == null) throw new Error('Owner returned no operation data.');
+            return value;
+        };
+        const runOperation = async (operation, buildInput, { trigger, statusEl } = {}) => {
             try {
-                const envelope = await invokeDescriptorOperation({
-                    descriptor_id: 'ipfs_datasets_py',
-                    operation,
-                    input,
-                    app_id: 'datasets-browser',
-                    execution_mode,
-                    desktop: this,
-                });
-                if (result) result.innerHTML = renderEnvelopeHTML(envelope);
-                const receiptCid = envelope.receipt_refs?.[0]?.receipt_cid || '';
-                const summary = `${operation} ${envelope.status}${envelope.trace?.transport ? ` via ${envelope.trace.transport}` : ''}${receiptCid ? ` receipt ${receiptCid}` : ''}: ${envelope.summary || ''}`;
-                if (statusEl) statusEl.textContent = summary;
+                const bindingId = `datasets-browser.ipfs_datasets_py.${operations[operation]}`;
+                const control = (await controls()).find(control => control.binding_id === bindingId);
+                if (!control) throw new Error(`The exact ${operation} binding is undeclared.`);
+                const defaults = control.safe_payloads?.[operation] || control.safe_payload || {};
+                const payload = buildInput(defaults);
+                const envelope = await invokeNativeTool(contentElement, 'datasets-browser', bindingId, { toolId: operation, payload, trigger });
+                if (!envelope) { if (statusEl) statusEl.textContent = 'Cancelled before owner dispatch.'; return null; }
+                const value = ownerResult(envelope);
+                const preview = value?.dry_run === true && value?.mutation_performed === false;
+                if (['index', 'record_provenance'].includes(operation) && (!preview || value.body_executed !== false || value.validation !== 'real-callable-signature')) throw new Error('Owner did not return the required no-mutation validated preview.');
+                if (operation === 'semantic_search' && (value.fallback === true || !Array.isArray(value.results))) throw new Error('Owner did not return actual semantic search results.');
+                const summary = `${operation} ${preview ? 'preview validated; body not executed, no record, index or job created' : envelope.outcome} via ${envelope.transport || 'declared transport'}; receipt ${envelope.receipt?.receipt_id || 'unavailable'}`;
+                if (result) { const pre = document.createElement('pre'); pre.textContent = JSON.stringify(envelope, null, 2); result.replaceChildren(pre); }
+                if (statusEl) statusEl.textContent = `${summary}: ${JSON.stringify(value)}`;
                 appendLog(summary);
-                return envelope;
+                return { envelope, value, preview };
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
                 if (statusEl) statusEl.textContent = `${operation} could not be invoked: ${message}`;
+                if (result) result.replaceChildren();
                 appendLog(`${operation} invocation error: ${message}`);
                 return null;
             }
         };
-
-        contentElement.querySelector('[data-svd-workflow-action="run-semantic-search"]')?.addEventListener('click', async () => {
-            const { schema, split } = stagedFilters();
-            await runOperation('semantic_search', {
-                query: 'refund policy escalation',
-                top_k: 5,
-                filters: { language: 'en', split, schema },
-            }, { statusEl: semanticStatus });
+        const datasetIdentity = defaults => {
+            const value = contentElement.querySelector('[data-datasets-id]').value.trim() || defaults.dataset_id || defaults.inputs?.[0];
+            if (!value) throw new Error('Enter the actual dataset identifier.');
+            return value;
+        };
+        contentElement.querySelector('[data-svd-workflow-action="run-semantic-search"]')?.addEventListener('click', async event => {
+            await runOperation('semantic_search', defaults => {
+                const query = contentElement.querySelector('[data-datasets-query]').value.trim();
+                if (!query) throw new Error('Enter a non-empty search query.');
+                if (!defaults.collection || !defaults.model) throw new Error('The owner has not declared an actual search collection and embedding model.');
+                return { ...defaults, query, top_k: 5, filters: { ...defaults.filters, ...stagedFilters() } };
+            }, { trigger: event.currentTarget, statusEl: semanticStatus });
         });
-        contentElement.querySelector('[data-svd-workflow-action="record-provenance"]')?.addEventListener('click', async () => {
-            const { schema, split } = stagedFilters();
-            await runOperation('record_provenance', {
-                dataset_id: datasetId,
-                metadata: { surface: 'datasets-browser', query: 'refund policy escalation', schema, split },
-            }, { execution_mode: 'confirmed', statusEl: provenanceStatus });
+        contentElement.querySelector('[data-svd-workflow-action="record-provenance"]')?.addEventListener('click', async event => {
+            await runOperation('record_provenance', defaults => ({
+                ...defaults, dataset_id: datasetIdentity(defaults), operation: 'dataset-browser-context',
+                parameters: { ...defaults.parameters, surface: 'datasets-browser', query: contentElement.querySelector('[data-datasets-query]').value.trim(), ...stagedFilters() },
+            }), { trigger: event.currentTarget, statusEl: provenanceStatus });
         });
-        contentElement.querySelector('[data-svd-workflow-action="start-preparation-job"]')?.addEventListener('click', async () => {
-            const envelope = await runOperation('index', {
-                dataset_id: datasetId,
-            }, { execution_mode: 'confirmed', statusEl: preparationStatus });
-            if (envelope && progressStatus) {
-                progressStatus.textContent = 'Preparation was invoked through the gateway; use Progress to read the live sync_status frontier.';
-            }
+        contentElement.querySelector('[data-svd-workflow-action="start-preparation-job"]')?.addEventListener('click', async event => {
+            await runOperation('index', defaults => {
+                const input = contentElement.querySelector('[data-datasets-source]');
+                const dataset_source = input.value.trim() ? JSON.parse(input.value) : defaults.dataset_source;
+                if (!dataset_source || !Array.isArray(dataset_source.data)) throw new Error('Enter actual preparation records as a JSON object with a data array, or configure reviewed owner records.');
+                input.value = JSON.stringify(dataset_source, null, 2);
+                const operations = defaults.operations || [{ type: 'clean' }];
+                if (!Array.isArray(operations) || !operations.length || operations.some(operation => !['filter', 'transform', 'map', 'clean', 'normalize'].includes(operation.type))) throw new Error('The preparation request contains an unsupported transformation.');
+                return { ...defaults, dataset_source, operations };
+            }, { trigger: event.currentTarget, statusEl: preparationStatus });
         });
         contentElement.querySelector('[data-svd-workflow-action="apply-schema-filter"]')?.addEventListener('click', () => {
             const { schema, split } = stagedFilters();
@@ -2013,13 +2117,13 @@ class SwissKnifeDesktop {
             if (errorStatus) errorStatus.textContent = `Local schema validation rejected the staged filter before transport: unsupported field ${unsupported.join(', ') || 'customer.password'} is not part of the semantic_search filter schema. No backend call was made.`;
             appendLog('local schema validation rejected unsupported filter field customer.password before transport; no backend call made');
         });
-        contentElement.querySelector('[data-svd-workflow-action="refresh-progress"]')?.addEventListener('click', async () => {
-            const envelope = await runOperation('sync_status', {
-                dataset_id: datasetId,
-            }, { statusEl: progressStatus });
-            const frontier = envelope?.output?.frontier;
-            if (envelope && progressStatus && Array.isArray(frontier)) {
-                progressStatus.textContent += ` Frontier entries reported: ${frontier.length}.`;
+        contentElement.querySelector('[data-svd-workflow-action="refresh-progress"]')?.addEventListener('click', async event => {
+            const response = await runOperation('sync_status', defaults => ({ ...defaults, dataset_id: datasetIdentity(defaults) }), { trigger: event.currentTarget, statusEl: progressStatus });
+            if (response && progressStatus) {
+                const state = response.value;
+                progressStatus.textContent += state.ipfs_available === true
+                    ? ' Actual IPFS backend is available. No preparation progress is reported by this operation.'
+                    : ` IPFS backend unavailable: ${state.ipfs_error || state.note || 'owner did not report availability'}. No preparation progress is available.`;
             }
         });
     }
@@ -2029,6 +2133,11 @@ class SwissKnifeDesktop {
         const app = new MCPPlusPlusExplorerApp(this);
         await app.initialize();
         contentElement.innerHTML = await app.render();
+        if (typeof app.setupEventListeners === 'function') {
+            app.setupEventListeners(contentElement);
+        } else if (typeof app.mount === 'function') {
+            await app.mount(contentElement);
+        }
         app.bind(contentElement);
         contentElement.__mcpPlusPlusExplorerApp = app;
     }
@@ -2149,6 +2258,7 @@ class SwissKnifeDesktop {
                 </ol>
             </div>
         `;
+        this.setupEventListeners();
 
         const root = contentElement.querySelector('.orb-auto-ui-workflow');
         const artifactStatus = contentElement.querySelector('#orb-artifact-status');
@@ -2220,7 +2330,7 @@ class SwissKnifeDesktop {
         });
     }
 
-    createGlassesPreviewSurface(contentElement) {
+    async createGlassesPreviewSurface(contentElement) {
         const replayBundleCid = 'bafyglassg051simulatorreplaybundle';
         const displayPacketCid = 'bafyglassg051displaypacket';
         const cameraPacketCid = 'bafyglassg051camerapacket';
@@ -2333,6 +2443,7 @@ class SwissKnifeDesktop {
                 </ol>
             </div>
         `;
+        this.setupEventListeners();
 
         const root = contentElement.querySelector('.glasses-preview-workflow');
         const replayStatus = contentElement.querySelector('#glasses-replay-status');
@@ -2390,169 +2501,93 @@ class SwissKnifeDesktop {
     }
 
     async createIDLExplorerSurface(contentElement) {
-        const {
-            listBrowserMCPDescriptors,
-            inspectBrowserMCPDescriptor,
-            invokeDescriptorOperation,
-            renderEnvelopeHTML,
-        } = await import('./core/mcp-descriptor-registry.js');
+        const { listBrowserMCPDescriptors, inspectBrowserMCPDescriptor } = await import('./core/mcp-descriptor-registry.js');
         const descriptors = listBrowserMCPDescriptors();
         const inspections = descriptors.map(descriptor => inspectBrowserMCPDescriptor(descriptor.id)).filter(Boolean);
-        const descriptorCidMap = {
-            ipfs_kit_py: 'bafyidlg050kitdescriptor',
-            ipfs_datasets_py: 'bafyidlg050datasetsdescriptor',
-            ipfs_accelerate_py: 'bafyidlg050acceleratedescriptor',
+        const escape = value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+        const hash = async value => {
+            const bytes = new TextEncoder().encode(JSON.stringify(value));
+            const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+            return `sha256:${Array.from(digest, byte => byte.toString(16).padStart(2, '0')).join('')}`;
         };
-        const compatibilityReceipt = 'receipt:idl-explorer:g050:compatibility:fixture-ok';
-        const invalidReceipt = 'receipt:idl-explorer:g050:invalid-input:rejected';
-        const drilldownReceipt = 'receipt:idl-explorer:g050:receipt-drilldown:opened';
-        const fixtureCid = 'bafyidlg050compatfixture';
-        const invalidFixtureCid = 'bafyidlg050invalidinputfixture';
-        const policyCid = 'bafyidlg050schemapolicy';
-        const selectedInspection = inspections.find(inspection => inspection.id === 'ipfs_datasets_py') || inspections[0];
-        const selectedMethod = selectedInspection?.method_schemas?.find(method => method.method === 'browse') || selectedInspection?.method_schemas?.[0];
-
+        const descriptorHashes = await Promise.all(inspections.map(async inspection => ({ id: inspection.id, content_hash: await hash(inspection) })));
+        const fixtureSchema = { type: 'object', required: ['descriptor_id', 'limit'], properties: {
+            descriptor_id: { type: 'string', enum: inspections.map(inspection => inspection.id) },
+            limit: { type: 'integer', minimum: 1, maximum: 50 },
+        } };
+        const runLocalFixture = input => {
+            const errors = [];
+            if (typeof input?.descriptor_id !== 'string') errors.push('descriptor_id must be a string');
+            else if (!fixtureSchema.properties.descriptor_id.enum.includes(input.descriptor_id)) errors.push('descriptor_id must name a local registry descriptor');
+            if (!Number.isInteger(input?.limit) || input.limit < 1 || input.limit > 50) errors.push('limit must be an integer between 1 and 50');
+            if (errors.length) throw new Error(errors.join('; '));
+            const inspection = inspections.find(item => item.id === input.descriptor_id);
+            return { descriptor_id: inspection.id, method_names: inspection.method_schemas.slice(0, input.limit).map(method => method.method),
+                total_method_count: inspection.method_schemas.length, execution: 'local-only', remote_execution: false };
+        };
+        const fixtureInput = { descriptor_id: inspections.find(item => item.id === 'ipfs_datasets_py')?.id || inspections[0]?.id, limit: 5 };
+        const declaredRoutes = [...new Set(inspections.flatMap(inspection => inspection.services.map(service => service.transport)))];
         contentElement.innerHTML = `
-            <div class="generated-service-surface generated-mcp-app idl-explorer-workflow sk-app"
-                data-app-id="idl-explorer"
-                data-service="orb_idl"
-                data-svd-workflow="idl-explorer.inspect-governed-descriptors"
-                style="height:100%; min-height:0; padding:16px; overflow:auto; background:var(--sk-bg-panel, #101820); color:var(--sk-text, #f7fafc);">
-                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
-                    <div style="min-width:220px; flex:1;">
-                        <h2 style="margin:0 0 6px; font-size:22px;">ORB IDL Explorer</h2>
-                        <p class="sk-honest-note">Descriptor CIDs, method schemas, policy decisions, transport routes, compatibility fixtures, and receipts are inspected from the shared MCP/MCP++ registry.</p>
-                    </div>
-                    <span class="sk-badge" style="text-transform:uppercase;">VDA-G050 ready</span>
+            <div class="generated-service-surface generated-mcp-app idl-explorer-workflow sk-app" data-app-id="idl-explorer" data-service="orb_idl" data-svd-workflow="idl-explorer.inspect-governed-descriptors"
+                style="height:100%;padding:16px;overflow:auto;background:var(--sk-bg-panel,#101820);color:var(--sk-text,#f7fafc)">
+                <h2>ORB IDL Explorer</h2><p class="sk-honest-note">Inspect the local descriptor registry and run a local typed fixture. No owner tool or remote transport is invoked here.</p>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px">
+                    <section class="sk-card" data-svd-vda-marker="descriptor-cids"><h3>Local descriptor content hashes</h3>
+                        ${descriptorHashes.map(item => `<p>${escape(item.id)}: <code>${escape(item.content_hash)}</code></p>`).join('')}
+                        <p>Computed from the current local inspection JSON; these are not remote attestations or persisted IPFS CIDs.</p></section>
+                    <section class="sk-card" data-svd-vda-marker="schema-policy"><h3>Local fixture input schema</h3><pre>${escape(JSON.stringify(fixtureSchema, null, 2))}</pre>
+                        <p>Provider policy declarations can be inspected locally. No owner policy decision has been requested.</p>
+                        <details><summary>Current local method schemas and policy declarations</summary><pre>${escape(JSON.stringify(inspections.map(inspection => ({ id: inspection.id, methods: inspection.method_schemas, permissions: inspection.permissions })), null, 2))}</pre></details></section>
+                    <section class="sk-card" data-svd-vda-marker="compatibility-fixture"><h3>Local compatibility fixture</h3>
+                        <pre>${escape(JSON.stringify(fixtureInput, null, 2))}</pre><div id="idl-compatibility-status" role="status" aria-live="polite">Not run. The fixture lists actual methods from the local registry.</div></section>
+                    <section class="sk-card" data-svd-vda-marker="invalid-input"><h3>Invalid input fixture</h3><div id="idl-invalid-status" role="status">Not run. Numeric descriptor IDs and string limits will be tested against the local fixture validator.</div></section>
+                    <section class="sk-card" data-svd-vda-marker="transport-badges"><h3>Declared routes</h3>${declaredRoutes.map(route => `<span class="sk-badge" data-transport-badge="${escape(route)}">${escape(route)}</span>`).join(' ')}
+                        <p id="idl-transport-status">Local declarations only; connectivity has not been tested.</p></section>
+                    <section class="sk-card" data-svd-vda-marker="receipt-drill-down"><h3>Local fixture output</h3><details id="idl-receipt-drilldown"><summary>No remote receipt</summary><pre id="idl-local-result">Fixture not run.</pre></details></section>
                 </div>
-
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px;">
-                    <section class="sk-card" data-svd-vda-marker="descriptor-cids">
-                        <h3 class="sk-section-head">Descriptor CIDs</h3>
-                        <div style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
-                            ${descriptors.map(descriptor => `
-                                <span>${descriptor.name}: <code class="sk-code">${descriptorCidMap[descriptor.id] || descriptor.interface_cid}</code> (<code class="sk-code">${descriptor.interface_cid}</code>)</span>
-                            `).join('')}
-                        </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="schema-policy">
-                        <h3 class="sk-section-head">Schema and Policy</h3>
-                        <div style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            ${selectedInspection?.name || 'descriptor'} ${selectedMethod?.method || 'method'} exposes input_schema, output_schema, permissions, default_deny policy, confirmation_policy, and receipt_policy. Policy CID: <code class="sk-code">${policyCid}</code>. Read methods avoid confirmation; write and destructive methods require governed receipts.
-                        </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="compatibility-fixture">
-                        <h3 class="sk-section-head">Compatibility Fixture</h3>
-                        <div id="idl-compatibility-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Fixture <code class="sk-code">${fixtureCid}</code> targets <code class="sk-code">ipfs_datasets_py.browse</code> with root_cid <code class="sk-code">bafyidlg050datasetroot</code>, limit 5, and <code class="sk-code">${compatibilityReceipt}</code>.
-                        </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="invalid-input">
-                        <h3 class="sk-section-head">Invalid Input</h3>
-                        <div id="idl-invalid-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Fixture <code class="sk-code">${invalidFixtureCid}</code> rejects root_cid number and limit string before transport dispatch. <code class="sk-code">${invalidReceipt}</code>.
-                        </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="transport-badges">
-                        <h3 class="sk-section-head">Transport Badges</h3>
-                        <div style="display:flex; gap:6px; flex-wrap:wrap; font-size:12px;">
-                            ${['browser-gateway', 'mcp_remote', 'mcp_plus_plus_remote', 'descriptor-fallback'].map(transport => `
-                                <span data-transport-badge="${transport}" class="sk-badge">${transport}</span>
-                            `).join('')}
-                        </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="receipt-drill-down">
-                        <h3 class="sk-section-head">Receipt Drill-Down</h3>
-                        <details id="idl-receipt-drilldown" open>
-                            <summary style="cursor:pointer; color:var(--sk-text, #f7fafc);">${drilldownReceipt}</summary>
-                            <pre class="sk-code" style="white-space:pre-wrap; overflow:auto; font-size:11px; padding:8px;">${JSON.stringify({
-                                receipt_cid: drilldownReceipt,
-                                descriptor_cids: Object.values(descriptorCidMap),
-                                policy_cid: policyCid,
-                                fixture_cid: fixtureCid,
-                                invalid_fixture_cid: invalidFixtureCid,
-                                event_dag: 'event:idl-explorer:g050:descriptor-fixture-drilldown',
-                            }, null, 2)}</pre>
-                        </details>
-                    </section>
-                </div>
-
-                <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="sk-btn" data-svd-workflow-action="run-compatibility-fixture" data-action="run-compatibility-fixture" aria-label="Run IDL compatibility fixture">Run Fixture</button>
-                    <button class="sk-btn" data-svd-workflow-action="validate-invalid-input" data-action="validate-invalid-input" aria-label="Validate invalid IDL input">Invalid Input</button>
-                    <button class="sk-btn" data-svd-workflow-action="open-receipt-drilldown" data-action="open-receipt-drilldown" aria-label="Open receipt drill-down">Receipt</button>
-                    <button class="sk-btn" data-svd-workflow-action="refresh-transport-badges" data-action="refresh-transport-badges" aria-label="Refresh transport badges">Transports</button>
-                </div>
-
-                <div id="idl-envelope-result" style="margin-top:14px;"></div>
-                <ol id="idl-workflow-log" style="margin:14px 0 0; padding-left:22px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
-                    <li>${compatibilityReceipt} ${fixtureCid}</li>
-                    <li>${invalidReceipt} ${invalidFixtureCid}</li>
-                    <li>${drilldownReceipt} ${policyCid}</li>
-                </ol>
-            </div>
-        `;
-
+                <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="sk-btn" data-svd-workflow-action="run-compatibility-fixture" data-action="run-compatibility-fixture">Run local fixture</button>
+                    <button class="sk-btn" data-svd-workflow-action="validate-invalid-input" data-action="validate-invalid-input">Validate invalid input</button>
+                    <button class="sk-btn" data-svd-workflow-action="open-receipt-drilldown" data-action="open-receipt-drilldown">Inspect local output</button>
+                    <button class="sk-btn" data-svd-workflow-action="refresh-transport-badges" data-action="refresh-transport-badges">Inspect declared routes</button>
+                </div><ol id="idl-workflow-log"><li>Local descriptor schemas loaded. No remote invocation.</li></ol>
+            </div>`;
+        this.setupEventListeners();
         const root = contentElement.querySelector('.idl-explorer-workflow');
-        const compatibilityStatus = contentElement.querySelector('#idl-compatibility-status');
-        const invalidStatus = contentElement.querySelector('#idl-invalid-status');
-        const result = contentElement.querySelector('#idl-envelope-result');
         const log = contentElement.querySelector('#idl-workflow-log');
-        const drilldown = contentElement.querySelector('#idl-receipt-drilldown');
-
-        const appendLog = (message) => {
-            if (!log) return;
-            const item = document.createElement('li');
-            item.textContent = message;
-            log.appendChild(item);
-        };
-
-        root?.querySelector('[data-svd-workflow-action="run-compatibility-fixture"]')?.addEventListener('click', async () => {
-            if (compatibilityStatus) {
-                compatibilityStatus.textContent = `Compatibility fixture ${fixtureCid} dispatched through ipfs_datasets_py.browse; ${compatibilityReceipt} pending receipt render.`;
-            }
-            appendLog(`receipt:idl-explorer:g050:compatibility:dispatched ${fixtureCid} browser-gateway mcp_plus_plus_remote`);
+        const appendLog = message => { const item = document.createElement('li'); item.textContent = message; log.append(item); };
+        root.querySelector('[data-action="run-compatibility-fixture"]').addEventListener('click', async () => {
+            const status = root.querySelector('#idl-compatibility-status');
             try {
-                const envelope = await invokeDescriptorOperation({
-                    descriptor_id: 'ipfs_datasets_py',
-                    operation: 'browse',
-                    input: { root_cid: 'bafyidlg050datasetroot', path: '/', limit: 5 },
-                    app_id: 'idl-explorer',
-                    desktop: this,
-                });
-                if (result) result.innerHTML = renderEnvelopeHTML(envelope);
-                appendLog(`${compatibilityReceipt} ${envelope.status} ${envelope.trace.transport} ${envelope.receipt_refs?.[0]?.receipt_cid || ''}`);
+                const result = runLocalFixture(fixtureInput);
+                const output = { result, content_hash: await hash(result), receipt: null };
+                root.querySelector('#idl-local-result').textContent = JSON.stringify(output, null, 2);
+                status.dataset.fixtureState = 'passed-local';
+                status.textContent = `Local fixture passed: ${result.method_names.length} methods inspected. No owner tool was dispatched or remote receipt created.`;
+                appendLog('Executed the local typed fixture against the current descriptor registry.');
             } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                appendLog(`${compatibilityReceipt} descriptor-fallback ${message}`);
+                status.dataset.fixtureState = 'failed-local'; status.textContent = `Local fixture failed: ${error.message}`;
             }
         });
-
-        root?.querySelector('[data-svd-workflow-action="validate-invalid-input"]')?.addEventListener('click', () => {
-            if (invalidStatus) {
-                invalidStatus.textContent = `Invalid input fixture ${invalidFixtureCid} rejected by input_schema before transport: root_cid must be string and limit must be number. ${invalidReceipt}.`;
-            }
-            appendLog(`${invalidReceipt} schema validation rejected root_cid:number limit:string`);
+        root.querySelector('[data-action="validate-invalid-input"]').addEventListener('click', () => {
+            const status = root.querySelector('#idl-invalid-status');
+            try { runLocalFixture({ descriptor_id: 42, limit: 'five' }); status.dataset.fixtureState = 'unexpectedly-accepted'; status.textContent = 'Local validator incorrectly accepted invalid input.'; }
+            catch (error) { status.dataset.fixtureState = 'rejected-local'; status.textContent = `Local validation rejected input: ${error.message}. No transport was invoked.`; }
         });
-
-        root?.querySelector('[data-svd-workflow-action="open-receipt-drilldown"]')?.addEventListener('click', () => {
-            if (drilldown) drilldown.open = true;
-            appendLog(`${drilldownReceipt} receipt drill-down opened with event:idl-explorer:g050:descriptor-fixture-drilldown`);
+        root.querySelector('[data-action="open-receipt-drilldown"]').addEventListener('click', () => {
+            root.querySelector('#idl-receipt-drilldown').open = true; appendLog('Opened actual local fixture output. No remote receipt exists.');
         });
-
-        root?.querySelector('[data-svd-workflow-action="refresh-transport-badges"]')?.addEventListener('click', () => {
-            appendLog('receipt:idl-explorer:g050:transport-badges browser-gateway mcp_remote mcp_plus_plus_remote descriptor-fallback');
+        root.querySelector('[data-action="refresh-transport-badges"]').addEventListener('click', () => {
+            root.querySelector('#idl-transport-status').textContent = `Locally declared routes: ${declaredRoutes.join(', ') || 'none'}. Connectivity remains untested.`;
         });
     }
 
     async createAcceleratePanelSurface(contentElement) {
-        const { invokeDescriptorOperation, renderEnvelopeHTML } = await import('./core/mcp-descriptor-registry.js');
-        const model = 'sentence-transformers/all-MiniLM-L6-v2';
+        const operations = {
+            list_models: 'read_model_catalog', hardware_profile: 'read_hardware_profile',
+            run_inference_job: 'run_inference_job', job_status: 'read_job_status', telemetry: 'read_telemetry',
+        };
+        const nativeAttributes = tool => `data-native-gateway-binding="accelerate-panel.ipfs_accelerate_py.${operations[tool]}" data-native-tool-id="${tool}"`;
         let lastJobId = null;
 
         contentElement.innerHTML = `
@@ -2564,7 +2599,7 @@ class SwissKnifeDesktop {
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
                     <div style="min-width:220px; flex:1;">
                         <h2 style="margin:0 0 6px; font-size:22px;">IPFS Accelerate Panel</h2>
-                        <p class="sk-honest-note">Model artifacts, evaluation policy, hardware fit, primary execution, queue state, and recovery probes are invoked through ipfs_accelerate_py descriptors via the app capability gateway. Every status below reports a gateway envelope returned in this session, or states plainly that the operation has not run yet; this surface asserts no run result of its own.</p>
+                        <p class="sk-honest-note">Model artifacts, evaluation policy, hardware fit, primary execution, queue state, and recovery probes are invoked through ipfs_accelerate_py descriptors through reviewed native gateway bindings. Every status below reports a gateway envelope returned in this session, or states plainly that the operation has not run yet; this surface asserts no run result of its own.</p>
                     </div>
                     <span class="sk-badge" style="text-transform:uppercase;">VDA-G049</span>
                 </div>
@@ -2573,7 +2608,8 @@ class SwissKnifeDesktop {
                     <section class="sk-card" data-svd-vda-marker="model-artifacts">
                         <h3 class="sk-section-head">Model Artifacts</h3>
                         <div style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
-                            <span>Selected model: <code class="sk-code">${model}</code> (panel selection)</span>
+                            <label>Model ID <input id="accelerate-model-id" class="sk-input" placeholder="Reviewed owner default when empty"></label>
+                            <span id="accelerate-selected-model">No model has been selected by a returned owner request yet.</span>
                             <span id="accelerate-model-status">list_models has not run yet in this session. Artifacts reports the registered models from the gateway envelope; this surface asserts no artifact CIDs.</span>
                         </div>
                     </section>
@@ -2595,7 +2631,7 @@ class SwissKnifeDesktop {
                     <section class="sk-card" data-svd-vda-marker="primary-execution">
                         <h3 class="sk-section-head">Primary Execution</h3>
                         <div id="accelerate-primary-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            run_inference_job has not run yet in this session. Run Inference invokes it with execution_mode "confirmed" and then polls job_status for the returned job; the outcome shown is the gateway's envelope, never a locally claimed completion.
+                            run_inference_job has not run yet in this session. Run Inference invokes it after explicit confirmation; previews create no job, and job status is read separately; the outcome shown is the gateway's envelope, never a locally claimed completion.
                         </div>
                         <progress id="accelerate-inference-progress" max="100" value="0" aria-label="Inference request progress" style="width:100%; margin-top:8px;"></progress>
                     </section>
@@ -2603,7 +2639,7 @@ class SwissKnifeDesktop {
                     <section class="sk-card" data-svd-vda-marker="queue-log-cancel">
                         <h3 class="sk-section-head">Queue, Log, Cancel</h3>
                         <div id="accelerate-queue-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Queue state is reported by run_inference_job and job_status envelopes in this session. The ipfs_accelerate_py descriptor exposes no cancellation operation, so Cancel reports that declared disposition instead of fabricating a cancellation.
+                            Queue state is reported by run_inference_job and job_status envelopes in this session. Cancellation is unavailable: the owner exposes no reviewed cancellation operation. Read Job Status queries an actual task without claiming cancellation.
                         </div>
                     </section>
 
@@ -2616,11 +2652,12 @@ class SwissKnifeDesktop {
                 </div>
 
                 <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="sk-btn" data-svd-workflow-action="launch-primary-execution" data-action="run-primary-inference" aria-label="Run primary governed inference job">Run Inference</button>
-                    <button class="sk-btn" data-svd-workflow-action="inspect-model-artifacts" data-action="inspect-artifacts" aria-label="Inspect model artifacts">Artifacts</button>
-                    <button class="sk-btn" data-svd-workflow-action="refresh-hardware-fit" data-action="refresh-hardware" aria-label="Refresh hardware fit">Hardware</button>
+                    <button ${nativeAttributes('run_inference_job')} class="sk-btn" data-svd-workflow-action="launch-primary-execution" data-action="run-primary-inference" aria-label="Run primary governed inference job">Run Inference</button>
+                    <button ${nativeAttributes('list_models')} class="sk-btn" data-svd-workflow-action="inspect-model-artifacts" data-action="inspect-artifacts" aria-label="Inspect model artifacts">Artifacts</button>
+                    <button ${nativeAttributes('hardware_profile')} class="sk-btn" data-svd-workflow-action="refresh-hardware-fit" data-action="refresh-hardware" aria-label="Refresh hardware fit">Hardware</button>
+                    <button ${nativeAttributes('job_status')} class="sk-btn" data-svd-workflow-action="read-job-status" data-action="read-job-status" aria-label="Read actual inference job status">Read Job Status</button>
                     <button class="sk-btn" data-svd-workflow-action="cancel-queued-job" data-action="cancel-job" aria-label="Cancel queued inference job">Cancel</button>
-                    <button class="sk-btn" data-svd-workflow-action="recover-no-capacity" data-action="recover-capacity" aria-label="Recover from no capacity state">Recover</button>
+                    <button ${nativeAttributes('telemetry')} class="sk-btn" data-svd-workflow-action="recover-no-capacity" data-action="recover-capacity" aria-label="Recover from no capacity state">Recover</button>
                 </div>
 
                 <div id="accelerate-envelope-result" style="margin-top:14px;"></div>
@@ -2629,6 +2666,7 @@ class SwissKnifeDesktop {
                 </ol>
             </div>
         `;
+        this.setupEventListeners();
 
         const modelStatus = contentElement.querySelector('#accelerate-model-status');
         const hardwareStatus = contentElement.querySelector('#accelerate-hardware-status');
@@ -2646,22 +2684,47 @@ class SwissKnifeDesktop {
             log.appendChild(item);
         };
 
-        const runOperation = async (operation, input, { execution_mode, statusEl } = {}) => {
+        let catalogPromise;
+        const controls = () => catalogPromise ||= fetch('/mcp/tools/bindings?app_id=accelerate-panel').then(async response => {
+            if (!response.ok) throw new Error('The declared owner binding catalog is unavailable.');
+            return (await response.json()).controls || [];
+        }).catch(error => { catalogPromise = null; throw error; });
+        const ownerResult = envelope => {
+            if (envelope.ok !== true || envelope.outcome !== 'executed') throw new Error(envelope.error?.message || envelope.error || envelope.result?.error || 'Owner did not execute the request.');
+            let value = envelope.result;
+            for (let depth = 0; depth < 8 && value && typeof value === 'object'; depth++) {
+                if (value.ok === false || value.success === false || value.isError === true || value.error) throw new Error(value.error?.message || value.error || 'Owner rejected the operation.');
+                const blocks = value.content?.filter(item => item.type === 'json' && item.json && typeof item.json === 'object') || [];
+                if (blocks.length > 1) throw new Error('Owner returned ambiguous operation data.');
+                if (blocks.length === 1) value = blocks[0].json;
+                else if (value.result && typeof value.result === 'object') value = value.result;
+                else return value;
+            }
+            if (value == null) throw new Error('Owner returned no operation data.');
+            return value;
+        };
+        const runOperation = async (operation, input, { trigger, statusEl } = {}) => {
             try {
-                const envelope = await invokeDescriptorOperation({
-                    descriptor_id: 'ipfs_accelerate_py',
-                    operation,
-                    input,
-                    app_id: 'accelerate-panel',
-                    execution_mode,
-                    desktop: this,
-                });
-                if (result) result.innerHTML = renderEnvelopeHTML(envelope);
-                const receiptCid = envelope.receipt_refs?.[0]?.receipt_cid || '';
-                const summary = `${operation} ${envelope.status}${envelope.trace?.transport ? ` via ${envelope.trace.transport}` : ''}${receiptCid ? ` receipt ${receiptCid}` : ''}: ${envelope.summary || ''}`;
-                if (statusEl) statusEl.textContent = summary;
+                const bindingId = `accelerate-panel.ipfs_accelerate_py.${operations[operation]}`;
+                const control = (await controls()).find(control => control.binding_id === bindingId);
+                if (!control) throw new Error(`The exact ${operation} binding is undeclared.`);
+                const payload = { ...control.safe_payload, ...input };
+                if (operation === 'run_inference_job' && !payload.model && !payload.model_id) throw new Error('Enter a real catalog model ID or configure a reviewed owner default.');
+                const envelope = await invokeNativeTool(contentElement, 'accelerate-panel', bindingId, { toolId: operation, payload, trigger });
+                if (!envelope) {
+                    if (statusEl) statusEl.textContent = 'Cancelled before owner dispatch.';
+                    return null;
+                }
+                const value = ownerResult(envelope);
+                const preview = value?.dry_run === true || value?.preview === true || value?.mutation_performed === false;
+                const summary = `${operation} ${preview ? 'preview validated; no job or remote change was created' : envelope.outcome} via ${envelope.transport || 'declared transport'}; ${envelope.correlation_id}; receipt ${envelope.receipt?.receipt_id || 'unavailable'}`;
+                if (result) { const pre = document.createElement('pre'); pre.textContent = JSON.stringify(envelope, null, 2); result.replaceChildren(pre); }
+                if (statusEl) statusEl.textContent = `${summary}: ${JSON.stringify(value)}`;
+                if (operation === 'run_inference_job') {
+                    contentElement.querySelector('#accelerate-selected-model').textContent = `Actual requested model: ${payload.model || payload.model_id}`;
+                }
                 appendLog(summary);
-                return envelope;
+                return { envelope, value, preview };
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
                 if (statusEl) statusEl.textContent = `${operation} could not be invoked: ${message}`;
@@ -2670,44 +2733,37 @@ class SwissKnifeDesktop {
             }
         };
 
-        contentElement.querySelector('[data-svd-workflow-action="launch-primary-execution"]')?.addEventListener('click', async () => {
-            // Progress bar mirrors only the request lifecycle: indeterminate while the
-            // gateway call is in flight, complete when the request cycle finishes.
+        contentElement.querySelector('[data-svd-workflow-action="launch-primary-execution"]')?.addEventListener('click', async event => {
             if (inferenceProgress) inferenceProgress.removeAttribute('value');
-            const envelope = await runOperation('run_inference_job', {
-                model,
-                input: 'accelerate panel governed inference',
-                max_tokens: 64,
-            }, { execution_mode: 'confirmed', statusEl: primaryStatus });
-            const jobId = envelope?.output?.job_id;
+            const model = contentElement.querySelector('#accelerate-model-id').value.trim();
+            const response = await runOperation('run_inference_job', {
+                ...(model ? { model } : {}), input: 'accelerate panel governed inference', max_length: 64,
+            }, { trigger: event.currentTarget, statusEl: primaryStatus });
+            const jobId = response?.preview ? null : response?.value?.job_id || response?.value?.task_id;
             if (jobId) {
                 lastJobId = jobId;
-                await runOperation('job_status', { job_id: jobId }, { statusEl: queueStatus });
+                if (queueStatus) queueStatus.textContent = `Owner returned job ${jobId}; use Read Job Status to observe its actual state.`;
             } else if (queueStatus) {
-                queueStatus.textContent = 'The run_inference_job envelope returned no job_id, so there is no job to poll; queue state is whatever that envelope reported.';
+                queueStatus.textContent = response?.preview ? 'Preview only; no job was created.' : 'No actual job ID was returned; no job completion or cancellation is claimed.';
             }
             if (inferenceProgress) inferenceProgress.value = 100;
         });
-        contentElement.querySelector('[data-svd-workflow-action="inspect-model-artifacts"]')?.addEventListener('click', async () => {
-            await runOperation('list_models', { task: 'embedding' }, { statusEl: modelStatus });
+        contentElement.querySelector('[data-svd-workflow-action="inspect-model-artifacts"]')?.addEventListener('click', async event => {
+            await runOperation('list_models', undefined, { trigger: event.currentTarget, statusEl: modelStatus });
         });
-        contentElement.querySelector('[data-svd-workflow-action="refresh-hardware-fit"]')?.addEventListener('click', async () => {
-            await runOperation('hardware_profile', {}, { statusEl: hardwareStatus });
+        contentElement.querySelector('[data-svd-workflow-action="refresh-hardware-fit"]')?.addEventListener('click', async event => {
+            await runOperation('hardware_profile', undefined, { trigger: event.currentTarget, statusEl: hardwareStatus });
         });
-        contentElement.querySelector('[data-svd-workflow-action="cancel-queued-job"]')?.addEventListener('click', async () => {
-            if (!lastJobId) {
-                const message = 'No job has been submitted in this session, and the ipfs_accelerate_py descriptor exposes no cancellation operation; nothing was cancelled.';
-                if (queueStatus) queueStatus.textContent = message;
-                appendLog(message);
-                return;
-            }
-            const envelope = await runOperation('job_status', { job_id: lastJobId }, { statusEl: queueStatus });
-            if (envelope && queueStatus) {
-                queueStatus.textContent += ' Cancellation itself is not exposed by the descriptor; the job state above is the real one.';
-            }
+        contentElement.querySelector('[data-svd-workflow-action="read-job-status"]')?.addEventListener('click', async event => {
+            await runOperation('job_status', lastJobId ? { task_id: lastJobId } : undefined, { trigger: event.currentTarget, statusEl: queueStatus });
         });
-        contentElement.querySelector('[data-svd-workflow-action="recover-no-capacity"]')?.addEventListener('click', async () => {
-            await runOperation('telemetry', { window: '5m' }, { statusEl: recoveryStatus });
+        contentElement.querySelector('[data-svd-workflow-action="cancel-queued-job"]')?.addEventListener('click', () => {
+            const message = 'Cancellation is unavailable: no reviewed cancellation operation exists. Nothing was cancelled.';
+            if (queueStatus) queueStatus.textContent = message;
+            appendLog(message);
+        });
+        contentElement.querySelector('[data-svd-workflow-action="recover-no-capacity"]')?.addEventListener('click', async event => {
+            await runOperation('telemetry', undefined, { trigger: event.currentTarget, statusEl: recoveryStatus });
         });
     }
 
@@ -2738,6 +2794,11 @@ class SwissKnifeDesktop {
         const app = new AgentSupervisorConsole(this);
         await app.initialize();
         contentElement.innerHTML = await app.render();
+        if (typeof app.setupEventListeners === 'function') {
+            app.setupEventListeners(contentElement);
+        } else if (typeof app.mount === 'function') {
+            await app.mount(contentElement);
+        }
         app.bind?.(contentElement);
         return app;
     }
@@ -2751,6 +2812,7 @@ class SwissKnifeDesktop {
                 <button onclick="this.closest('.window').remove()">Close</button>
             </div>
         `;
+        this.setupEventListeners();
     }
 
     createErrorApp(contentElement, componentName, error) {
@@ -2762,6 +2824,7 @@ class SwissKnifeDesktop {
                 <button onclick="this.closest('.window').remove()">Close</button>
             </div>
         `;
+        this.setupEventListeners();
     }
     
     setupWindowControls(windowElement) {

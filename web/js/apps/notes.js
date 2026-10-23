@@ -3,6 +3,9 @@
  * Feature-rich note-taking with markdown support, tags, search, and AI assistance
  */
 
+import { invokeNetworkNativeTool, networkNativeAttributes, unwrapNetworkToolResult } from './network-native-tools.js';
+import { invokeNativeTool } from '../live-tool-gateway.js';
+
 const VDA_G039_WORKFLOW = 'notes.provenance-rich-sync';
 
 // --- Real backend wiring (ipfs_kit_py / ipfs_datasets_py over the MCP++
@@ -12,11 +15,10 @@ const VDA_G039_WORKFLOW = 'notes.provenance-rich-sync';
 // supervisor gateway) or returned by a live backend call. Backend-mutating
 // calls are always confirmation-gated and surface failures verbatim.
 
-async function notesKitClient() {
-  const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
-  const client = clientModule.getMCPPlusPlusDesktopClient();
-  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
-  return client;
+async function notesKitClient(app) {
+  const container = app.getNativeContainer();
+  if (!container) throw new Error('The originating Notes window is unavailable.');
+  return { container };
 }
 
 async function notesCanonicalCid(record) {
@@ -45,13 +47,65 @@ function notesCanonicalRecord(note) {
   };
 }
 
+// Backend reads and writes use POST /mcp/tools/call (IDL method request_action).
+async function notesParseToolResponse(response) {
+  const raw = await response.text();
+  let payload = null;
+  if (raw) {
+    try {
+      payload = JSON.parse(raw);
+    } catch (_parseError) {
+      payload = null;
+    }
+  }
+  if (!response.ok) {
+    const message = payload && typeof payload === 'object'
+      ? (payload.error?.message || payload.error || payload.message || raw)
+      : (raw || ('HTTP ' + response.status));
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && payload.error) {
+    const message = payload.error.message || payload.error;
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
+  if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'result')) {
+    return payload.result;
+  }
+  return payload;
+}
+
+function notesDatasetIdInsideDatasetData(dataset_data) {
+  if (!dataset_data || typeof dataset_data !== 'object' || Array.isArray(dataset_data)) {
+    return undefined;
+  }
+  return dataset_data.dataset_id;
+}
+
+function notesArgumentsForDatasetPublish(tool, toolArguments) {
+  const publishTool = tool === 'publish' || tool === 'save_dataset' || tool === 'dataset_tools.save_dataset';
+  if (!publishTool || !toolArguments || typeof toolArguments !== 'object') {
+    return toolArguments;
+  }
+  const args = { ...toolArguments };
+  const dataset_id = notesDatasetIdInsideDatasetData(args.dataset_data);
+  if (args.dataset_id === undefined && dataset_id !== undefined) {
+    args.dataset_id = dataset_id;
+  }
+  return args;
+}
+
+async function notesCallMcpTool(client, tool, toolArguments) {
+  return invokeNetworkNativeTool(client.container, 'notes', tool, toolArguments);
+}
+
 // Artifact persist for a confirmation-gated flow (callers collect the
 // explicit user confirmation first). Throws on any backend failure —
 // callers surface the message verbatim and never fall back to a fixture.
 async function notesPersistArtifact(client, record, { kind, profile }) {
+  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
   const cid = await notesCanonicalCid(record);
   const bytesBase64 = await notesCanonicalBytesBase64(record);
-  const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+  const result = await notesCallMcpTool(client, 'mcp++:ipfs_kit_py/artifacts/put', {
     cid,
     bytes_base64: bytesBase64,
     profile,
@@ -59,14 +113,17 @@ async function notesPersistArtifact(client, record, { kind, profile }) {
     service: 'ipfs_kit_py',
     pin: true
   });
-  if (!result || result.persisted !== true || result.cid !== cid) {
+  if (result === null) throw Object.assign(new Error('Cancelled before artifact dispatch.'), { cancelled: true });
+  if (result.persisted !== true || result.cid !== cid) {
     throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted artifact.');
   }
   return { cid, result };
 }
 
 async function notesAppendDagEvent(client, event) {
-  const appended = await client.post('ipfs_kit_py', '/mcp/dag/append', { event });
+  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
+  const appended = await notesCallMcpTool(client, 'mcp++:ipfs_kit_py/dag/append', { event });
+  if (appended === null) throw Object.assign(new Error('Cancelled before event dispatch.'), { cancelled: true });
   if (!appended?.event_cid) {
     throw new Error(appended?.error || 'ipfs_kit_py event DAG did not return an event CID.');
   }
@@ -83,12 +140,8 @@ function notesDecodeArtifactJson(fetched) {
   return JSON.parse(new TextDecoder().decode(bytes));
 }
 
-function notesConfirmBackendWrite(message) {
-  if (typeof window === 'undefined') return false;
-  return window.confirm(message);
-}
-
 export class NotesApp {
+  getNativeContainer() { return this.container || document.querySelector('.notes-container'); }
   constructor(desktop) {
     this.desktop = desktop;
     this.swissknife = null;
@@ -1193,11 +1246,12 @@ This sample note demonstrates the provenance-rich sync workflow:
         </div>
 
         <div class="workflow-actions" aria-label="Notes VDA-G039 workflow actions">
-          <button type="button" data-svd-workflow-action="persist-note-cid" onclick="window.notesApp?.persistVdaG039NoteCid()">Persist note CID</button>
-          <button type="button" data-svd-workflow-action="run-semantic-search" onclick="window.notesApp?.runVdaG039SemanticSearch()">Run semantic search</button>
-          <button type="button" data-svd-workflow-action="record-provenance" onclick="window.notesApp?.recordVdaG039Provenance()">Record provenance</button>
-          <button type="button" data-svd-workflow-action="generate-summary" onclick="window.notesApp?.generateVdaG039Summary()">Generate summary</button>
-          <button type="button" data-svd-workflow-action="recover-conflict" onclick="window.notesApp?.recoverVdaG039Conflict()">Recover conflict</button>
+          <button type="button" ${networkNativeAttributes('notes', 'mcp++:ipfs_kit_py/artifacts/put')} data-svd-workflow-action="persist-note-cid" onclick="window.notesApp?.persistVdaG039NoteCid()">Persist note CID</button>
+          <button type="button" data-native-gateway-binding="notes.ipfs_datasets_py.search_notes" data-native-tool-id="semantic_search" data-svd-workflow-action="run-semantic-search" onclick="window.notesApp?.runVdaG039SemanticSearch()">Run semantic search</button>
+          <button type="button" ${networkNativeAttributes('notes', 'mcp++:ipfs_kit_py/artifacts/put')} data-svd-workflow-action="record-provenance" onclick="window.notesApp?.recordVdaG039Provenance()">Record provenance</button>
+          <button type="button" ${networkNativeAttributes('notes', 'mcp++:ipfs_kit_py/artifacts/put')} data-svd-workflow-action="generate-summary" onclick="window.notesApp?.generateVdaG039Summary()">Generate summary</button>
+          <label>Stored note version CID <input data-notes-base-cid aria-label="Stored note version CID" placeholder="Verified note artifact CID"></label>
+          <button type="button" ${networkNativeAttributes('notes', 'mcp++:ipfs_kit_py/artifacts/get')} data-svd-workflow-action="recover-conflict" onclick="window.notesApp?.recoverVdaG039Conflict()">Recover conflict</button>
           <button type="button" data-svd-workflow-action="verify-keyboard-editing" onclick="window.notesApp?.verifyVdaG039KeyboardEditing()">Verify keyboard editing</button>
         </div>
 
@@ -1296,7 +1350,7 @@ This sample note demonstrates the provenance-rich sync workflow:
                     id="preview-mode-btn" title="Preview Mode">👁️ Preview</button>
             <button class="editor-btn" id="ai-assist-btn" title="AI Assistance">🤖 AI</button>
             <button class="editor-btn" id="export-btn" title="Export Note">📤</button>
-            <button class="editor-btn" id="delete-btn" title="Delete Note">🗑️</button>
+            <button class="editor-btn" id="delete-btn" ${this.currentNote.persistedAt && this.currentNote.sync?.state === 'synchronized' ? networkNativeAttributes('notes', 'mcp++:ipfs_kit_py/dag/append') : ''} title="Delete Note">🗑️</button>
           </div>
         </div>
 
@@ -1330,6 +1384,7 @@ This sample note demonstrates the provenance-rich sync workflow:
   }
 
   setupEventHandlers(container) {
+    this.container = container;
     // New note button
     container.querySelector('#new-note-btn').addEventListener('click', () => {
       this.createNewNote();
@@ -1485,17 +1540,11 @@ This sample note demonstrates the provenance-rich sync workflow:
       return;
     }
     const cid = note.cid || await this.canonicalNoteCid(note);
-    if (!preconfirmed && !notesConfirmBackendWrite(
-      `Persist note "${note.title}" to the ipfs_kit_py artifact store?\n\nArtifact CID: ${cid}\nThis also publishes the notebook manifest and appends a sync checkpoint to the event DAG.`
-    )) {
-      this.vdaG039.status = 'persist cancelled — note stays local-only';
-      this.updateVdaG039Status();
-      return;
-    }
+
     this.vdaG039.status = `persisting note artifact ${cid}…`;
     this.updateVdaG039Status();
     try {
-      const client = await notesKitClient();
+      const client = await notesKitClient(this);
       const record = notesCanonicalRecord(note);
       const persisted = await notesPersistArtifact(client, record, { kind: 'note', profile: 'notes-artifact' });
       note.cid = persisted.cid;
@@ -1526,7 +1575,7 @@ This sample note demonstrates the provenance-rich sync workflow:
       // Listing readback: retrieve the manifest and verify the note is listed.
       let readbackNote = 'manifest persisted';
       try {
-        const fetched = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(manifest.cid));
+        const fetched = await notesCallMcpTool(client, 'mcp++:ipfs_kit_py/artifacts/get', { cid: manifest.cid });
         const parsed = notesDecodeArtifactJson(fetched);
         const listed = Array.isArray(parsed?.notes) ? parsed.notes : [];
         readbackNote = listed.some(entry => entry.cid === persisted.cid)
@@ -1540,7 +1589,7 @@ This sample note demonstrates the provenance-rich sync workflow:
       this.vdaG039.actionLog.push(`persist-note-cid:${persisted.cid}`);
       this.saveNotes();
     } catch (error) {
-      this.vdaG039.status = `persist failed: ${error.message}`;
+      this.vdaG039.status = `${error.preview ? 'Validated preview' : error.cancelled ? 'Cancelled' : 'persist failed'}: ${error.message}`;
       this.vdaG039.actionLog.push(`persist-note-cid:failed:${error.message}`);
     }
     this.saveVdaG039EvidenceToStorage();
@@ -1556,22 +1605,27 @@ This sample note demonstrates the provenance-rich sync workflow:
     this.vdaG039.status = `semantic_search running: "${searchText}"…`;
     this.updateVdaG039Status();
     try {
-      const { invokeDescriptorOperation } = await import('../core/mcp-descriptor-registry.js');
-      const envelope = await invokeDescriptorOperation({
-        descriptor_id: 'ipfs_datasets_py',
-        operation: 'semantic_search',
-        input: { query: searchText, top_k: 5, filters: { corpus: 'swissknife-notes' } },
-        app_id: 'notes',
-        desktop: this.desktop
+      const response = await fetch('/mcp/tools/bindings?app_id=notes', { cache: 'no-store', headers: { accept: 'application/json' } });
+      if (!response.ok) throw new Error('The Notes search binding catalog is unavailable.');
+      const catalog = await response.json();
+      const binding = catalog.controls?.find(control => control.binding_id === 'notes.ipfs_datasets_py.search_notes');
+      const defaults = binding?.safe_payloads?.semantic_search || binding?.safe_payload;
+      if (!defaults?.collection || !defaults?.model) throw new Error('The owner has not declared an actual Notes search collection and model.');
+      const envelope = await invokeNativeTool(this.getNativeContainer(), 'notes', 'notes.ipfs_datasets_py.search_notes', {
+        toolId: 'semantic_search',
+        payload: { ...defaults, query: searchText, top_k: 5, filters: defaults.filters || {} },
+        trigger: this.getNativeContainer().querySelector('[data-native-tool-id="semantic_search"]'),
       });
-      if (!envelope || (envelope.status !== 'ok' && envelope.status !== 'success')) {
-        throw new Error(envelope?.error?.message || envelope?.summary || 'semantic_search did not return a successful result.');
+      if (envelope === null) return;
+      if (envelope.ok !== true || envelope.outcome !== 'executed') {
+        throw new Error(envelope.error?.message || envelope.error || 'semantic_search did not return a successful result.');
       }
-      const output = envelope.output || {};
+      const output = unwrapNetworkToolResult(envelope.result) || {};
       if (output.fallback === true) {
         throw new Error(`semantic_search degraded: ${output.reason || 'no live ipfs_datasets_py transport in this runtime'}.`);
       }
-      const results = Array.isArray(output.results) ? output.results : [];
+      if (!Array.isArray(output.results)) throw new Error('semantic_search did not return an actual results array.');
+      const results = output.results;
       const byCid = new Map(this.notes.map(entry => [entry.cid, entry]));
       this.vdaG039.semanticResults = results.map(hit => ({
         note: byCid.get(hit.cid) || null,
@@ -1602,17 +1656,11 @@ This sample note demonstrates the provenance-rich sync workflow:
       return;
     }
     const subjectCid = note.cid || await this.canonicalNoteCid(note);
-    if (!notesConfirmBackendWrite(
-      `Record provenance for "${note.title}"?\n\nPersists a provenance record artifact and appends a provenance event to the ipfs_kit_py event DAG.\nSubject CID: ${subjectCid}`
-    )) {
-      this.vdaG039.status = 'provenance cancelled — local record unchanged';
-      this.updateVdaG039Status();
-      return;
-    }
+
     this.vdaG039.status = 'recording provenance…';
     this.updateVdaG039Status();
     try {
-      const client = await notesKitClient();
+      const client = await notesKitClient(this);
       const provenanceRecord = {
         schema: 'swissknife.notes.provenance.v1',
         subject_cid: subjectCid,
@@ -1647,7 +1695,7 @@ This sample note demonstrates the provenance-rich sync workflow:
       this.vdaG039.actionLog.push(`record-provenance:${persisted.cid}`);
       this.saveNotes();
     } catch (error) {
-      this.vdaG039.status = `provenance failed: ${error.message}`;
+      this.vdaG039.status = `${error.preview ? 'Validated preview' : error.cancelled ? 'Cancelled' : 'provenance failed'}: ${error.message}`;
       this.vdaG039.actionLog.push(`record-provenance:failed:${error.message}`);
     }
     this.saveVdaG039EvidenceToStorage();
@@ -1673,19 +1721,11 @@ This sample note demonstrates the provenance-rich sync workflow:
       this.updateVdaG039Status();
       return;
     }
-    if (!notesConfirmBackendWrite(
-      `Persist the generated summary as an artifact?\n\n"${summaryText.slice(0, 140)}…"`
-    )) {
-      this.vdaG039.status = 'summary generated locally (local UI) — not persisted';
-      this.vdaG039.actionLog.push('generate-summary:local');
-      this.saveVdaG039EvidenceToStorage();
-      this.updateVdaG039Status();
-      return;
-    }
+
     this.vdaG039.status = 'persisting summary artifact…';
     this.updateVdaG039Status();
     try {
-      const client = await notesKitClient();
+      const client = await notesKitClient(this);
       const summaryRecord = {
         schema: 'swissknife.notes.summary.v1',
         note_id: note.id,
@@ -1701,7 +1741,7 @@ This sample note demonstrates the provenance-rich sync workflow:
       this.vdaG039.status = `summary persisted: ${persisted.cid}`;
       this.vdaG039.actionLog.push(`generate-summary:${persisted.cid}`);
     } catch (error) {
-      this.vdaG039.status = `summary persist failed: ${error.message} (summary text remains local)`;
+      this.vdaG039.status = `${error.preview ? 'Validated preview' : error.cancelled ? 'Cancelled' : 'summary persist failed'}: ${error.message} (summary text remains local)`;
       this.vdaG039.actionLog.push(`generate-summary:failed:${error.message}`);
     }
     this.saveVdaG039EvidenceToStorage();
@@ -1718,7 +1758,8 @@ This sample note demonstrates the provenance-rich sync workflow:
       this.updateVdaG039Status();
       return;
     }
-    const baseCid = note.cid;
+    const baseCid = this.getNativeContainer()?.querySelector('[data-notes-base-cid]')?.value.trim()
+      || (note.persistedAt ? note.cid : null);
     if (!baseCid) {
       this.vdaG039.conflict = {
         state: 'not-run',
@@ -1730,19 +1771,15 @@ This sample note demonstrates the provenance-rich sync workflow:
       this.refreshVdaG039WorkflowPanel();
       return;
     }
-    if (!notesConfirmBackendWrite(
-      `Recover conflicts for "${note.title}"?\n\nRetrieves the persisted artifact version (${baseCid}) from ipfs_kit_py, compares it with the local note, and persists the merged version.`
-    )) {
-      this.vdaG039.status = 'conflict recovery cancelled';
-      this.updateVdaG039Status();
-      return;
-    }
+
     this.vdaG039.status = 'retrieving artifact version…';
     this.updateVdaG039Status();
     try {
-      const client = await notesKitClient();
-      const fetched = await client.get('ipfs_kit_py', '/mcp/artifacts/' + encodeURIComponent(baseCid));
+      const client = await notesKitClient(this);
+      const fetched = await notesCallMcpTool(client, 'mcp++:ipfs_kit_py/artifacts/get', { cid: baseCid });
+      if (fetched === null) return;
       const remoteRecord = notesDecodeArtifactJson(fetched);
+      if (remoteRecord.schema !== 'swissknife.notes.note.v1') throw new Error('The artifact is not a supported stored note.');
       const localRecord = notesCanonicalRecord(note);
       const localCid = await notesCanonicalCid(localRecord);
       const differs = ['title', 'content', 'tags', 'favorite', 'color']
@@ -1794,11 +1831,11 @@ This sample note demonstrates the provenance-rich sync workflow:
       this.saveNotes();
     } catch (error) {
       this.vdaG039.conflict = {
-        state: 'failed',
+        state: error.preview ? 'validated-preview' : error.cancelled ? 'cancelled' : 'failed',
         baseCid, localCid: null, remoteCid: null, recoveredCid: null,
-        message: `Recovery failed: ${error.message}`
+        message: `${error.preview ? 'Recovery preview' : error.cancelled ? 'Recovery cancelled' : 'Recovery failed'}: ${error.message}`
       };
-      this.vdaG039.status = `conflict recovery failed: ${error.message}`;
+      this.vdaG039.status = `conflict recovery ${error.preview ? 'preview' : error.cancelled ? 'cancelled' : 'failed'}: ${error.message}`;
       this.vdaG039.actionLog.push(`recover-conflict:failed:${error.message}`);
     }
     this.saveVdaG039EvidenceToStorage();
@@ -1884,11 +1921,7 @@ This sample note demonstrates the provenance-rich sync workflow:
     }
     this.saveNotes();
     this.refreshContent();
-    // The explicit create action offers a confirmation-gated backend
-    // persist; auto-save stays local-only by design.
-    if (notesConfirmBackendWrite(`Persist the new note as a pinned IPFS artifact?\n\nCID: ${newNote.cid || '(still computing)'}`)) {
-      await this.persistVdaG039NoteCid(true);
-    }
+    // Persist note CID remains the explicit, reviewed remote-write action.
   }
 
   selectNote(noteId) {
@@ -1910,11 +1943,9 @@ This sample note demonstrates the provenance-rich sync workflow:
       // Backend artifacts are immutable and content-addressed, so deleting
       // the local note offers a confirmation-gated tombstone event on the
       // DAG instead of pretending the artifact is gone.
-      if (hadBackendCid && notesConfirmBackendWrite(
-        `Record this deletion on the ipfs_kit_py event DAG?\n\nAppends a tombstone event for artifact ${note.cid}. The artifact bytes stay pinned; the tombstone marks the note deleted.`
-      )) {
+      if (hadBackendCid) {
         try {
-          const client = await notesKitClient();
+          const client = await notesKitClient(this);
           const eventCid = await notesAppendDagEvent(client, {
             event_type: 'notes.deleted',
             note_id: note.id,
@@ -1927,7 +1958,7 @@ This sample note demonstrates the provenance-rich sync workflow:
           this.vdaG039.status = `deletion recorded on event DAG: ${eventCid}`;
           this.vdaG039.actionLog.push(`delete-note-tombstone:${eventCid}`);
         } catch (error) {
-          this.vdaG039.status = `deletion recorded locally; DAG tombstone failed: ${error.message}`;
+          this.vdaG039.status = `deletion recorded locally; DAG tombstone ${error.preview ? 'preview' : error.cancelled ? 'cancelled' : 'failed'}: ${error.message}`;
           this.vdaG039.actionLog.push(`delete-note-tombstone:failed:${error.message}`);
         }
         this.saveVdaG039EvidenceToStorage();

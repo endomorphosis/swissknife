@@ -48,15 +48,6 @@ const datasetsRoot = process.env.IPFS_DATASETS_PY_ROOT || DEFAULT_DATASETS_ROOT;
 const dashboardUrl = (
   process.env.IPFS_DATASETS_DASHBOARD_URL || "http://127.0.0.1:8899"
 ).replace(/\/$/, "");
-const tools = loadDatasetTools();
-const profileA = buildProfileAInterface("ipfs_datasets_py", tools);
-const artifactStore = createArtifactStore({ service: "ipfs_datasets_py" });
-const profileCService = getProfileCService("ipfs_datasets_py");
-const eventDag = getEventDagService("ipfs_datasets_py");
-const profileH = createProfileHAdapter({ service: "ipfs_datasets_py" });
-const profileG = createDatasetsProfileGAdapter({ datasetsRoot });
-let profileAPersistence;
-
 // ---------------------------------------------------------------------------
 // Contract-operation direct execution.
 //
@@ -74,18 +65,21 @@ let profileAPersistence;
 const CONTRACT_OP_IMPLEMENTATIONS = {
   // Read operations (side-effect free).
   get: {
+    kind: "read",
     module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.load_dataset",
     func: "load_dataset",
     argMap: { dataset_id: "source", cid: "source", path: "source" },
     note: "loads a dataset record from a source identifier",
   },
   embed: {
+    kind: "read",
     module: "ipfs_datasets_py.embeddings.generation_engine",
     func: "generate_batch_embeddings",
     argMap: {},
     note: "batch text embedding via the real generation engine (takes the GUI's texts array directly)",
   },
   vector_search: {
+    kind: "read",
     module: "ipfs_datasets_py.mcp_server.tools.vector_tools.vector_store_management",
     func: "search_vector_index",
     argMap: { collection: "index_name" },
@@ -94,6 +88,7 @@ const CONTRACT_OP_IMPLEMENTATIONS = {
   // Operations whose pinned backend implementations have been fixed to
   // execute genuine code (previously mocks/stubs/broken).
   semantic_search: {
+    kind: "read",
     module: "ipfs_datasets_py.mcp_server.tools.search_tools.search_tools",
     func: "semantic_search",
     argMap: {},
@@ -101,6 +96,7 @@ const CONTRACT_OP_IMPLEMENTATIONS = {
   },
   // Write operations (confirmation-gated in the UI; executed honestly here).
   vector_index: {
+    kind: "write",
     module: "ipfs_datasets_py.mcp_server.tools.vector_tools.vector_store_management",
     func: "create_vector_index",
     argMap: { collection: "index_name" },
@@ -110,18 +106,21 @@ const CONTRACT_OP_IMPLEMENTATIONS = {
     note: "creates a vector index via the vector-store manager (same manager as vector_search)",
   },
   index: {
+    kind: "write",
     module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.process_dataset",
     func: "process_dataset",
     argMap: { dataset_id: "dataset_source" },
     note: "dataset preparation pipeline (closest genuine implementation of the preparation-job operation)",
   },
   pin: {
+    kind: "write",
     module: "ipfs_datasets_py.mcp_server.tools.ipfs_tools.pin_to_ipfs",
     func: "pin_to_ipfs",
     argMap: { cid: "content_source", path: "content_source", data: "content_source" },
     note: "pins content to IPFS via the real pinner",
   },
   publish: {
+    kind: "write",
     module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.save_dataset",
     func: "save_dataset",
     argMap: {},
@@ -135,24 +134,28 @@ const CONTRACT_OP_IMPLEMENTATIONS = {
     note: "saves/publishes a dataset (GUI dataset_id+metadata combined into dataset_data)",
   },
   record_provenance: {
+    kind: "write",
     module: "ipfs_datasets_py.mcp_server.tools.provenance_tools.record_provenance",
     func: "record_provenance",
     argMap: {},
     note: "records data provenance via EnhancedProvenanceManager (fixed import)",
   },
   browse: {
+    kind: "read",
     module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.browse_datasets",
     func: "browse",
     argMap: {},
     note: "browse datasets or preview dataset records",
   },
   list_datasets: {
+    kind: "read",
     module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.browse_datasets",
     func: "list_datasets",
     argMap: {},
     note: "list available datasets from DatasetManager",
   },
   sync_status: {
+    kind: "read",
     module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.browse_datasets",
     func: "sync_status",
     argMap: {},
@@ -166,7 +169,35 @@ const CONTRACT_OP_IMPLEMENTATIONS = {
   // CONTRACT_OP_IMPLEMENTATIONS above:
   // semantic_search, index, pin, publish, record_provenance, browse,
   // list_datasets, sync_status.
+  load_dataset: {
+    kind: "read",
+    module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.load_dataset",
+    func: "load_dataset", argMap: { dataset_id: "source" },
+    note: "Execute the real dataset loader; local JSON fixtures use source=json and options.data_files.",
+  },
+  get_from_ipfs: {
+    kind: "read",
+    module: "ipfs_datasets_py.mcp_server.tools.ipfs_tools.get_from_ipfs",
+    func: "get_from_ipfs", argMap: {},
+    note: "Read actual IPFS content; a requested output_path is a write and requires a validated preview under dry-run.",
+  },
+  save_dataset: {
+    kind: "write",
+    module: "ipfs_datasets_py.mcp_server.tools.dataset_tools.save_dataset",
+    func: "save_dataset", argMap: {},
+    note: "Use the real dataset saver or validate its callable without writes under dry-run.",
+  },
+  load_index: "the pinned index-management entrypoint delegates to MockIndexManager with fabricated index statistics; genuine execution is unavailable",
 };
+
+const tools = loadDatasetTools();
+const profileA = buildProfileAInterface("ipfs_datasets_py", tools);
+const artifactStore = createArtifactStore({ service: "ipfs_datasets_py" });
+const profileCService = getProfileCService("ipfs_datasets_py");
+const eventDag = getEventDagService("ipfs_datasets_py");
+const profileH = createProfileHAdapter({ service: "ipfs_datasets_py" });
+const profileG = createDatasetsProfileGAdapter({ datasetsRoot });
+let profileAPersistence;
 
 const CONTRACT_OP_TIMEOUT_MS = 120000;
 
@@ -207,6 +238,12 @@ import sys
 import time
 import traceback
 import types
+import typing
+
+protocol_stdout = sys.stdout
+# Optional backend imports and tools may print diagnostics. The worker's stdout
+# remains an exact JSON-lines protocol; genuine backend diagnostics go to stderr.
+sys.stdout = sys.stderr
 
 # Compatibility shim: the pinned generation_engine imports
 # ipfs_datasets_py.embeddings.core.IPFSEmbeddings, but that module does not
@@ -300,18 +337,43 @@ try:
 except ImportError:
     pass
 
-def execute(module_path, func_name, args):
+def matches_annotation(value, annotation):
+    if annotation in (None, typing.Any, inspect.Parameter.empty):
+        return True
+    origin = typing.get_origin(annotation)
+    if origin in (typing.Union, types.UnionType):
+        return any(matches_annotation(value, member) for member in typing.get_args(annotation))
+    expected = origin or annotation
+    if expected is type(None):
+        return value is None
+    if expected in (str, int, float, bool, dict, list):
+        return isinstance(value, expected)
+    return True
+
+def execute(module_path, func_name, args, preview=False):
     module = importlib.import_module(module_path)
     func = getattr(module, func_name)
+    if not callable(func):
+        raise TypeError("The reviewed entry point is not callable")
     params = dict(args or {})
-    try:
-        sig = inspect.signature(func)
-        accepted = sig.parameters
-        has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in accepted.values())
-        if not has_var_kw:
-            params = {k: v for k, v in params.items() if k in accepted}
-    except (TypeError, ValueError):
-        pass
+    params.pop("dry_run", None)
+    sig = inspect.signature(func)
+    accepted = sig.parameters
+    has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in accepted.values())
+    if not has_var_kw:
+        params = {k: v for k, v in params.items() if k in accepted}
+    sig.bind(**params)
+    if preview:
+        try:
+            hints = typing.get_type_hints(func)
+        except Exception:
+            hints = {}
+        for key, value in params.items():
+            if not matches_annotation(value, hints.get(key)):
+                raise TypeError(key + " must match the real callable annotation " + str(hints[key]))
+        return {"ok": True, "dry_run": True, "validation": "real-callable-signature",
+                "entrypoint": module_path + "." + func_name, "validated_parameters": sorted(params),
+                "body_executed": False, "mutation_performed": False}
     result = func(**params)
     if inspect.isawaitable(result):
         result = asyncio.run(result)
@@ -324,20 +386,20 @@ for line in sys.stdin:
     try:
         request = json.loads(line)
     except Exception as exc:
-        sys.stdout.write(json.dumps({"id": None, "ok": False, "error": "bad request: " + str(exc)}) + "\\n")
-        sys.stdout.flush()
+        protocol_stdout.write(json.dumps({"id": None, "ok": False, "error": "bad request: " + str(exc)}) + "\\n")
+        protocol_stdout.flush()
         continue
     try:
-        result = execute(request["module"], request["func"], request.get("args") or {})
-        sys.stdout.write(json.dumps({"id": request.get("id"), "ok": True, "result": result}, default=str) + "\\n")
+        result = execute(request["module"], request["func"], request.get("args") or {}, request.get("preview") is True)
+        protocol_stdout.write(json.dumps({"id": request.get("id"), "ok": True, "result": result}, default=str) + "\\n")
     except Exception as exc:
-        sys.stdout.write(json.dumps({
+        protocol_stdout.write(json.dumps({
             "id": request.get("id"),
             "ok": False,
             "error": type(exc).__name__ + ": " + str(exc),
             "traceback": traceback.format_exc(limit=8),
         }, default=str) + "\\n")
-    sys.stdout.flush()
+    protocol_stdout.flush()
 `;
 
 function ensureContractWorker() {
@@ -388,6 +450,14 @@ function ensureContractWorker() {
     for (const waiter of state.pending.values()) {
       clearTimeout(waiter.timer);
       waiter.resolve({ id: waiter.id, ok: false, error: `contract worker exited (code ${code})` });
+    }
+    state.pending.clear();
+    if (contractWorkerState === state) contractWorkerState = null;
+  });
+  child.on("error", (error) => {
+    for (const waiter of state.pending.values()) {
+      clearTimeout(waiter.timer);
+      waiter.resolve({ id: waiter.id, ok: false, error: `contract worker could not start: ${error.message}` });
     }
     state.pending.clear();
     if (contractWorkerState === state) contractWorkerState = null;
@@ -468,7 +538,8 @@ function callContractPython(impl, args) {
     }, CONTRACT_OP_TIMEOUT_MS);
     state.pending.set(id, { id, resolve, timer });
     try {
-      state.child.stdin.write(JSON.stringify({ id, module: impl.module, func: impl.func, args: renamed }) + "\n");
+      state.child.stdin.write(JSON.stringify({ id, module: impl.module, func: impl.func, args: renamed,
+        preview: args?.dry_run === true && (impl.kind === "write" || (impl.func === "get_from_ipfs" && Boolean(args.output_path))) }) + "\n");
     } catch (error) {
       clearTimeout(timer);
       state.pending.delete(id);
@@ -477,7 +548,7 @@ function callContractPython(impl, args) {
   });
 }
 
-async function callContractOperation(name, args) {
+async function callContractOperation(name, args, invokePython = callContractPython) {
   const impl = CONTRACT_OP_IMPLEMENTATIONS[name];
   if (impl === undefined) return null; // not a contract operation; use normal dispatch
   // A string value means "honestly unavailable": either no implementation exists
@@ -503,30 +574,12 @@ async function callContractOperation(name, args) {
     }
     return unavailable;
   }
-  if (args?.dry_run === true) {
-    return {
-      content: [
-        {
-          type: "json",
-          json: {
-            ok: true,
-            dry_run: true,
-            tool: name,
-            module: impl.module,
-            func: impl.func,
-            policy: "adapter-enforced-no-side-effects",
-          },
-        },
-      ],
-      receipt: receipt(name, { status: "dry_run", backend: "ipfs_datasets_py", dry_run: true }),
-    };
-  }
   const effectiveArgs = { ...(args || {}) };
-  const outcome = await callContractPython(impl, effectiveArgs);
-  if (!outcome.ok) {
+  const outcome = await invokePython(impl, effectiveArgs);
+  if (!outcome.ok || datasetResultFailed(outcome.result)) {
     return {
       isError: true,
-      content: [{ type: "text", text: outcome.error }],
+      content: [{ type: "json", json: outcome.ok ? outcome.result : { error: outcome.error } }],
       receipt: receipt(name, {
         status: "backend_error",
         backend: "ipfs_datasets_py",
@@ -544,8 +597,24 @@ async function callContractOperation(name, args) {
       module: impl.module,
       func: impl.func,
       note: impl.note,
+      dry_run: args?.dry_run === true,
+      execution_mode: args?.dry_run === true && (impl.kind === "write" || (impl.func === "get_from_ipfs" && Boolean(args.output_path))) ? "validated_preview" : "backend_execution",
     }),
   };
+}
+
+function datasetResultFailed(value) {
+  if (!value || typeof value !== "object") return false;
+  if (value.isError === true || value.ok === false || value.success === false || value.error || ["error", "failed", "failure", "unavailable", "not_implemented"].includes(value.status)) return true;
+  if (value.result && datasetResultFailed(value.result)) return true;
+  return Array.isArray(value.content) && value.content.some(item => {
+    if (item?.type === "json") return datasetResultFailed(item.json);
+    if (item?.type === "text") {
+      const parsed = parseJson(item.text);
+      return parsed ? datasetResultFailed(parsed) : false;
+    }
+    return false;
+  });
 }
 
 const server = http.createServer(async (req, res) => {
@@ -923,7 +992,7 @@ async function getArtifactResponse(cid) {
   };
 }
 
-server.listen(port, host, () => {
+if (require.main === module) server.listen(port, host, () => {
   console.log(
     `ipfs_datasets_py compatibility MCP adapter listening on http://${host}:${port}`,
   );
@@ -975,7 +1044,12 @@ function loadDatasetTools() {
       `ipfs_datasets_py source discovery failed: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
-  return dedupeTools([...metaTools(), ...discovered]);
+  const contracts = Object.entries(CONTRACT_OP_IMPLEMENTATIONS).map(([name, impl]) => ({
+    name, category: "contract_operations", description: typeof impl === "string" ? impl : impl.note,
+    inputSchema: { type: "object", additionalProperties: true },
+    execution_mode: typeof impl === "string" ? "unavailable" : impl.kind === "read" ? "backend-read" : "backend-or-validated-preview",
+  }));
+  return dedupeTools([...metaTools(), ...contracts, ...discovered]);
 }
 
 function firstDocLine(filePath, fallback) {
@@ -1045,18 +1119,6 @@ async function callDatasetTool(payload) {
   // module-basename tool registry so function-level tools are addressable.
   const contractResult = await callContractOperation(name, args);
   if (contractResult !== null) return contractResult;
-  if (args?.dry_run === true) {
-    const tool = findTool(null, name);
-    return tool
-      ? content({
-        ok: true,
-        dry_run: true,
-        category: tool.category,
-        tool: tool.name,
-        policy: 'adapter-enforced-no-side-effects',
-      }, name, { category: tool.category, target: tool.name, dry_run: true })
-      : errorResult(`Unknown ipfs_datasets_py tool: ${name}`, name, { dry_run: true });
-  }
   if (name === "tools_list_categories") {
     return content({ categories: categoryRows() }, name);
   }
@@ -1080,12 +1142,20 @@ async function callDatasetTool(payload) {
     );
   }
   if (name === "tools_dispatch") {
+    if (args?.dry_run === true) {
+      const nestedName = args.tool ?? args.name;
+      if (!nestedName || nestedName === "tools_dispatch") return errorResult("tools_dispatch requires a non-recursive tool name", name);
+      const category = args.category;
+      const bareName = category && (nestedName.startsWith(`${category}.`) || nestedName.startsWith(`${category}/`)) ? nestedName.slice(category.length + 1) : nestedName;
+      return callDatasetTool({ params: { name: bareName, arguments: { ...(args.params ?? args.arguments ?? {}), dry_run: true } } });
+    }
     return dispatch(
       args.category,
       args.tool ?? args.name,
       args.params ?? args.arguments ?? {},
     );
   }
+  if (args?.dry_run === true) return errorResult(`No reviewed dry-run entrypoint exists for ${name}`, name, { dry_run: true });
   const tool = findTool(null, name);
   return tool
     ? dispatch(tool.category, tool.name, args)
@@ -1102,12 +1172,13 @@ async function dispatch(category, name, params) {
     );
   const execution = await invokeDashboardTool(tool, params);
   return {
-    isError: !execution.ok,
+    isError: !execution.ok || datasetResultFailed(execution.result),
     content: [{ type: "json", json: execution }],
     receipt: receipt("tools_dispatch", {
       category: tool.category,
       target: tool.name,
       dashboard_status: execution.status ?? 0,
+      status: execution.ok && !datasetResultFailed(execution.result) ? "ok" : "backend_error",
     }),
   };
 }
@@ -1170,14 +1241,14 @@ function findTool(category, name) {
 }
 
 function content(json, tool, extra = {}) {
-  return { content: [{ type: "json", json }], receipt: receipt(tool, extra) };
+  return { content: [{ type: "json", json }], receipt: receipt(tool, { status: "ok", ...extra }) };
 }
 
 function errorResult(message, tool, extra = {}) {
   return {
     isError: true,
     content: [{ type: "text", text: message }],
-    receipt: receipt(tool, extra),
+    receipt: receipt(tool, { status: "error", ...extra }),
   };
 }
 
@@ -1231,3 +1302,5 @@ function sendJson(res, status, payload, headers = {}) {
   });
   res.end(body);
 }
+
+module.exports = { callDatasetTool, callContractOperation, CONTRACT_OP_IMPLEMENTATIONS, CONTRACT_WORKER_CODE, datasetResultFailed, tools };

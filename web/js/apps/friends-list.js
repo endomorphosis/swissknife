@@ -3,6 +3,7 @@
  * IPLD-based decentralized identity management with cross-platform linking
  * Links accounts across GitHub, libp2p, Hugging Face, and other platforms
  */
+import { invokeNetworkNativeTool, networkNativeAttributes } from './network-native-tools.js';
 
 // Base58-btc encoder (for did:key multicodec bytes).
 function friendsBase58Btc(bytes) {
@@ -54,11 +55,10 @@ async function friendsGenerateLocalDidKey() {
 // confirmation-gated and surface failures verbatim. Sample contacts are
 // plainly labeled local demo data with no backend claims.
 
-async function friendsKitClient() {
-  const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
-  const client = clientModule.getMCPPlusPlusDesktopClient();
-  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
-  return client;
+async function friendsKitClient(app) {
+  const container = app.container || document.querySelector('.friends-container');
+  if (!container) throw new Error('The originating Friends List window is unavailable.');
+  return { container };
 }
 
 async function friendsCanonicalCid(record) {
@@ -71,10 +71,15 @@ async function friendsCanonicalBytesBase64(record) {
   return base64ForBytes(new TextEncoder().encode(stableStringifyValue(record)));
 }
 
+async function friendsCallMcpTool(client, _method, tool, toolArguments) {
+  return invokeNetworkNativeTool(client.container, 'friends-list', tool, toolArguments);
+}
+
 async function friendsPersistArtifact(client, record, { kind, profile }) {
+  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
   const cid = await friendsCanonicalCid(record);
   const bytesBase64 = await friendsCanonicalBytesBase64(record);
-  const result = await client.post('ipfs_kit_py', '/mcp/artifacts/put', {
+  const result = await friendsCallMcpTool(client, 'request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
     cid,
     bytes_base64: bytesBase64,
     profile,
@@ -82,23 +87,21 @@ async function friendsPersistArtifact(client, record, { kind, profile }) {
     service: 'ipfs_kit_py',
     pin: true
   });
-  if (!result || result.persisted !== true || result.cid !== cid) {
+  if (result === null) throw Object.assign(new Error('Cancelled before artifact dispatch.'), { cancelled: true });
+  if (result.persisted !== true || result.cid !== cid) {
     throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted artifact.');
   }
   return { cid, result };
 }
 
 async function friendsAppendDagEvent(client, event) {
-  const appended = await client.post('ipfs_kit_py', '/mcp/dag/append', { event });
+  if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
+  const appended = await friendsCallMcpTool(client, 'request_action', 'mcp++:ipfs_kit_py/dag/append', { event });
+  if (appended === null) throw Object.assign(new Error('Cancelled before event dispatch.'), { cancelled: true });
   if (!appended?.event_cid) {
     throw new Error(appended?.error || 'ipfs_kit_py event DAG did not return an event CID.');
   }
   return appended.event_cid;
-}
-
-function friendsConfirmBackendWrite(message) {
-  if (typeof window === 'undefined') return false;
-  return window.confirm(message);
 }
 
 // The stable, content-addressed form of a contact record.
@@ -532,11 +535,11 @@ export class FriendsListApp {
         
         <!-- Navigation Tabs -->
         <div class="nav-tabs">
-          <button class="nav-tab active" data-tab="friends">
+          <button class="nav-tab active" data-tab="friends" aria-label="Friends">
             <span class="tab-icon">👥</span>
             Friends (<span id="friends-count">0</span>)
           </button>
-          <button class="nav-tab" data-tab="pending">
+          <button class="nav-tab" data-tab="pending" aria-label="Pending">
             <span class="tab-icon">⏰</span>
             Pending (<span id="pending-count">0</span>)
           </button>
@@ -696,7 +699,7 @@ export class FriendsListApp {
                 </div>
                 <div class="form-actions">
                   <button id="cancel-add-friend" class="btn-secondary sk-btn">Cancel</button>
-                  <button id="send-friend-request" class="btn-primary">Send Request</button>
+                  <button id="send-friend-request" ${networkNativeAttributes('friends-list', 'mcp++:ipfs_kit_py/artifacts/put')} class="btn-primary">Send Request</button>
                 </div>
               </div>
             </div>
@@ -740,6 +743,7 @@ export class FriendsListApp {
                   <!-- IPLD structure will be shown here -->
                 </div>
                 <button id="export-identity-btn" class="btn-secondary sk-btn">Export Identity</button>
+                <button id="persist-identity-btn" ${networkNativeAttributes('friends-list', 'mcp++:ipfs_kit_py/artifacts/put')} class="btn-secondary sk-btn">Review identity persistence</button>
               </div>
             </div>
           </div>
@@ -810,11 +814,11 @@ export class FriendsListApp {
           </article>
         </div>
         <div class="workflow-actions" aria-label="Friends List VDA-G037 workflow actions">
-          <button type="button" data-svd-workflow-action="review-contact-provenance">Review provenance</button>
-          <button type="button" data-svd-workflow-action="apply-relationship-policy">Apply policy</button>
-          <button type="button" data-svd-workflow-action="process-invitation-state">Process invite</button>
-          <button type="button" data-svd-workflow-action="toggle-blocking-state">Toggle block</button>
-          <button type="button" data-svd-workflow-action="refresh-freshness">Refresh freshness</button>
+          <button type="button" ${networkNativeAttributes('friends-list', 'mcp++:ipfs_kit_py/artifacts/put')} data-svd-workflow-action="review-contact-provenance">Review provenance</button>
+          <button type="button" ${networkNativeAttributes('friends-list', 'mcp++:ipfs_kit_py/artifacts/put')} data-svd-workflow-action="apply-relationship-policy">Apply policy</button>
+          <button type="button" ${networkNativeAttributes('friends-list', 'mcp++:ipfs_kit_py/artifacts/put')} data-svd-workflow-action="process-invitation-state">Process invite</button>
+          <button type="button" ${networkNativeAttributes('friends-list', 'mcp++:ipfs_kit_py/artifacts/put')} data-svd-workflow-action="toggle-blocking-state">Toggle block</button>
+          <button type="button" ${networkNativeAttributes('friends-list', 'mcp++:ipfs_kit_py/dag/history')} data-svd-workflow-action="refresh-freshness">Refresh freshness</button>
           <button type="button" data-svd-workflow-action="show-accessible-empty-state">Show empty state</button>
         </div>
         <p class="workflow-refs">${refList}</p>
@@ -1827,6 +1831,7 @@ export class FriendsListApp {
   }
   
   setupEventListeners(container) {
+    this.container = container;
     // Navigation tabs
     const navTabs = container.querySelectorAll('.nav-tab');
     const contentPanels = container.querySelectorAll('.content-panel');
@@ -1954,6 +1959,9 @@ export class FriendsListApp {
     exportIdentityBtn?.addEventListener('click', () => {
       this.exportIdentity();
     });
+    container.querySelector('#persist-identity-btn')?.addEventListener('click', () => {
+      this.persistIdentityRecord();
+    });
 
     const clearEmptyFilterBtn = container.querySelector('#clear-empty-filter-btn');
     clearEmptyFilterBtn?.addEventListener('click', () => {
@@ -2016,15 +2024,10 @@ export class FriendsListApp {
       this.setVdaG037ActionState('review-contact-provenance: no contacts');
       return;
     }
-    if (!friendsConfirmBackendWrite(
-      `Persist provenance artifacts for ${contacts.length} contact(s)?\n\nWrites one provenance artifact per contact and a provenance batch event to the ipfs_kit_py backend.`
-    )) {
-      this.setVdaG037ActionState('review-contact-provenance: cancelled');
-      return;
-    }
+
     this.setVdaG037ActionState('review-contact-provenance: persisting…');
     try {
-      const client = await friendsKitClient();
+      const client = await friendsKitClient(this);
       const persistedCids = [];
       for (const friend of contacts) {
         const contactRecord = friendsCanonicalContactRecord(friend);
@@ -2063,7 +2066,7 @@ export class FriendsListApp {
       });
     } catch (error) {
       this.vdaG037.actionLog.push(`review-contact-provenance:failed:${error.message}`);
-      this.setVdaG037ActionState(`review-contact-provenance failed: ${error.message}`);
+      this.setVdaG037ActionState(`review-contact-provenance ${error.preview ? 'preview' : error.cancelled ? 'cancelled' : 'failed'}: ${error.message}`);
     }
     this.refreshVdaG037WorkflowPanel();
     this.renderFriendsList();
@@ -2071,15 +2074,10 @@ export class FriendsListApp {
 
   // Confirmation-gated: persists the relationship policy artifact.
   async applyRelationshipPolicy() {
-    if (!friendsConfirmBackendWrite(
-      `Persist the relationship policy?\n\nWrites the policy artifact (${this.relationshipPolicy.policy_id}) to the ipfs_kit_py backend.`
-    )) {
-      this.setVdaG037ActionState('apply-relationship-policy: cancelled');
-      return;
-    }
+
     this.setVdaG037ActionState('apply-relationship-policy: persisting…');
     try {
-      const client = await friendsKitClient();
+      const client = await friendsKitClient(this);
       const policyRecord = {
         schema: 'swissknife.friends.relationship-policy.v1',
         policy_id: this.relationshipPolicy.policy_id,
@@ -2102,7 +2100,7 @@ export class FriendsListApp {
       });
     } catch (error) {
       this.vdaG037.actionLog.push(`apply-relationship-policy:failed:${error.message}`);
-      this.setVdaG037ActionState(`apply-relationship-policy failed: ${error.message}`);
+      this.setVdaG037ActionState(`apply-relationship-policy ${error.preview ? 'preview' : error.cancelled ? 'cancelled' : 'failed'}: ${error.message}`);
     }
     this.refreshVdaG037WorkflowPanel();
   }
@@ -2116,17 +2114,10 @@ export class FriendsListApp {
       return;
     }
     invite.state = 'reviewed-pending-confirmation';
-    if (!friendsConfirmBackendWrite(
-      `Persist the invitation record for "${invite.name}"?\n\nWrites an invitation-state artifact to the ipfs_kit_py backend.`
-    )) {
-      this.setVdaG037ActionState('process-invitation-state: reviewed locally — not persisted');
-      this.vdaG037.actionLog.push('process-invitation-state:local-only');
-      this.refreshVdaG037WorkflowPanel();
-      return;
-    }
+
     this.setVdaG037ActionState('process-invitation-state: persisting…');
     try {
-      const client = await friendsKitClient();
+      const client = await friendsKitClient(this);
       const inviteRecord = {
         schema: 'swissknife.friends.invitation-state.v1',
         invite_id: invite.id,
@@ -2149,7 +2140,7 @@ export class FriendsListApp {
       });
     } catch (error) {
       this.vdaG037.actionLog.push(`process-invitation-state:failed:${error.message}`);
-      this.setVdaG037ActionState(`process-invitation-state failed: ${error.message}`);
+      this.setVdaG037ActionState(`process-invitation-state ${error.preview ? 'preview' : error.cancelled ? 'cancelled' : 'failed'}: ${error.message}`);
     }
     this.refreshVdaG037WorkflowPanel();
   }
@@ -2163,17 +2154,10 @@ export class FriendsListApp {
       return;
     }
     blocked.state = blocked.state === 'blocked' ? 'blocked-reviewed' : 'blocked';
-    if (!friendsConfirmBackendWrite(
-      `Persist the blocking record for "${blocked.name}" (state: ${blocked.state})?\n\nWrites a blocking-state artifact to the ipfs_kit_py backend.`
-    )) {
-      this.setVdaG037ActionState(`toggle-blocking-state: ${blocked.state} locally — not persisted`);
-      this.vdaG037.actionLog.push('toggle-blocking-state:local-only');
-      this.refreshVdaG037WorkflowPanel();
-      return;
-    }
+
     this.setVdaG037ActionState('toggle-blocking-state: persisting…');
     try {
-      const client = await friendsKitClient();
+      const client = await friendsKitClient(this);
       const blockRecord = {
         schema: 'swissknife.friends.blocking-state.v1',
         contact_id: blocked.id,
@@ -2195,7 +2179,7 @@ export class FriendsListApp {
       });
     } catch (error) {
       this.vdaG037.actionLog.push(`toggle-blocking-state:failed:${error.message}`);
-      this.setVdaG037ActionState(`toggle-blocking-state failed: ${error.message}`);
+      this.setVdaG037ActionState(`toggle-blocking-state ${error.preview ? 'preview' : error.cancelled ? 'cancelled' : 'failed'}: ${error.message}`);
     }
     this.refreshVdaG037WorkflowPanel();
   }
@@ -2206,8 +2190,11 @@ export class FriendsListApp {
   async refreshFreshness() {
     this.setVdaG037ActionState('refresh-freshness: reading event DAG…');
     try {
-      const client = await friendsKitClient();
-      const history = await client.getDagHistory('ipfs_kit_py', 10);
+      const client = await friendsKitClient(this);
+      const history = await friendsCallMcpTool(client, 'read_status', 'mcp++:ipfs_kit_py/dag/history', {
+        service: 'ipfs_kit_py',
+        limit: 10
+      });
       const events = Array.isArray(history) ? history : (history?.events || history?.items || []);
       this.vdaG037.generatedAt = new Date();
       this.vdaG037.freshnessState = 'fresh';
@@ -2574,18 +2561,15 @@ export class FriendsListApp {
       addedDate: new Date(),
       inviteMessage: String(friendMessage?.value || '')
     };
-    this.friends.set(id, friend);
-    document.querySelector('#add-friend-form')?.classList.add('hidden');
-    if (friendInput) friendInput.value = '';
-    this.renderFriendsList();
-    // Confirmation-gated backend persist of the new contact artifact; the
-    // returned CID is the shareable reference for this contact.
-    if (friendsConfirmBackendWrite(
-      `Persist the new contact "${friend.name}" as a pinned IPFS artifact?\n\nWrites a contact artifact to the ipfs_kit_py backend.`
-    )) {
-      try {
-        const client = await friendsKitClient();
-        const persisted = await friendsPersistArtifact(client, friendsCanonicalContactRecord(friend), { kind: 'contact', profile: 'friends-artifact' });
+    // Send is confirm-then-invoke: nothing is stored or written until the
+    // user confirms, then the contact write goes through POST /mcp/tools/call.
+
+    try {
+      const client = await friendsKitClient(this);
+      const persisted = await friendsPersistArtifact(client, friendsCanonicalContactRecord(friend), { kind: 'contact', profile: 'friends-artifact' });
+        this.friends.set(id, friend);
+        document.querySelector('#add-friend-form')?.classList.add('hidden');
+        if (friendInput) friendInput.value = '';
         friend.provenance = {
           source: 'ipfs_kit_py.artifact.put',
           cid: persisted.cid,
@@ -2600,14 +2584,10 @@ export class FriendsListApp {
         this.setVdaG037ActionState(`add-contact: ${persisted.cid}`);
       } catch (error) {
         this.vdaG037.actionLog.push(`add-contact:failed:${error.message}`);
-        this.setVdaG037ActionState(`add-contact failed: ${error.message} (contact kept local-only)`);
+        this.setVdaG037ActionState(`add-contact ${error.preview ? 'preview' : error.cancelled ? 'cancelled' : 'failed'}: ${error.message}`);
       }
       this.refreshVdaG037WorkflowPanel();
       this.renderFriendsList();
-    } else {
-      this.setVdaG037ActionState('add-contact: local-only');
-      this.refreshVdaG037WorkflowPanel();
-    }
   }
 
   showAddFriendForm(method) {
@@ -2780,7 +2760,7 @@ export class FriendsListApp {
         version: '1.0.0'
       };
 
-      const client = await friendsKitClient();
+      const client = await friendsKitClient(this);
       const persisted = await friendsPersistArtifact(client, identityRecord, { kind: 'identity-record', profile: 'friends-artifact' });
       console.log('✅ Identity record persisted:', persisted.cid);
       this.vdaG037.receiptRefs = [...new Set([...this.vdaG037.receiptRefs, persisted.cid])];
@@ -2790,7 +2770,7 @@ export class FriendsListApp {
       this.refreshVdaG037WorkflowPanel();
       return persisted.cid;
     } catch (error) {
-      console.error('Failed to update identity record:', error);
+      if (!error.preview && !error.cancelled) console.error('Failed to update identity record:', error);
       throw error;
     }
   }
@@ -3036,14 +3016,14 @@ export class FriendsListApp {
     anchor.download = 'swissknife-identity.json';
     anchor.click();
     URL.revokeObjectURL(url);
-    if (friendsConfirmBackendWrite(
-      'Also persist the identity record as a pinned IPFS artifact?\n\nWrites an identity-record artifact to the ipfs_kit_py backend.'
-    )) {
-      try {
-        await this.updateIPLDRecord();
-      } catch (error) {
-        alert(`Identity persist failed: ${error.message}\n(The JSON download above still succeeded.)`);
-      }
+  }
+
+  async persistIdentityRecord() {
+    try {
+      await this.updateIPLDRecord();
+    } catch (error) {
+      this.setVdaG037ActionState(`update-identity-record ${error.preview ? 'preview' : error.cancelled ? 'cancelled' : 'failed'}: ${error.message}`);
+      this.refreshVdaG037WorkflowPanel();
     }
   }
   
