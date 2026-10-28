@@ -332,3 +332,31 @@ at each exact referenced phase/step/literal selector, then requires error,
 primary and reopen PNG content SHA, native source SHA and dimensions to match.
 It proves retained saved IMG bytes only: it does not equate CSS selectors or
 infer canvas pixels, layer contents, owner effects or successful recovery.
+
+
+### Native saved-image observation after recovery
+
+The optional `checkpoint_id: recovery_image_retained` extends the retained-image
+checkpoint grammar above. It is a non-semantic `assert` in `failure_recovery`
+with a native `image_state` probe and the same exact `retained_from` keys
+(`primary_result`, `persist_reopen`). Each reference names an existing declared
+native image assertion and its exact selector. It introduces no new requirement
+ID and cannot replace or duplicate any original semantic assertion.
+
+Keep the single original `error_observed` checkpoint. An optional
+`error_image_retained` still belongs after that error and before recovery actions.
+A `recovery_image_retained` belongs strictly after the unique original
+`failure_recovery` semantic result, with at least one real declared UI retry action
+between the error and that result. Only passive captures/waits may intervene
+between the result and this checkpoint or follow it. These three named roles
+are unique; unknown, duplicate, misplaced or additional checkpoints are refused
+before browser execution. Old scenarios with only the error checkpoint, or
+with the earlier optional retained-image checkpoint, remain valid.
+
+The producer retains actual native PNG bytes for the post-result snapshot.
+The independent consumers verify its artifact and its native content hash,
+source-URI hash and dimensions against its own declared baseline observations.
+Each checkpoint uses its own references. Matching native saved IMG bytes does
+not establish canvas pixels, editable layers, an unobserved time, an owner write
+or a rendered export. The legacy `error_observations` array carries these typed
+checkpoints; its name grants no error, recovery or acceptance authority.

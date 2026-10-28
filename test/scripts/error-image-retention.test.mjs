@@ -10,7 +10,8 @@ import {pathToFileURL} from 'node:url';
 const root=process.env.SVF_FOUNDATION_REPOSITORY_ROOT||path.resolve(import.meta.dirname,'../../..');
 const r=await import(process.env.SVF_PHASE_RUNNER_CANDIDATE?pathToFileURL(process.env.SVF_PHASE_RUNNER_CANDIDATE).href:new URL('../../scripts/run-visual-functional-workflow.mjs',import.meta.url).href);
 const scenarioPath=process.env.SVF_NEURAL_SCENARIO_CANDIDATE||path.resolve(import.meta.dirname,'../e2e/functional-workflows/neural-photoshop.json');
-const scenario=()=>JSON.parse(fs.readFileSync(scenarioPath));
+// Keep the original E checkpoint fixtures historical; full opt-in tests follow below.
+const scenario=()=>{const value=JSON.parse(fs.readFileSync(scenarioPath));value.phases.failure_recovery=value.phases.failure_recovery.filter(step=>step.checkpoint_id!=='recovery_image_retained');return value;};
 const app=JSON.parse(fs.readFileSync(path.join(root,'swissknife/config/visual-functional-app-contracts.json'))).apps.find(x=>x.app_id==='neural-photoshop');
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 function png(red=41,width=64,height=48){
@@ -148,3 +149,131 @@ test('captured actual desktop/mobile child bodies replay through complete parent
   assert.equal(r.validateViewportWorkflowReport(report,options),report);
  }
 });
+
+// Additive post-retry PNG checkpoint; full canonical scenario, no browser acceptance.
+{
+const scenario=()=>JSON.parse(fs.readFileSync(scenarioPath));
+const sourceSha='859106eaa81df402f7765c7698f2c35909c6a6cc1f8c01182569a1ae363e28a1';
+test('known original source SHA strengthens fallback and all original scenario fields remain exact',()=>{
+ const s=scenario();r.validateScenario(s,app);
+ assert.deepEqual(s.backend_bindings[0].result_assertion,{pointer:'/result/result/content/0/json/sha256',operator:'equals',expected:sourceSha});
+ assert.equal(s.phases.failure_recovery[11].requirement_id,'failure_recovery');
+ assert.equal(s.phases.failure_recovery[11].expected,sourceSha);
+ const post=s.phases.failure_recovery.pop();assert.equal(post.checkpoint_id,'recovery_image_retained');
+ assert.deepEqual(post.retained_from,{primary_result:11,persist_reopen:6});
+ s.backend_bindings[0].result_assertion={pointer:'/result/result/content/0/json/cid',operator:'equals',expected:s.phases.primary_result[0].value};
+ assert.equal(sha(JSON.stringify(s,null,2)+'\n'),'64503bf914a91f2ed5a0d2d902d6b8d3eb3779ce8e4e7ccdfe44508a0933aec8');
+});
+test('legacy one/two-checkpoint grammar remains admitted and post-only opt-in is bounded',()=>{
+ const s=scenario();assert.equal(r.recoveryImageRetentionCheckpoint(s).index,12);
+ s.phases.failure_recovery.pop();r.validateScenario(s,app);assert.equal(r.recoveryImageRetentionCheckpoint(s),null);
+ s.phases.failure_recovery.splice(5,1);r.validateScenario(s,app);assert.equal(r.errorImageRetentionCheckpoint(s),null);
+ const post=scenario();post.phases.failure_recovery.splice(5,1);r.validateScenario(post,app);assert.equal(r.recoveryImageRetentionCheckpoint(post).index,11);
+});
+test('unknown duplicate wrong-type reordered unbound and action-detached post-checkpoints refuse',()=>{
+ const mutations=[s=>s.phases.failure_recovery.at(-1).checkpoint_id='unknown',s=>s.phases.failure_recovery.push(structuredClone(s.phases.failure_recovery.at(-1))),
+  s=>s.phases.failure_recovery.splice(11,0,s.phases.failure_recovery.pop()),s=>s.phases.failure_recovery.splice(5,0,s.phases.failure_recovery.pop()),
+  s=>s.phases.failure_recovery.at(-1).probe.kind='text',s=>s.phases.failure_recovery.at(-1).probe.temporal_ms=100,
+  s=>s.phases.failure_recovery.at(-1).retained_from.primary_result=0,s=>s.phases.failure_recovery.at(-1).retained_from.persist_reopen=true,
+  s=>s.phases.failure_recovery.at(-1).retained_from.extra=0,s=>delete s.phases.failure_recovery.at(-1).retained_from,
+  s=>s.phases.failure_recovery.push({op:'click',selector:'#new-owner-action'}),s=>s.phases.failure_recovery.splice(12,0,{op:'click',selector:'#changed-image'}),
+  s=>s.phases.failure_recovery.at(-1).requirement_id='failure_recovery',s=>s.phases.failure_recovery.splice(6,3),
+  s=>s.phases.primary_result.push(s.phases.failure_recovery.pop())];
+ for(const mutate of mutations){const s=scenario();mutate(s);assert.throws(()=>r.validateScenario(s,app));}
+});
+function fixture(){
+ const s=scenario(),bytes=png(),ref={path:'authored/saved.png',sha256:sha(bytes),bytes:bytes.length};
+ const entries=[['primary_result',11],['persist_reopen',6],['failure_recovery',5],['failure_recovery',12]];
+ const rows=entries.map(([phase,index])=>({phase,step_index:index,selector:s.phases[phase][index].probe.selector,
+  ...r.encodedPNGObservation({decoded:true,natural_width:64,natural_height:48,visible_area:3072,native_source:'data:image/png;base64,'+bytes.toString('base64')}).state,image_artifact:ref}));
+ const record=(phase,index)=>{const step=s.phases[phase][index];return{phase,step_index:index,probe:step.probe,
+  ...(step.checkpoint_id?{checkpoint_id:step.checkpoint_id}:{requirement_id:step.requirement_id}),
+  observed:{operator:step.operator,actual:step.expected,expected:step.expected}};};
+ const report={artifacts:[ref],image_observations:rows,semantic_assertions:[record('primary_result',11),record('persist_reopen',6),record('failure_recovery',11)],
+  error_observations:[record('failure_recovery',4),record('failure_recovery',5),record('failure_recovery',12)]};
+ return{s,bytes,report,read:record=>{assert.equal(record.path,ref.path);return bytes;}};
+}
+test('four encoded PNG snapshots and three exact checkpoint observations join to the original sources',()=>{
+ const f=fixture();r.validateDecodedImageObservations(f.report,f.s,f.read);r.validateErrorImageCheckpointObservations(f.report,f.s);
+});
+test('pre-retry execution does not demand a future snapshot while final validation still requires it',()=>{
+ const f=fixture();f.report.image_observations.pop();
+ r.validateErrorImageRetention(f.report,f.s,{beforeRecovery:true});
+ assert.throws(()=>r.validateErrorImageRetention(f.report,f.s),/unique source-bound native observation/);
+});
+test('self-consistent different PNG after retry refuses despite same dimensions and refreshed artifact hashes',()=>{
+ const f=fixture(),other=png(99),post=f.report.image_observations.at(-1),ref={path:'authored/other.png',sha256:sha(other),bytes:other.length};
+ Object.assign(post,{content_sha256:sha(other),source_sha256:sha('data:image/png;base64,'+other.toString('base64')),image_artifact:ref});f.report.artifacts.push(ref);
+ assert.throws(()=>r.validateDecodedImageObservations(f.report,f.s,ref=>ref.path==='authored/other.png'?other:f.bytes),/saved PNG bytes\/source\/dimensions changed/);
+});
+test('missing duplicate detached post-PNG and missing reordered changed checkpoint observations refuse',()=>{
+ for(const mutate of [f=>f.report.image_observations.pop(),f=>f.report.image_observations.push(structuredClone(f.report.image_observations.at(-1))),
+  f=>f.report.image_observations.at(-1).step_index=11,f=>f.report.image_observations.at(-1).source_sha256='0'.repeat(64),
+  f=>f.report.error_observations.pop(),f=>f.report.error_observations.reverse(),f=>f.report.error_observations.at(-1).observed.actual=63]){
+  const f=fixture();mutate(f);assert.throws(()=>{r.validateDecodedImageObservations(f.report,f.s,f.read);r.validateErrorImageCheckpointObservations(f.report,f.s);});
+ }
+});
+
+function fullChild(t,{pre=true,post=true}={}){
+ const workspaceRoot=fs.mkdtempSync(path.join(os.tmpdir(),'svf-recovery-image-'));t.after(()=>fs.rmSync(workspaceRoot,{recursive:true,force:true}));
+ const outputDir=path.join(workspaceRoot,'run'),viewport=r.VIEWPORTS[0],prefix='run/desktop';
+ const app={app_id:'authored-image',disposition:'browser_local',backend_roles:[],primary_workflow:{expected_results:['Saved image'],persist_reopen:'Saved image reopens',error:'Failed read',recovery:'Retry'}};
+ const image={kind:'image_state',selector:'#saved',pointer:'/natural_width'},retained_from={primary_result:1,persist_reopen:1};
+ const scenario={schema:r.SCENARIO_SCHEMA,app_id:app.app_id,fixture_scope:'svf-authored-recovery-image',backend_bindings:[],phases:{
+  primary_result:[{op:'press',selector:'#save',key:'Enter'},{op:'assert',requirement_id:'result_1',probe:image,operator:'equals',expected:64}],
+  persist_reopen:[{op:'reopen_app'},{op:'assert',requirement_id:'persist_reopen',probe:image,operator:'equals',expected:64}],
+  failure_recovery:[{op:'assert',checkpoint_id:'error_observed',probe:{kind:'text',selector:'#error'},operator:'equals',expected:'bad read'},
+   ...(pre?[{op:'assert',checkpoint_id:'error_image_retained',retained_from,probe:image,operator:'equals',expected:64}]:[]),
+   {op:'click',selector:'#retry'},{op:'assert',requirement_id:'failure_recovery',probe:{kind:'text',selector:'#result'},operator:'equals',expected:'recovered'},
+   ...(post?[{op:'assert',checkpoint_id:'recovery_image_retained',retained_from,probe:image,operator:'equals',expected:64}]:[])]}};
+ const semantics=r.requiredSemantics(app),records=Object.entries(scenario.phases).flatMap(([phase,steps])=>steps.flatMap((step,step_index)=>step.op==='assert'?[{phase,step_index,probe:step.probe,
+  ...(step.requirement_id?{requirement_id:step.requirement_id,requirement_text:semantics[step.requirement_id]}:{checkpoint_id:step.checkpoint_id}),
+  observed:{operator:step.operator,actual:step.expected,expected:step.expected}}]:[]));
+ const sources={contract_sha256:'1'.repeat(64),scenario_sha256:'2'.repeat(64),source_sha256:{'authored/source.js':'3'.repeat(64)}};
+ const layout={viewport:{width:viewport.width,height:viewport.height},primary:{left:20,top:20,width:800,height:600},window:{left:0,top:0,right:viewport.width,bottom:viewport.height},text_length:12,control_count:2,media_count:1,violations:[]};
+ function write(name,bytes){const target=path.join(workspaceRoot,prefix,name);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,bytes);return{path:path.relative(workspaceRoot,target),sha256:sha(bytes),bytes:bytes.length};}
+ const bytes=png(),imageArtifact=write('decoded-images/saved.png',bytes),screen=write('desktop.png',png(12,viewport.width,viewport.height)),layoutArtifact=write('desktop-layout.json',Buffer.from(JSON.stringify(layout))),trace=write('trace.zip',Buffer.from('authored trace; no browser'));
+ const session={viewport,initial_viewport:viewport,session_id:randomUUID(),actual_desktop:true,unexpected_backend_calls:0,backend_policy_errors:[],backend_records:[],backend_observations:[],
+  semantic_assertions:records.filter(row=>row.requirement_id),checkpoints:records.filter(row=>row.checkpoint_id),
+  keyboard_focus_observations:[{phase:'primary_result',step_index:0,key:'Enter',focused:true,inside_app:true,semantic_requirement_id:'result_1'}],temporal_observations:[],
+  image_observations:records.filter(row=>row.probe.kind==='image_state').map(row=>({phase:row.phase,step_index:row.step_index,selector:row.probe.selector,
+   ...r.encodedPNGObservation({decoded:true,natural_width:64,natural_height:48,visible_area:3072,native_source:'data:image/png;base64,'+bytes.toString('base64')}).state,image_artifact:imageArtifact}))};
+ const built=r.buildViewportWorkflowEvidence({app,scenario,sources,session,viewports:[{name:'desktop',layout}],artifacts:[screen,layoutArtifact,trace,imageArtifact]});
+ assert.equal(built.passed,false);assert.equal(built.actual_desktop,false);const report={...built,passed:true,actual_desktop:true};
+ const options={app,scenario,sources,viewport,outputDir,workspaceRoot,reference:null};
+ const save=()=>{options.reference=write('workflow.json',Buffer.from(JSON.stringify(report,null,2)+'\n'));};save();return{report,options,save,write,bytes};
+}
+test('complete public parent validator accepts four native IMG facts and exact three-checkpoint body',t=>{
+ const f=fullChild(t);assert.equal(f.report.image_observations.length,4);assert.equal(f.report.error_observations.length,3);r.validateViewportWorkflowReport(f.report,f.options);
+});
+test('complete parent preserves one/two old checkpoints and post-only optional branch',t=>{
+ for(const settings of [{pre:false,post:false},{pre:true,post:false},{pre:false,post:true}]){const f=fullChild(t,settings);r.validateViewportWorkflowReport(f.report,f.options);}
+});
+test('complete parent refuses a removed post-checkpoint, failed recovery or independently changed post-PNG',t=>{
+ for(const mutate of [f=>f.report.error_observations.pop(),f=>f.report.semantic_assertions.at(-1).observed.actual='not recovered',f=>{
+  const other=png(77),ref=f.write('decoded-images/other.png',other),row=f.report.image_observations.at(-1);f.report.artifacts.push(ref);
+  Object.assign(row,{content_sha256:sha(other),source_sha256:sha('data:image/png;base64,'+other.toString('base64')),image_artifact:ref});
+ }]){const f=fullChild(t);mutate(f);f.save();assert.throws(()=>r.validateViewportWorkflowReport(f.report,f.options));}
+});
+
+test('real phase executor captures post-image only after a passing original recovery result',async()=>{
+ for(const succeeds of [false,true]){
+  const image={kind:'image_state',selector:'#saved',pointer:'/natural_width'},bytes=png(),source='data:image/png;base64,'+bytes.toString('base64');
+  const scenario={phases:{primary_result:[{op:'assert',requirement_id:'result_1',probe:image,operator:'equals',expected:64}],persist_reopen:[{op:'reopen_app'},{op:'assert',requirement_id:'persist_reopen',probe:image,operator:'equals',expected:64}],
+   failure_recovery:[{op:'assert',checkpoint_id:'error_observed',probe:{kind:'text',selector:'#error'},operator:'equals',expected:'bad read'},
+    {op:'click',selector:'#retry'},{op:'assert',requirement_id:'failure_recovery',probe:{kind:'text',selector:'#result'},operator:'equals',expected:'recovered'},
+    {op:'assert',checkpoint_id:'recovery_image_retained',retained_from:{primary_result:0,persist_reopen:1},probe:image,operator:'equals',expected:64}]}};
+  let retries=0,reads=0,checked=0;
+  const locator=selector=>({count:async()=>1,scrollIntoViewIfNeeded:async()=>{},click:async()=>{retries++;},evaluate:async()=>false,
+   elementHandle:async()=>({evaluate:async(fn,arg)=>{if(fn.name==='readPhaseElement')return{present:true,tag:'BUTTON',type:null,visible:true,enabled:true,value:null,value_as_number:null,min:null,max:null,step:null};if(fn.name==='readElementObservation'){
+    if(arg.kind==='text'){if(selector==='#result'){checked++;return succeeds?'recovered':'failed';}return'bad read';}
+    assert.equal(retries,1);assert.equal(checked,1);reads++;return{decoded:true,natural_width:64,natural_height:48,visible_area:3072,native_source:source};}throw new Error('unexpected DOM boundary');},dispose:async()=>{}})});
+  const prior=(phase,step_index)=>({phase,step_index,selector:'#saved',...r.encodedPNGObservation({decoded:true,natural_width:64,natural_height:48,visible_area:3072,native_source:source}).state,image_artifact:{path:'authored/prior.png',sha256:sha(bytes),bytes:bytes.length}});
+  const session={app:{primary_workflow:{expected_results:['saved image'],persist_reopen:'reopen',error:'bad read',recovery:'retry'}},scenario,primary:{locator},generation:2,phase_evidence:{},phase_evidence_started:performance.now(),actual_desktop:true,
+   image_observations:[prior('primary_result',0),prior('persist_reopen',1)],semantic_assertions:[],checkpoints:[],keyboard_focus_observations:[],temporal_observations:[],assertActive:async()=>{}};
+  await assert.rejects(()=>r.executeScenarioPhase(session,'failure_recovery',scenario.phases.failure_recovery),succeeds?/real encoded PNG artifacts/:/contradict/);
+  assert.equal(retries,1);assert.equal(reads,succeeds?1:0);assert.equal(session.image_observations.length,succeeds?3:2);
+ }
+});
+
+}

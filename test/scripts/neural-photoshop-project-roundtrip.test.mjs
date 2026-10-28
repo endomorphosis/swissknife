@@ -91,8 +91,8 @@ test('source controls remain outside optional generation disclosure and all cont
 });
 
 test('canonical scenario asserts native decoded image and actual retry bytes without changing owner policy',()=>{
- const scenario=JSON.parse(fs.readFileSync(new URL('../e2e/functional-workflows/neural-photoshop.json',import.meta.url)));
- assert.equal(scenario.phases.primary_result.at(-1).probe.kind,'image_state');assert.equal(scenario.phases.persist_reopen.at(-1).probe.kind,'image_state');assert.equal(scenario.phases.failure_recovery.at(-1).probe.kind,'backend_result');assert.equal(scenario.phases.failure_recovery.at(-1).expected,hash(Buffer.from(SOURCE_PNG,'base64')));assert.equal(scenario.backend_bindings[0].consent,'ui_required');assert.equal(scenario.backend_bindings[0].result_assertion.expected,CID);assert.ok(scenario.phases.primary_result.some(s=>s.selector==='#undo-btn'));assert.ok(scenario.phases.primary_result.some(s=>s.selector==='#redo-btn'));assert.equal(scenario.phases.failure_recovery.some(s=>s.op==='wait_ms'),false);
+ const scenario=JSON.parse(fs.readFileSync(process.env.SVF_NEURAL_SCENARIO_CANDIDATE || new URL('../e2e/functional-workflows/neural-photoshop.json',import.meta.url)));
+ assert.equal(scenario.phases.primary_result.at(-1).probe.kind,'image_state');assert.equal(scenario.phases.persist_reopen.at(-1).probe.kind,'image_state');assert.equal(scenario.phases.failure_recovery.find(step=>step.requirement_id==='failure_recovery').probe.kind,'backend_result');assert.equal(scenario.phases.failure_recovery.find(step=>step.requirement_id==='failure_recovery').expected,hash(Buffer.from(SOURCE_PNG,'base64')));assert.equal(scenario.backend_bindings[0].consent,'ui_required');assert.equal(scenario.backend_bindings[0].result_assertion.expected,hash(Buffer.from(SOURCE_PNG,'base64')));assert.ok(scenario.phases.primary_result.some(s=>s.selector==='#undo-btn'));assert.ok(scenario.phases.primary_result.some(s=>s.selector==='#redo-btn'));assert.equal(scenario.phases.failure_recovery.some(s=>s.op==='wait_ms'),false);
 });
 
 test('Save captures one byte/pixel snapshot and reports newer edits as unsaved',async t=>{

@@ -11,9 +11,9 @@
       "max_duration_seconds": 30,
       "max_output_bytes": 1048576,
       "result_assertion": {
-        "pointer": "/result/result/content/0/json/cid",
+        "pointer": "/result/result/content/0/json/sha256",
         "operator": "equals",
-        "expected": "bafkreiefsedovka56qbpo5s4o2mpfq2zbhdknta7rqarqjljugxdmpriue"
+        "expected": "859106eaa81df402f7765c7698f2c35909c6a6cc1f8c01182569a1ae363e28a1"
       }
     }
   ],
@@ -208,6 +208,21 @@
         },
         "operator": "equals",
         "expected": "859106eaa81df402f7765c7698f2c35909c6a6cc1f8c01182569a1ae363e28a1"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "recovery_image_retained",
+        "retained_from": {
+          "primary_result": 11,
+          "persist_reopen": 6
+        },
+        "probe": {
+          "kind": "image_state",
+          "selector": "[data-saved-project-image][data-layer-names=\"Background, Layer 2\"]",
+          "pointer": "/natural_width"
+        },
+        "operator": "equals",
+        "expected": 64
       }
     ]
   }
