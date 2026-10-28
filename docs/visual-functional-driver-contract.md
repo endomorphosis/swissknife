@@ -360,3 +360,41 @@ Each checkpoint uses its own references. Matching native saved IMG bytes does
 not establish canvas pixels, editable layers, an unobserved time, an owner write
 or a rendered export. The legacy `error_observations` array carries these typed
 checkpoints; its name grants no error, recovery or acceptance authority.
+
+
+### Bounded supplemental DOM observations in independent V2
+
+An independent V2 scenario may add at most eight `assert` steps that have
+neither a `requirement_id` key nor a `checkpoint_id` key. Both keys must be
+physically absent; empty, null, unknown or duplicate identities do not select
+this branch. `retained_from` is forbidden. Supplemental probes are limited to
+existing native `text`, `value` and `json_attribute` reads, with no temporal,
+image, media, backend or other probe kind. The approved app contract and
+original required semantic ID set, unique error checkpoint, recovery ordering,
+keyboard semantic credit and named saved-PNG roles remain unchanged.
+
+Each supplemental expectation and actual value must be scalar finite JSON
+(null, boolean, number or string), at most 512 UTF-8 bytes in canonical JSON.
+The source descriptor array, ordered by canonical phase then original step
+index, contains exact `phase`, `step_index`, `probe`, `operator` and `expected`
+fields and is bounded to 2048 bytes. The complete actual supplemental row array
+is bounded to 4096 bytes per child. Values are never truncated or normalized
+to fit. Existing probe privacy and selector restrictions still apply.
+
+The real V2 producer evaluates every supplemental postcondition and retains
+`supplemental_observations` rows with exact `phase`, `step_index`, `probe` and
+`observed` fields. These rows never count as a required semantic assertion,
+an error, a retry, keyboard coverage or an owner effect. Both independent
+consumers require the exact source-derived row count and order, match each
+probe/operator/typed expectation, evaluate its actual result, and bind it to
+its native phase record. Missing, duplicated, swapped or forged rows fail.
+All supplemental assertions must pass alongside every original requirement.
+These reads do not relax the existing named-image checkpoint ordering and
+cannot satisfy or replace a UI retry or owner action.
+
+Fresh V1 execution refuses supplemental steps before acquiring browser or
+owner resources. Historical reports without these steps remain unchanged;
+an absent or empty table is equivalent only when the scenario declares none.
+The review retains literal typed supplemental facts and complete raw artifact
+references within the existing 18000-byte projection and 32768-byte prompt
+limits. A passing supplemental read or producer does not grant task acceptance.

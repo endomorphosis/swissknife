@@ -89,6 +89,55 @@ export function requiredSemantics(app) {
   ]);
 }
 
+const supplementalStep = step => step?.op === 'assert'
+  && !Object.hasOwn(step, 'requirement_id') && !Object.hasOwn(step, 'checkpoint_id');
+const scalarObservation = value => value === null || ['string','boolean','number'].includes(typeof value)
+  && (typeof value !== 'number' || Number.isFinite(value));
+function supplementalScalar(value) {
+  demand(scalarObservation(value) && Buffer.byteLength(canonicalJSON(value)) <= 512,
+    'INVALID_OBSERVATION', 'supplemental DOM scalar exceeds its 512-byte bound');
+}
+function validateSupplementalStep(step) {
+  keys(step, ['op','probe','operator','expected']);
+  demand(plain(step.probe) && ['text','value','json_attribute'].includes(step.probe.kind)
+    && !Object.hasOwn(step.probe, 'temporal_ms'), 'INVALID_SCENARIO', 'supplemental observations allow only non-temporal DOM text, value or JSON attribute probes');
+  demand(['equals','not_equals','contains','at_least'].includes(step.operator), 'INVALID_SCENARIO', 'unsupported supplemental assertion operator');
+  validateProbe(step.probe, {backend_roles: []});
+  supplementalScalar(step.expected);
+}
+
+/** Source-declared extra observations grant no requirement/checkpoint authority. */
+export function supplementalScenarioObservations(scenario) {
+  const descriptors = [];
+  for (const phase of PHASES) for (const [step_index, step] of (scenario.phases?.[phase] || []).entries()) {
+    if (!supplementalStep(step)) continue;
+    validateSupplementalStep(step);
+    descriptors.push({phase,step_index,probe:step.probe,operator:step.operator,expected:step.expected});
+  }
+  demand(descriptors.length <= 8 && Buffer.byteLength(canonicalJSON(descriptors)) <= 2048,
+    'INVALID_SCENARIO', 'supplemental source descriptors exceed the eight-row or 2048-byte bound');
+  return descriptors;
+}
+
+export function validateSupplementalObservations(report, scenario) {
+  const declared = supplementalScenarioObservations(scenario);
+  const rows = report.supplemental_observations === undefined ? [] : report.supplemental_observations;
+  demand(Array.isArray(rows) && rows.length === declared.length && rows.length <= 8
+    && Buffer.byteLength(canonicalJSON(rows)) <= 4096, 'INVALID_OBSERVATION', 'supplemental actual observations have missing, extra or oversized rows');
+  rows.forEach((row,index) => {
+    keys(row, ['phase','step_index','probe','observed']);
+    keys(row.observed, ['operator','actual','expected']);
+    const source = declared[index];
+    demand(row.phase === source.phase && Number.isSafeInteger(row.step_index) && row.step_index === source.step_index
+      && canonicalJSON(row.probe) === canonicalJSON(source.probe) && row.observed.operator === source.operator
+      && canonicalJSON(row.observed.expected) === canonicalJSON(source.expected),
+      'INVALID_OBSERVATION', 'supplemental actual observation differs from its exact ordered source descriptor');
+    supplementalScalar(row.observed.actual); supplementalScalar(row.observed.expected);
+    evaluateObservation(row.observed);
+  });
+  return rows;
+}
+
 function selector(value) {
   demand(text(value) && value.length <= 512 && !/[\r\n\x00]/.test(value), 'INVALID_SCENARIO', 'a bounded CSS selector is required');
   demand(!/data-svd-(?:vda-marker|workflow)|data-(?:fake-)?proof|data-acceptance-passed/.test(value),
@@ -138,7 +187,10 @@ function validateStep(step, app) {
   if (step.op === 'wait_ms') demand(Number.isInteger(step.milliseconds) && step.milliseconds >= 0 && step.milliseconds <= 5000, 'INVALID_SCENARIO', 'unbounded wait is forbidden');
   if (step.op === 'capture') demand(/^[a-z][a-z0-9-]{0,63}$/.test(step.label || ''), 'INVALID_SCENARIO', 'capture label must be a safe name');
   if (step.op === 'assert') {
-    demand(Boolean(text(step.requirement_id)) !== Boolean(text(step.checkpoint_id)), 'INVALID_SCENARIO', 'assertion needs one requirement or checkpoint identity');
+    if (supplementalStep(step)) { validateSupplementalStep(step); return; }
+    demand(Object.hasOwn(step, 'requirement_id') !== Object.hasOwn(step, 'checkpoint_id')
+      && (Object.hasOwn(step, 'requirement_id') ? text(step.requirement_id) : text(step.checkpoint_id)),
+      'INVALID_SCENARIO', 'assertion needs one nonempty declared requirement or checkpoint identity');
     demand(['equals', 'not_equals', 'contains', 'at_least'].includes(step.operator), 'INVALID_SCENARIO', 'unsupported assertion operator');
     if (['error_image_retained', 'recovery_image_retained'].includes(step.checkpoint_id)) {
       demand(step.probe?.kind === 'image_state' && step.probe.temporal_ms === undefined,
@@ -314,6 +366,7 @@ export function validateScenario(scenario, app) {
   }
   demand(observed.size === Object.keys(requirements).length, 'MISSING_POSTCONDITION', 'scenario omitted semantic results, persistence or failure recovery');
   errorImageRetentionCheckpoint(scenario);
+  supplementalScenarioObservations(scenario);
   return scenario;
 }
 
@@ -594,6 +647,8 @@ export async function openRealDesktopSession(settings, testDriver = null) {
     && app.launch.window_selector === `.window[data-app-id="${app.app_id}"]`
     && app.launch.primary_content_selector === '.window-app-content', 'INVALID_CONTRACT', 'canonical launch identity is required');
   validateScenario(scenario, app);
+  demand(!supplementalScenarioObservations(scenario).length || settings.independentViewports === true,
+    'INVALID_SCENARIO', 'supplemental DOM observations require an independent V2 workflow before resource acquisition');
   demand(!testDriver || testDriver.kind === 'explicit-dom-unit-driver', 'POLICY_BOUNDARY', 'only explicit DOM unit drivers may replace resource acquisition');
   demand(text(settings.outputDir), 'INVALID_ARGUMENT', 'owned output directory is required');
   const outputDir = path.resolve(settings.outputDir);
@@ -609,7 +664,7 @@ export async function openRealDesktopSession(settings, testDriver = null) {
   const controller = new AbortController();
   const session = { app, scenario, outputDir, viewport, initial_viewport: Object.freeze({ ...viewport }), session_id: randomUUID(),
     generation: 0, closed: false, actual_desktop: !testDriver,
-    semantic_assertions: [], checkpoints: [], console_events: [], network_events: [], captures: [], keyboard_focus_observations: [],
+    semantic_assertions: [], checkpoints: [], supplemental_observations: [], console_events: [], network_events: [], captures: [], keyboard_focus_observations: [],
     backend_enabled: settings.backendProof === true, backend_records: [], backend_observations: [], backend_artifacts: new Map(),
     unexpected_backend_calls: 0, backend_policy_errors: [], backend_policy_diagnostics: [], consent_observations: [] };
   const requests = new Map();
@@ -1063,7 +1118,11 @@ export async function beginPhaseStepEvidence(session, phase, step, stepIndex) {
 /** Optional historical extension: when present every fact must join the exact
  * retained action/probe chain. Its shape alone grants no browser provenance. */
 export function validatePhaseEvidence(child, scenario) {
-  if (!Object.hasOwn(child, 'phase_evidence')) return undefined;
+  const supplemental = validateSupplementalObservations(child, scenario);
+  if (!Object.hasOwn(child, 'phase_evidence')) {
+    demand(!supplemental.length, 'INVALID_OBSERVATION', 'supplemental DOM observations require their exact V2 phase evidence');
+    return undefined;
+  }
   const evidence = child.phase_evidence;
   keys(evidence, ['schema', 'phases']);
   demand(evidence.schema === PHASE_EVIDENCE_SCHEMA && Buffer.byteLength(canonicalJSON(evidence)) <= 131072
@@ -1094,7 +1153,7 @@ export function validatePhaseEvidence(child, scenario) {
       && ['value_as_number', 'min', 'max', 'step'].every(key => value[key] === null || number(value[key])),
     'INVALID_OBSERVATION', 'actual phase control snapshot differs');
   };
-  const observations = [...child.semantic_assertions, ...child.error_observations];
+  const observations = [...child.semantic_assertions, ...child.error_observations, ...supplemental];
   const temporal = []; let generation = null, finished = 0;
   for (const [phaseIndex, phase] of evidence.phases.entries()) {
     keys(phase, ['phase', 'generation_before', 'generation_after', 'steps']);
@@ -1165,6 +1224,10 @@ export function validatePhaseEvidence(child, scenario) {
 export async function executeScenarioPhase(session, phase, steps, context = {}) {
   demand(PHASES.includes(phase) && Array.isArray(steps) && steps.length > 0 && steps.length <= 64, 'INVALID_SCENARIO', 'a bounded known phase is required');
   for (const step of steps) validateStep(step, session.app);
+  const supplementalDescriptors = session.scenario ? supplementalScenarioObservations(session.scenario) : [];
+  demand(!steps.some(supplementalStep) || session.phase_evidence && session.scenario,
+    'INVALID_SCENARIO', 'supplemental DOM observations require a source-bound V2 session');
+  demand(!supplementalDescriptors.length || session.phase_evidence, 'INVALID_SCENARIO', 'supplemental DOM observations require a V2 session');
   for (const step of steps) {
     for (const value of [step.selector, step.probe?.selector, step.probe?.within].filter(value => value !== undefined)) {
       demand(!/^(?:[a-z][a-z0-9_-]*=|\/|\.\.)|>>/i.test(value.trim()), 'POLICY_BOUNDARY', 'only CSS selectors scoped inside the app window are permitted');
@@ -1192,6 +1255,23 @@ export async function executeScenarioPhase(session, phase, steps, context = {}) 
     const temporalStart = session.temporal_observations?.length || 0;
     try {
     if (step.op === 'assert') {
+      if (supplementalStep(step)) {
+        const rows = session.supplemental_observations || [];
+        const source = supplementalDescriptors[rows.length];
+        demand(source && source.phase === phase && source.step_index === index
+          && canonicalJSON(source.probe) === canonicalJSON(step.probe) && source.operator === step.operator
+          && canonicalJSON(source.expected) === canonicalJSON(step.expected),
+          'INVALID_OBSERVATION', 'supplemental execution differs from its next exact original source step');
+        const actual = await observeDOMProbe(session, step.probe);
+        supplementalScalar(actual);
+        const observed = evaluateObservation({operator:step.operator,actual,expected:step.expected});
+        const row = {phase,step_index:index,probe:{...step.probe},observed};
+        demand(rows.length < 8 && Buffer.byteLength(canonicalJSON([...rows,row])) <= 4096,
+          'INVALID_OBSERVATION', 'supplemental actual observations exceed their complete child byte bound');
+        (session.supplemental_observations ||= []).push(row);
+        if (supplemental) phaseEvidence.steps.push(await supplemental.finish(observed, []));
+        continue;
+      }
       if (step.requirement_id) {
         demand(Object.hasOwn(semantics, step.requirement_id), 'MISSING_POSTCONDITION', 'unknown semantic requirement');
         demand(phase === 'primary_result' ? /^result_[1-9][0-9]*$/.test(step.requirement_id) : step.requirement_id === phase, 'MISSING_POSTCONDITION', 'semantic requirement belongs to a different phase');
@@ -1904,6 +1984,9 @@ export async function captureWorkflowViewport(session, viewport) {
  * Only the private real-browser wrapper below can promote this report. */
 function semanticWorkflowEvidence({ app, scenario, sources, session, viewports, artifacts }, requiredViews, requiredFiles, schema) {
   validateScenario(scenario, app);
+  const supplemental = validateSupplementalObservations(session, scenario);
+  demand(!supplemental.length || schema === VIEWPORT_WORKFLOW_SCHEMA && session.phase_evidence,
+    'INVALID_OBSERVATION', 'supplemental DOM observations belong only to source-bound V2 viewport evidence');
   demand(session.unexpected_backend_calls === 0 && session.backend_policy_errors.length === 0, 'POLICY_BOUNDARY', 'unexpected backend dispatch was observed or blocked');
   const required = requiredSemantics(app);
   const assertions = session.semantic_assertions;
@@ -1931,6 +2014,7 @@ function semanticWorkflowEvidence({ app, scenario, sources, session, viewports, 
   for (const name of requiredFiles) demand(artifacts.some(item => item.path.endsWith('/' + name) && item.bytes > 0), 'ARTIFACT_MISSING', 'workflow lacks actual viewport/trace artifacts');
   return { schema, app_id: app.app_id, passed: false, source_template: false, actual_desktop: false, ...sources,
     artifacts, checks, semantic_assertions: assertions.map(item => ({ ...item, passed: true })),
+    ...(supplemental.length ? {supplemental_observations:supplemental.map(row => ({...row}))} : {}),
     unexpected_backend_calls: 0, backend_observations: session.backend_observations,
     viewports: viewports.map(({ name, layout }) => ({ name, ...layout })), keyboard_observations: semanticKeyboard,
     temporal_observations: session.temporal_observations || [], work_complete: false, completion_authority: false };
@@ -2050,6 +2134,7 @@ export function validateViewportWorkflowReport(report, { app, scenario, sources,
   validateDecodedImageObservations(report, scenario,
     ref => exactArtifact(workspaceRoot, ref, prefix, 1048576));
   validateErrorImageCheckpointObservations(report, scenario);
+  const supplemental = validateSupplementalObservations(report, scenario);
   demand(Array.isArray(report.semantic_assertions) && report.semantic_assertions.every(row => row.passed === true),
     'MISSING_POSTCONDITION', 'V2 original semantic observations must all pass');
   for (const row of report.semantic_assertions) {
@@ -2081,7 +2166,10 @@ export function validateViewportWorkflowReport(report, { app, scenario, sources,
   const rebuilt = buildViewportWorkflowEvidence({ app, scenario, sources,
     session: { viewport, initial_viewport: viewport, session_id: report.session_id, semantic_assertions: report.semantic_assertions,
       checkpoints: report.error_observations, keyboard_focus_observations: report.keyboard_observations,
-      backend_records: Array.from({ length: report.backend_call_count }), backend_observations: report.backend_observations,
+      supplemental_observations:supplemental, phase_evidence:report.phase_evidence,
+      backend_records: Array.from({ length: report.backend_call_count }, (_,index) => ({request_phase:report.backend_request_phases?.requests[index],
+        dispatch_observation_phase:report.backend_request_phases?.requests[index]?.phase})), backend_observations: report.backend_observations,
+      temporal_observations:report.temporal_observations,
       unexpected_backend_calls: 0, backend_policy_errors: [], actual_desktop: report.actual_desktop }, viewports: [{ name, layout }], artifacts: report.artifacts });
   demand(canonicalJSON(rebuilt.checks) === canonicalJSON(report.checks), 'INVALID_OBSERVATION', 'V2 checks differ from actual typed observations');
   return report;
@@ -2269,7 +2357,7 @@ export async function runIndependentWorkflow(settings) {
   demand(!fs.existsSync(outputDir) || fs.readdirSync(outputDir).length === 0, 'ARTIFACT_COLLISION', 'V2 output must be a new empty attempt');
   const assertSources = () => assertIndependentWorkflowSources(sources, app, sourceOptions);
   const children = await runIndependentViewportSessions({ app, scenario, assertSources,
-    openSession: viewport => openRealDesktopSession({ ...settings, app, scenario, viewport,
+    openSession: viewport => openRealDesktopSession({ ...settings, independentViewports:true, app, scenario, viewport,
       outputDir: path.join(outputDir, viewport.name), backendProof: true, trace: true }),
     executePhase: executeScenarioPhase,
     captureSession: async (session, viewport) => {
@@ -2328,6 +2416,7 @@ export async function runWorkflow(settings) {
   const app = config.apps.find(item => item.app_id === settings.appId);
   demand(app, 'INVALID_CONTRACT', 'unknown canonical app ID');
   const scenario = loadScenario(app);
+  demand(!supplementalScenarioObservations(scenario).length, 'INVALID_SCENARIO', 'supplemental DOM observations require independent V2 before browser admission');
   const sources = workflowSourceSnapshot(app, { contractsPath });
   // No directory/report is created before the implemented lifecycle acquires
   // its own resources. Foundation-only code cannot leave a successful report.
