@@ -302,3 +302,33 @@ and source hashes for the runner and `swissknife/web/js/apps/calculator.js`.
 `--foundation-check pilot --output-dir <dir>` runs the real pilot. A pilot is
 driver integration evidence; full app acceptance still requires all contracts,
 reopen, failure recovery and final visual review through the separate app tasks.
+
+## Optional saved-PNG error checkpoint
+
+This additive exception amends the single-checkpoint wording and the `assert`
+optional-fields cell above. Existing scenarios remain valid. No other new
+checkpoint IDs are supported.
+
+After `error_observed`, `failure_recovery` may contain one assert with
+`checkpoint_id:"error_image_retained"`, an `image_state` probe without
+`temporal_ms`, and this additional step field:
+
+```json
+"retained_from": {"primary_result": 11, "persist_reopen": 6}
+```
+
+The example indices are zero-based within each named phase. Supply the actual
+indices of that scenario's original `image_state` assertions: a `result_N` in
+`primary_result` and `persist_reopen` in its phase, each in 0-63. The field is
+invalid on other steps. A checkpoint cannot also have `requirement_id`.
+
+The image checkpoint must follow the observed error before any recovery UI,
+owner-result assertion or semantic completion assertion. Only passive
+wait/capture and non-semantic, non-owner assertions may intervene. All original
+result, reopen and recovery requirements remain mandatory.
+
+Within each independent viewport, the consumer verifies the native PNG artifact
+at each exact referenced phase/step/literal selector, then requires error,
+primary and reopen PNG content SHA, native source SHA and dimensions to match.
+It proves retained saved IMG bytes only: it does not equate CSS selectors or
+infer canvas pixels, layer contents, owner effects or successful recovery.

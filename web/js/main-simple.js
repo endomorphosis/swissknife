@@ -1935,7 +1935,22 @@ class SwissKnifeDesktop {
         if (primarySurface) Object.assign(primarySurface.style, { height: '100%', minHeight: '0', minWidth: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
         Object.assign(contentElement.style, { flex: '1 1 0%', minHeight: '0', minWidth: '0', overflow: 'auto' });
         const gatewayHost = primarySurface?.querySelector('.live-tool-gateway-host');
-        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '3.25rem', minHeight: '0', flexShrink: '0', overflow: 'auto', position: 'static', zIndex: '0' });
+        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '6.5rem', minHeight: '2.75rem', flexShrink: '0', overflow: 'auto', position: 'static', zIndex: '0' });
+        const datasetFrame = contentElement.closest('.window');
+        if (datasetFrame) {
+            const viewportWidth = document.documentElement.clientWidth || window.innerWidth || 0;
+            const viewportHeight = document.documentElement.clientHeight || window.innerHeight || 0;
+            const maxHeight = Math.max(180, viewportHeight - 48);
+            const maxWidth = Math.max(280, viewportWidth);
+            const frameWidth = Math.min(parseInt(datasetFrame.style.width, 10) || datasetFrame.offsetWidth || maxWidth, maxWidth);
+            const frameLeft = Math.max(0, parseInt(datasetFrame.style.left, 10) || 0);
+            datasetFrame.style.top = '0px';
+            datasetFrame.style.left = Math.min(frameLeft, Math.max(0, viewportWidth - frameWidth)) + 'px';
+            datasetFrame.style.width = frameWidth + 'px';
+            datasetFrame.style.maxWidth = maxWidth + 'px';
+            datasetFrame.style.maxHeight = maxHeight + 'px';
+            datasetFrame.style.height = maxHeight + 'px';
+        }
         if (!document.getElementById('datasets-browser-fit-style')) {
             const fitStyle = document.createElement('style');
             fitStyle.id = 'datasets-browser-fit-style';
@@ -1946,10 +1961,14 @@ class SwissKnifeDesktop {
                 .datasets-browser-workflow :is(button,select,input,textarea):is(:focus, :focus-visible) { outline: 2px solid #93c5fd; outline-offset: 2px; }
                 .datasets-browser-workflow :is(p, span, label, h2, h3, td) { max-width: 100%; min-width: 0; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
                 .datasets-browser-workflow :is(input, select, button) { max-width: 100%; min-width: 0; box-sizing: border-box; }
-                .datasets-browser-workflow #datasets-match-summary { display:block; margin:0 0 6px; font-size:13px; line-height:1.35; } .datasets-browser-workflow .datasets-rows-wrap { max-height: 8rem; max-width: 100%; overflow: auto; }
+                .datasets-browser-workflow .datasets-primary { display:flex; flex-direction:column; gap:6px; min-width:0; }
+                .datasets-browser-workflow [data-svd-vda-marker="error-ui"] { margin:0; padding:0; background:transparent; border:0; box-shadow:none; }
+                .datasets-browser-workflow [data-svd-vda-marker="error-ui"] h3 { display:none; }
+                .datasets-browser-workflow #datasets-match-summary, .datasets-browser-workflow #datasets-record-id-full { display:block; margin:0 0 6px; font-size:13px; line-height:1.35; overflow-wrap:anywhere; word-break:break-all; } .datasets-browser-workflow .datasets-rows-wrap { max-height: 4.5rem; max-width: 100%; overflow: auto; }
                 .datasets-browser-workflow table { width: 100%; border-collapse: collapse; table-layout: fixed; }
                 .datasets-browser-workflow td { border-top: 1px solid #26384a; padding: 4px 0; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
-                .datasets-browser-workflow .datasets-actions { position: sticky; bottom: 0; z-index: 2; background: var(--sk-bg-panel, #101820); }
+                .datasets-browser-workflow tr[aria-selected="true"] td { outline: 2px solid #93c5fd; outline-offset: -2px; }
+                .datasets-browser-workflow .datasets-actions { position: static; z-index: auto; background: transparent; }
                 .datasets-browser-workflow .datasets-diagnostics { margin-top: 8px; }
                 .datasets-browser-workflow .datasets-diagnostics pre { max-height: 4.5rem; overflow: auto; white-space: pre-wrap; }
             `;
@@ -1974,7 +1993,7 @@ class SwissKnifeDesktop {
                     <section class="sk-card" data-svd-vda-marker="dataset-cid">
                         <h3 class="sk-section-head">Dataset</h3>
                         <div style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
-                            <label>Dataset ID or CID <input id="datasets-record-id" data-datasets-id class="sk-input" aria-label="Dataset ID or CID" placeholder="Dataset identifier"></label>
+                            <label>Dataset ID or CID <input id="datasets-record-id" data-datasets-id class="sk-input" aria-label="Dataset ID or CID" placeholder="Dataset identifier"><span id="datasets-record-id-full"></span></label>
                             <p id="datasets-match-summary">No rows loaded yet.</p>
                             <div class="datasets-rows-wrap"><table><tbody id="datasets-rows"></tbody></table></div>
                             <span id="datasets-catalog-status">The identifier stays in this field until you change it.</span>
@@ -2068,24 +2087,16 @@ class SwissKnifeDesktop {
         };
         const fitPrimaryDatasetBrowser = () => {
             const workflow = contentElement.querySelector('.datasets-browser-workflow');
+            if (!workflow) return;
             const primary = contentElement.querySelector('[data-svd-vda-marker="dataset-cid"]');
             const queryLabel = contentElement.querySelector('#datasets-query')?.closest('label');
             const summaryNode = contentElement.querySelector('#datasets-match-summary');
             const rowsWrap = contentElement.querySelector('.datasets-rows-wrap');
-            if (workflow && rowsWrap) workflow.insertBefore(rowsWrap, workflow.firstChild);
-            if (workflow && summaryNode) workflow.insertBefore(summaryNode, workflow.firstChild);
-            const summaryParent = primary;
-            if (summaryParent && queryLabel && !summaryParent.contains(queryLabel)) summaryParent.append(queryLabel);
             const schema = contentElement.querySelector('[data-svd-vda-marker="schema-filter-ui"]');
-            if (summaryParent && schema && !summaryParent.contains(schema)) summaryParent.append(schema);
             const actions = contentElement.querySelector('#datasets-search')?.parentElement;
-            if (summaryParent && actions && !summaryParent.contains(actions)) summaryParent.append(actions);
             const errorCard = contentElement.querySelector('[data-svd-vda-marker="error-ui"]');
-            if (workflow && errorCard && rowsWrap && errorCard !== rowsWrap.nextElementSibling) rowsWrap.insertAdjacentElement('afterend', errorCard);
             const semanticStatusNode = contentElement.querySelector('#datasets-semantic-status');
-            if (primary && semanticStatusNode && !primary.contains(semanticStatusNode)) primary.append(semanticStatusNode);
-            const semantic = contentElement.querySelector('[data-svd-vda-marker="semantic-operation"]');
-            if (semantic && !semantic.querySelector('#datasets-query') && !semantic.querySelector('#datasets-semantic-status')) semantic.remove();
+            const header = workflow.querySelector(':scope > div');
             let diagnostics = contentElement.querySelector('.datasets-diagnostics');
             if (!diagnostics) {
                 diagnostics = document.createElement('details');
@@ -2093,11 +2104,10 @@ class SwissKnifeDesktop {
                 const summary = document.createElement('summary');
                 summary.textContent = 'Diagnostics';
                 diagnostics.append(summary);
-                const actions = contentElement.querySelector('#datasets-search')?.parentElement;
-                if (actions) actions.insertAdjacentElement('afterend', diagnostics);
-                else contentElement.querySelector('.datasets-browser-workflow')?.append(diagnostics);
+                workflow.append(diagnostics);
             }
-            for (const marker of ['provenance-operation', 'preparation-job', 'progress-ui']) {
+            if (header && header.querySelector('h2') && !diagnostics.contains(header)) diagnostics.append(header);
+            for (const marker of ['semantic-operation', 'provenance-operation', 'preparation-job', 'progress-ui']) {
                 const node = contentElement.querySelector(`[data-svd-vda-marker="${marker}"]`);
                 if (node && !diagnostics.contains(node)) diagnostics.append(node);
             }
@@ -2105,7 +2115,31 @@ class SwissKnifeDesktop {
                 const node = contentElement.querySelector(`#${id}`);
                 if (node && !diagnostics.contains(node)) diagnostics.append(node);
             }
+            const stack = workflow.querySelector('.datasets-primary') || document.createElement('div');
+            stack.className = 'datasets-primary';
+            if (schema) stack.append(schema);
+            if (actions) stack.append(actions);
+            if (queryLabel) stack.append(queryLabel);
+            if (primary) stack.append(primary);
+            if (summaryNode) stack.append(summaryNode);
+            if (rowsWrap) stack.append(rowsWrap);
+            if (semanticStatusNode) stack.append(semanticStatusNode);
+            if (errorCard) {
+                errorCard.style.margin = '0';
+                errorCard.style.padding = '0';
+                errorCard.style.background = 'transparent';
+                errorCard.style.border = '0';
+                const heading = errorCard.querySelector('h3');
+                if (heading) heading.hidden = true;
+                stack.append(errorCard);
+            }
+            workflow.prepend(stack);
+            for (const grid of Array.from(workflow.children)) {
+                if (grid !== stack && grid !== diagnostics && grid.childElementCount === 0) grid.remove();
+            }
+            diagnostics.open = false;
             contentElement.scrollTop = 0;
+            workflow.scrollTop = 0;
         };
         fitPrimaryDatasetBrowser();
 
@@ -2180,16 +2214,23 @@ class SwissKnifeDesktop {
                         : 'No records matched this query.';
                     const summaryNode = contentElement.querySelector('#datasets-match-summary');
                     if (summaryNode) summaryNode.textContent = summaryText;
+                    const fullId = contentElement.querySelector('#datasets-record-id-full');
+                    const idField = contentElement.querySelector('#datasets-record-id');
+                    if (idField) idField.title = identity;
+                    if (fullId) fullId.textContent = identity;
                     const errorNode = contentElement.querySelector('#datasets-error-status');
                     if (errorNode) errorNode.textContent = records.length ? 'No query failure.' : 'No records matched this query. The dataset selection was kept.';
                     const body = contentElement.querySelector('#datasets-rows');
                     if (body) {
                         body.replaceChildren();
-                        for (const record of records) {
+                        const selected = records[0];
+                        if (selected) {
                             const tr = document.createElement('tr');
                             tr.className = 'datasets-row';
+                            tr.dataset.selected = 'true';
+                            tr.setAttribute('aria-selected', 'true');
                             const td = document.createElement('td');
-                            td.textContent = datasetRowLabel(record);
+                            td.textContent = datasetRowLabel(selected);
                             tr.appendChild(td);
                             body.appendChild(tr);
                         }
@@ -2293,7 +2334,9 @@ class SwissKnifeDesktop {
                 const queryNode = contentElement.querySelector('#datasets-query');
                 const schemaNode = contentElement.querySelector('#datasets-schema');
                 const splitNode = contentElement.querySelector('#datasets-split');
-                if (idNode && typeof saved.id === 'string') idNode.value = saved.id;
+                if (idNode && typeof saved.id === 'string') { idNode.value = saved.id; idNode.title = saved.id; }
+                const fullId = contentElement.querySelector('#datasets-record-id-full');
+                if (fullId && typeof saved.id === 'string') fullId.textContent = saved.id;
                 if (queryNode && typeof saved.query === 'string') queryNode.value = saved.query;
                 if (schemaNode && typeof saved.schema === 'string') schemaNode.value = saved.schema;
                 if (splitNode && typeof saved.split === 'string') splitNode.value = saved.split;

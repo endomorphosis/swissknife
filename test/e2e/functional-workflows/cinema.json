@@ -87,6 +87,17 @@
         "key": "Enter"
       },
       {
+        "op": "wait_for",
+        "selector": "[data-cinema-project-reference][data-reference-state=\"saved\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-cinema-project-reference]",
+        "key": "Tab"
+      },
+      {
         "op": "press",
         "selector": "[data-cinema-play]",
         "key": "Enter"
@@ -113,6 +124,27 @@
         "selector": "[data-cinema-video][data-decoded-cid=\"bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla\"]",
         "state": "visible",
         "timeout_ms": 15000
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-cinema-project-reference][data-reference-state=\"saved\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-cinema-trim=\"out\"]",
+        "key": "Tab"
+      },
+      {
+        "op": "press",
+        "selector": "[data-cinema-codec]",
+        "key": "Tab"
+      },
+      {
+        "op": "press",
+        "selector": "[data-cinema-project-reference]",
+        "key": "Tab"
       },
       {
         "op": "assert",
@@ -175,6 +207,12 @@
       {
         "op": "wait_for",
         "selector": "[data-cinema-workflow-status][data-export-state=\"unsupported\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-cinema-export-outcome][data-export-state=\"unsupported\"]",
         "state": "visible",
         "timeout_ms": 15000
       },

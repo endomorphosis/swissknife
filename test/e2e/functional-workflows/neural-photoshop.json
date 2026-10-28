@@ -158,6 +158,21 @@
         "expected": "Source read failed"
       },
       {
+        "op": "assert",
+        "checkpoint_id": "error_image_retained",
+        "retained_from": {
+          "primary_result": 11,
+          "persist_reopen": 6
+        },
+        "probe": {
+          "kind": "image_state",
+          "selector": "[data-saved-project-image][data-layer-names=\"Background, Layer 2\"]",
+          "pointer": "/natural_width"
+        },
+        "operator": "equals",
+        "expected": 64
+      },
+      {
         "op": "fill",
         "selector": "[data-source-cid-input]",
         "value": "bafkreiefsedovka56qbpo5s4o2mpfq2zbhdknta7rqarqjljugxdmpriue"

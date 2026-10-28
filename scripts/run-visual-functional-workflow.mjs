@@ -124,7 +124,7 @@ function validateStep(step, app) {
     check: [['op', 'selector'], []], uncheck: [['op', 'selector'], []],
     wait_for: [['op', 'selector', 'state'], ['timeout_ms']], wait_ms: [['op', 'milliseconds'], []],
     reopen_app: [['op'], []], capture: [['op', 'label'], []],
-    assert: [['op', 'probe', 'operator', 'expected'], ['requirement_id', 'checkpoint_id']],
+    assert: [['op', 'probe', 'operator', 'expected'], ['requirement_id', 'checkpoint_id', 'retained_from']],
   }[step.op];
   demand(shape, 'INVALID_SCENARIO', `unsupported action: ${step.op}; arbitrary scripts, requests and injected state are forbidden`);
   keys(step, ...shape);
@@ -140,8 +140,90 @@ function validateStep(step, app) {
   if (step.op === 'assert') {
     demand(Boolean(text(step.requirement_id)) !== Boolean(text(step.checkpoint_id)), 'INVALID_SCENARIO', 'assertion needs one requirement or checkpoint identity');
     demand(['equals', 'not_equals', 'contains', 'at_least'].includes(step.operator), 'INVALID_SCENARIO', 'unsupported assertion operator');
+    if (step.checkpoint_id === 'error_image_retained') {
+      demand(step.probe?.kind === 'image_state' && step.probe.temporal_ms === undefined,
+        'INVALID_SCENARIO', 'retained error image needs one native image_state observation');
+      keys(step.retained_from, ['primary_result', 'persist_reopen']);
+      demand(Object.values(step.retained_from).every(index => Number.isSafeInteger(index) && index >= 0 && index < 64),
+        'INVALID_SCENARIO', 'retained image references need bounded original step indices');
+    } else demand(step.retained_from === undefined, 'INVALID_SCENARIO', 'only the retained error image checkpoint can name image references');
     canonicalJSON(step.expected);
     validateProbe(step.probe, app);
+  }
+}
+
+/** Optional saved-PNG retention observation; it grants no recovery or backend authority. */
+export function errorImageRetentionCheckpoint(scenario) {
+  const checkpoints = [];
+  for (const phase of PHASES) for (const [index, step] of (scenario.phases?.[phase] || []).entries()) {
+    if (step.checkpoint_id !== undefined) checkpoints.push({phase, index, step});
+  }
+  demand(checkpoints.every(row => row.phase === 'failure_recovery' && row.step.op === 'assert'
+    && ['error_observed', 'error_image_retained'].includes(row.step.checkpoint_id)),
+    'INVALID_SCENARIO', 'unknown or misplaced workflow checkpoint');
+  const errors = checkpoints.filter(row => row.step.checkpoint_id === 'error_observed');
+  const retained = checkpoints.filter(row => row.step.checkpoint_id === 'error_image_retained');
+  demand(errors.length === 1 && retained.length <= 1, 'INVALID_SCENARIO', 'checkpoints must be unique with one actual error');
+  if (!retained.length) return null;
+  const row = retained[0], error = errors[0];
+  demand(row.index > error.index && scenario.phases.failure_recovery.slice(error.index + 1, row.index).every(
+    step => ['assert', 'capture', 'wait_for', 'wait_ms'].includes(step.op)
+      && !(step.op === 'assert' && (step.requirement_id || step.probe?.kind === 'backend_result'))),
+    'INVALID_SCENARIO', 'retained image must follow the error before any recovery UI or owner action');
+  demand(row.step.probe?.kind === 'image_state' && row.step.probe.temporal_ms === undefined,
+    'INVALID_SCENARIO', 'retained error image needs a native image_state probe');
+  keys(row.step.retained_from, ['primary_result', 'persist_reopen']);
+  for (const phase of ['primary_result','persist_reopen']) {
+    const index = row.step.retained_from[phase], original = scenario.phases[phase]?.[index];
+    demand(Number.isSafeInteger(index) && index >= 0 && index < 64 && original?.op === 'assert'
+      && original.probe?.kind === 'image_state' && original.probe.temporal_ms === undefined
+      && (phase === 'primary_result' ? /^result_[1-9][0-9]*$/.test(original.requirement_id || '') : original.requirement_id === phase),
+      'INVALID_SCENARIO', 'retained image reference must name its original declared image assertion');
+  }
+  return row;
+}
+
+export function validateErrorImageCheckpointObservations(report, scenario) {
+  const retained = errorImageRetentionCheckpoint(scenario), rows = report.error_observations;
+  demand(Array.isArray(rows) && rows.length === (retained ? 2 : 1),
+    'MISSING_POSTCONDITION', 'V2 child has missing or unexpected error checkpoints');
+  const names = retained ? ['error_observed','error_image_retained'] : ['error_observed'];
+  for (const [index,row] of rows.entries()) {
+    const step = scenario.phases.failure_recovery[row.step_index];
+    demand(row.phase === 'failure_recovery' && Number.isSafeInteger(row.step_index) && row.step_index >= 0
+      && row.checkpoint_id === names[index] && step?.op === 'assert' && !row.requirement_id
+      && step.checkpoint_id === row.checkpoint_id && canonicalJSON(step.probe) === canonicalJSON(row.probe)
+      && step.operator === row.observed?.operator && canonicalJSON(step.expected) === canonicalJSON(row.observed.expected)
+      && (!retained || index !== 1 || row.step_index === retained.index),
+      'INVALID_OBSERVATION', 'V2 error observation differs from its exact original checkpoint');
+    evaluateObservation(row.observed);
+  }
+  return rows;
+}
+
+export function validateErrorImageRetention(report, scenario) {
+  const retained = errorImageRetentionCheckpoint(scenario);
+  if (!retained) return;
+  const rows = report.image_observations;
+  demand(Array.isArray(rows), 'MISSING_POSTCONDITION', 'retained image has no actual native PNG observations');
+  function exact(phase,index) {
+    const found = rows.filter(row => row.phase === phase && row.step_index === index);
+    const original = scenario.phases[phase][index];
+    demand(found.length === 1 && found[0].selector === original.probe.selector,
+      'INVALID_OBSERVATION', 'retained image has no unique source-bound native observation');
+    const row = found[0];
+    demand(row.decoded === true && /^[0-9a-f]{64}$/.test(row.content_sha256 || '')
+      && /^[0-9a-f]{64}$/.test(row.source_sha256 || '') && row.image_artifact
+      && Number.isSafeInteger(row.natural_width) && row.natural_width > 0
+      && Number.isSafeInteger(row.natural_height) && row.natural_height > 0,
+      'ARTIFACT_INVALID', 'retained image requires real encoded PNG artifacts');
+    return row;
+  }
+  const error = exact('failure_recovery',retained.index);
+  for (const phase of ['primary_result','persist_reopen']) {
+    const prior = exact(phase,retained.step.retained_from[phase]);
+    demand(['content_sha256','source_sha256','natural_width','natural_height'].every(key => prior[key] === error[key]),
+      'POSTCONDITION_FAILED', 'saved PNG bytes/source/dimensions changed at the failed-read checkpoint');
   }
 }
 
@@ -214,6 +296,7 @@ export function validateScenario(scenario, app) {
     }
   }
   demand(observed.size === Object.keys(requirements).length, 'MISSING_POSTCONDITION', 'scenario omitted semantic results, persistence or failure recovery');
+  errorImageRetentionCheckpoint(scenario);
   return scenario;
 }
 
@@ -1098,11 +1181,16 @@ export async function executeScenarioPhase(session, phase, steps, context = {}) 
         demand(!assertions.some(item => item.requirement_id === step.requirement_id), 'MISSING_POSTCONDITION', 'duplicate semantic result');
         if (phase === 'persist_reopen') demand(reopened && session.generation > entryGeneration, 'MISSING_POSTCONDITION', 'persistence requires a completed real close/reopen');
         if (phase === 'failure_recovery') demand(errorObserved && recoveryAction, 'MISSING_POSTCONDITION', 'recovery needs an observed error and subsequent UI recovery action');
+      } else if (step.checkpoint_id === 'error_image_retained') {
+        const retained = errorImageRetentionCheckpoint(session.scenario);
+        demand(phase === 'failure_recovery' && retained?.index === index && errorObserved && !recoveryAction && phaseEvidence,
+          'MISSING_POSTCONDITION', 'retained image must be observed after the actual error before recovery in an independent workflow');
       } else demand(phase === 'failure_recovery' && step.checkpoint_id === 'error_observed' && !errorObserved, 'MISSING_POSTCONDITION', 'only an actual failure checkpoint is permitted');
       const backend = step.probe.kind === 'backend_result' ? await collectBackendProof({ session, probe: step.probe, operator: step.operator, expected: step.expected }) : null;
       const actual = backend ? backend.result_assertion.actual : await observeDOMProbe(session, step.probe,
         { positiveMedia: phase === 'primary_result' && Boolean(step.requirement_id) });
       const observed = evaluateObservation({ operator: step.operator, actual, expected: step.expected });
+      if (step.checkpoint_id === 'error_image_retained') validateErrorImageRetention(session, session.scenario);
       const record = { phase, step_index: index, probe: { ...step.probe }, observed };
       if (step.requirement_id) {
         assertions.push({ ...record, requirement_id: step.requirement_id, requirement_text: semantics[step.requirement_id] });
@@ -1415,7 +1503,10 @@ export function validateBackendRequestPhases(report, scenario, calls = new Map()
 }
 
 export function validateDecodedImageObservations(report, scenario, readArtifact) {
-  if (report.image_observations === undefined) return;
+  if (report.image_observations === undefined) {
+    if (scenario.phases?.failure_recovery?.some(step => step.checkpoint_id === 'error_image_retained')) validateErrorImageRetention(report, scenario);
+    return;
+  }
   demand(Array.isArray(report.image_observations) && report.image_observations.length <= 64,
     'INVALID_OBSERVATION', 'native image observation count is unbounded');
   for (const row of report.image_observations) {
@@ -1445,6 +1536,7 @@ export function validateDecodedImageObservations(report, scenario, readArtifact)
       'ARTIFACT_INVALID', 'native image source differs from its retained PNG bytes');
     encodedPNGObservation({...row,native_source:'data:image/png;base64,'+bytes.toString('base64')});
   }
+  if (scenario.phases?.failure_recovery?.some(step => step.checkpoint_id === 'error_image_retained')) validateErrorImageRetention(report, scenario);
 }
 
 export async function checkBackendProofFoundation() {
@@ -1910,7 +2002,7 @@ export function validateViewportWorkflowReport(report, { app, scenario, sources,
   demand(layoutRef && canonicalJSON(JSON.parse(exactArtifact(workspaceRoot, layoutRef, prefix, 1048576))) === canonicalJSON(layout),
     'ARTIFACT_INVALID', 'V2 observed layout is detached from its artifact');
   demand(Number.isSafeInteger(report.backend_call_count) && report.backend_call_count >= 0 && report.backend_call_count <= 64
-    && report.unexpected_backend_calls === 0 && Array.isArray(report.error_observations) && report.error_observations.length === 1,
+    && report.unexpected_backend_calls === 0 && Array.isArray(report.error_observations) && report.error_observations.length === (errorImageRetentionCheckpoint(scenario) ? 2 : 1),
     'POLICY_BOUNDARY', 'V2 child lacks bounded actual call/failure observations');
   demand(plain(report.backend_call_phases) && canonicalJSON(Object.keys(report.backend_call_phases).sort()) === canonicalJSON([...BACKEND_OBSERVATION_PHASES].sort())
     && Object.values(report.backend_call_phases).every(value => Number.isSafeInteger(value) && value >= 0)
@@ -1934,11 +2026,10 @@ export function validateViewportWorkflowReport(report, { app, scenario, sources,
   validateBackendRequestPhases(report, scenario, phaseCalls);
   validateDecodedImageObservations(report, scenario,
     ref => exactArtifact(workspaceRoot, ref, prefix, 1048576));
-  const checkpoint = report.error_observations[0];
-  demand(checkpoint.checkpoint_id === 'error_observed' && checkpoint.phase === 'failure_recovery', 'MISSING_POSTCONDITION', 'V2 child lacks its actual failure checkpoint');
+  validateErrorImageCheckpointObservations(report, scenario);
   demand(Array.isArray(report.semantic_assertions) && report.semantic_assertions.every(row => row.passed === true),
     'MISSING_POSTCONDITION', 'V2 original semantic observations must all pass');
-  for (const row of [...report.semantic_assertions, checkpoint]) {
+  for (const row of report.semantic_assertions) {
     demand(Number.isSafeInteger(row.step_index) && row.step_index >= 0 && PHASES.includes(row.phase), 'INVALID_OBSERVATION', 'V2 semantic observation has no actual scenario step');
     const step = scenario.phases[row.phase][row.step_index];
     demand(step?.op === 'assert' && step.requirement_id === row.requirement_id && step.checkpoint_id === row.checkpoint_id
@@ -1954,7 +2045,7 @@ export function validateViewportWorkflowReport(report, { app, scenario, sources,
       && !scenario.phases[row.phase].slice(row.step_index + 1, result.step_index).some(item => !['assert', 'capture', 'wait_ms', 'wait_for'].includes(item.op)),
       'INVALID_OBSERVATION', 'V2 keyboard proof is detached from its original semantic result');
   }
-  const temporalRows = [...report.semantic_assertions, checkpoint].filter(row => row.probe.temporal_ms !== undefined)
+  const temporalRows = [...report.semantic_assertions, ...report.error_observations].filter(row => row.probe.temporal_ms !== undefined)
     .sort((a, b) => PHASES.indexOf(a.phase) - PHASES.indexOf(b.phase) || a.step_index - b.step_index);
   demand(Array.isArray(report.temporal_observations) && report.temporal_observations.length === temporalRows.length,
     'INVALID_OBSERVATION', 'V2 temporal samples must join the original observations');

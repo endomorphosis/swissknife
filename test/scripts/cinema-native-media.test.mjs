@@ -173,3 +173,95 @@ test('real seek action reveals clipped desktop video through its own editing pan
 test('already visible media and a detached editor do not cause scroll jumps',async t=>{
  const f=fixture(t);await f.open();const g=authoredPreviewGeometry(f);g.root.scrollTop=137;f.app.seekMedia(.6);assert.equal(g.root.scrollTop,137);f.shell.remove();assert.equal(f.app.revealMediaPreview(f.root),false);assert.equal(g.root.scrollTop,137);
 });
+
+// Source-matched genuine review31c638: desktop was forcibly560px and hid its
+// timeline. These are authored allocation/control tests, not Chrome evidence.
+test('Cinema initially uses its own bounded editing size and preserves subsequent user resize or maximize',t=>{
+ const f=fixture(t);f.window.happyDOM.setWindowSize({width:1440,height:900});const desktop=f.mount();
+ assert.equal(desktop.shell.style.width,'1200px');assert.equal(desktop.shell.style.height,'800px');
+ assert.equal(desktop.shell.style.getPropertyPriority('height'),'');
+ assert.equal(desktop.shell.style.top,'24px');assert.equal(desktop.shell.style.left,'24px');
+ desktop.shell.style.width='640px';desktop.shell.style.height='420px';desktop.shell.style.top='70px';
+ desktop.app.keepTimelineClickable(desktop.root);assert.equal(desktop.shell.style.width,'640px');assert.equal(desktop.shell.style.height,'420px');assert.equal(desktop.shell.style.top,'70px');
+ desktop.shell.style.height='calc(100vh - 48px)';desktop.shell.classList.add('maximized');
+ desktop.app.keepTimelineClickable(desktop.root);assert.equal(desktop.shell.style.height,'calc(100vh - 48px)');
+ f.window.happyDOM.setWindowSize({width:390,height:844});const mobile=f.mount();
+ assert.equal(mobile.shell.style.width,'374px');assert.equal(mobile.shell.style.height,'780px');assert.equal(mobile.shell.style.left,'8px');assert.equal(mobile.shell.style.top,'8px');
+ assert.ok(parseFloat(mobile.shell.style.left)+parseFloat(mobile.shell.style.width)<=390);
+ assert.ok(parseFloat(mobile.shell.style.top)+parseFloat(mobile.shell.style.height)<=844-48);
+});
+test('Cinema compact viewport styles keep native preview and trim/codec tracks in their own usable layout',t=>{
+ const f=fixture(t);f.window.happyDOM.setWindowSize({width:390,height:844});const mobile=f.mount();
+ const style=node=>f.window.getComputedStyle(node);
+ assert.equal(style(mobile.root.querySelector('.cinema-timeline-head')).display,'grid');
+ assert.equal(style(mobile.root.querySelector('.cinema-timeline-head')).gridTemplateColumns,'repeat(2,minmax(0,1fr))');
+ assert.equal(style(mobile.root.querySelector('[data-cinema-video]')).maxHeight,'110px');
+ assert.equal(style(mobile.root.querySelector('.cinema-timeline')).overflow,'visible');
+ assert.equal(style(mobile.root.querySelector('[data-cinema-export-outcome]')).overflowWrap,'anywhere');
+ assert.ok(mobile.root.querySelector('[data-cinema-trim="out"]'));assert.ok(mobile.root.querySelector('[data-cinema-codec]'));assert.ok(mobile.root.querySelector('.timeline-tracks'));
+ f.window.happyDOM.setWindowSize({width:1440,height:900});const desktop=f.mount();assert.equal(style(desktop.root.querySelector('[data-cinema-video]')).maxHeight,'140px');
+});
+test('only the actual verified persisted project CID becomes the readonly reference across real app reopen',async t=>{
+ const f=fixture(t);await f.open();f.root.querySelector('[data-cinema-trim="out"]').value='2';f.app.commitTimeline(f.root,2);
+ const empty=f.root.querySelector('[data-cinema-project-reference]');assert.equal(empty.value,'');assert.equal(empty.readOnly,true);
+ await f.approve(f.app.handleCinemaWorkflowAction(f.root,'load-project-media-cids',f.root.querySelector('[data-cinema-workflow="load-project-media-cids"]')));
+ const persisted=f.calls.find(call=>call.tool_id==='artifacts_put'),projectCid=persisted.input.payload.cid;
+ assert.notEqual(projectCid,cid);assert.equal(empty.value,projectCid);assert.equal(empty.dataset.referenceState,'saved');
+ f.shell.remove();await until(()=>f.app.sourceMedia===null);const reopened=f.mount();await reopened.app.projectRestoration;
+ assert.equal(reopened.root.querySelector('[data-cinema-project-reference]').value,projectCid);
+ assert.equal(reopened.root.querySelector('[data-cinema-trim="out"]').value,'2');assert.equal(reopened.root.querySelector('[data-cinema-codec]').value,'mp4');
+ assert.match(reopened.root.querySelector('.cinema-clip').textContent,/in 0s.*out 2s/);
+ assert.equal(reopened.app.sourceMedia.cid,cid);assert.equal(f.calls.length,2,'reopen verifies its cache without inventing a new owner call');
+});
+test('actual unsupported export retry is visible near native media without pretending a rendered output or spending owner calls',async t=>{
+ const f=fixture(t);await f.open();const media=f.app.sourceMedia,ownerCalls=f.calls.length;
+ const codec=f.root.querySelector('[data-cinema-codec]'),outcome=f.root.querySelector('[data-cinema-export-outcome]');
+ codec.value='flv';await f.app.handleCinemaWorkflowAction(f.root,'simulate-failed-export');
+ assert.equal(outcome.dataset.exportState,'unsupported_codec');assert.match(outcome.textContent,/Unsupported codec flv/);
+ codec.value='mp4';await f.app.handleCinemaWorkflowAction(f.root,'simulate-failed-export');
+ assert.equal(outcome.dataset.exportState,'unsupported');assert.match(outcome.textContent,/no encoder.*No output file was created/);
+ assert.equal(outcome.closest('.cinema-preview-area')!==null,true);assert.equal(f.app.sourceMedia,media);
+ assert.equal(f.root.querySelector('[data-cinema-play]').disabled,false);assert.equal(f.calls.length,ownerCalls);assert.equal(f.app.renderQueue.length,0);
+ const result=await f.app.renderVideo('/authored-no-file.mp4');assert.equal(result.outputPath,null);assert.equal(result.success,false);
+});
+test('Cinema scenario retains every original semantic and actual retry while recording native saved-reference/trim controls on reopen',()=>{
+ const s=JSON.parse(fs.readFileSync(new URL('../e2e/functional-workflows/cinema.json',import.meta.url)));
+ assert.equal(s.phases.primary_result.at(-1).requirement_id,'result_1');assert.equal(s.phases.persist_reopen.at(-1).requirement_id,'persist_reopen');assert.equal(s.phases.failure_recovery.at(-1).requirement_id,'failure_recovery');
+ for(const name of ['primary_result','persist_reopen'])assert.ok(s.phases[name].some(step=>step.op==='press'&&step.selector==='[data-cinema-project-reference]'&&step.key==='Tab'));
+ assert.ok(s.phases.persist_reopen.some(step=>step.op==='press'&&step.selector==='[data-cinema-trim="out"]'&&step.key==='Tab'));
+ assert.ok(s.phases.persist_reopen.some(step=>step.op==='press'&&step.selector==='[data-cinema-codec]'&&step.key==='Tab'));
+ const retry=s.phases.failure_recovery.findIndex(step=>step.op==='select'&&step.value==='mp4');assert.equal(s.phases.failure_recovery[retry+1].op,'click');assert.equal(s.phases.failure_recovery[retry+1].selector,'[data-cinema-workflow="simulate-failed-export"]');
+ assert.ok(s.phases.failure_recovery.some(step=>step.op==='wait_for'&&step.selector==='[data-cinema-export-outcome][data-export-state="unsupported"]'));
+});
+
+// Actual49c51d failure: a source response's long base64 PRE made the implicit
+// project grid scroll horizontally by151441px and displaced normal click targets.
+test('large actual-format owner responses stay in bounded diagnostics without expanding the project action grid',t=>{
+ const f=fixture(t),panel=f.root.querySelector('.cinema-vda-panel'),raw=panel.querySelector('[data-cinema-owner-envelope]');
+ const payload=JSON.stringify({result:{content:[{type:'json',json:{bytes_base64:'A'.repeat(40000)}}]}});raw.textContent=payload;
+ const styles=node=>f.window.getComputedStyle(node);
+ assert.equal(styles(panel).gridTemplateColumns,'minmax(0, 1fr)');
+ assert.equal(styles(raw).whiteSpace,'pre-wrap');assert.equal(styles(raw).overflowWrap,'anywhere');assert.equal(styles(raw).overflow,'auto');assert.equal(styles(raw).maxHeight,'128px');
+ assert.equal(raw.textContent,payload,'diagnostic contents remain exact and accessible');
+ const details=raw.closest('details.cinema-diagnostics');assert.ok(details,'raw output must be inside the existing diagnostics');assert.equal(details.open,false);
+ for(const action of ['load-project-media-cids','simulate-failed-export']){const button=panel.querySelector('[data-cinema-workflow="'+action+'"]');assert.equal(button.disabled,false);assert.equal(details.contains(button),false);assert.notEqual(styles(button).pointerEvents,'none');}
+ details.open=true;assert.equal(styles(raw).maxHeight,'128px');assert.equal(raw.textContent,payload);
+});
+test('project panel native responses retain zero minimum intrinsic width at desktop and mobile sizes',t=>{
+ const f=fixture(t);for(const width of [1440,390]){f.window.happyDOM.setWindowSize({width,height:width===1440?900:844});const view=f.mount(),panel=view.root.querySelector('.cinema-vda-panel');
+  for(const child of panel.children){const style=f.window.getComputedStyle(child);assert.equal(Number.parseFloat(style.minWidth),0);assert.equal(style.maxWidth,'100%');}
+  assert.equal(f.window.getComputedStyle(panel).gridTemplateColumns,'minmax(0, 1fr)');
+  assert.equal(view.root.querySelector('[data-cinema-workflow="load-project-media-cids"]').closest('.cinema-props')!==null,true);
+ }
+});
+test('actual nested desktop mount stacks native operation details after Cinema rather than alongside its controls',t=>{
+ const f=fixture(t),shell=document.createElement('section');shell.className='window';shell.dataset.appId='cinema';
+ shell.innerHTML='<div class="window-content"><div class="window-app-content"><div id="cinema-nested-content"></div></div></div>';document.body.append(shell);
+ const mount=shell.querySelector('#cinema-nested-content'),app=new CinemaApp();app.createInterface(mount);
+ const details=document.createElement('details');details.dataset.nativeOperationDetails='true';details.style.cssText='grid-column:1 / -1;flex:0 0 auto;min-width:0;max-width:100%';details.innerHTML='<summary>Backend operation details</summary><output data-gateway-status="cinema.ipfs_kit_py.retrieve_content">Actual-format diagnostic sibling</output>';mount.append(details);
+ assert.equal(f.window.getComputedStyle(mount).display,'flex');assert.equal(f.window.getComputedStyle(mount).flexDirection,'column');
+ assert.equal(mount.firstElementChild.classList.contains('cinema-root'),true);assert.equal(mount.lastElementChild,details);
+ assert.equal(mount.querySelector('[data-cinema-workflow="load-project-media-cids"]').closest('details'),null);
+ assert.notEqual(f.window.getComputedStyle(details).pointerEvents,'none');assert.equal(details.hidden,false);
+ app.disposeMedia();
+});

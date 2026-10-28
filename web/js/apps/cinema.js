@@ -286,7 +286,7 @@ export class CinemaApp {
     return `
       <section id="${this.projectActionsId}" class="cinema-vda-workflow sk-card cinema-vda-panel" tabindex="-1" aria-label="Cinema project media render workflow">
         <div class="cinema-vda-head"><div><div class="sk-badge">Local project</div><h3 class="cinema-vda-title">Project Render Workflow</h3>
-          <p class="sk-honest-note">Governed persist only. A preview stores nothing. Export needs a connected encoder.</p></div>
+          <p class="sk-honest-note">Save the source and timeline as a project. Video export is unavailable.</p></div>
           <output class="sk-badge" data-cinema-workflow-status data-render-queue-state="not_observed" role="status">No owner operation has run.</output>
         </div>
         <div class="cinema-workflow-actions cinema-actions">
@@ -309,8 +309,8 @@ export class CinemaApp {
           <label>Playhead<input type="range" min="0" max="${Math.max(0, this.timeline.duration)}" value="${this.timeline.currentTime}" data-timeline-control="playhead" class="sk-range"></label>
           <label>Zoom<input type="range" min="50" max="400" value="${this.timeline.zoom * 100}" data-timeline-control="zoom" class="sk-range"></label>
         </article>
-        </details>
         <pre data-cinema-owner-envelope></pre>
+        </details>
       </section>`;
   }
 
@@ -343,20 +343,19 @@ export class CinemaApp {
     }
     revealNode(openedWindow, 'flex');
     if (openedWindow) {
-      openedWindow.style.setProperty('min-height', '320px', 'important');
-      openedWindow.style.setProperty('height', 'min(560px, calc(100vh - 96px))', 'important');
+      openedWindow.style.setProperty('min-height', '0px');
     }
     revealNode(contentRoot, 'flex');
     contentRoot.style.setProperty('position', 'relative', 'important');
     contentRoot.style.setProperty('flex-direction', 'column', 'important');
     contentRoot.style.setProperty('height', '100%', 'important');
     contentRoot.style.setProperty('max-height', 'none', 'important');
-    contentRoot.style.setProperty('min-height', '280px', 'important');
+    contentRoot.style.setProperty('min-height', '0px', 'important');
     contentRoot.style.setProperty('flex', '1 1 auto', 'important');
     contentRoot.style.setProperty('overflow', 'auto', 'important');
     contentRoot.style.setProperty('box-sizing', 'border-box', 'important');
     if (contentRoot !== container) revealNode(container, 'flex');
-    Object.assign(container.style, { position: 'relative', flex: '1 1 auto', minHeight: '0',
+    Object.assign(container.style, { position: 'relative', flex: '1 1 auto', flexDirection: 'column', minHeight: '0',
       minWidth: '0', height: '100%', overflow: 'auto' });
     
     const restoredProject = this.readLocalProject();
@@ -639,10 +638,16 @@ export class CinemaApp {
           /* --- VDA workflow panel --- */
           .cinema-app .cinema-vda-panel {
             display: grid;
+            grid-template-columns: minmax(0, 1fr);
             gap: 10px;
             margin-bottom: 18px;
             min-width: 0;
             max-width: 100%;
+          }
+          .cinema-app .cinema-vda-panel > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+          .cinema-app [data-cinema-owner-envelope] {
+            min-width: 0; max-width: 100%; max-height: 8rem; box-sizing: border-box;
+            white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-all; overflow: auto;
           }
           .cinema-app .cinema-vda-head {
             display: flex;
@@ -776,6 +781,26 @@ export class CinemaApp {
           .cinema-app [data-cinema-source-cid] { width:100%; min-width:0; box-sizing:border-box; }
           .cinema-app [data-cinema-source-status], .cinema-app [data-cinema-selection] { margin:4px 8px; font-size:12px; overflow-wrap:anywhere; }
           .cinema-app [data-cinema-seek] { min-width:80px; max-width:100%; }
+          .cinema-app .cinema-native-video { max-height:140px; }
+          .cinema-app .cinema-video-frame { max-height:144px; }
+          .cinema-app .cinema-timeline-head { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+          .cinema-app .cinema-timeline-head > .sk-section-head,
+          .cinema-app .cinema-timeline-controls,
+          .cinema-app [data-cinema-timeline-summary] { grid-column:1 / -1; }
+          .cinema-app [data-cinema-export-outcome] { margin:4px 8px; font-size:12px; line-height:1.3; overflow-wrap:anywhere; }
+          .cinema-app .cinema-project-reference { display:flex; flex-direction:column; width:100%; box-sizing:border-box; padding:4px 8px; gap:2px; font-size:11px; }
+          .cinema-app [data-cinema-project-reference] { width:100%; min-width:0; box-sizing:border-box; font:inherit; }
+          @media (max-width: 700px) {
+            .cinema-app .cinema-native-video { max-height:110px; }
+            .cinema-app .cinema-video-frame { max-height:114px; }
+            .cinema-app .cinema-timeline { padding:6px; }
+            .cinema-app .cinema-timeline-head { gap:4px; margin-bottom:4px; }
+            .cinema-app .cinema-tracks { min-height:40px; padding:6px; }
+            .cinema-app .cinema-clip { min-height:32px; }
+            .cinema-app .cinema-playback { margin-top:4px; padding:4px 8px; gap:4px; }
+            .cinema-app .cinema-source-controls { padding:4px 8px; }
+            .cinema-app [data-cinema-source-status], .cinema-app [data-cinema-selection] { margin:2px 8px; }
+          }
         </style>
         <!-- Header -->
         <div class="cinema-header" >
@@ -822,6 +847,10 @@ export class CinemaApp {
                 <div class="time-display cinema-time" >No decoded media</div>
               </div>
               <p data-cinema-selection></p>
+              <p data-cinema-export-outcome role="status" aria-live="polite">Export has not been attempted.</p>
+              <label class="cinema-project-reference">Saved project CID (not a rendered video)
+                <input data-cinema-project-reference data-reference-state="not_saved" readonly aria-label="Saved project CID" value="">
+              </label>
             </div>
             
             <!-- Timeline Area -->
@@ -910,7 +939,7 @@ export class CinemaApp {
       contentRoot.style.setProperty('display', 'flex', 'important');
       contentRoot.style.setProperty('visibility', 'visible', 'important');
       contentRoot.style.setProperty('opacity', '1', 'important');
-      contentRoot.style.setProperty('min-height', '280px', 'important');
+      contentRoot.style.setProperty('min-height', '0px', 'important');
       const hostWindow = container.closest('.window');
       if (!hostWindow) return;
       hostWindow.hidden = false;
@@ -918,9 +947,17 @@ export class CinemaApp {
       hostWindow.style.zIndex = '30';
       if (!hostWindow.dataset.cinemaPlaced) {
         hostWindow.dataset.cinemaPlaced = '1';
-        const narrow = window.innerWidth <= 700;
-        hostWindow.style.top = narrow ? '8px' : '48px';
-        hostWindow.style.height = narrow ? 'calc(100vh - 64px)' : 'min(560px, calc(100vh - 96px))';
+        const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+        const viewportHeight = document.documentElement.clientHeight || window.innerHeight;
+        const margin = viewportWidth <= 700 ? 8 : 24;
+        const width = Math.min(1200, Math.max(1, viewportWidth - margin * 2));
+        const height = Math.min(800, Math.max(1, viewportHeight - margin - 56));
+        const previousLeft = Number.parseFloat(hostWindow.style.left);
+        hostWindow.style.left = `${Math.max(margin, Math.min(Number.isFinite(previousLeft) ? previousLeft : margin,
+          viewportWidth - width - margin))}px`;
+        hostWindow.style.top = `${margin}px`;
+        hostWindow.style.width = `${width}px`;
+        hostWindow.style.height = `${height}px`;
         hostWindow.style.minHeight = '0';
       }
       const gateway = hostWindow.querySelector('.live-tool-gateway-host');
@@ -1078,6 +1115,12 @@ export class CinemaApp {
       }
       const status = container.querySelector('[data-cinema-workflow-status]');
       if (status && typeof savedProject.workflowStatus === 'string') status.textContent = savedProject.workflowStatus;
+      const outcome = container.querySelector('[data-cinema-export-outcome]');
+      if (outcome && typeof savedProject.workflowStatus === 'string'
+          && /^(?:Unsupported codec |Export unavailable:|Export unsupported;)/.test(savedProject.workflowStatus)) {
+        outcome.textContent = savedProject.workflowStatus;
+        outcome.dataset.exportState = savedProject.workflowStatus.startsWith('Unsupported codec ') ? 'unsupported_codec' : 'unsupported';
+      }
       await this.restoreProjectMedia(container, savedProject);
     };
     const onProjectUpdated = () => { this.projectRestoration = syncLocalProject(); };
@@ -1252,6 +1295,11 @@ export class CinemaApp {
         === stableStringifyValue(project?.source || null) && this.isDecodedMedia(media.video)) };
     output.dataset.cinemaSelectionState = JSON.stringify({ selection });
     output.textContent = `Trim ${selection.trim.in}–${selection.trim.out}s · ${selection.decoded ? 'source decoded' : 'no source decoded'} · ${selection.saved ? 'project saved' : 'local changes'}`;
+    const reference = container.querySelector('[data-cinema-project-reference]');
+    if (reference) {
+      reference.value = project?.projectCid || '';
+      reference.dataset.referenceState = project?.projectCid ? 'saved' : 'not_saved';
+    }
   }
 
   async openNativeClip(container, cid, trigger = null) {
@@ -1300,7 +1348,7 @@ export class CinemaApp {
         if (generation !== this.mediaGeneration || this.mediaLoadPending || !container.isConnected) return false;
         await this.decodeClip(container, verified.bytes, verified.metadata);
         const input = container.querySelector('[data-cinema-source-cid]'); if (input) input.value = metadata.cid;
-        this.mediaStatus(container, 'Restored CID-verified saved source bytes; no new owner retrieval was made.', 'ready');
+        this.mediaStatus(container, 'Saved clip restored and ready.', 'ready');
         this.syncMediaControls(container); return true;
       } catch (error) {
         if (!this.mediaLoadPending) this.mediaStatus(container, `Saved source could not be decoded: ${error.message}`, 'failed');
@@ -1428,14 +1476,24 @@ export class CinemaApp {
       const codec = container.querySelector('[data-cinema-codec]')?.value || 'mp4';
       if (!this.supportedFormats.export.includes(codec)) {
         if (status) status.dataset.exportState = 'unsupported_codec';
-        setText(`Unsupported codec ${codec}. Project and last good media were preserved.`);
+        const message = `Unsupported codec ${codec}. Project and last good media were preserved.`;
+        setText(message);
+        this.showExportOutcome(container, 'unsupported_codec', message);
         return;
       }
       if (status) status.dataset.exportState = 'unsupported';
-      setText('Export unsupported; no encoder is connected and no render was fabricated. Project and last good media were preserved.');
+      const message = 'Export unavailable: no encoder is connected. No output file was created. Project and clip are unchanged.';
+      setText(message);
+      this.showExportOutcome(container, 'unsupported', message);
     }
     else if (action === 'activate-playback-fallback') setText('Playback fallback unavailable; no proxy media is loaded.');
     else if (action === 'stabilize-timeline-controls') setText(`Local timeline: ${this.timeline.currentTime}s of ${this.timeline.duration}s, zoom ${this.timeline.zoom}. No owner operation ran.`);
+  }
+
+  showExportOutcome(container, state, message) {
+    const outcome = container.querySelector('[data-cinema-export-outcome]');
+    if (outcome) { outcome.dataset.exportState = state; outcome.textContent = message; }
+    this.revealMediaPreview(container);
   }
 
   async runCinemaAIOperation(toolName, btn) {
