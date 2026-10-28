@@ -2398,18 +2398,24 @@ class SwissKnifeDesktop {
         if (primarySurface) Object.assign(primarySurface.style, { height: '100%', minHeight: '0', minWidth: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
         Object.assign(contentElement.style, { flex: '1 1 0%', minHeight: '0', minWidth: '0', overflow: 'auto' });
         const gatewayHost = primarySurface?.querySelector('.live-tool-gateway-host');
-        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '22%', minHeight: '0', flexShrink: '0', overflow: 'auto' });
+        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '4.5rem', minHeight: '0', flexShrink: '0', overflow: 'auto', position: 'static' });
         if (!document.getElementById('orb-auto-ui-fit-style')) {
             const fitStyle = document.createElement('style');
             fitStyle.id = 'orb-auto-ui-fit-style';
             fitStyle.textContent = `
+                .window[data-app-id="orb-auto-ui"] .window-content { padding-bottom: 0; }
+                .window[data-app-id="orb-auto-ui"] .live-tool-gateway-host { max-height: 4.5rem; min-height: 0; flex: 0 0 auto; overflow: auto; position: static; }
                 .orb-auto-ui-workflow.sk-app { height:auto; max-height:100%; overflow:auto; box-sizing:border-box; }
                 .orb-auto-ui-workflow .sk-card { min-width:0; overflow:visible; align-self:start; }
                 .orb-auto-ui-workflow :is(button,select,textarea):focus-visible { outline:2px solid #93c5fd; outline-offset:2px; }
                 .orb-auto-ui-workflow textarea { width:100%; min-height:4.5rem; max-height:7rem; box-sizing:border-box; }
                 .orb-auto-ui-workflow .orb-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
-                .orb-auto-ui-workflow p, .orb-auto-ui-workflow pre { overflow-wrap:anywhere; }
+                .orb-auto-ui-workflow p, .orb-auto-ui-workflow pre { overflow-wrap:anywhere; word-break:break-word; }
+                .orb-auto-ui-workflow #orb-retained, .orb-auto-ui-workflow #orb-output { display:block; margin:0 0 8px; }
                 .orb-auto-ui-workflow pre { max-height:8rem; overflow:auto; white-space:pre-wrap; }
+                @media (max-width: 480px) {
+                    .orb-auto-ui-workflow textarea { min-height: 2.75rem; max-height: 4.25rem; }
+                }
             `;
             document.head.appendChild(fitStyle);
         }
@@ -2438,7 +2444,9 @@ class SwissKnifeDesktop {
                     <button type="button" class="sk-btn" id="orb-refresh" aria-label="Refresh the declared descriptor">Refresh descriptor</button>
                     <button type="button" class="sk-btn" id="orb-inspect" aria-label="Inspect the declared descriptor">Inspect descriptor</button>
                 </div>
+                <p id="orb-output-label">Inspection</p>
                 <p id="orb-output" role="status" hidden></p>
+                <p id="orb-retained-label">Retained result</p>
                 <p id="orb-retained">No retained descriptor result.</p>
                 <details style="margin-top:12px">
                     <summary>Diagnostics</summary>
@@ -2548,7 +2556,13 @@ class SwissKnifeDesktop {
                 argumentsInput.value = JSON.stringify(normalized, null, 2);
                 schemaReady.textContent = `Descriptor ${current.bindingId} tool ${current.tool} fields: ${fieldText}`;
                 schemaReady.hidden = false;
-                if ((errorStatus.textContent || '').includes('Schema mismatch')) errorStatus.textContent = 'Schema mismatch cleared.';
+                const retryAfterMismatch = (errorStatus.textContent || '').includes('Schema mismatch');
+                const prepared = JSON.stringify(normalized);
+                errorStatus.textContent = retryAfterMismatch
+                    ? `Declared arguments restored ${prepared}. The unexpected field was not sent. Inspect the same descriptor.`
+                    : '';
+                remember();
+                return;
             } catch (error) {
                 loaded = null;
                 const message = error instanceof Error ? error.message : String(error);
@@ -2578,10 +2592,10 @@ class SwissKnifeDesktop {
                 const value = ownerResult(envelope);
                 const summary = summarize(value);
                 if (!summary) throw new Error('Owner returned no descriptor output.');
-                const line = `tool ${current.tool} descriptor ${current.bindingId} owner ${current.owner} ${summary}`;
+                const submitted = JSON.stringify(check.value);
                 outputStatus.hidden = false;
-                outputStatus.textContent = line;
-                retainedStatus.textContent = `${line} input ${JSON.stringify(check.value)}`;
+                outputStatus.textContent = `Inspected tool ${current.tool} descriptor ${current.bindingId} owner ${current.owner} input ${submitted} output ${summary}`;
+                retainedStatus.textContent = `Retained descriptor ${current.bindingId} tool ${current.tool} owner ${current.owner} input ${submitted} output ${summary}`;
                 errorStatus.textContent = '';
                 if (diagnostics) diagnostics.textContent = JSON.stringify({
                     owner: current.owner, tool: current.tool, outcome: envelope.outcome, transport: envelope.transport || '',
@@ -2625,6 +2639,14 @@ class SwissKnifeDesktop {
                     schemaReady.hidden = false;
                     schemaReady.textContent = typeof saved.schemaText === 'string' ? saved.schemaText : `Descriptor ${current.bindingId} tool ${current.tool}`;
                 }
+                if (typeof saved.retained === 'string' && saved.retained && typeof saved.argumentsText === 'string' && saved.bindingId) {
+                    try {
+                        const compact = JSON.stringify(JSON.parse(saved.argumentsText));
+                        if (compact && saved.retained.includes(saved.bindingId) && saved.retained.includes(`input ${compact}`) && saved.retained.includes(' output ')) {
+                            retainedStatus.textContent = `${saved.retained} Compared equal descriptor ${saved.bindingId} input ${compact}`;
+                        }
+                    } catch { /* retained sentence stays without a comparison */ }
+                }
             }
         } catch { /* no retained descriptor */ }
     }
@@ -2643,7 +2665,7 @@ class SwissKnifeDesktop {
         if (primarySurface) Object.assign(primarySurface.style, { height: '100%', minHeight: '0', minWidth: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
         Object.assign(contentElement.style, { flex: '1 1 0%', minHeight: '0', minWidth: '0', overflow: 'auto' });
         const gatewayHost = primarySurface?.querySelector('.live-tool-gateway-host');
-        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '22%', minHeight: '0', flexShrink: '0', overflow: 'auto' });
+        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '2.25rem', minHeight: '0', flexShrink: '0', overflow: 'auto', position: 'static', zIndex: '0' });
         if (!document.getElementById('glasses-preview-fit-style')) {
             const fitStyle = document.createElement('style');
             fitStyle.id = 'glasses-preview-fit-style';
@@ -2651,12 +2673,17 @@ class SwissKnifeDesktop {
                 .glasses-preview-workflow.sk-app { height: auto; max-height: 100%; overflow: auto; box-sizing: border-box; }
                 .glasses-preview-workflow .sk-card { min-width: 0; overflow: visible; }
                 .glasses-preview-workflow :is(button, select, input):focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
-                .glasses-preview-workflow .glasses-preview-frame { box-sizing: border-box; max-width: 100%; min-height: 4.5rem; overflow: auto; border: 1px solid var(--sk-border, #26384a); border-radius: 6px; padding: 8px; }
+                .glasses-preview-workflow .glasses-preview-frame { box-sizing: border-box; max-width: 100%; min-height: 2.75rem; overflow: auto; border: 1px solid var(--sk-border, #26384a); border-radius: 6px; padding: 8px; }
                 .glasses-preview-workflow .sk-label { display: flex; flex-direction: column; align-items: stretch; gap: 4px; max-width: 100%; }
                 .glasses-preview-workflow .sk-label input { width: 100%; min-width: 0; box-sizing: border-box; }
                 .glasses-preview-workflow .glasses-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+                .glasses-preview-workflow #glasses-error:empty { display: none; margin: 0; }
+                .glasses-preview-workflow :is(#glasses-status, #glasses-fallback-note, #glasses-packet-identity) { margin: 4px 0; }
                 .window[data-app-id="glasses-preview"] :is(.all-app-backend-status-row, .all-app-backend-status-detail, .live-tool-gateway-control) { grid-template-columns: minmax(0, 1fr); }
                 .window[data-app-id="glasses-preview"] :is(.all-app-backend-status-panel, .live-tool-gateway-host, .glasses-preview-workflow) { max-width: 100%; min-width: 0; }
+                .window[data-app-id="glasses-preview"] .window-content { padding-bottom: 0; }
+                .window[data-app-id="glasses-preview"] :is(.all-app-backend-status-panel, .live-tool-gateway-host) { position: static; max-height: 2.25rem; overflow: auto; flex: 0 0 auto; }
+                .glasses-preview-workflow #glasses-fallback-note { margin: 4px 0 8px; font-weight: 600; }
                 .window[data-app-id="glasses-preview"] :is(.all-app-backend-status-row, .all-app-backend-status-detail, p, span, label) { overflow-wrap: anywhere; }
             `;
             document.head.appendChild(fitStyle);
@@ -2676,6 +2703,10 @@ class SwissKnifeDesktop {
                                 <option value="unsupported-live">Live capture</option>
                             </select>
                         </label>
+                        <div class="glasses-actions">
+                            <button type="button" class="sk-btn" id="glasses-use-desktop" aria-label="Use desktop fallback">Desktop fallback</button>
+                            <button type="button" class="sk-btn" id="glasses-use-mobile" aria-label="Use mobile card fallback">Mobile card</button>
+                        </div>
                     </section>
                     <section class="sk-card">
                         <h3 class="sk-section-head">Display size</h3>
@@ -2690,16 +2721,12 @@ class SwissKnifeDesktop {
                     <section class="sk-card">
                         <h3 class="sk-section-head">Preview</h3>
                         <p id="glasses-packet-identity">No replay packet is selected.</p>
+                        <p id="glasses-fallback-note">No fallback is active.</p>
                         <div id="glasses-preview-frame" class="glasses-preview-frame">
                             <p id="glasses-preview-readout">No display packet is loaded.</p>
                         </div>
                         <p id="glasses-status" role="status">Select a replay packet and a supported preview size.</p>
                         <p id="glasses-error" role="status"></p>
-                        <p id="glasses-fallback-note">No fallback is active.</p>
-                        <div class="glasses-actions">
-                            <button type="button" class="sk-btn" id="glasses-use-desktop" aria-label="Use desktop fallback">Desktop fallback</button>
-                            <button type="button" class="sk-btn" id="glasses-use-mobile" aria-label="Use mobile card fallback">Mobile card</button>
-                        </div>
                     </section>
                 </div>
                 <details style="margin-top:12px;">
@@ -2727,7 +2754,7 @@ class SwissKnifeDesktop {
 
         const remember = (packetId, width, height, text) => {
             try {
-                sessionStorage.setItem(storageKey, JSON.stringify({ id: packetId, width, height, readout: text }));
+                sessionStorage.setItem(storageKey, JSON.stringify({ id: packetId, width, height, readout: text, fallback: fallbackNote.textContent }));
             } catch { /* storage unavailable */ }
         };
         const apply = () => {
@@ -2772,6 +2799,10 @@ class SwissKnifeDesktop {
             fallbackNote.textContent = target === 'mobile-card'
                 ? 'Mobile card fallback is showing the supported packet in this browser.'
                 : 'Desktop fallback is showing the supported packet in this browser.';
+            remember(packetSelect.value, widthInput.value.trim(), heightInput.value.trim(), readout.textContent);
+            contentElement.scrollTop = 0;
+            root.scrollTop = 0;
+            fallbackNote.scrollIntoView({ block: 'center', inline: 'nearest' });
         };
 
         packetSelect.addEventListener('change', apply);
@@ -2792,6 +2823,7 @@ class SwissKnifeDesktop {
                 heightInput.value = String(saved.height ?? '');
                 readout.textContent = saved.readout;
                 showIdentity();
+                if (typeof saved.fallback === 'string' && saved.fallback) fallbackNote.textContent = saved.fallback;
                 error.textContent = '';
                 status.textContent = 'Restored the supported replay packet in this browser simulator.';
                 const width = Number(saved.width);

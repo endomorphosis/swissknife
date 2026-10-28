@@ -19,9 +19,8 @@
     "failure_recovery": [
       {"op": "select", "selector": "#glasses-packet", "value": "unsupported-live"},
       {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#glasses-error"}, "operator": "contains", "expected": "permission denied"},
-      {"op": "select", "selector": "#glasses-packet", "value": "trail-note"},
-      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#glasses-packet-identity"}, "operator": "equals", "expected": "Replay packet trail-note."},
-      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#glasses-preview-readout"}, "operator": "equals", "expected": "Trail note. Stay on the marked path. Preview 320 by 180. Simulator only; no physical glasses."}
+      {"op": "click", "selector": "#glasses-use-desktop"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#glasses-fallback-note"}, "operator": "equals", "expected": "Desktop fallback is showing the supported packet in this browser."}
     ]
   }
 }
