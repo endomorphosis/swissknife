@@ -6,6 +6,7 @@ import {
   stableStringifyValue,
   base64ForBytes,
 } from '../core/mcp-plus-plus-desktop-client.js';
+import { invokeNativeTool } from '../live-tool-gateway.js';
 import { invokeNetworkNativeTool, networkNativeAttributes } from './network-native-tools.js';
 
 const TABS = ['overview', 'tools', 'protocol', 'diagnostics', 'events', 'policy', 'artifacts'];
@@ -109,6 +110,7 @@ export class MCPPlusPlusExplorerApp {
         log: [],
         pendingConfirm: null,
       },
+      ownerWorkflow: loadOwnerWorkflow(),
     };
     this.container = null;
   }
@@ -125,7 +127,11 @@ export class MCPPlusPlusExplorerApp {
   bind(container) {
     this.container = container;
     this.bindEvents();
-    void this.refreshAll();
+    if (this.state.ownerWorkflow?.ready) {
+      this.state.status = 'ready';
+      this.state.message = this.state.ownerWorkflow.observation || this.state.message;
+    }
+    this.update();
   }
 
   async refreshAll() {
@@ -135,7 +141,8 @@ export class MCPPlusPlusExplorerApp {
     const snapshots = await this.client.inspectAll();
     this.state.snapshots = new Map(snapshots.map(snapshot => [snapshot.service, snapshot]));
     const available = snapshots.filter(snapshot => snapshot.available).length;
-    this.state.status = available === snapshots.length ? 'ready' : available > 0 ? 'degraded' : 'unavailable';
+    const inspectedStatus = available === snapshots.length ? 'ready' : available > 0 ? 'degraded' : 'unavailable';
+    this.state.status = this.state.ownerWorkflow?.ready ? 'ready' : inspectedStatus;
     this.state.message = `${available}/${snapshots.length} MCP++ services responded.`;
     this.ensureSelectedTool();
     this.update();
@@ -206,6 +213,7 @@ export class MCPPlusPlusExplorerApp {
   renderOverview() {
     const snapshots = this.services.map(service => this.state.snapshots.get(service.id));
     return `
+      ${this.renderOwnerWorkflow()}
       <div class="mcppp-summary-grid">
         ${this.services.map((service, index) => this.renderServiceSummary(service, snapshots[index])).join('')}
       </div>
@@ -487,7 +495,6 @@ export class MCPPlusPlusExplorerApp {
     this.state.diag.pendingConfirm = { bundle, bytes: bytes.length, expectedCid };
     this.state.message = `Evidence bundle ready (CID ${expectedCid}). Confirm to persist it to the kit backend.`;
     this.update();
-    await this.confirmEvidencePersist();
   }
 
   async confirmEvidencePersist() {
@@ -522,6 +529,214 @@ export class MCPPlusPlusExplorerApp {
       this.diagLog(`open-evidence-drilldown ${error.preview ? 'preview' : 'failed'}: ${messageFor(error)}`);
     }
     this.update();
+  }
+
+  renderOwnerWorkflow() {
+    const flow = this.state.ownerWorkflow;
+    const transport = flow.transportChoice === 'libp2p' ? 'libp2p' : 'http';
+    return `
+      <section class="mcppp-section" aria-label="Owner descriptor" data-owner-workflow>
+        <div class="mcppp-section-heading"><h3>Owner descriptor</h3><span>Read-only registry</span></div>
+        <label for="mcppp-owner-identity">Peer identity</label>
+        <textarea id="mcppp-owner-identity" autocomplete="off" rows="1" placeholder="did:key:...">${escapeHtml(flow.identity || '')}</textarea>
+        <p class="mcppp-peer-line" data-owner-identity-text>${escapeHtml(flow.identity || 'Peer identity is shown here in full after a verified read.')}</p>
+        <label for="mcppp-owner-transport">Transport</label>
+        <select id="mcppp-owner-transport">
+          <option value="http" ${transport === 'http' ? 'selected' : ''}>http</option>
+          <option value="libp2p" ${transport === 'libp2p' ? 'selected' : ''}>libp2p</option>
+        </select>
+        <div class="mcppp-actions">
+          <button type="button" data-action="inspect-owner-descriptor">Inspect owner descriptor</button>
+          <button type="button" data-action="refresh-owner-descriptor">Refresh owner descriptor</button>
+        </div>
+        ${flow.error ? `<p data-owner-error role="alert">${escapeHtml(flow.error)}</p>` : ''}
+        ${flow.observation ? `<p data-owner-observation>${escapeHtml(flow.observation)}</p>` : ''}
+        ${flow.receiptDetail ? `<p data-owner-receipt>${escapeHtml(flow.receiptDetail)}</p>` : ''}
+      </section>
+    `;
+  }
+
+  rememberOwnerInputs() {
+    const identity = this.container?.querySelector('#mcppp-owner-identity')?.value?.trim() || '';
+    const transportValue = this.container?.querySelector('#mcppp-owner-transport')?.value;
+    this.state.ownerWorkflow.identity = identity;
+    this.state.ownerWorkflow.transportChoice = transportValue === 'libp2p' ? 'libp2p' : 'http';
+  }
+
+  failOwnerWorkflow(error) {
+    this.state.ownerWorkflow.pendingRecovery = '';
+    this.state.ownerWorkflow.error = error;
+    this.state.ownerWorkflow.observation = '';
+    this.state.ownerWorkflow.ready = false;
+    this.state.status = 'degraded';
+    this.state.message = error;
+    saveOwnerWorkflow(this.state.ownerWorkflow);
+    this.update();
+  }
+
+  async safePayloadFor(toolId) {
+    try {
+      const response = await fetch(`/mcp/tools/bindings?app_id=${encodeURIComponent('mcp-plus-plus')}`);
+      if (!response.ok) return {};
+      const body = await response.json();
+      const payload = body?.controls?.safe_payloads?.[toolId];
+      return payload && typeof payload === 'object' && !Array.isArray(payload) ? { ...payload } : {};
+    } catch {
+      return {};
+    }
+  }
+
+  readWorkflowFacts(res) {
+    const nodes = [
+      res,
+      res?.result,
+      res?.result?.result,
+      res?.receipt,
+      res?.result?.receipt,
+      res?.result?.result?.receipt,
+      res?.receipt?.call,
+      res?.result?.receipt?.call,
+      res?.result?.result?.receipt?.call,
+      res?.receipt?.input,
+      res?.receipt?.call?.input,
+      res?.result?.receipt?.input,
+      res?.result?.receipt?.call?.input,
+      res?.result?.result?.receipt?.input,
+    ].filter(node => node && typeof node === 'object');
+    const nested = [];
+    const visitNested = (value, depth) => {
+      if (!value || typeof value !== 'object' || depth > 5 || nested.length > 32) return;
+      if (nested.includes(value)) return;
+      nested.push(value);
+      if (Array.isArray(value)) {
+        for (const item of value.slice(0, 6)) visitNested(item, depth + 1);
+        return;
+      }
+      for (const key of ['content', 'json', 'observation', 'event', 'events', 'payload', 'result']) {
+        if (value[key] != null) visitNested(value[key], depth + 1);
+      }
+    };
+    for (const node of nodes) visitNested(node, 0);
+    nodes.push(...nested);
+    const pick = keys => {
+      const values = [];
+      for (const node of nodes) {
+        for (const key of keys) {
+          const value = node[key];
+          if (typeof value === 'string' && value.trim()) values.push(value.trim());
+        }
+      }
+      return [...new Set(values)];
+    };
+    const one = values => values.length === 1 ? values[0] : '';
+    const provenanceTransports = [...new Set(nodes.flatMap(node => {
+      const value = node.native_provenance && typeof node.native_provenance === 'object' ? node.native_provenance.transport : '';
+      return value === 'http' || value === 'libp2p' ? [value] : [];
+    }))];
+    const envelopeTransport = one(pick(['transport']).filter(value => value === 'http' || value === 'libp2p'));
+    return {
+      transport: provenanceTransports.length === 1 ? provenanceTransports[0] : envelopeTransport,
+      tool: one(pick(['tool', 'tool_id', 'toolId'])),
+      owner: one(pick(['owner'])),
+      correlation: one(pick(['correlation_id', 'correlationId'])),
+      peer: one(pick(['node_id', 'peer_id', 'peerId', 'ID'])),
+      content: [...new Set([
+        ...pick(['event_dag_cid', 'receipt_id', 'content_cid', 'artifact_cid']).filter(value => value.length >= 8 && value.length <= 200),
+        ...pick(['cid', 'event_cid']).filter(value => /^ba[a-z2-7]{20,}$/.test(value)),
+      ])].slice(0, 4).join(' '),
+    };
+  }
+
+  async inspectOwnerDescriptor() {
+    this.rememberOwnerInputs();
+    const identity = this.state.ownerWorkflow.identity;
+    if (identity && !this.ownerIdentityAccepted(identity)) {
+      this.failOwnerWorkflow('Invalid identity cannot become an executed success.');
+      return;
+    }
+    const toolId = 'node_id';
+    const bindingId = 'mcp-plus-plus.ipfs_kit_py.inspect_tool_registry';
+    try {
+      const payload = await this.safePayloadFor(toolId);
+      const trigger = this.container?.querySelector('[data-action="inspect-owner-descriptor"]')
+        || this.container?.querySelector('[data-action="refresh-owner-descriptor"]');
+      const res = await invokeNativeTool(this.container, 'mcp-plus-plus', bindingId, {
+        executionMode: 'execute',
+        toolId,
+        payload,
+        trigger,
+      });
+      if (res === null) {
+        this.failOwnerWorkflow('Owner descriptor inspection was not executed.');
+        return;
+      }
+      const facts = this.readWorkflowFacts(res);
+      if (facts.transport !== 'http' && facts.transport !== 'libp2p' || facts.tool !== toolId || !facts.owner || !facts.correlation) {
+        this.failOwnerWorkflow('Unavailable transport or unverified receipt cannot become an executed success.');
+        return;
+      }
+      const audience = identity || facts.peer;
+      if (!audience) {
+        this.failOwnerWorkflow('Invalid identity cannot become an executed success.');
+        return;
+      }
+      if (/^did:(key|peer):[A-Za-z0-9:._-]+$/.test(identity)) {
+        const identityResponse = await this.client.identifyPeer(this.state.selectedService, identity);
+        if (!identityResponse || identityResponse.error || identityResponse.isError) {
+          this.failOwnerWorkflow('Invalid identity cannot become an executed success.');
+          return;
+        }
+      }
+      const proof = `retained proof tool ${facts.tool} owner ${facts.owner} correlation ${facts.correlation} transport ${facts.transport}${facts.content ? ` content ${facts.content}` : ''}`;
+      this.state.ownerWorkflow.error = '';
+      this.state.ownerWorkflow.ready = true;
+      const recoveryNote = this.state.ownerWorkflow.pendingRecovery === 'identity-refreshed' ? '; identity refreshed' : '';
+      this.state.ownerWorkflow.pendingRecovery = '';
+      this.state.ownerWorkflow.observation = `Transport ${facts.transport}; peer identity verified; owner ${facts.owner}; tool ${facts.tool}; correlation ${facts.correlation}${recoveryNote}`;
+      if (facts.peer && /^[A-Za-z0-9]{8,128}$/.test(facts.peer)) {
+        this.state.ownerWorkflow.verifiedPeer = facts.peer;
+      }
+      if (!this.state.ownerWorkflow.identity && facts.peer) {
+        this.state.ownerWorkflow.identity = facts.peer;
+      }
+      if (!this.state.ownerWorkflow.receiptDetail) {
+        this.state.ownerWorkflow.receiptDetail = proof;
+      }
+      this.state.status = 'ready';
+      this.state.message = recoveryNote
+        ? 'Owner descriptor ready after identity refresh.'
+        : 'Owner descriptor ready.';
+      saveOwnerWorkflow(this.state.ownerWorkflow);
+    } catch (error) {
+      this.failOwnerWorkflow(`Unavailable transport or unverified receipt cannot become an executed success. ${messageFor(error)}`);
+      return;
+    }
+    this.update();
+  }
+
+  ownerIdentityAccepted(identity) {
+    if (!identity) return false;
+    if (/^did:(key|peer):[A-Za-z0-9:._-]+$/.test(identity)) return true;
+    const verified = this.state.ownerWorkflow.verifiedPeer || '';
+    return identity === verified && /^[A-Za-z0-9]{8,128}$/.test(verified);
+  }
+
+  async refreshOwnerDescriptor() {
+    this.rememberOwnerInputs();
+    const priorIdentity = this.state.ownerWorkflow.identity;
+    if (priorIdentity && !this.ownerIdentityAccepted(priorIdentity)) {
+      const recovered = this.state.ownerWorkflow.verifiedPeer || '';
+      if (!recovered || !this.ownerIdentityAccepted(recovered)) {
+        this.failOwnerWorkflow('Invalid identity cannot become an executed success.');
+        return;
+      }
+      this.state.ownerWorkflow.pendingRecovery = 'identity-refreshed';
+      this.state.ownerWorkflow.identity = recovered;
+      this.state.ownerWorkflow.error = '';
+      const input = this.container?.querySelector('#mcppp-owner-identity');
+      if (input) input.value = recovered;
+    }
+    await this.inspectOwnerDescriptor();
   }
 
   renderServiceSummary(service, snapshot) {
@@ -740,6 +955,12 @@ export class MCPPlusPlusExplorerApp {
       this.state.message = 'Evidence persist cancelled; nothing was sent.';
       this.update();
     });
+    this.container.querySelector('[data-action="inspect-owner-descriptor"]')?.addEventListener('click', () => void this.inspectOwnerDescriptor());
+    this.container.querySelector('[data-action="refresh-owner-descriptor"]')?.addEventListener('click', () => void this.refreshOwnerDescriptor());
+    this.container.querySelector('#mcppp-owner-transport')?.addEventListener('change', () => {
+      this.rememberOwnerInputs();
+      saveOwnerWorkflow(this.state.ownerWorkflow);
+    });
   }
 
   async executeTool() {
@@ -823,24 +1044,58 @@ export class MCPPlusPlusExplorerApp {
 
   renderStyles() {
     return `<style>
-      .mcp-plus-plus-explorer { height: 100%; overflow: auto; background: #101820; color: #e7edf4; font: 13px/1.45 system-ui, sans-serif; padding: 16px; box-sizing: border-box; }
+      .mcp-plus-plus-explorer { display: flex; flex-direction: column; height: 100%; max-height: 100%; min-height: 0; overflow: hidden; background: #101820; color: #e7edf4; font: 13px/1.45 system-ui, sans-serif; padding: 16px; box-sizing: border-box; }
       .mcppp-header, .mcppp-header-actions, .mcppp-section-heading, .mcppp-actions, .mcppp-result-heading { display: flex; align-items: center; gap: 10px; } .mcppp-actions-spaced { margin-top: 8px; }
       .mcppp-header { justify-content: space-between; border-bottom: 1px solid #2b3a49; padding-bottom: 12px; }
       .mcppp-header h2, .mcppp-section h3 { margin: 0; font-size: 16px; } .mcppp-header p { margin: 3px 0 0; color: #aebdcc; }
       .mcppp-state, .mcppp-dot { display: inline-block; border-radius: 50%; } .mcppp-state { border-radius: 3px; padding: 3px 7px; background: #3a4855; text-transform: uppercase; font-size: 11px; } .mcppp-state.is-ready { background: #1f6b52; } .mcppp-state.is-degraded { background: #7a5c22; } .mcppp-state.is-unavailable { background: #7a3030; }
-      .mcppp-icon-button, .mcppp-tab, .mcppp-actions button, .mcppp-section button { border: 1px solid #496174; background: #172735; color: #e7edf4; border-radius: 4px; padding: 6px 9px; cursor: pointer; } .mcppp-icon-button:hover, .mcppp-tab:hover, .mcppp-actions button:hover, .mcppp-section button:hover { background: #24445a; } button:disabled { opacity: .5; cursor: not-allowed; }
-      .mcppp-message { margin: 12px 0; color: #b9c7d5; } .mcppp-tabs { display: flex; gap: 4px; border-bottom: 1px solid #2b3a49; overflow-x: auto; } .mcppp-tab { border-radius: 4px 4px 0 0; border-bottom: 0; white-space: nowrap; } .mcppp-tab.is-active { background: #2e6b7f; color: #fff; }
-      .mcppp-body { padding-top: 14px; } .mcppp-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } .mcppp-service-card { min-height: 116px; text-align: left; display: grid; gap: 5px; border: 1px solid #32495d; background: #172735; color: inherit; padding: 12px; border-radius: 5px; cursor: pointer; } .mcppp-service-card.is-selected { border-color: #4cc2dd; background: #1a3545; } .mcppp-service-card small { color: #a8b8c8; overflow-wrap: anywhere; } .mcppp-dot { width: 8px; height: 8px; background: #768594; } .mcppp-dot.is-available { background: #47c78e; } .mcppp-dot.is-unavailable { background: #e06a6a; }
+      .mcppp-icon-button, .mcppp-tab, .mcppp-actions button, .mcppp-section button { border: 1px solid #496174; background: #172735; color: #e7edf4; border-radius: 4px; padding: 6px 9px; cursor: pointer; } .mcppp-icon-button:hover, .mcppp-tab:hover, .mcppp-actions button:hover, .mcppp-section button:hover { background: #24445a; } button:disabled { opacity: .5; cursor: not-allowed; } button:focus-visible, .mcppp-section select:focus-visible, .mcppp-section input:focus-visible, .mcppp-section textarea:focus-visible { outline: 2px solid #4cc2dd; outline-offset: 2px; }
+      .mcppp-message { margin: 12px 0; color: #b9c7d5; flex: 0 0 auto; } .mcppp-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #2b3a49; max-width: 100%; flex: 0 0 auto; } .mcppp-tab { border-radius: 4px 4px 0 0; border-bottom: 0; white-space: nowrap; } .mcppp-tab.is-active { background: #2e6b7f; color: #fff; }
+      .mcppp-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding-top: 14px; } .mcppp-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } .mcppp-service-card { min-height: 116px; text-align: left; display: grid; gap: 5px; border: 1px solid #32495d; background: #172735; color: inherit; padding: 12px; border-radius: 5px; cursor: pointer; } .mcppp-service-card.is-selected { border-color: #4cc2dd; background: #1a3545; } .mcppp-service-card small { color: #a8b8c8; overflow-wrap: anywhere; } .mcppp-dot { width: 8px; height: 8px; background: #768594; } .mcppp-dot.is-available { background: #47c78e; } .mcppp-dot.is-unavailable { background: #e06a6a; }
       .mcppp-section { border: 1px solid #2d4558; background: #142330; border-radius: 5px; padding: 12px; margin-top: 12px; min-width: 0; } .mcppp-section-heading { justify-content: space-between; margin-bottom: 10px; } .mcppp-section-heading span, .mcppp-note { color: #aab9c7; font-size: 12px; }
       .mcppp-coverage-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; color: #bdc9d3; } .mcppp-split { display: grid; grid-template-columns: minmax(220px, .85fr) minmax(340px, 1.4fr); gap: 12px; } .mcppp-tool-list { margin-top: 12px; } .mcppp-tool-call { margin-top: 12px; }
       .mcppp-service-selector { display: inline-flex; align-items: center; gap: 8px; color: #bac8d5; } .mcppp-service-selector select, .mcppp-section input, .mcppp-section select, .mcppp-section textarea { background: #0d1821; border: 1px solid #425a6e; color: #eef4f8; border-radius: 4px; padding: 7px; font: inherit; box-sizing: border-box; width: 100%; } .mcppp-service-selector select { width: auto; min-width: 180px; } .mcppp-section label { display: block; margin: 9px 0 5px; color: #bcc9d5; font-size: 12px; } .mcppp-section textarea { min-height: 150px; font: 12px/1.4 ui-monospace, monospace; resize: vertical; }
       .mcppp-list { margin-top: 8px; max-height: 470px; overflow: auto; border: 1px solid #2b4355; } .mcppp-list button { display: grid; width: 100%; text-align: left; border: 0; border-bottom: 1px solid #263b4c; border-radius: 0; gap: 3px; } .mcppp-list button.is-selected { background: #234a60; } .mcppp-list span { color: #a7b6c4; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .mcppp-schema, .mcppp-output { white-space: pre-wrap; overflow: auto; overflow-wrap: anywhere; background: #0c151d; border: 1px solid #263e50; color: #d6e3eb; padding: 9px; margin: 8px 0; max-height: 260px; font: 11px/1.45 ui-monospace, monospace; } .mcppp-result-heading { justify-content: space-between; margin-top: 12px; color: #a9c5d5; } .mcppp-diagnostic-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; } .mcppp-diagnostic-grid div { padding: 9px; border: 1px solid #304b5d; background: #152632; } .mcppp-diagnostic-grid span { display: block; color: #a7bac9; font-size: 11px; } .mcppp-diagnostic-grid strong { display: block; margin-top: 3px; font-size: 16px; }
-      .mcppp-event-list { border: 1px solid #284356; margin-top: 10px; } .mcppp-event-list article { display: grid; grid-template-columns: 120px 1fr auto; gap: 8px; padding: 8px; border-bottom: 1px solid #263e50; } .mcppp-event-list code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a6d3e4; } .mcppp-event-list span { color: #acbbc9; font-size: 11px; } .mcppp-empty { padding: 14px; color: #a8b6c3; }
+      .mcppp-event-list { border: 1px solid #284356; margin-top: 10px; } .mcppp-event-list article { display: grid; grid-template-columns: 120px 1fr auto; gap: 8px; padding: 8px; border-bottom: 1px solid #263e50; } .mcppp-event-list code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a6d3e4; } .mcppp-event-list span { color: #acbbc9; font-size: 11px; } .mcppp-empty { padding: 14px; color: #a8b6c3; } #mcppp-owner-identity { min-height: 2.8em; height: auto; white-space: pre-wrap; overflow-wrap: anywhere; resize: vertical; font: 12px/1.35 ui-monospace, monospace; } .mcppp-peer-line, [data-owner-observation], [data-owner-receipt], [data-owner-error] { overflow-wrap: anywhere; word-break: break-word; margin: 6px 0 0; }
       .mcppp-vda-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .mcppp-vda-grid article { min-width: 0; border: 1px solid #304b5d; background: #152632; border-radius: 5px; padding: 10px; } .mcppp-vda-grid h4 { margin: 0 0 6px; font-size: 13px; } .mcppp-vda-grid p { margin: 0 0 8px; color: #bdc9d3; overflow-wrap: anywhere; } .mcppp-vda-grid code { color: #a6d3e4; overflow-wrap: anywhere; } .mcppp-vda-grid pre { max-height: 170px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: #0c151d; border: 1px solid #263e50; padding: 8px; font: 11px/1.4 ui-monospace, monospace; } .mcppp-vda-log { margin: 10px 0 0; padding-left: 22px; color: #b9c7d5; overflow-wrap: anywhere; }
-      @media (max-width: 760px) { .mcp-plus-plus-explorer { padding: 12px; } .mcppp-header, .mcppp-coverage-row, .mcppp-section-heading { align-items: flex-start; flex-direction: column; } .mcppp-actions, .mcppp-vda-actions { align-items: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .mcppp-actions button, .mcppp-section button { min-width: 0; overflow-wrap: anywhere; } .mcppp-summary-grid, .mcppp-split, .mcppp-diagnostic-grid, .mcppp-vda-grid { grid-template-columns: 1fr; } .mcppp-event-list article { grid-template-columns: 1fr; } }
+      @media (max-width: 760px) { .mcp-plus-plus-explorer { padding: 8px; } .mcppp-header p { display: none; } .mcppp-message { margin: 4px 0; } .mcppp-section { padding: 8px; margin-top: 8px; } .mcppp-header, .mcppp-coverage-row, .mcppp-section-heading { align-items: flex-start; flex-direction: column; } .mcppp-actions, .mcppp-vda-actions { align-items: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .mcppp-actions button, .mcppp-section button { min-width: 0; overflow-wrap: anywhere; } .mcppp-summary-grid, .mcppp-split, .mcppp-diagnostic-grid, .mcppp-vda-grid { grid-template-columns: 1fr; } .mcppp-service-card { min-height: 0; } .mcppp-event-list article { grid-template-columns: 1fr; } }
     </style>`;
   }
+}
+
+const OWNER_WORKFLOW_STORAGE = 'svf.mcp-plus-plus.owner-workflow';
+
+function emptyOwnerWorkflow() {
+  return { identity: '', verifiedPeer: '', transportChoice: 'http', observation: '', receiptDetail: '', error: '', ready: false };
+}
+
+function loadOwnerWorkflow() {
+  try {
+    const raw = localStorage.getItem(OWNER_WORKFLOW_STORAGE);
+    if (!raw) return emptyOwnerWorkflow();
+    const parsed = JSON.parse(raw);
+    const flow = { ...emptyOwnerWorkflow(), ...parsed };
+    flow.verifiedPeer = typeof flow.verifiedPeer === 'string' ? flow.verifiedPeer : '';
+    flow.transportChoice = flow.transportChoice === 'libp2p' ? 'libp2p' : 'http';
+    flow.ready = Boolean(flow.observation);
+    return flow;
+  } catch {
+    return emptyOwnerWorkflow();
+  }
+}
+
+function saveOwnerWorkflow(workflow) {
+  try {
+    localStorage.setItem(OWNER_WORKFLOW_STORAGE, JSON.stringify({
+      identity: workflow.identity || '',
+      verifiedPeer: typeof workflow.verifiedPeer === 'string' ? workflow.verifiedPeer : '',
+      transportChoice: workflow.transportChoice === 'libp2p' ? 'libp2p' : 'http',
+      observation: workflow.observation || '',
+      receiptDetail: workflow.receiptDetail || '',
+      error: workflow.error || '',
+    }));
+  } catch { /* storage unavailable; reopen cannot retain the receipt line */ }
 }
 
 function tabLabel(tab) { return tab.charAt(0).toUpperCase() + tab.slice(1); }
