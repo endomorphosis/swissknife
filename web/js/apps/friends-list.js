@@ -4,6 +4,7 @@
  * Links accounts across GitHub, libp2p, Hugging Face, and other platforms
  */
 import { invokeNetworkNativeTool, networkNativeAttributes } from './network-native-tools.js';
+import { invokeNativeTool } from '../live-tool-gateway.js';
 
 // Base58-btc encoder (for did:key multicodec bytes).
 function friendsBase58Btc(bytes) {
@@ -79,17 +80,29 @@ async function friendsPersistArtifact(client, record, { kind, profile }) {
   if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
   const cid = await friendsCanonicalCid(record);
   const bytesBase64 = await friendsCanonicalBytesBase64(record);
-  const result = await friendsCallMcpTool(client, 'request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
-    cid,
-    bytes_base64: bytesBase64,
-    profile,
-    kind,
-    service: 'ipfs_kit_py',
-    pin: true
+  const dispatched = await invokeNativeTool(client.container, 'friends-list', 'friends-list.ipfs_kit_py.persist_artifact', {
+    executionMode: 'execute',
+    toolId: 'artifacts_put',
+    payload: {
+      cid,
+      bytes_base64: bytesBase64,
+      profile,
+      kind,
+      service: 'ipfs_kit_py',
+      pin: true,
+      fixture_scope: 'svf-friends-412-contact'
+    },
+    trigger: client.container.querySelector('#send-friend-request')
   });
-  if (result === null) throw Object.assign(new Error('Cancelled before artifact dispatch.'), { cancelled: true });
-  if (result.persisted !== true || result.cid !== cid) {
-    throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted artifact.');
+  if (dispatched === null) throw Object.assign(new Error('Cancelled before artifact dispatch.'), { cancelled: true });
+  if (dispatched.preview === true || dispatched.dry_run === true) {
+    throw Object.assign(new Error(dispatched.error || 'Artifact dispatch stayed a preview and was not executed.'), { preview: true });
+  }
+  const result = dispatched.persisted === true || dispatched.cid
+    ? dispatched
+    : (dispatched.result?.result || dispatched.result || dispatched);
+  if (result?.persisted !== true || result?.cid !== cid) {
+    throw new Error(result?.error || dispatched?.error || 'ipfs_kit_py did not verify the persisted artifact.');
   }
   return { cid, result };
 }
@@ -217,7 +230,7 @@ export class FriendsListApp {
       id: 'alice-did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
       name: 'Alice Cooper',
       avatar: null,
-      status: 'online',
+      status: 'unavailable',
       lastSeen: new Date(),
       sample: true,
       identities: {
@@ -246,7 +259,7 @@ export class FriendsListApp {
       id: 'bob-did:key:z6MkfrQqJ9r8u2PyR5qDgJ9r8u2PyR5qDgJ9r8u2PyR5qDgJ9',
       name: 'Bob Wilson',
       avatar: null,
-      status: 'away',
+      status: 'unavailable',
       lastSeen: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
       sample: true,
       identities: {
@@ -326,6 +339,7 @@ export class FriendsListApp {
       cid: null,
       receipt: null,
     });
+    this.loadRetainedContacts();
   }
 
   createVdaG037State() {
@@ -521,14 +535,14 @@ export class FriendsListApp {
             <h2>Friends & Network</h2>
           </div>
           <div class="header-actions">
-            <button id="add-friend-btn" class="action-btn primary sk-btn sk-btn-primary" type="button" aria-label="Add friend and review contact provenance">
+            <button id="add-friend-btn" class="action-btn primary sk-btn sk-btn-primary" type="button" aria-label="Add Friend">
               <span aria-hidden="true">➕</span> Add Friend
             </button>
-            <button id="identity-manager-btn" class="action-btn" type="button" aria-label="Manage identity and relationship policy">
+            <button id="identity-manager-btn" class="action-btn" type="button" aria-label="Manage Identity">
               <span aria-hidden="true">🆔</span> Manage Identity
             </button>
-            <button id="network-status-btn" class="action-btn status-online" type="button" aria-label="Refresh network freshness state">
-              <span aria-hidden="true">🔗</span> Online
+            <button id="network-status-btn" class="action-btn" type="button" aria-label="Offline">
+              <span aria-hidden="true">🔴</span> Offline
             </button>
           </div>
         </div>
@@ -562,7 +576,10 @@ export class FriendsListApp {
                 <input type="text" id="friends-search" placeholder="Search friends (local)...">
                 <button class="search-btn">🔍</button>
               </div>
-              <p class="friends-demo-note sk-honest-note" style="margin:4px 0 0;">Sample contacts are local demo data — no CIDs, receipts, or verifications. Contacts you add can be persisted to the ipfs_kit_py backend (confirmation-gated).</p>
+              <details class="friends-demo-note">
+                <summary>About saved contacts</summary>
+                <p class="sk-honest-note" style="margin:4px 0 0;">Sample contacts are local demo data. Presence stays Unavailable until a live transport reports it. Contacts you add are kept once in this browser.</p>
+              </details>
               <div class="filter-controls">
                 <select id="status-filter">
                   <option value="all">All Status</option>
@@ -697,6 +714,7 @@ export class FriendsListApp {
                   <label for="friend-message">Message (optional):</label>
                   <textarea id="friend-message" placeholder="Hi! I'd like to connect with you on SwissKnife..."></textarea>
                 </div>
+                <p id="friends-form-error" class="friends-form-error" role="alert"></p>
                 <div class="form-actions">
                   <button id="cancel-add-friend" class="btn-secondary sk-btn">Cancel</button>
                   <button id="send-friend-request" ${networkNativeAttributes('friends-list', 'mcp++:ipfs_kit_py/artifacts/put')} class="btn-primary">Send Request</button>
@@ -780,7 +798,8 @@ export class FriendsListApp {
     const blockedCid = blocked?.cid || 'not persisted yet';
 
     return `
-      <section class="friends-workflow-panel" aria-label="VDA-G037 Friends List workflow">
+      <details class="friends-workflow-panel">
+        <summary>Contact diagnostics</summary>
         <div class="workflow-panel-header">
           <div>
             <h3>VDA-G037 workflow</h3>
@@ -822,7 +841,7 @@ export class FriendsListApp {
           <button type="button" data-svd-workflow-action="show-accessible-empty-state">Show empty state</button>
         </div>
         <p class="workflow-refs">${refList}</p>
-      </section>
+      </details>
     `;
   }
 
@@ -858,11 +877,17 @@ export class FriendsListApp {
       .friends-container {
         display: flex;
         flex-direction: column;
+        position: absolute;
+        inset: 0;
+        width: 100%;
         height: 100%;
+        max-height: 100%;
+        min-height: 0;
+        box-sizing: border-box;
         background: var(--sk-bg-deep, #0e1412);
         color: var(--sk-text, #edf7f2);
         font-family: system-ui, -apple-system, sans-serif;
-        overflow: auto;
+        overflow: hidden;
         min-width: 0;
       }
       
@@ -978,7 +1003,7 @@ export class FriendsListApp {
         flex: 1 1 auto;
         position: relative;
         overflow: auto;
-        min-height: 320px;
+        min-height: 0;
         min-width: 0;
       }
       
@@ -1098,6 +1123,14 @@ export class FriendsListApp {
         cursor: pointer;
         transition: all 0.3s ease;
         position: relative;
+        min-width: 0;
+      }
+
+      .friends-form-error {
+        margin: 0;
+        min-height: 1.2em;
+        color: var(--sk-warn, #ffd166);
+        font-size: 0.85rem;
       }
       
       .friend-card:hover {
@@ -1582,7 +1615,7 @@ export class FriendsListApp {
       
       /* Modal Styles */
       .modal {
-        position: fixed;
+        position: absolute;
         top: 0;
         left: 0;
         right: 0;
@@ -1799,15 +1832,56 @@ export class FriendsListApp {
         .panel-header {
           flex-direction: column;
           align-items: stretch;
+          margin-bottom: 0.65rem;
+        }
+
+        .search-bar {
+          flex: 0 0 auto;
+          width: 100%;
+        }
+
+        .filter-controls {
+          flex: 0 0 auto;
+          width: 100%;
+          align-items: center;
+        }
+
+        .filter-controls select {
+          flex: 1 1 0;
+          align-self: center;
+          height: 2.25rem;
+          max-height: 2.25rem;
+          line-height: 1.2;
+          background-color: var(--sk-bg-inset, #17241f);
+          color: var(--sk-text, #edf7f2);
         }
 
         .content-panels {
-          flex-basis: auto;
-          min-height: 300px;
+          flex: 1 1 0%;
+          min-height: 0;
+          overflow: auto;
+        }
+
+        .content-panel {
+          padding: 0.65rem;
         }
         
         .friends-list {
           grid-template-columns: 1fr;
+          align-content: start;
+        }
+
+        .friend-card {
+          padding: 0.7rem 0.75rem;
+        }
+
+        .friend-card-header {
+          margin-bottom: 0.35rem;
+        }
+
+        .friend-info h4 {
+          font-size: 1rem;
+          line-height: 1.25;
         }
         
         .platforms-grid {
@@ -1815,7 +1889,10 @@ export class FriendsListApp {
         }
 
         .friends-workflow-panel {
-          margin: 0 1rem 1rem;
+          margin: 0 0.5rem 0.5rem;
+          padding: 0.35rem 0.55rem;
+          max-height: 5.5rem;
+          overflow: auto;
         }
 
         .workflow-panel-header {
@@ -1883,6 +1960,12 @@ export class FriendsListApp {
     const sendFriendRequestBtn = container.querySelector('#send-friend-request');
     sendFriendRequestBtn?.addEventListener('click', () => {
       this.submitFriendRequest();
+    });
+    container.querySelector('#friend-input')?.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        this.submitFriendRequest();
+      }
     });
     const cancelAddFriendBtn = container.querySelector('#cancel-add-friend');
     cancelAddFriendBtn?.addEventListener('click', () => {
@@ -2261,6 +2344,7 @@ export class FriendsListApp {
             <div class="friend-status">
               ${friend.status === 'online' ? '🟢 Online' : 
                 friend.status === 'away' ? '🟡 Away' : 
+                friend.status === 'unavailable' ? 'Unavailable' :
                 `🔴 Last seen ${this.escapeHtml(this.formatTimeAgo(friend.lastSeen))}`}
             </div>
           </div>
@@ -2276,10 +2360,10 @@ export class FriendsListApp {
           `).join('')}
         </div>
 
-        <div class="friend-provenance">
-          <span>Provenance ${this.escapeHtml(friend.provenance?.cid || 'missing')}</span>
-          <span>${this.escapeHtml(friend.provenance?.receipt || 'receipt missing')}</span>
-        </div>
+        ${friend.provenance?.cid ? `<div class="friend-provenance">
+          <span>Provenance ${this.escapeHtml(friend.provenance.cid)}</span>
+          <span>${this.escapeHtml(friend.provenance.receipt || friend.provenance.cid)}</span>
+        </div>` : ''}
 
         <div class="relationship-policy-chip">
           <span>${this.escapeHtml(friend.relationship?.state || 'unknown')}</span>
@@ -2523,27 +2607,81 @@ export class FriendsListApp {
     }
   }
   
+  loadRetainedContacts() {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      const raw = localStorage.getItem('swissknife_friends_retained_v1');
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (!Array.isArray(saved)) return;
+      for (const friend of saved) {
+        if (!friend || typeof friend.id !== 'string' || this.friends.has(friend.id)) continue;
+        friend.lastSeen = friend.lastSeen ? new Date(friend.lastSeen) : new Date();
+        friend.addedDate = friend.addedDate ? new Date(friend.addedDate) : new Date();
+        if (friend.status === 'online' || friend.status === 'away' || !friend.status) friend.status = 'unavailable';
+        friend.sample = false;
+        friend.tags = Array.isArray(friend.tags) ? friend.tags : [];
+        friend.identities = friend.identities || {};
+        this.friends.set(friend.id, friend);
+      }
+    } catch (error) {
+      console.warn('Retained contacts could not be read:', error);
+    }
+  }
+
+  persistRetainedContacts() {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      const saved = [];
+      for (const friend of this.friends.values()) {
+        if (friend.sample) continue;
+        saved.push({
+          ...friend,
+          lastSeen: friend.lastSeen instanceof Date ? friend.lastSeen.toISOString() : friend.lastSeen,
+          addedDate: friend.addedDate instanceof Date ? friend.addedDate.toISOString() : friend.addedDate
+        });
+      }
+      localStorage.setItem('swissknife_friends_retained_v1', JSON.stringify(saved));
+    } catch (error) {
+      console.warn('Retained contacts could not be saved:', error);
+    }
+  }
+
   async submitFriendRequest() {
     const friendInput = document.querySelector('#friend-input');
     const platformSelect = document.querySelector('#platform-select');
     const friendMessage = document.querySelector('#friend-message');
+    const errorNode = document.querySelector('#friends-form-error');
+    const showError = (message) => {
+      if (errorNode) errorNode.textContent = message;
+    };
     const handle = String(friendInput?.value || '').trim();
     if (!handle) {
-      alert('Enter a DID or username first.');
+      showError('Missing identity. Enter a DID or username, then retry.');
       return;
     }
     const platform = platformSelect?.value || '';
     const isDid = handle.startsWith('did:');
     const id = isDid ? `contact-${handle}` : `contact-${platform || 'user'}:${handle}`;
+    const sendButton = document.querySelector('#send-friend-request');
     if (this.friends.has(id)) {
-      alert('That contact is already in your list.');
+      showError('That contact is already in your list. It was not duplicated.');
+      if (sendButton) {
+        sendButton.textContent = 'Already in list';
+        sendButton.setAttribute('aria-disabled', 'true');
+      }
       return;
+    }
+    showError('');
+    if (sendButton) {
+      sendButton.textContent = 'Send Request';
+      sendButton.setAttribute('aria-disabled', 'false');
     }
     const friend = {
       id,
       name: isDid ? handle.slice(0, 24) + '…' : handle,
       avatar: null,
-      status: 'offline',
+      status: 'unavailable',
       lastSeen: new Date(),
       sample: false,
       identities: isDid
@@ -2561,33 +2699,39 @@ export class FriendsListApp {
       addedDate: new Date(),
       inviteMessage: String(friendMessage?.value || '')
     };
-    // Send is confirm-then-invoke: nothing is stored or written until the
-    // user confirms, then the contact write goes through POST /mcp/tools/call.
+    this.friends.set(id, friend);
+    this.persistRetainedContacts();
+    document.querySelector('#add-friend-form')?.classList.add('hidden');
+    document.querySelector('#add-friend-modal')?.classList.add('hidden');
+    if (friendInput) friendInput.value = '';
+    this.renderFriendsList();
 
     try {
       const client = await friendsKitClient(this);
       const persisted = await friendsPersistArtifact(client, friendsCanonicalContactRecord(friend), { kind: 'contact', profile: 'friends-artifact' });
-        this.friends.set(id, friend);
-        document.querySelector('#add-friend-form')?.classList.add('hidden');
-        if (friendInput) friendInput.value = '';
-        friend.provenance = {
-          source: 'ipfs_kit_py.artifact.put',
-          cid: persisted.cid,
-          receipt: persisted.cid,
-          event_dag: null,
-          contact_cid: persisted.cid
-        };
-        friend.relationship.state = 'invite-sent-persisted';
-        this.vdaG037.receiptRefs = [...new Set([...this.vdaG037.receiptRefs, persisted.cid])];
-        this.vdaG037.checkpointRefs = [...new Set([...this.vdaG037.checkpointRefs, persisted.cid])];
-        this.vdaG037.actionLog.push(`add-contact:${persisted.cid}`);
-        this.setVdaG037ActionState(`add-contact: ${persisted.cid}`);
-      } catch (error) {
-        this.vdaG037.actionLog.push(`add-contact:failed:${error.message}`);
-        this.setVdaG037ActionState(`add-contact ${error.preview ? 'preview' : error.cancelled ? 'cancelled' : 'failed'}: ${error.message}`);
-      }
-      this.refreshVdaG037WorkflowPanel();
-      this.renderFriendsList();
+      friend.provenance = {
+        source: 'ipfs_kit_py.artifact.put',
+        cid: persisted.cid,
+        receipt: persisted.cid,
+        event_dag: null,
+        contact_cid: persisted.cid
+      };
+      friend.relationship.state = 'invite-sent-persisted';
+      this.persistRetainedContacts();
+      this.vdaG037.receiptRefs = [...new Set([...this.vdaG037.receiptRefs, persisted.cid])];
+      this.vdaG037.checkpointRefs = [...new Set([...this.vdaG037.checkpointRefs, persisted.cid])];
+      this.vdaG037.actionLog.push(`add-contact:${persisted.cid}`);
+      this.setVdaG037ActionState(`add-contact: ${persisted.cid}`);
+    } catch (error) {
+      showError(`Update denied or stale: ${error.message} The contact was kept once and was not duplicated.`);
+      this.vdaG037.actionLog.push(`add-contact:failed:${error.message}`);
+      this.setVdaG037ActionState(`add-contact ${error.preview ? 'preview' : error.cancelled ? 'cancelled' : 'failed'}: ${error.message}`);
+    } finally {
+      document.querySelector('#add-friend-form')?.classList.add('hidden');
+      document.querySelector('#add-friend-modal')?.classList.add('hidden');
+    }
+    this.refreshVdaG037WorkflowPanel();
+    this.renderFriendsList();
   }
 
   showAddFriendForm(method) {
@@ -2602,11 +2746,11 @@ export class FriendsListApp {
     switch (method) {
       case 'did':
         friendInput.placeholder = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK';
-        platformSelect.style.display = 'none';
+        platformSelect.closest('.form-group')?.classList.add('hidden');
         break;
       case 'platform':
         friendInput.placeholder = 'username';
-        platformSelect.style.display = 'block';
+        platformSelect.closest('.form-group')?.classList.remove('hidden');
         break;
       case 'qr':
         // QR code scanning functionality
@@ -2830,7 +2974,7 @@ export class FriendsListApp {
         id: invite.from,
         name: invite.name,
         avatar: invite.avatar,
-        status: 'online',
+        status: 'unavailable',
         lastSeen: new Date(),
         identities: {},
         tags: [],

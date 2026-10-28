@@ -1,0 +1,29 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "settings",
+  "description": "Save a reversible appearance theme, reopen it, restore the original theme, then reject an invalid accent and discard it.",
+  "fixture_scope": "svf-settings-appearance",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {"op": "click", "selector": ".nav-item[data-section=\"appearance\"]"},
+      {"op": "select", "selector": "#theme", "value": "light"},
+      {"op": "press", "selector": "#save-btn", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#applied-appearance"}, "operator": "equals", "expected": "Theme light"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "click", "selector": ".nav-item[data-section=\"appearance\"]"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "value", "selector": "#theme"}, "operator": "equals", "expected": "light"},
+      {"op": "select", "selector": "#theme", "value": "dark"},
+      {"op": "press", "selector": "#save-btn", "key": "Enter"}
+    ],
+    "failure_recovery": [
+      {"op": "fill", "selector": "#accent-color", "value": "not-a-color"},
+      {"op": "press", "selector": "#save-btn", "key": "Enter"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#settings-feedback"}, "operator": "contains", "expected": "Invalid"},
+      {"op": "click", "selector": "#discard-btn"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "value", "selector": "#accent-color"}, "operator": "equals", "expected": "#4a90e2"}
+    ]
+  }
+}

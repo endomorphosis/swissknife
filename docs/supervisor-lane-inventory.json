@@ -15,7 +15,10 @@
     "reclamationPolicy": "never age-based; only absent PID, changed boot identity, or reused PID after exact recorded process identity verification; a PID namespace mismatch is unverifiable and fails closed",
     "unverifiablePolicy": "fail_closed_and_refuse_implementation"
   },
-  "canonicalLaneIds": ["all-tools", "refactor"],
+  "canonicalLaneIds": [
+    "all-tools",
+    "refactor"
+  ],
   "lanes": [
     {
       "id": "all-tools",
@@ -435,6 +438,52 @@
           "merge",
           "--lane",
           "refactor"
+        ]
+      }
+    },
+    {
+      "id": "swissknife-visual-functional",
+      "kind": "implementation-supervisor",
+      "classification": "registered_visual_functional_repair_lane",
+      "board": "implementation_plan/docs/53-swissknife-visual-functional-mcplusplus.todo.md",
+      "taskPrefix": "## SVF-",
+      "statePrefix": "svf",
+      "stateDirectory": "data/agent_supervisor/swissknife_visual_functional/state",
+      "implementationSurface": "scripts/swissknife_visual_functional_supervisor.py",
+      "leaseRequiredForImplementation": true,
+      "launch": {
+        "commandPolicy": "exact",
+        "environment": {
+          "IPFS_ACCELERATE_AGENT_MAX_DIRTY_ATTEMPTS": "0"
+        },
+        "requiredArguments": [
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
+        ],
+        "command": [
+          "node",
+          "swissknife/scripts/swissknife-checkout-lease.mjs",
+          "--run",
+          "--lane",
+          "swissknife-visual-functional",
+          "--board",
+          "implementation_plan/docs/53-swissknife-visual-functional-mcplusplus.todo.md",
+          "--",
+          "python3",
+          "scripts/swissknife_visual_functional_supervisor.py",
+          "--profile",
+          "config/swissknife_visual_functional_supervisor.json",
+          "--todo-path",
+          "implementation_plan/docs/53-swissknife-visual-functional-mcplusplus.todo.md",
+          "--state-dir",
+          "data/agent_supervisor/swissknife_visual_functional/state",
+          "--task-prefix",
+          "## SVF-",
+          "--state-prefix",
+          "svf",
+          "--implement",
+          "--no-ephemeral-worktree",
+          "--no-worktree-reconciliation"
         ]
       }
     }

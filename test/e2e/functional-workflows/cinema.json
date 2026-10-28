@@ -1,0 +1,200 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "cinema",
+  "description": "Retrieve and CID-verify an actual controlled clip through the declared native owner, decode/play it, persist and reopen its exact source/trim, then retain playback while unsupported export is reported honestly.",
+  "fixture_scope": "svf-cinema-project-media",
+  "backend_bindings": [
+    {
+      "binding_id": "cinema.ipfs_kit_py.retrieve_content",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 60,
+      "max_output_bytes": 1048576,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/cid",
+        "operator": "equals",
+        "expected": "bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla"
+      }
+    },
+    {
+      "binding_id": "cinema.ipfs_kit_py.persist_artifact",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 60,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/persisted",
+        "operator": "equals",
+        "expected": true
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "fill",
+        "selector": "[data-cinema-source-cid]",
+        "value": "bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla"
+      },
+      {
+        "op": "click",
+        "selector": "[data-cinema-open-source]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"cinema.ipfs_kit_py.retrieve_content\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"cinema.ipfs_kit_py.retrieve_content\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-cinema-video][data-decoded-cid=\"bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "fill",
+        "selector": "[data-cinema-trim=\"out\"]",
+        "value": "2"
+      },
+      {
+        "op": "click",
+        "selector": "[data-cinema-workflow=\"load-project-media-cids\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"cinema.ipfs_kit_py.persist_artifact\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"cinema.ipfs_kit_py.persist_artifact\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-project-cid-state=\"persisted\"]",
+        "state": "attached",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-cinema-trim=\"out\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "press",
+        "selector": "[data-cinema-play]",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "media_state",
+          "selector": "[data-cinema-video]",
+          "pointer": "/current_time",
+          "temporal_ms": 250
+        },
+        "operator": "at_least",
+        "expected": 0.05
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-cinema-video][data-decoded-cid=\"bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-cinema-selection]",
+          "attribute": "data-cinema-selection-state",
+          "pointer": "/selection"
+        },
+        "operator": "equals",
+        "expected": {
+          "source": {
+            "cid": "bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla",
+            "sha256": "833fba0fa9f76ac76584f5e1e599430b1e97c31b780938987fe37ea6dc668758",
+            "size": 29035,
+            "mime": "video/webm"
+          },
+          "trim": {
+            "in": 0,
+            "out": 2
+          },
+          "track_order": [
+            "video"
+          ],
+          "saved": true,
+          "decoded": true
+        }
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "select",
+        "selector": "[data-cinema-codec]",
+        "value": "flv"
+      },
+      {
+        "op": "click",
+        "selector": "[data-cinema-workflow=\"simulate-failed-export\"]"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "[data-cinema-workflow-status]"
+        },
+        "operator": "contains",
+        "expected": "Unsupported codec"
+      },
+      {
+        "op": "select",
+        "selector": "[data-cinema-codec]",
+        "value": "mp4"
+      },
+      {
+        "op": "click",
+        "selector": "[data-cinema-workflow=\"simulate-failed-export\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-cinema-workflow-status][data-export-state=\"unsupported\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-cinema-play]",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "media_state",
+          "selector": "[data-cinema-video]",
+          "pointer": "/current_time",
+          "temporal_ms": 250
+        },
+        "operator": "at_least",
+        "expected": 0.05
+      }
+    ]
+  }
+}

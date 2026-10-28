@@ -500,7 +500,12 @@ function buildBinding(
   }
   const preferredTransport = supportsHttp ? 'http' : 'libp2p';
   const fallbackTransport = supportsHttp && supportsLibp2p ? 'libp2p' : null;
-  const preferredTools = TOOL_PREFERENCES[owner][token];
+  // The model manager both selects a real model and runs its bounded test.
+  // Job lookup and hardware discovery cannot perform that intended action.
+  // Keep its existing governed policy and binding identity for every call.
+  const preferredTools = app.id === 'model-browser' && owner === 'ipfs_accelerate_py' && token === 'models'
+    ? ['list_models', 'run_inference_job', 'job_status', 'get_task', 'detect_hardware']
+    : TOOL_PREFERENCES[owner][token];
   if (!preferredTools?.length) {
     throw new Error(`No exact tool selection rule for ${app.id}/${owner}/${capability.capability}`);
   }

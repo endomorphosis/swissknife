@@ -1,3 +1,6 @@
+import { invokeNativeTool } from '../live-tool-gateway.js';
+import { unwrapNetworkToolResult } from './network-native-tools.js';
+
 // SwissKnife Dedicated Hugging Face App
 // Professional AI Model Hub, Dataset Management & Inference Platform
 
@@ -86,6 +89,14 @@ class HuggingFaceApp {
         this.inferenceHistory = [];
         this.isAuthenticated = false;
         this.apiToken = localStorage.getItem('huggingface_api_token') || '';
+        this.modelSearch = '';
+        this.datasetSearch = '';
+        this.modelTaskFilter = '';
+        this.modelLibraryFilter = '';
+        this.datasetTaskFilter = '';
+        this.datasetSizeFilter = '';
+        this.selection = null;
+        this.restoreHubState();
         this.cache = {
             models: new Map(),
             datasets: new Map(),
@@ -97,6 +108,9 @@ class HuggingFaceApp {
             cacheEnabled: true,
             cacheTTL: HF_CATALOG_CACHE_TTL_MS
         };
+        this.restoreNativeCatalogMetadata();
+        if (typeof document !== 'undefined') this.setupEventListeners();
+
     }
 
     async initialize() {
@@ -117,6 +131,50 @@ class HuggingFaceApp {
     render() {
         return `
         <div class="huggingface-app">
+            <style>
+              .window[data-app-id="huggingface"] .window-content{display:flex;flex-direction:column;min-height:0;overflow:hidden;padding-bottom:0}
+              .window[data-app-id="huggingface"] .window-app-content{display:flex;flex-direction:column;flex:1 1 auto;height:100%;min-height:0;min-width:0;overflow:hidden}
+              .window[data-app-id="huggingface"] .window-app-content > [id$="-content"]{display:flex;flex-direction:column;flex:1 1 auto;align-self:stretch;width:100%;min-height:0;min-width:0;overflow:hidden}
+              .window[data-app-id="huggingface"] .huggingface-app{flex:1 1 auto;height:auto;min-height:0;min-width:0}
+              .huggingface-app .hf-nav-tabs{display:flex !important;flex-wrap:wrap !important;align-content:flex-start;gap:4px;overflow:visible !important;width:100%;flex:0 0 auto;max-height:none;position:static !important;z-index:auto !important}
+              .huggingface-app .hf-nav-tabs .tab-item{flex:0 0 auto !important;min-width:0 !important;max-width:none !important;overflow:hidden !important;height:36px;min-height:36px;max-height:36px;padding:4px 8px !important}
+              .huggingface-app .hf-nav-tabs .tab-label{display:inline !important;overflow:visible !important;text-overflow:clip !important;white-space:nowrap !important;max-width:none !important;width:auto !important}
+              .huggingface-app .hf-logo-text{white-space:nowrap !important}
+              .huggingface-app .model-card{overflow:visible !important;height:auto !important;max-height:none !important}
+              .huggingface-app .model-card .model-actions{display:flex !important;flex-direction:row !important;flex-wrap:wrap !important;gap:6px !important}
+              .huggingface-app .model-card .action-btn,.huggingface-app .model-card .action-btn-primary{width:auto !important;height:auto !important;min-height:36px !important;max-height:none !important;overflow:visible !important;text-indent:0 !important;font-size:13px !important;line-height:1.2 !important;white-space:nowrap !important;padding:6px 10px !important;display:inline-flex !important;align-items:center !important}
+              .huggingface-app .model-card .action-btn-primary{background:#ff7a18 !important;color:#1a1a1a !important;opacity:1 !important}
+              .huggingface-app .model-card-facts{display:flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;font-size:12px;line-height:1.35}
+              .huggingface-app .hf-revision{display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:break-all}
+              .huggingface-app{height:100%;min-height:0;max-height:100%;overflow:hidden !important;display:flex !important;flex-direction:column !important}
+              .huggingface-app .hf-header,.huggingface-app .hf-nav-tabs,.huggingface-app .hf-status-bar{flex:0 0 auto;position:static !important;z-index:auto !important}
+              .huggingface-app .hf-header{padding:4px 8px !important;min-height:0 !important}
+              .huggingface-app .hf-status-bar{max-height:none !important;overflow:visible !important;padding:4px 8px !important;flex-wrap:wrap;gap:4px;color:#dbeafe;background:#101b25;opacity:1;font-size:12px;line-height:1.35}
+              .huggingface-app .hf-content{flex:1 1 0px !important;min-height:0 !important;overflow-x:hidden !important;overflow-y:auto !important;scroll-padding-top:8px;scroll-padding-bottom:8px}
+              .huggingface-app .models-tab{flex:0 0 auto !important;min-height:0 !important;overflow:visible !important}
+              .huggingface-app .models-tab > .models-grid{flex:0 0 auto !important;min-height:min-content !important;overflow:visible !important;grid-auto-rows:max-content;padding:12px;gap:12px}
+              .huggingface-app .models-tab > .tab-header{flex:0 0 auto;flex-direction:column;align-items:stretch;padding:10px 12px;gap:8px}
+              .huggingface-app .models-tab .tab-title{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
+              .huggingface-app .models-tab .tab-title h2{font-size:18px;margin:0}
+              .huggingface-app .models-tab .tab-title p{font-size:12px}
+              .huggingface-app .models-tab .tab-actions{gap:6px}
+              .huggingface-app .models-tab > .hf-catalog-status,.huggingface-app .models-tab > .hf-selection-status,.huggingface-app .models-tab > #hf-selected-item{flex:0 0 auto;margin:4px 12px;overflow-wrap:anywhere}
+              .huggingface-app .inference-method-selector{display:flex !important;flex-wrap:nowrap !important;gap:4px;max-height:36px;overflow:hidden !important}
+              .huggingface-app .method-option{max-height:36px !important;padding:2px 6px !important;overflow:hidden !important}
+              .huggingface-app .form-actions{position:sticky;bottom:0;z-index:3;background:#1b1b1b;padding-top:4px}
+              .huggingface-app #hf-run-inference{scroll-margin-top:8px;scroll-margin-bottom:8px}
+              .huggingface-app .model-identity{flex:1;min-width:0}
+              @media (max-width:480px){
+                .huggingface-app{max-height:min(100%,calc(100dvh - 92px))}
+                .huggingface-app .hf-header{padding:6px 8px}
+                .huggingface-app .tab-title p{display:none}
+                .huggingface-app .tab-title h2{font-size:15px;margin:0}
+                .huggingface-app .tab-actions{display:flex;flex-wrap:wrap;gap:4px}
+                .huggingface-app .tab-actions .hf-btn{padding:4px 8px;min-height:32px}
+                .huggingface-app .hf-status-bar .status-right{display:flex;flex-wrap:wrap}
+                .huggingface-app .model-card{padding:8px !important}
+              }
+            </style>
             <!-- Header with Authentication -->
             <div class="hf-header">
                 <div class="hf-header-left">
@@ -143,28 +201,28 @@ class HuggingFaceApp {
 
             <!-- Navigation Tabs -->
             <div class="hf-nav-tabs">
-                <div class="tab-item ${this.currentTab === 'models' ? 'active' : ''}" data-tab="models">
-                    <span class="tab-icon">🧠</span>
+                <div class="tab-item ${this.currentTab === 'models' ? 'active' : ''}" data-tab="models" role="tab" tabindex="0" aria-label="Models">
+                    <span class="tab-icon" aria-hidden="true">🧠</span>
                     <span class="tab-label">Models</span>
                     <span class="tab-count">${this.models.size}</span>
                 </div>
-                <div class="tab-item ${this.currentTab === 'datasets' ? 'active' : ''}" data-tab="datasets">
-                    <span class="tab-icon">📊</span>
+                <div class="tab-item ${this.currentTab === 'datasets' ? 'active' : ''}" data-tab="datasets" role="tab" tabindex="0" aria-label="Datasets">
+                    <span class="tab-icon" aria-hidden="true">📊</span>
                     <span class="tab-label">Datasets</span>
                     <span class="tab-count">${this.datasets.size}</span>
                 </div>
-                <div class="tab-item ${this.currentTab === 'inference' ? 'active' : ''}" data-tab="inference">
-                    <span class="tab-icon">⚡</span>
+                <div class="tab-item ${this.currentTab === 'inference' ? 'active' : ''}" data-tab="inference" role="tab" tabindex="0" aria-label="Inference">
+                    <span class="tab-icon" aria-hidden="true">⚡</span>
                     <span class="tab-label">Inference</span>
                     <span class="tab-count">${this.inferenceHistory.length}</span>
                 </div>
-                <div class="tab-item ${this.currentTab === 'deployments' ? 'active' : ''}" data-tab="deployments">
-                    <span class="tab-icon">🚀</span>
+                <div class="tab-item ${this.currentTab === 'deployments' ? 'active' : ''}" data-tab="deployments" role="tab" tabindex="0" aria-label="Deployments">
+                    <span class="tab-icon" aria-hidden="true">🚀</span>
                     <span class="tab-label">Deployments</span>
                     <span class="tab-count">${this.deployments.size}</span>
                 </div>
-                <div class="tab-item ${this.currentTab === 'playground' ? 'active' : ''}" data-tab="playground">
-                    <span class="tab-icon">🎮</span>
+                <div class="tab-item ${this.currentTab === 'playground' ? 'active' : ''}" data-tab="playground" role="tab" tabindex="0" aria-label="Playground">
+                    <span class="tab-icon" aria-hidden="true">🎮</span>
                     <span class="tab-label">Playground</span>
                 </div>
             </div>
@@ -183,13 +241,13 @@ class HuggingFaceApp {
                     </span>
                     <span class="status-item">
                         <span class="status-icon">💾</span>
-                        <span>Cache: ${this.cache.models.size + this.cache.datasets.size} items</span>
+                        <span>Catalog: ${this.models.size + this.datasets.size} items</span>
                     </span>
                 </div>
                 <div class="status-right">
                     <span class="status-item">
                         <span class="status-icon">⏱️</span>
-                        <span id="hf-last-refresh">Last catalog observation: ${this.cache.lastRefresh ? new Date(this.cache.lastRefresh).toISOString() : 'Never'}</span>
+                        <span id="hf-last-refresh">Last catalog observation: ${[this.catalogMetadata.models?.observed_at, this.catalogMetadata.datasets?.observed_at, this.cache.lastRefresh].filter(value => value && Number.isFinite(new Date(value).getTime())).map(value => new Date(value).toISOString()).sort().at(-1) || 'Never'}</span>
                     </span>
                 </div>
             </div>
@@ -223,43 +281,52 @@ class HuggingFaceApp {
                 </div>
                 <div class="tab-actions">
                     <div class="search-container">
-                        <input type="text" id="models-search" placeholder="Search models..." class="search-input sk-input">
-                        <button class="search-btn" onclick="window.huggingFaceApp.searchModels()">🔍</button>
+                        <input type="text" id="models-search" aria-label="Search models" placeholder="Search models..." value="${this.escapeCatalogStatus(this.modelSearch || '')}" class="search-input sk-input">
+                        <button type="button" class="search-btn" id="models-search-submit" aria-label="Search models" onclick="window.huggingFaceApp.searchModels()">🔍</button>
                     </div>
                     <div class="filter-container">
-                        <select id="models-filter-task" class="filter-select sk-select">
+                        <select id="models-filter-task" aria-label="Model task" class="filter-select sk-select">
                             <option value="">All Tasks</option>
-                            <option value="text-generation">Text Generation</option>
-                            <option value="text-classification">Text Classification</option>
-                            <option value="image-classification">Image Classification</option>
-                            <option value="speech-recognition">Speech Recognition</option>
-                            <option value="translation">Translation</option>
+                            <option value="text-generation"${this.selectAttr(this.modelTaskFilter, 'text-generation')}>Text Generation</option>
+                            <option value="text-classification"${this.selectAttr(this.modelTaskFilter, 'text-classification')}>Text Classification</option>
+                            <option value="image-classification"${this.selectAttr(this.modelTaskFilter, 'image-classification')}>Image Classification</option>
+                            <option value="speech-recognition"${this.selectAttr(this.modelTaskFilter, 'speech-recognition')}>Speech Recognition</option>
+                            <option value="translation"${this.selectAttr(this.modelTaskFilter, 'translation')}>Translation</option>
                         </select>
-                        <select id="models-filter-library" class="filter-select sk-select">
+                        <select id="models-filter-library" aria-label="Model library" class="filter-select sk-select">
                             <option value="">All Libraries</option>
-                            <option value="transformers">Transformers</option>
-                            <option value="pytorch">PyTorch</option>
-                            <option value="tensorflow">TensorFlow</option>
-                            <option value="jax">JAX</option>
+                            <option value="transformers"${this.selectAttr(this.modelLibraryFilter, 'transformers')}>Transformers</option>
+                            <option value="pytorch"${this.selectAttr(this.modelLibraryFilter, 'pytorch')}>PyTorch</option>
+                            <option value="tensorflow"${this.selectAttr(this.modelLibraryFilter, 'tensorflow')}>TensorFlow</option>
+                            <option value="jax"${this.selectAttr(this.modelLibraryFilter, 'jax')}>JAX</option>
                         </select>
                     </div>
-                    <button class="hf-btn hf-btn-primary sk-btn sk-btn-primary" onclick="window.huggingFaceApp.refreshModels()">
+                    <button type="button" class="hf-btn hf-btn-primary sk-btn sk-btn-primary" onclick="window.huggingFaceApp.refreshModels()">
                         <span class="btn-icon">🔄</span>
                         Refresh
                     </button>
+                    <button type="button" class="hf-btn hf-btn-secondary sk-btn" id="models-retry" onclick="window.huggingFaceApp.retryModels()">
+                        <span class="btn-icon">↻</span>
+                        Retry
+                    </button>
+                    <div id="hf-catalog-execute-host" style="display:inline-flex;align-items:center;min-height:44px;min-width:44px;vertical-align:middle">
+                        <button type="button" class="hf-btn hf-btn-secondary sk-btn" id="hf-catalog-query" aria-label="Query catalog">Query catalog</button>
+                    </div>
                 </div>
             </div>
 
             <div class="models-grid" id="models-grid">
                 ${this.renderModelsGrid()}
             </div>
-            <p class="hf-catalog-status" role="status">${this.escapeCatalogStatus(this.catalogStatusText('models'))}</p>
+            <p class="hf-catalog-status" id="hf-catalog-status" role="status">${this.escapeCatalogStatus(this.catalogStatusText('models'))}</p>
+            <p class="hf-selection-status" id="hf-selection-status" role="status">${this.escapeCatalogStatus(this.selectionStatusText())}</p>
+            ${this.selection?.id ? `<p id="hf-selected-item">${this.escapeCatalogStatus(this.selection.id)} @ ${this.escapeCatalogStatus(this.selection.sha)}</p>` : ''}
 
-            <div class="pagination">
-                <button class="pagination-btn" onclick="window.huggingFaceApp.previousModelsPage()">← Previous</button>
-                <span class="pagination-info">Page 1 of 1000+</span>
-                <button class="pagination-btn" onclick="window.huggingFaceApp.nextModelsPage()">Next →</button>
-            </div>
+            ${this.models.size ? `<div class="pagination">
+                <button type="button" class="pagination-btn" onclick="window.huggingFaceApp.previousModelsPage()">← Previous</button>
+                <span class="pagination-info">Page ${Math.floor((this.modelSkip || 0) / 24) + 1}</span>
+                <button type="button" class="pagination-btn" onclick="window.huggingFaceApp.nextModelsPage()">Next →</button>
+            </div>` : ''}
         </div>`;
     }
 
@@ -277,9 +344,6 @@ class HuggingFaceApp {
                         ? `The Hub catalog could not be reached: ${this.escapeCatalogStatus(this.modelsError)}`
                         : 'The public Hub catalog returned no models for this query.'}
                 </div>
-                <button class="hf-btn hf-btn-primary sk-btn sk-btn-primary" onclick="window.huggingFaceApp.refreshModels()">
-                    🔄 Retry
-                </button>
             </div>`;
         }
 
@@ -288,7 +352,11 @@ class HuggingFaceApp {
             modelsHtml += `
             <div class="model-card sk-card" data-model-id="${id}">
                 <div class="model-header">
-                    <div class="model-name">${model.name || id}</div>
+                    <div class="model-identity">
+                        <div class="model-name">${model.name || id}</div>
+                        <div class="model-task">${model.task || model.pipeline_tag || 'Unknown'}</div>
+                        <div class="model-author">by ${model.author || 'Unknown'}</div>
+                    </div>
                     <div class="model-stats">
                         <span class="stat-item">
                             <span class="stat-icon">📥</span>
@@ -301,14 +369,17 @@ class HuggingFaceApp {
                     </div>
                 </div>
                 <div class="model-info">
-                    <div class="model-task">${model.task || model.pipeline_tag || 'Unknown'}</div>
-                    <div class="model-author">by ${model.author || 'Unknown'}</div>
+                    <div class="model-card-facts">
+                        <span class="hf-revision">Revision: ${this.escapeCatalogStatus(/^[0-9a-f]{40}$/.test(model.sha || model.snapshot || '') ? (model.sha || model.snapshot) : 'not listed')}</span>
+                        <span>Size: ${this.escapeCatalogStatus(model.safetensors && model.safetensors.total ? this.formatNumber(model.safetensors.total) : (model.size || 'not listed'))}</span>
+                        <span>Compatibility: ${this.escapeCatalogStatus(model.library_name || model.pipeline_tag || model.task || 'not listed')}</span>
+                    </div>
                     <div class="model-tags">
                         ${(model.tags || []).slice(0, 3).map(tag => `<span class="tag">${tag}</span>`).join('')}
                     </div>
                 </div>
                 <div class="model-actions">
-                    <button class="action-btn action-btn-primary" onclick="window.huggingFaceApp.loadModel('${id}')">
+                    <button class="action-btn action-btn-primary hf-btn hf-btn-primary sk-btn sk-btn-primary" onclick="window.huggingFaceApp.loadModel('${id}')">
                         <span class="btn-icon">📥</span>
                         Load
                     </button>
@@ -323,7 +394,7 @@ class HuggingFaceApp {
                 </div>
                 <div class="model-status">
                     <div class="status-indicator sk-status-dot is-ok status-available"></div>
-                    <span>Available for inference</span>
+                    <span>Inference is not run from this card</span>
                 </div>
             </div>`;
         }
@@ -432,7 +503,7 @@ class HuggingFaceApp {
                 <div class="dataset-actions">
                     <button class="action-btn action-btn-primary" onclick="window.huggingFaceApp.downloadDataset('${id}')">
                         <span class="btn-icon">📥</span>
-                        Download
+                        View card
                     </button>
                     <button class="action-btn action-btn-secondary" onclick="window.huggingFaceApp.previewDataset('${id}')">
                         <span class="btn-icon">👁️</span>
@@ -445,7 +516,7 @@ class HuggingFaceApp {
                 </div>
                 <div class="dataset-status">
                     <div class="status-indicator sk-status-dot is-ok status-available"></div>
-                    <span>Available for download</span>
+                    <span>Download is not run from this card</span>
                 </div>
             </div>`;
         }
@@ -526,7 +597,7 @@ class HuggingFaceApp {
                     </div>
 
                     <div class="form-actions">
-                        <button class="hf-btn hf-btn-primary sk-btn sk-btn-primary" onclick="window.huggingFaceApp.runInference()">
+                        <button id="hf-run-inference" class="hf-btn hf-btn-primary sk-btn sk-btn-primary" onclick="window.huggingFaceApp.runInference()">
                             <span class="btn-icon">⚡</span>
                             Run Inference
                         </button>
@@ -895,6 +966,13 @@ class HuggingFaceApp {
 
     // Event Handlers and Utility Methods
     setupEventListeners() {
+        if (this.listenersBound) return;
+        this.listenersBound = true;
+        if (!this.fitObserver && typeof MutationObserver !== 'undefined' && document.body) {
+            this.fitObserver = new MutationObserver(() => this.scheduleFit());
+            this.fitObserver.observe(document.body, { childList: true, subtree: true });
+        }
+        this.scheduleFit();
         // Tab switching
         document.addEventListener('click', (e) => {
             if (e.target.closest('.tab-item')) {
@@ -916,6 +994,23 @@ class HuggingFaceApp {
             if (e.target.closest('.method-option')) {
                 const method = e.target.closest('.method-option').dataset.method;
                 this.setInferenceMethod(method);
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            const tab = e.target && e.target.closest ? e.target.closest('.tab-item') : null;
+            if (tab && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                this.switchTab(tab.dataset.tab);
+                return;
+            }
+            if (e.key !== 'Enter' || !e.target) return;
+            if (e.target.id === 'models-search') {
+                e.preventDefault();
+                void this.searchModels();
+            } else if (e.target.id === 'datasets-search') {
+                e.preventDefault();
+                void this.searchDatasets();
             }
         });
     }
@@ -961,6 +1056,7 @@ class HuggingFaceApp {
     catalogStatusText(resource) {
         const metadata = this.catalogMetadata[resource];
         if (!metadata) return `Hugging Face ${resource} have not been requested in this window.`;
+        if (resource === 'models' && this.lastNativeCatalogRows) return `${metadata.cache === 'stored-metadata' ? 'Stored catalog metadata' : 'Native catalog retrieved'}: ${metadata.observed_at}. Current provider availability is unconfirmed. ${metadata.error ? `Refresh failed: ${metadata.error}. Retaining stored metadata.` : 'Refresh requests a new native observation.'}`;
         if (metadata.error) {
             return `${metadata.stale ? `Retaining the actual catalog observed ${metadata.observed_at} (age ${metadata.cache_age_ms} ms). ` : 'No live catalog observation is available. '}Hugging Face ${resource} unavailable: ${metadata.error} Retry after ${metadata.retry_at}.`;
         }
@@ -985,7 +1081,24 @@ class HuggingFaceApp {
         } finally { clearTimeout(timer); }
     }
 
+    restoreNativeCatalogMetadata() {
+        try {
+            const raw = localStorage.getItem('huggingface-native-catalog');
+            if (!raw || raw.length > 262144) return false;
+            const saved = JSON.parse(raw);
+            if (!Array.isArray(saved.rows) || saved.rows.length > 100 || !Number.isFinite(Date.parse(saved.observedAt))
+                || saved.rows.some(row => !row || !/^[a-zA-Z0-9_.:/-]{1,200}$/.test(row.id))) return false;
+            this.lastNativeCatalogRows = saved.rows;
+            this.models = new Map(saved.rows.map(row => [row.id, { id: row.id, name: row.id, task: row.task || 'Unknown',
+                snapshot: /^[0-9a-f]{40}$/.test(row.snapshot || row.sha || '') ? row.snapshot || row.sha : '', author: 'Stored catalog metadata', tags: [] }]));
+            this.catalogMetadata.models = { source: 'stored-native-metadata', observed_at: saved.observedAt, cache: 'stored-metadata', error: null };
+            this.modelsError = '';
+            return true;
+        } catch { return false; }
+    }
+
     async fetchModels({ force = false } = {}) {
+        if (this.lastNativeCatalogRows) return; // Public provider failures cannot replace retained native metadata.
         const params = new URLSearchParams({
             limit: '24',
             skip: String(this.modelSkip || 0),
@@ -999,6 +1112,8 @@ class HuggingFaceApp {
             this.catalogMetadata.models = metadata;
             this.models.clear();
             for (const m of items) {
+                if (this.modelTaskFilter && m.pipeline_tag !== this.modelTaskFilter && !(m.tags || []).includes(this.modelTaskFilter)) continue;
+                if (this.modelLibraryFilter && !(m.tags || []).includes(this.modelLibraryFilter)) continue;
                 this.models.set(m.id, {
                     ...m,
                     id: m.id,
@@ -1086,6 +1201,58 @@ class HuggingFaceApp {
     }
 
     // Placeholder methods for functionality
+    selectAttr(current, value) {
+        return current === value ? ' selected' : '';
+    }
+
+    selectionStatusText() {
+        if (this.selection?.id) {
+            return `Selected ${this.selection.id}; stored revision ${this.selection.sha || 'unavailable'}. No model weights have been prepared here. Inference requires a credential and an explicit request.`;
+        }
+        return `${this.modelSearch ? `Query retained: ${this.modelSearch}. ` : ''}No card selected. Download and inference stay unavailable in this window.`;
+    }
+
+    restoreHubState() {
+        try {
+            const saved = JSON.parse(localStorage.getItem('huggingface_hub_state') || 'null');
+            if (!saved || typeof saved !== 'object') return;
+            const text = (value) => typeof value === 'string' ? value : '';
+            this.modelSearch = text(saved.modelSearch);
+            this.datasetSearch = text(saved.datasetSearch);
+            this.modelTaskFilter = text(saved.modelTaskFilter);
+            this.modelLibraryFilter = text(saved.modelLibraryFilter);
+            this.datasetTaskFilter = text(saved.datasetTaskFilter);
+            this.datasetSizeFilter = text(saved.datasetSizeFilter);
+            const selection = saved.selection;
+            if (selection && typeof selection === 'object' && typeof selection.id === 'string' && selection.id) {
+                this.selection = {
+                    id: selection.id,
+                    sha: text(selection.sha),
+                    kind: selection.kind === 'dataset' ? 'dataset' : 'model',
+                    prepared_id: text(selection.prepared_id)
+                };
+            }
+        } catch (error) {
+            console.warn('Hub state restore failed:', error);
+        }
+    }
+
+    persistHubState() {
+        try {
+            localStorage.setItem('huggingface_hub_state', JSON.stringify({
+                modelSearch: this.modelSearch || '',
+                datasetSearch: this.datasetSearch || '',
+                modelTaskFilter: this.modelTaskFilter || '',
+                modelLibraryFilter: this.modelLibraryFilter || '',
+                datasetTaskFilter: this.datasetTaskFilter || '',
+                datasetSizeFilter: this.datasetSizeFilter || '',
+                selection: this.selection
+            }));
+        } catch (error) {
+            console.warn('Hub state save failed:', error);
+        }
+    }
+
     showAuthentication() {
         const token = prompt('Enter your Hugging Face API token (stored locally in this browser):', this.apiToken || '');
         if (token === null) return;
@@ -1102,12 +1269,21 @@ class HuggingFaceApp {
         alert(`Hugging Face Hub settings (local):\nDefault model: ${this.settings.defaultModel}\nInference method: ${this.settings.inferenceMethod}\nCache: ${this.settings.cacheEnabled ? 'enabled' : 'disabled'}\nAuthenticated: ${this.isAuthenticated ? 'yes' : 'no'}`);
     }
 
-    async refreshModels() {
-        this.modelSearch = '';
+    readModelControls() {
         const input = document.getElementById('models-search');
-        if (input) input.value = '';
-        await this.fetchModels({ force: true });
-        this.refresh();
+        const task = document.getElementById('models-filter-task');
+        const library = document.getElementById('models-filter-library');
+        if (input) this.modelSearch = input.value.trim();
+        if (task) this.modelTaskFilter = task.value;
+        if (library) this.modelLibraryFilter = library.value;
+    }
+
+    async refreshModels() {
+        await this.retryModels();
+    }
+
+    async retryModels() {
+        return this.searchModels();
     }
 
     async refreshDatasets() {
@@ -1119,10 +1295,49 @@ class HuggingFaceApp {
     }
 
     async searchModels() {
+        this.readModelControls();
+        this.modelSkip = 0;
+        this.persistHubState();
         const input = document.getElementById('models-search');
-        this.modelSearch = (input?.value || '').trim();
-        await this.fetchModels();
-        this.refresh();
+        const content = input?.closest('.window-app-content');
+        if (!content || this.catalogQueryPending) return;
+        this.catalogQueryPending = true;
+        try {
+            const response = await fetch('/mcp/tools/bindings?app_id=huggingface', { cache: 'no-store' });
+            const catalog = await response.json();
+            const bindingId = 'huggingface.ipfs_datasets_py.query_catalog';
+            const control = catalog.controls?.find(item => item.binding_id === bindingId);
+            const payload = control?.safe_payloads?.get_from_ipfs;
+            if (!response.ok || control?.status !== 'available' || typeof payload?.cid !== 'string') throw new Error('No reviewed stored model catalog is configured.');
+            const result = await invokeNativeTool(content, 'huggingface', bindingId, {
+                executionMode: 'execute', toolId: 'get_from_ipfs', payload: { ...payload, fixture_scope: 'svf-huggingface-hub-card' },
+                trigger: content.querySelector('#hf-catalog-query') || content.querySelector('#models-search-submit')
+            });
+            if (!result || result.ok !== true || result.outcome !== 'executed') throw new Error('The native catalog read did not execute.');
+            const actual = unwrapNetworkToolResult(result.result);
+            if (typeof actual?.content !== 'string') throw new Error('The native catalog returned no document bytes.');
+            const rows = JSON.parse(actual.content);
+            if (!Array.isArray(rows) || rows.length > 100 || rows.some(row => !row || typeof row.id !== 'string')) throw new Error('The stored model catalog has no valid model rows.');
+            this.models.clear();
+            const query = this.modelSearch.toLowerCase();
+            for (const row of rows) {
+                if (query && !row.id.toLowerCase().includes(query)) continue;
+                this.models.set(row.id, { ...row, name: row.id, author: row.author || 'Stored catalog', task: row.pipeline_tag || row.task || 'Unknown' });
+            }
+            const now = new Date().toISOString();
+            this.lastNativeCatalogRows = rows;
+            try { localStorage.setItem('huggingface-native-catalog', JSON.stringify({ rows, observedAt: now })); } catch {}
+            this.catalogMetadata.models = { source: 'Stored model catalog read through ipfs_datasets_py', observed_at: now,
+                attempted_at: now, cache: 'owner-read', cache_age_ms: 0, cache_ttl_ms: 0, stale: false, error: null };
+            this.modelsError = '';
+        } catch (error) {
+            if (!this.lastNativeCatalogRows) this.models.clear();
+            if (this.catalogMetadata.models) this.catalogMetadata.models = { ...this.catalogMetadata.models, cache: 'stored-metadata', error: error.message };
+            this.modelsError = `Stored model catalog unavailable: ${error.message}`;
+        } finally {
+            this.catalogQueryPending = false;
+            this.refresh();
+        }
     }
 
     async searchDatasets() {
@@ -1138,15 +1353,17 @@ class HuggingFaceApp {
     async nextDatasetsPage() { this.datasetSkip = (this.datasetSkip || 0) + 24; await this.fetchDatasets(); this.refresh(); }
 
     async loadModel(modelId) {
-        // Real: fetch the model's live metadata from the Hub API.
-        try {
-            const response = await fetch(`https://huggingface.co/api/models/${encodeURIComponent(modelId)}`, { headers: this.hfHeaders() });
-            if (!response.ok) throw new Error(`Hub request failed: ${response.status}`);
-            const m = await response.json();
-            alert(`Model: ${m.id}\nPipeline: ${m.pipeline_tag || 'n/a'}\nDownloads: ${m.downloads ?? 'n/a'} | Likes: ${m.likes ?? 'n/a'}\nLibrary: ${(m.tags || []).filter(t => ['pytorch','tensorflow','jax','transformers'].includes(t)).join(', ') || 'n/a'}\n\nUse the Inference tab with your HF token to run it.`);
-        } catch (error) {
-            alert(`Could not load model details: ${error.message}`);
+        const model = this.models.get(modelId);
+        const revision = model?.sha || model?.snapshot;
+        if (!model || !/^[0-9a-f]{40}$/.test(revision || '')) {
+            this.modelsError = 'The returned catalog has no immutable revision for this item.';
+            this.refresh();
+            return;
         }
+        this.selection = { id: model.id, sha: revision, kind: 'model', prepared_id: '' };
+        this.settings.defaultModel = model.id;
+        this.persistHubState();
+        this.refresh();
     }
 
     testModel(modelId) {
@@ -1236,10 +1453,10 @@ class HuggingFaceApp {
 
     async runInference() {
         const input = document.getElementById('inference-input');
-        const output = document.getElementById('inference-output');
+        const output = document.getElementById('results-content');
         const text = (input?.value || '').trim();
-        if (!text) { alert('Enter text to run inference on.'); return; }
-        if (!this.apiToken) { alert('Inference requires a Hugging Face API token — add one via Connect Account.'); return; }
+        if (!text) { if (output) { output.setAttribute('aria-live', 'polite'); output.textContent = 'Enter text to run inference on.'; } return; }
+        if (!this.apiToken) { if (output) { output.setAttribute('aria-live', 'polite'); output.textContent = 'Inference requires a credential. No request was sent; the selected item and filters are retained.'; } return; }
         const modelId = this.settings.defaultModel;
         if (output) output.textContent = 'Running inference...';
         try {
@@ -1263,7 +1480,7 @@ class HuggingFaceApp {
 
     clearInference() {
         const input = document.getElementById('inference-input');
-        const output = document.getElementById('inference-output');
+        const output = document.getElementById('results-content');
         if (input) input.value = '';
         if (output) output.textContent = '';
     }
@@ -1296,13 +1513,41 @@ class HuggingFaceApp {
         } catch (error) { alert(`Save failed: ${error.message}`); }
     }
 
+    scheduleFit() {
+        if (this.fitQueued) return;
+        this.fitQueued = true;
+        requestAnimationFrame(() => {
+            this.fitQueued = false;
+            this.fitToWindowFrame();
+        });
+    }
+
+    fitToWindowFrame() {
+        const appRoot = document.querySelector('.window[data-app-id="huggingface"] .huggingface-app');
+        if (!appRoot || !appRoot.isConnected) return;
+        const frame = appRoot.closest('.window');
+        if (!frame) return;
+        if (!this.frameResizeObserver && typeof ResizeObserver !== 'undefined') {
+            this.frameResizeObserver = new ResizeObserver(() => this.scheduleFit());
+            this.frameResizeObserver.observe(frame);
+        }
+        const frameRect = frame.getBoundingClientRect();
+        const appRect = appRoot.getBoundingClientRect();
+        const available = Math.floor(frameRect.bottom - appRect.top);
+        if (available < 112 || appRect.bottom - frameRect.bottom < 8) return;
+        const next = `${available}px`;
+        if (appRoot.style.height === next) return;
+        appRoot.style.height = next;
+        appRoot.style.maxHeight = next;
+        appRoot.style.overflow = 'hidden';
+    }
+
     refresh() {
         const container = document.querySelector('.huggingface-app');
-        if (container) {
-            container.outerHTML = this.render();
-            this.setupEventListeners();
-        }
+        if (container) container.outerHTML = this.render();
+        this.scheduleFit();
     }
+
 }
 
 // Global instance for window functions

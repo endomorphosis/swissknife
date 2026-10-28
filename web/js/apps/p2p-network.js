@@ -3,6 +3,7 @@ import {
   getBrowserLibp2pDefaultStatus,
   summarizeBrowserLibp2pGaps
 } from '../libp2p-browser-runtime.js';
+import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway.js';
 
 // P2P Network Manager Application for SwissKnife Virtual Desktop
 // Enhanced with Phase 4: Web Workers & Audio Workers Infrastructure
@@ -158,24 +159,40 @@ import {
   function createP2PNetworkStyles() {
     return `<style>
       .p2p-network-app {
-        padding: 15px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        padding: 8px;
         height: 100%;
-        overflow-y: auto;
+        max-height: 100%;
+        min-height: 0;
+        overflow: hidden;
         background: var(--sk-bg, #0e1412);
         color: var(--sk-text, #edf7f2);
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       }
+
+      .app-content {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
       
       .app-header {
         display: flex;
+        flex: 0 0 auto;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
-        padding: 15px;
+        gap: 8px;
+        margin-bottom: 8px;
+        padding: 8px 10px;
         background: rgba(255, 255, 255, 0.1);
         border-radius: 10px;
         backdrop-filter: blur(10px);
       }
+
+      .app-header h2 { margin: 0; font-size: 18px; }
       
       .connection-status {
         display: flex;
@@ -195,25 +212,40 @@ import {
       
       .p2p-tabs {
         display: flex;
+        flex: 0 0 auto;
         gap: 5px;
-        margin-bottom: 20px;
+        margin-bottom: 8px;
         flex-wrap: wrap;
+        overflow: visible;
+        max-width: 100%;
       }
       
       .tab-button {
-        padding: 10px 15px;
-        border: none;
+        flex: 0 0 auto;
+        padding: 8px 12px;
+        border: 1px solid transparent;
         background: rgba(255, 255, 255, 0.1);
         color: white;
         border-radius: 8px;
         cursor: pointer;
         transition: all 0.3s ease;
       }
+
+      .tab-button:focus-visible,
+      .action-btn:focus-visible,
+      #p2p-transport-input:focus-visible {
+        outline: 2px solid var(--sk-accent, #8bd8bd);
+        outline-offset: 2px;
+      }
+
+      .tab-button:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
       
-      .tab-button:hover,
       .tab-button.active {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
+        background: var(--sk-accent-bg, #173029);
+        color: var(--sk-accent, #8bd8bd);
+        border-color: var(--sk-accent-strong, #5fb99d);
       }
       
       .tab-content {
@@ -277,28 +309,275 @@ import {
         color: #ffe8a3;
         font-size: 12px;
       }
+
+      .tab-button { white-space: nowrap; }
+
+      .network-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin: 8px 0 12px;
+      }
+
+      .stat-card {
+        min-width: 0;
+        margin: 0;
+        padding: 10px;
+        border: 1px solid var(--sk-border, #263a34);
+        border-radius: 8px;
+        background: var(--sk-card, #17241f);
+      }
+
+      .stat-card h4, .stat-card p {
+        display: block;
+        margin: 0;
+        min-width: 0;
+        overflow: visible;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+      }
+
+      .stat-card h4 {
+        color: var(--sk-text-faint, #7c8f87);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .p2p-swarm-panel h3 { margin: 0 0 8px; font-size: 18px; }
+
+      #p2p-swarm-status, #p2p-swarm-observation, #p2p-swarm-settled {
+        margin: 0 0 8px;
+        overflow-wrap: anywhere;
+      }
+
+      .p2p-swarm-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      #p2p-transport-input {
+        min-width: 0;
+        flex: 1 1 140px;
+        padding: 8px;
+        border: 1px solid var(--sk-border, #263a34);
+        border-radius: 6px;
+        background: var(--sk-bg2, #101b18);
+        color: var(--sk-text, #edf7f2);
+      }
+
+      .p2p-diagnostics { margin-top: 8px; }
+
+      @media (max-width: 844px) {
+        .p2p-network-app { padding: 6px; }
+        .network-stats { grid-template-columns: 1fr; }
+        .stat-card { display: block; padding: 8px; overflow: visible; }
+        .p2p-swarm-actions .action-btn { flex: 1 1 auto; }
+      }
     </style>`;
   }
 
+  let selectedTransport = 'http';
+  let ownerPeerDetail = '';
+  let ownerSwarmRefreshInFlight = false;
+  let swarmObservationSettled = false;
+  let ownerSwarmObservation = null;
+
+  function livePeers() {
+    return peers.filter(peer => peer && peer.example !== true && peer.id);
+  }
+
+  function swarmStatusModel() {
+    if (connectionStatus === 'unavailable' || connectionStatus === 'error') {
+      return {
+        state: 'unavailable',
+        headline: 'Unavailable',
+        detail: ownerPeerDetail || 'Owner offline or transport unavailable. Peer data is stale. No peers were invented. Reconnect the configured owner or select an available transport, then refresh.'
+      };
+    }
+    const live = livePeers();
+    const connected = live.filter(peer => peer.status === 'connected');
+    if (connected.length > 0) {
+      return {
+        state: 'connected',
+        headline: 'Connected peers',
+        detail: connected.length + ' connected peer' + (connected.length === 1 ? '' : 's') + ' in the latest owner response.'
+      };
+    }
+    if (live.length > 0) {
+      return {
+        state: 'known',
+        headline: 'Known peers',
+        detail: live.length + ' known peer' + (live.length === 1 ? '' : 's') + ' in the latest owner response. None are connected.'
+      };
+    }
+    return {
+      state: 'empty',
+      headline: 'Empty swarm',
+      detail: 'Empty swarm. No peers in the latest owner response.'
+    };
+  }
+
+  function renderSwarmStatusBlock() {
+    const model = swarmStatusModel();
+    const live = livePeers();
+    const connected = live.filter(peer => peer.status === 'connected').length;
+    return `
+      <section class="p2p-swarm-panel" aria-label="Peer swarm">
+        <h3>P2P network status</h3>
+        <p id="p2p-swarm-status" data-swarm-state="${escapeHtml(model.state)}">${escapeHtml(model.detail)}</p>
+        ${swarmObservationSettled ? '<p id="p2p-swarm-settled">Owner refresh settled.</p>' : ''}
+        ${ownerSwarmObservation && !['unavailable', 'error', 'connecting'].includes(connectionStatus) ? '<p id="p2p-swarm-observation">' + escapeHtml('Latest owner response: ' + ownerSwarmObservation.peer_count + ' connected peers; observed at ' + ownerSwarmObservation.observed_at) + '</p>' : ''}
+        <div class="network-stats">
+          <div class="stat-card">
+            <h4>Connection</h4>
+            <p>${escapeHtml(model.headline)}</p>
+          </div>
+          <div class="stat-card">
+            <h4>Known peers</h4>
+            <p>${live.length}</p>
+          </div>
+          <div class="stat-card">
+            <h4>Connected peers</h4>
+            <p>${connected}</p>
+          </div>
+        </div>
+        <div class="p2p-swarm-actions">
+          <label for="p2p-transport-input">Owner transport</label>
+          <input id="p2p-transport-input" type="text" value="${escapeHtml(selectedTransport)}" autocomplete="off">
+          <button type="button" id="p2p-apply-transport" class="action-btn" onclick="window.p2pRefreshOwnerSwarm(event)">Apply transport</button>
+          <button type="button" id="p2p-refresh-swarm" class="action-btn" onclick="window.p2pRefreshOwnerSwarm(event)">Refresh peer state</button>
+        </div>
+      </section>
+    `;
+  }
+
+  function canonicalPeerObservation(value) {
+    if (value === null || typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
+    if (typeof value === 'number' && Number.isFinite(value)) return JSON.stringify(value);
+    if (Array.isArray(value)) return '[' + value.map(canonicalPeerObservation).join(',') + ']';
+    if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonicalPeerObservation(value[key])).join(',') + '}';
+    throw new Error('Non-JSON native peer observation');
+  }
+
+  async function ownerPeerObservation(payload) {
+    if (!payload || payload.ok !== true || payload.outcome !== 'executed' || payload.owner !== 'ipfs_kit_py'
+        || payload.tool_id !== 'swarm_peers' || !payload.receipt?.receipt_id) return null;
+    let data = payload.result;
+    for (let depth = 0; depth < 8 && data && typeof data === 'object'; depth += 1) {
+      if (data.isError === true || data.success === false || data.ok === false) return null;
+      const json = Array.isArray(data.content) ? data.content.find(block => block.type === 'json' && block.json && typeof block.json === 'object') : null;
+      if (json) { data = json.json; continue; }
+      if (data.result && typeof data.result === 'object') { data = data.result; continue; }
+      break;
+    }
+    const provenance = data?.native_provenance;
+    const raw = data?.raw_observation;
+    if (!raw || typeof raw !== 'object' || !Object.prototype.hasOwnProperty.call(raw, 'Peers')
+        || raw.error || raw.Error || raw.success === false || (raw.Peers !== null && !Array.isArray(raw.Peers))
+        || typeof data.peers_reported_null !== 'boolean' || data.peers_reported_null !== (raw.Peers === null)
+        || !/^[a-f0-9]{64}$/.test(data.raw_observation_canonical_sha256 || '')
+        || JSON.stringify(raw.Peers === null ? [] : raw.Peers) !== JSON.stringify(data.Peers)) return null;
+    try {
+      if (!globalThis.crypto?.subtle) return null;
+      const rawBytes = new TextEncoder().encode(canonicalPeerObservation(raw));
+      const hash = Array.from(new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', rawBytes)), byte => byte.toString(16).padStart(2, '0')).join('');
+      if (hash !== data.raw_observation_canonical_sha256) return null;
+    } catch (error) { return null; }
+    if (!Array.isArray(data?.Peers) || data.Peers.length > 256 || data.peer_count !== data.Peers.length
+        || provenance?.owner !== 'ipfs_kit_py' || provenance.sdk_method !== 'swarm_peers'
+        || provenance.simulated !== false || provenance.cache_fallback !== false
+        || typeof provenance.observed_at !== 'string' || !Number.isFinite(Date.parse(provenance.observed_at))
+        || Math.abs(Date.now() - Date.parse(provenance.observed_at)) > 120000
+        || data.Peers.some(peer => !peer || typeof peer.Peer !== 'string' || !/^[A-Za-z0-9]{16,128}$/.test(peer.Peer))) return null;
+    return { Peers: data.Peers, peer_count: data.peer_count, observed_at: provenance.observed_at };
+  }
+
+  async function applyObservedPeers(payload) {
+    const observation = await ownerPeerObservation(payload);
+    if (!observation) return false;
+    ownerSwarmObservation = observation;
+    peers = observation.Peers.map(peer => ({
+      id: peer.Peer, status: 'connected', example: false, capabilities: {},
+      lastSeen: new Date(observation.observed_at), source: 'ipfs_kit_py'
+    }));
+    connectionStatus = peers.length > 0 ? 'connected' : 'empty';
+    ownerPeerDetail = '';
+    return true;
+  }
+
+  async function refreshOwnerSwarm(event) {
+    if (ownerSwarmRefreshInFlight) return;
+    const transportInput = document.querySelector('#p2p-transport-input');
+    if (transportInput) selectedTransport = transportInput.value.trim();
+    const transport = selectedTransport;
+    if (!transport || transport === 'offline' || transport.indexOf('offline') === 0) {
+      connectionStatus = 'unavailable';
+      ownerPeerDetail = 'Transport unavailable. Peer data is stale. No peers were invented. Select an available transport and refresh.';
+      peers = livePeers();
+      swarmObservationSettled = true;
+      updateDisplays();
+      return;
+    }
+    connectionStatus = 'connecting';
+    ownerPeerDetail = '';
+    ownerSwarmObservation = null;
+    swarmObservationSettled = false;
+    updateDisplays();
+    ownerSwarmRefreshInFlight = true;
+    try {
+      const invoke = typeof invokeNativeToolImport === 'function'
+        ? invokeNativeToolImport
+        : (typeof window !== 'undefined' && typeof window.invokeNativeTool === 'function'
+          ? window.invokeNativeTool
+          : null);
+      if (invoke) {
+        const appRoot = document.querySelector('.window[data-app-id="p2p-network"] .window-app-content')
+          || document.querySelector('.p2p-network-app')
+          || document.body;
+        const rawTrigger = (event && (event.currentTarget || event.target)) || document.querySelector('#p2p-refresh-swarm');
+        const triggerNode = rawTrigger && rawTrigger.nodeType === 1 ? rawTrigger : (rawTrigger && rawTrigger.parentElement) || null;
+        const trigger = (triggerNode && triggerNode.closest && triggerNode.closest('#p2p-refresh-swarm, #p2p-apply-transport'))
+          || document.querySelector('.window[data-app-id="p2p-network"] #p2p-refresh-swarm')
+          || document.querySelector('#p2p-refresh-swarm');
+        const payload = await invoke(appRoot, 'p2p-network', 'p2p-network.ipfs_kit_py.inspect_peer_network', {
+          executionMode: 'execute',
+          toolId: 'swarm_peers',
+          payload: {},
+          trigger: trigger
+        });
+        if (!await applyObservedPeers(payload)) {
+          connectionStatus = 'unavailable';
+          ownerPeerDetail = 'The owner response did not include a peer list. Peer data is stale. No peers were invented.';
+          peers = livePeers();
+        }
+      } else {
+        await refreshAdapterStatus();
+        peers = livePeers();
+        connectionStatus = peers.some(peer => peer.status === 'connected') ? 'connected' : 'disconnected';
+      }
+    } catch (error) {
+      connectionStatus = 'unavailable';
+      ownerPeerDetail = 'Owner offline or transport unavailable. Peer data is stale. No peers were invented.';
+      peers = livePeers();
+    }
+    ownerSwarmRefreshInFlight = false;
+    swarmObservationSettled = true;
+    updateDisplays();
+  }
+  window.p2pRefreshOwnerSwarm = refreshOwnerSwarm;
+
   function createNetworkTab() {
     return `
-      <h3>🌐 P2P Network Status</h3>
-      <div class="network-stats">
-        <div class="stat-card">
-          <h4>Connection Status</h4>
-          <p>Disconnected</p>
-        </div>
-        <div class="stat-card">
-          <h4>Active Peers</h4>
-          <p>0</p>
-        </div>
-        <div class="stat-card">
-          <h4>Network Tasks</h4>
-          <p>0</p>
-        </div>
-      </div>
-      ${renderLibp2pBrowserDefaultsPanel({ includeActions: true })}
-      <button onclick="window.p2pNetworkApp?.connect()" class="action-btn">Connect to Network</button>
+      ${renderSwarmStatusBlock()}
+      <details class="p2p-diagnostics">
+        <summary>Network diagnostics</summary>
+        ${renderLibp2pBrowserDefaultsPanel({ includeActions: true })}
+      </details>
+      <button type="button" onclick="window.p2pNetworkApp?.connect()" class="action-btn">Connect to Network</button>
     `;
   }
 
@@ -1773,6 +2052,9 @@ import {
       case 'connecting': return 'Connecting to network...';
       case 'demo': return 'Demo — example peers only, no live connection';
       case 'disconnected': return 'Disconnected';
+      case 'empty': return 'Empty swarm';
+      case 'unavailable': return 'Unavailable';
+      case 'error': return 'Unavailable';
       default: return 'Unknown';
     }
   }
@@ -1951,6 +2233,7 @@ import {
   function renderNetworkTab() {
     return `
       <div class="network-overview">
+        ${renderSwarmStatusBlock()}
         <div class="network-stats">
           <div class="stat-card">
             <div class="stat-icon">🌐</div>
@@ -1985,7 +2268,10 @@ import {
           </div>
         </div>
 
-        ${renderLibp2pBrowserDefaultsPanel({ includeActions: true })}
+        <details class="p2p-diagnostics">
+          <summary>Network diagnostics</summary>
+          ${renderLibp2pBrowserDefaultsPanel({ includeActions: true })}
+        </details>
 
         <div class="network-actions">
           <button class="action-btn primary" onclick="window.p2pNetworkApp.startNetworking()">
@@ -3725,6 +4011,7 @@ Availability:
   }
 
   function updateDisplay(container) {
+    if (ownerSwarmRefreshInFlight) return;
     renderApp(container);
     setupEventHandlers(container);
   }
@@ -3820,6 +4107,7 @@ Availability:
   }
 
   function updateDisplays() {
+    if (ownerSwarmRefreshInFlight) return;
     // Re-render the current tab content
     const activeTab = document.querySelector('.tab-button.active');
     if (activeTab) {
@@ -3828,7 +4116,9 @@ Availability:
       if (tabContent) {
         switch(tabId) {
           case 'network':
-            tabContent.innerHTML = renderNetworkTab();
+            tabContent.innerHTML = document.querySelector('.p2p-tabs [data-tab="workspaces"]')
+              ? createNetworkTab()
+              : renderNetworkTab();
             break;
           case 'peers':
             tabContent.innerHTML = renderPeersTab();
@@ -3972,12 +4262,8 @@ Availability:
         // Fallback to example peers if no real peers found. These are
         // illustrative only: the status becomes 'demo', never 'connected'.
         if (peers.length === 0) {
-          console.log('No real peers found, showing example peers');
-          setTimeout(() => {
-            connectionStatus = 'demo';
-            addExamplePeers();
-            updateDisplays();
-          }, 1000);
+          connectionStatus = 'disconnected';
+          updateDisplays();
         } else {
           connectionStatus = 'connected';
           updateDisplays();
@@ -4084,14 +4370,6 @@ Availability:
       }
     }, 5000);
 
-    // Start P2P system after a short delay
-    setTimeout(() => {
-      if (P2PMLSystem) {
-        P2PMLSystem.start().catch(console.error);
-      } else {
-        window.p2pNetworkApp?.startNetworking();
-      }
-    }, 1000);
   }
 
   function formatTimestamp(date) {

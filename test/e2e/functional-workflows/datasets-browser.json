@@ -1,0 +1,45 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "datasets-browser",
+  "description": "Search the qualified dataset, reopen the saved identity and rows, then reject an empty query without losing the selection and recover with the known native record.",
+  "fixture_scope": "svf-datasets-browser-rows",
+  "backend_bindings": [
+    {
+      "binding_id": "datasets-browser.ipfs_datasets_py.search_dataset",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 60,
+      "max_output_bytes": 262144,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/results/0/document/metadata/note_id",
+        "operator": "equals",
+        "expected": "cedar-ledger"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {"op": "fill", "selector": "#datasets-record-id", "value": "bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm"},
+      {"op": "fill", "selector": "#datasets-query", "value": "desktop note provenance"},
+      {"op": "select", "selector": "#datasets-schema", "value": "support-intent-v2"},
+      {"op": "select", "selector": "#datasets-split", "value": "train"},
+      {"op": "press", "selector": "#datasets-query", "key": "Enter"},
+      {"op": "wait_for", "selector": "#datasets-semantic-status", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#datasets-match-summary"}, "operator": "contains", "expected": "schema=support-intent-v2"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#datasets-match-summary"}, "operator": "contains", "expected": "bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm"}
+    ],
+    "failure_recovery": [
+      {"op": "fill", "selector": "#datasets-query", "value": ""},
+      {"op": "click", "selector": "#datasets-search"},
+      {"op": "wait_for", "selector": "#datasets-semantic-status", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#datasets-error-status"}, "operator": "contains", "expected": "Query failed: Enter a non-empty search query.. The dataset selection was kept."},
+      {"op": "fill", "selector": "#datasets-query", "value": "desktop note provenance"},
+      {"op": "click", "selector": "#datasets-search"},
+      {"op": "wait_for", "selector": "#datasets-semantic-status", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#datasets-match-summary"}, "operator": "contains", "expected": "recovered=1;"}
+    ]
+  }
+}

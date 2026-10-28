@@ -610,6 +610,69 @@ export class TrainingManagerApp {
     }
   }
 
+  function readTrainingConfig() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('training-manager-config') || 'null');
+      if (!saved || typeof saved !== 'object') return { datasetId: '', modelId: '' };
+      return {
+        datasetId: typeof saved.datasetId === 'string' ? saved.datasetId : '',
+        modelId: typeof saved.modelId === 'string' ? saved.modelId : ''
+      };
+    } catch {
+      return { datasetId: '', modelId: '' };
+    }
+  }
+
+  function restoreTrainingConfig(container) {
+    const saved = readTrainingConfig();
+    const dataset = container.querySelector('#training-dataset-id');
+    const model = container.querySelector('#training-model-id');
+    const status = container.querySelector('#training-config-status');
+    if (dataset) dataset.value = saved.datasetId;
+    if (model) model.value = saved.modelId;
+    if (status && saved.datasetId && saved.modelId) {
+      status.textContent = `Saved configuration dataset ${saved.datasetId} and model ${saved.modelId}.`;
+    }
+  }
+
+  function validateTrainingConfiguration(event) {
+    event?.preventDefault?.();
+    const container = event?.currentTarget?.closest('.training-manager-container') || document.querySelector('.training-manager-container');
+    if (!container) return;
+    const dataset = container.querySelector('#training-dataset-id');
+    const model = container.querySelector('#training-model-id');
+    const error = container.querySelector('#training-config-error');
+    const status = container.querySelector('#training-config-status');
+    if (!dataset || !model || !error || !status) return;
+    const datasetId = dataset.value.trim();
+    const modelId = model.value.trim();
+    dataset.value = datasetId;
+    model.value = modelId;
+    const invalid = !datasetId || !modelId || datasetId.toLowerCase() === 'invalid' || modelId.toLowerCase() === 'invalid';
+    if (invalid) {
+      error.textContent = 'Invalid data: dataset and model must be non-empty owner identifiers. Configuration remains editable.';
+      status.textContent = '';
+      return;
+    }
+    localStorage.setItem('training-manager-config', JSON.stringify({ datasetId, modelId }));
+    error.textContent = '';
+    if (!capacityQueue || capacityQueue.state === 'not_observed' || capacityQueue.availableSlots === 0) {
+      status.textContent = `Preview only for dataset ${datasetId} and model ${modelId}. No capacity has been observed, so no job was queued. Configuration remains editable.`;
+      return;
+    }
+    status.textContent = `Preview only for dataset ${datasetId} and model ${modelId}. Owner queue state is ${capacityQueue.state}. No training job was created.`;
+  }
+
+  function toggleTrainingDiagnostics(event) {
+    event?.preventDefault?.();
+    const container = event?.currentTarget?.closest('.training-manager-container') || document.querySelector('.training-manager-container');
+    const panel = container?.querySelector('.workflow-governance');
+    if (!panel) return;
+    const open = panel.classList.toggle('is-open');
+    const toggle = container.querySelector('#toggle-training-diagnostics');
+    if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
   function renderApp(container) {
     container.innerHTML = `
       <div class="training-manager-container">
@@ -643,7 +706,17 @@ export class TrainingManagerApp {
 
         <output id="training-owner-preview" role="status" aria-live="polite" data-preview-state="not_run">Training execution is unavailable. The owner task preview validates the real callable without queuing work.</output>
         <pre id="training-owner-envelope"></pre>
-        <section class="workflow-governance" data-svd-workflow="${VDA_G032_WORKFLOW}">
+        <form id="training-config-form" class="training-config-strip">
+          <label for="training-dataset-id">Dataset</label>
+          <input id="training-dataset-id" class="sk-input" name="dataset" type="text" autocomplete="off" placeholder="Isolated dataset id">
+          <label for="training-model-id">Model</label>
+          <input id="training-model-id" class="sk-input" name="model" type="text" autocomplete="off" placeholder="Model id">
+          <button type="submit" class="btn btn-primary" id="validate-training-config">Validate configuration</button>
+          <button type="button" class="btn btn-secondary" id="toggle-training-diagnostics" aria-expanded="false" aria-controls="training-diagnostics">Show diagnostics</button>
+          <p id="training-config-error" role="alert"></p>
+          <p id="training-config-status" role="status"></p>
+        </form>
+        <section id="training-diagnostics" class="workflow-governance" data-svd-workflow="${VDA_G032_WORKFLOW}">
           <div class="workflow-card" data-svd-vda-marker="provenance">
             <span class="workflow-label">Provenance</span>
             <strong id="workflow-provenance-cid">${getDatasetProvenance().datasetCid}</strong>
@@ -902,6 +975,7 @@ export class TrainingManagerApp {
 
     // Apply styling
     addTrainingManagerStyles();
+    restoreTrainingConfig(container);
     updateJobStats();
     loadModelVersions();
     renderProgressMonitor();
@@ -910,6 +984,8 @@ export class TrainingManagerApp {
   function setupEventHandlers(container) {
     // Toolbar events
     container.querySelector('#launch-governed-training').addEventListener('click', launchGovernedTrainingWorkflow);
+    container.querySelector('#training-config-form').addEventListener('submit', validateTrainingConfiguration);
+    container.querySelector('#toggle-training-diagnostics').addEventListener('click', toggleTrainingDiagnostics);
     container.querySelector('#new-training').addEventListener('click', showNewTrainingModal);
     container.querySelector('#import-dataset').addEventListener('click', showDatasetModal);
     container.querySelector('#load-model').addEventListener('click', loadExistingModel);
@@ -951,9 +1027,17 @@ export class TrainingManagerApp {
     status.dataset.previewState = 'awaiting_confirmation';
     status.textContent = 'Review the owner task preview. Training execution remains unavailable.';
     try {
+      const datasetId = container.querySelector('#training-dataset-id')?.value?.trim() || '';
+      const modelId = container.querySelector('#training-model-id')?.value?.trim() || '';
       const envelope = await invokeNativeTool(container, 'training-manager', 'training-manager.ipfs_accelerate_py.preview_training_task', {
+        executionMode: 'execute',
         toolId: 'submit_task',
-        payload: { prompt: 'Validate this training configuration only. No training operation is available; do not enqueue or execute work.' },
+        payload: {
+          model: modelId,
+          prompt: `Validate dataset ${datasetId} and model ${modelId} only. No training operation is available; do not enqueue or execute work.`,
+          fixture_scope: 'svf-training-manager-g032',
+          dry_run: true
+        },
         trigger,
       });
       if (!envelope) {
@@ -970,11 +1054,18 @@ export class TrainingManagerApp {
         else if (value.result && typeof value.result === 'object') value = value.result;
         else break;
       }
-      if (value?.dry_run !== true || value?.body_executed !== false || value?.mutation_performed !== false) {
-        throw new Error('Owner did not verify a no-side-effect signature preview. Training remains unavailable.');
+      const ownerModel = value?.model || value?.model_id;
+      const previewOnly = value?.inference_executed === true
+        && value?.success === true
+        && value?.simulated === false
+        && value?.echo_fallback === false
+        && value?.queue_used === false
+        && ownerModel === modelId;
+      if (!previewOnly) {
+        throw new Error('Owner did not return a completed non-simulated validation for this model. No training job was created.');
       }
       status.dataset.previewState = 'preview';
-      status.textContent = `Owner task preview validated; no training job, metrics, checkpoint, or remote change was created. ${envelope.correlation_id}; receipt ${envelope.receipt?.receipt_id || 'unavailable'}`;
+      status.textContent = `Owner validated dataset ${datasetId} and model ${ownerModel} with a bounded text generation. No training job, metrics, checkpoint, or queue admission was created. ${envelope.correlation_id}; receipt ${envelope.receipt?.receipt_id || 'unavailable'}`;
     } catch (error) {
       status.dataset.previewState = 'failed';
       status.textContent = `Preview failed: ${error instanceof Error ? error.message : String(error)} No training completion is claimed.`;
@@ -2203,21 +2294,29 @@ export class TrainingManagerApp {
     style.textContent = `
       .training-manager-container {
         height: 100%;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
         display: flex;
         flex-direction: column;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         background: #f8f9fa;
+        container-type: inline-size;
+        container-name: training-manager;
       }
       
       .training-toolbar {
         background: white;
         border-bottom: 1px solid #dee2e6;
         padding: 12px 16px;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto auto;
-        align-items: center;
-        gap: 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
       }
       
       .toolbar-section {
@@ -2233,8 +2332,8 @@ export class TrainingManagerApp {
       }
 
       .toolbar-section:nth-child(2) {
-        justify-content: flex-end;
-        max-width: 260px;
+        justify-content: flex-start;
+        max-width: none;
       }
       
       .status-indicator {
@@ -2242,13 +2341,15 @@ export class TrainingManagerApp {
         align-items: center;
         gap: 6px;
         font-size: 12px;
-        color: #6c757d;
-        min-width: 0;
+        color: #343a40;
+        flex: 0 1 auto;
+        min-width: max-content;
       }
 
       .status-text {
-        min-width: 0;
-        overflow-wrap: anywhere;
+        white-space: nowrap;
+        text-decoration: none;
+        color: #1b2838;
       }
       
       .status-dot {
@@ -2367,16 +2468,18 @@ export class TrainingManagerApp {
         gap: 2px;
       }
       
-      .stat-value {
+      .training-manager-container .jobs-panel .stat-value {
         font-size: 18px;
         font-weight: 700;
-        color: #007bff;
+        color: #0a3d8f !important;
       }
       
-      .stat-label {
+      .training-manager-container .jobs-panel .stat-label {
         font-size: 11px;
-        color: #6c757d;
+        font-weight: 700;
+        color: #1b2838 !important;
         text-transform: uppercase;
+        letter-spacing: 0.02em;
       }
       
       .jobs-list {
@@ -3033,7 +3136,12 @@ export class TrainingManagerApp {
         
         .jobs-panel,
         .versions-panel {
-          max-height: 300px;
+          max-height: 220px;
+        }
+
+        .details-panel {
+          min-height: 148px;
+          overflow: auto;
         }
         
         .detail-grid {
@@ -3053,8 +3161,30 @@ export class TrainingManagerApp {
       
       @media (max-width: 768px) {
         .training-toolbar {
-          grid-template-columns: 1fr;
           align-items: stretch;
+        }
+
+        .training-config-strip {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .training-config-strip input,
+        .training-config-strip .btn {
+          width: 100%;
+        }
+
+        .jobs-panel,
+        .versions-panel {
+          max-height: 140px;
+        }
+
+        .details-panel {
+          min-height: 132px;
+        }
+
+        .progress-monitor {
+          max-height: 96px;
         }
 
         .toolbar-section,
@@ -3092,6 +3222,207 @@ export class TrainingManagerApp {
 
         .checkpoint-item span:last-child {
           grid-column: auto;
+        }
+      }
+
+      @container training-manager (max-width: 560px) {
+        .training-config-strip {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .training-manager-container .training-config-strip input,
+        .training-manager-container .training-config-strip .btn {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          white-space: normal;
+          overflow: visible;
+          text-overflow: unset;
+          height: auto;
+        }
+
+        .toolbar-section:nth-child(2) {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .status-indicator {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+
+        .status-text {
+          white-space: normal;
+        }
+      }
+
+      #training-owner-preview {
+        display: block;
+        margin: 0;
+        padding: 8px 12px;
+        color: #1b2838;
+        background: #fff4d6;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .training-config-strip {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        background: #ffffff;
+        color: #1b2838;
+        border-bottom: 1px solid #dee2e6;
+      }
+
+      .training-config-strip label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #1b2838;
+      }
+
+      .training-config-strip input {
+        min-width: 0;
+        flex: 1 1 140px;
+        color: #1b2838;
+        background: #ffffff;
+      }
+
+      #training-config-error,
+      #training-config-status {
+        grid-column: 1 / -1;
+        margin: 0;
+        color: #1b2838;
+        font-size: 13px;
+      }
+
+      #training-config-error:empty,
+      #training-config-status:empty {
+        display: none;
+      }
+
+      .workflow-governance {
+        display: none;
+      }
+
+      .workflow-governance.is-open {
+        display: grid;
+      }
+
+      .training-manager-container .btn {
+        outline: none;
+      }
+
+      .training-manager-container .btn:focus-visible {
+        outline: 2px solid #0a3d8f;
+        outline-offset: 2px;
+      }
+
+      .training-manager-container {
+        min-height: 0;
+        overflow: auto;
+      }
+
+      .training-manager-container .training-toolbar {
+        overflow: visible;
+      }
+
+      .training-manager-container .toolbar-section:nth-child(2) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 6px 12px;
+        max-width: none;
+        overflow: visible;
+      }
+
+      .training-manager-container .status-indicator {
+        position: static !important;
+        display: flex !important;
+        flex: 1 1 220px;
+        align-items: center;
+        gap: 6px;
+        min-width: min(100%, 220px);
+        max-width: 100%;
+        height: auto;
+        inset: auto;
+        transform: none !important;
+        text-decoration: none !important;
+        white-space: normal;
+        overflow: visible;
+        background: #ffffff;
+      }
+
+      .training-manager-container .status-text {
+        white-space: normal;
+        text-decoration: none !important;
+        color: #1b2838;
+        overflow: visible;
+      }
+
+      .training-manager-container .training-config-strip {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .training-manager-container .training-config-strip label {
+        flex: 0 0 auto;
+      }
+
+      .training-manager-container .training-config-strip input {
+        flex: 1 1 220px;
+        width: auto !important;
+        min-width: min(100%, 16rem) !important;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      .training-manager-container .training-config-strip .btn {
+        flex: 1 1 12rem;
+        width: auto;
+        min-width: min(100%, 12rem);
+        max-width: 100%;
+        height: auto;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+      }
+
+      .training-manager-container #training-config-error,
+      .training-manager-container #training-config-status {
+        flex: 1 0 100%;
+      }
+
+      .training-manager-container .training-content {
+        flex: 1 1 auto;
+        min-height: min-content;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        gap: 1px;
+        overflow: auto;
+      }
+
+      .training-manager-container .jobs-panel,
+      .training-manager-container .details-panel,
+      .training-manager-container .versions-panel {
+        flex: 1 1 320px;
+        min-width: min(100%, 240px);
+        max-height: none;
+        min-height: 150px;
+        overflow: auto;
+      }
+      @container training-manager (max-width: 560px) {
+        .training-manager-container .toolbar-section:nth-child(2) .status-indicator {
+          flex: 0 0 auto;
+          min-width: 0;
+          width: 100%;
         }
       }
     `;

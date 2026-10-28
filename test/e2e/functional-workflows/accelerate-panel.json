@@ -1,0 +1,158 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "accelerate-panel",
+  "description": "Run one bounded accelerate-panel inference, reopen the saved run record, then recover from an empty input without clearing the model field.",
+  "fixture_scope": "svf-accelerate-panel-run",
+  "backend_bindings": [
+    {
+      "binding_id": "accelerate-panel.ipfs_accelerate_py.run_inference_job",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 120,
+      "max_output_bytes": 262144,
+      "result_assertion": {
+        "pointer": "/result/result/result/output",
+        "operator": "contains",
+        "expected": "short test"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "fill",
+        "selector": "#accelerate-model-id",
+        "value": "gpt2"
+      },
+      {
+        "op": "fill",
+        "selector": "#accelerate-prompt",
+        "value": "short test"
+      },
+      {
+        "op": "click",
+        "selector": "[data-action=\"run-primary-inference\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"accelerate-panel.ipfs_accelerate_py.run_inference_job\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"accelerate-panel.ipfs_accelerate_py.run_inference_job\"]"
+      },
+      {
+        "op": "wait_ms",
+        "milliseconds": 5000
+      },
+      {
+        "op": "wait_for",
+        "selector": "#accelerate-progress-label:has-text(\"completed\")",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "#accelerate-model-id",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "text",
+          "selector": "#accelerate-output"
+        },
+        "operator": "contains",
+        "expected": "short test"
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "text",
+          "selector": "#accelerate-output"
+        },
+        "operator": "contains",
+        "expected": "short test"
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "fill",
+        "selector": "#accelerate-model-id",
+        "value": "unsupported-model-svf-132"
+      },
+      {
+        "op": "fill",
+        "selector": "#accelerate-prompt",
+        "value": ""
+      },
+      {
+        "op": "click",
+        "selector": "[data-action=\"run-primary-inference\"]"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#accelerate-error-status"
+        },
+        "operator": "contains",
+        "expected": "Model ID kept: unsupported-model-svf-132"
+      },
+      {
+        "op": "fill",
+        "selector": "#accelerate-model-id",
+        "value": "gpt2"
+      },
+      {
+        "op": "fill",
+        "selector": "#accelerate-prompt",
+        "value": "short test"
+      },
+      {
+        "op": "click",
+        "selector": "[data-action=\"run-primary-inference\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"accelerate-panel.ipfs_accelerate_py.run_inference_job\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"accelerate-panel.ipfs_accelerate_py.run_inference_job\"]"
+      },
+      {
+        "op": "wait_ms",
+        "milliseconds": 5000
+      },
+      {
+        "op": "wait_for",
+        "selector": "#accelerate-progress-label:has-text(\"completed\")",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "text",
+          "selector": "#accelerate-error-status"
+        },
+        "operator": "equals",
+        "expected": ""
+      }
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "orb-auto-ui",
+  "description": "Refresh the declared datasets descriptor, inspect its loaded arguments, reopen the retained owner result, then reject an unexpected field and refresh.",
+  "fixture_scope": "svf-orb-auto-ui-descriptor",
+  "backend_bindings": [
+    {
+      "binding_id": "orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 60,
+      "max_output_bytes": 262144,
+      "result_assertion": {
+        "pointer": "/result/result/isError",
+        "operator": "equals",
+        "expected": false
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {"op": "click", "selector": "#orb-refresh"},
+      {"op": "wait_for", "selector": "#orb-schema-ready", "state": "visible", "timeout_ms": 15000},
+      {"op": "press", "selector": "#orb-arguments", "key": "Enter"},
+      {"op": "wait_for", "selector": "#orb-output", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#orb-output"}, "operator": "contains", "expected": "tool tools_get_schema descriptor orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#orb-retained"}, "operator": "contains", "expected": "tool tools_get_schema descriptor orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor"}
+    ],
+    "failure_recovery": [
+      {"op": "fill", "selector": "#orb-arguments", "value": "{\"unexpected_field\":true}"},
+      {"op": "press", "selector": "#orb-arguments", "key": "Enter"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#orb-error"}, "operator": "contains", "expected": "Schema mismatch"},
+      {"op": "click", "selector": "#orb-refresh"},
+      {"op": "wait_for", "selector": "#orb-schema-ready", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#orb-error"}, "operator": "contains", "expected": "Schema mismatch cleared"}
+    ]
+  }
+}

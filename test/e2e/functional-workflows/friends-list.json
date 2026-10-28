@@ -1,0 +1,45 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "friends-list",
+  "description": "Add one disposable contact, reopen it, and retry a missing identity without a duplicate.",
+  "fixture_scope": "svf-friends-412-contact",
+  "backend_bindings": [
+    {
+      "binding_id": "friends-list.ipfs_kit_py.persist_artifact",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 60,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/bytes",
+        "operator": "at_least",
+        "expected": 1
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {"op": "click", "selector": "#add-friend-btn"},
+      {"op": "click", "selector": ".add-option[data-method=\"did\"]"},
+      {"op": "fill", "selector": "#friend-input", "value": "did:key:zSvF412DisposableContact"},
+      {"op": "press", "selector": "#friend-input", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": ".friend-card[data-friend-id=\"contact-did:key:zSvF412DisposableContact\"] .friend-status"}, "operator": "contains", "expected": "Unavailable"},
+      {"op": "wait_for", "selector": "[data-gateway-confirm=\"friends-list.ipfs_kit_py.persist_artifact\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "[data-gateway-confirm=\"friends-list.ipfs_kit_py.persist_artifact\"]"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": ".friend-card[data-friend-id=\"contact-did:key:zSvF412DisposableContact\"] .friend-status"}, "operator": "contains", "expected": "Unavailable"}
+    ],
+    "failure_recovery": [
+      {"op": "click", "selector": "#add-friend-btn"},
+      {"op": "click", "selector": ".add-option[data-method=\"did\"]"},
+      {"op": "fill", "selector": "#friend-input", "value": ""},
+      {"op": "click", "selector": "#send-friend-request"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#friends-form-error"}, "operator": "contains", "expected": "Missing identity"},
+      {"op": "fill", "selector": "#friend-input", "value": "did:key:zSvF412DisposableContact"},
+      {"op": "click", "selector": "#send-friend-request"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "count", "selector": ".friend-card[data-friend-id=\"contact-did:key:zSvF412DisposableContact\"]"}, "operator": "equals", "expected": 1}
+    ]
+  }
+}

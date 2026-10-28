@@ -1,0 +1,34 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "clock",
+  "description": "Short local timer wall-clock advance, retained local alarm, and invalid alarm time without a delivery claim.",
+  "fixture_scope": "svf-clock-local-timer",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {"op": "click", "selector": ".view-tab[data-view=\"alarm\"]"},
+      {"op": "fill", "selector": "#alarm-label", "value": "Desk check"},
+      {"op": "fill", "selector": "#alarm-time", "value": "23:59"},
+      {"op": "click", "selector": "#add-alarm-btn"},
+      {"op": "click", "selector": ".view-tab[data-view=\"timer\"]"},
+      {"op": "fill", "selector": "#timer-hours", "value": "0"},
+      {"op": "fill", "selector": "#timer-minutes", "value": "2"},
+      {"op": "fill", "selector": "#timer-seconds", "value": "0"},
+      {"op": "press", "selector": "#timer-toggle", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "json_attribute", "selector": "#timer-time", "attribute": "data-timer-sample", "pointer": "/elapsed_ms", "temporal_ms": 500}, "operator": "at_least", "expected": 100}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "click", "selector": ".view-tab[data-view=\"alarm\"]"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#alarm-status"}, "operator": "contains", "expected": "Desk check"}
+    ],
+    "failure_recovery": [
+      {"op": "fill", "selector": "#alarm-time", "value": "99:99"},
+      {"op": "click", "selector": "#add-alarm-btn"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#alarm-error"}, "operator": "contains", "expected": "Invalid alarm time"},
+      {"op": "fill", "selector": "#alarm-time", "value": "23:58"},
+      {"op": "click", "selector": "#add-alarm-btn"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#alarm-status"}, "operator": "contains", "expected": "Local timer retained"}
+    ]
+  }
+}

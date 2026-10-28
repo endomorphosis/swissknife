@@ -17,9 +17,9 @@ export function networkNativeAttributes(appId, tool) {
 export function unwrapNetworkToolResult(result) {
   let current = result;
   for (let depth = 0; depth < 8 && current && typeof current === 'object'; depth++) {
-    const json = current.content?.find(item => item.type === 'json');
+    const json = Array.isArray(current.content) ? current.content.find(item => item.type === 'json') : null;
     if (json) { current = json.json; continue; }
-    const text = current.content?.find(item => item.type === 'text')?.text;
+    const text = Array.isArray(current.content) ? current.content.find(item => item.type === 'text')?.text : null;
     if (text) {
       try { current = JSON.parse(text); continue; } catch { /* actual non-JSON text remains intact */ }
     }

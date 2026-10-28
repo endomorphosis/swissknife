@@ -1,0 +1,26 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "task-manager",
+  "description": "Refresh the desktop task list, confirm unavailable host metrics stay labeled, reopen, then recover a paused stale source.",
+  "fixture_scope": "svf-task-manager-workflow",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {"op": "click", "selector": "#refresh-processes"},
+      {"op": "select", "selector": "#process-filter", "value": "all"},
+      {"op": "press", "selector": "#process-search", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#processes-list"}, "operator": "contains", "expected": "n/a"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "wait_ms", "milliseconds": 500},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#task-source-status"}, "operator": "contains", "expected": "current"}
+    ],
+    "failure_recovery": [
+      {"op": "click", "selector": "#pause-monitoring"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#task-source-status"}, "operator": "contains", "expected": "stale"},
+      {"op": "click", "selector": "#refresh-processes"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#task-source-status"}, "operator": "contains", "expected": "current"}
+    ]
+  }
+}

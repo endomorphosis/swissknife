@@ -1,0 +1,121 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "huggingface",
+  "description": "Read the actual stored native model catalog, select gpt2 and its immutable snapshot metadata, and reopen the selection. A real missing credential refuses inference without a request; retry the same bounded catalog read while retaining the selected identity and explicit inference limitation.",
+  "fixture_scope": "svf-huggingface-hub-card",
+  "backend_bindings": [
+    {
+      "binding_id": "huggingface.ipfs_datasets_py.query_catalog",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/content",
+        "operator": "contains",
+        "expected": "gpt2"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "fill",
+        "selector": "#models-search",
+        "value": "gpt2"
+      },
+      {
+        "op": "press",
+        "selector": "#models-search",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#models-grid [data-model-id=\"gpt2\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-model-id=\"gpt2\"] .action-btn:has-text(\"Load\")",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "text",
+          "selector": "#hf-selected-item"
+        },
+        "operator": "equals",
+        "expected": "gpt2 @ 607a30d783dfa663caf39e06633721c8d4cfcd7e"
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "text",
+          "selector": "#hf-selected-item"
+        },
+        "operator": "equals",
+        "expected": "gpt2 @ 607a30d783dfa663caf39e06633721c8d4cfcd7e"
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "click",
+        "selector": "[data-tab=\"inference\"]"
+      },
+      {
+        "op": "fill",
+        "selector": "#inference-input",
+        "value": "Bounded public item request"
+      },
+      {
+        "op": "press",
+        "selector": "#hf-run-inference",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#results-content"
+        },
+        "operator": "contains",
+        "expected": "requires a credential"
+      },
+      {
+        "op": "click",
+        "selector": "[data-tab=\"models\"]"
+      },
+      {
+        "op": "press",
+        "selector": "#models-search",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#models-grid [data-model-id=\"gpt2\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "text",
+          "selector": "#hf-selected-item"
+        },
+        "operator": "equals",
+        "expected": "gpt2 @ 607a30d783dfa663caf39e06633721c8d4cfcd7e"
+      }
+    ]
+  }
+}

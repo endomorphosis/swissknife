@@ -1,0 +1,36 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "todo",
+  "description": "Create two local tasks with one dependency, edit and complete the first, reopen, then recover from an empty title.",
+  "fixture_scope": "svf-todo-local-tasks",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {"op": "fill", "selector": ".new-todo-input", "value": "Alpha draft"},
+      {"op": "click", "selector": ".add-todo-btn"},
+      {"op": "wait_for", "selector": "[data-todo-title=\"Alpha draft\"]", "state": "visible", "timeout_ms": 5000},
+      {"op": "fill", "selector": ".new-todo-input", "value": "Beta follows alpha"},
+      {"op": "select", "selector": ".todo-depends", "value": "Alpha draft"},
+      {"op": "click", "selector": ".add-todo-btn"},
+      {"op": "wait_for", "selector": "[data-todo-title=\"Beta follows alpha\"]", "state": "visible", "timeout_ms": 5000},
+      {"op": "check", "selector": "[data-todo-title=\"Alpha draft\"] .todo-complete"},
+      {"op": "click", "selector": "[data-todo-title=\"Alpha draft\"] .todo-edit-btn"},
+      {"op": "fill", "selector": "[data-todo-title=\"Alpha draft\"] .todo-edit-input", "value": "Alpha ready"},
+      {"op": "press", "selector": "[data-todo-title=\"Alpha draft\"] .todo-edit-input", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "[data-todo-title=\"Beta follows alpha\"] .todo-dependency"}, "operator": "equals", "expected": "Depends on Alpha ready (id 5, completed). This task is id 6. Stored in this browser only."}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "wait_for", "selector": "[data-todo-title=\"Beta follows alpha\"] .todo-dependency", "state": "visible", "timeout_ms": 5000},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "[data-todo-title=\"Beta follows alpha\"] .todo-dependency"}, "operator": "equals", "expected": "Depends on Alpha ready (id 5, completed). This task is id 6. Stored in this browser only."}
+    ],
+    "failure_recovery": [
+      {"op": "fill", "selector": ".new-todo-input", "value": "   "},
+      {"op": "click", "selector": ".add-todo-btn"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": ".todo-error"}, "operator": "contains", "expected": "empty"},
+      {"op": "fill", "selector": ".new-todo-input", "value": "Gamma note"},
+      {"op": "click", "selector": ".add-todo-btn"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "[data-todo-title=\"Beta follows alpha\"] .todo-dependency"}, "operator": "equals", "expected": "Depends on Alpha ready (id 5, completed). This task is id 6. Stored in this browser only."}
+    ]
+  }
+}

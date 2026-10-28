@@ -26,6 +26,35 @@ function bytesFromBase64(b64) {
   return bytes;
 }
 
+function imageBytesBase64(value) {
+  if (!value || typeof value !== 'object') return '';
+  if (typeof value.bytes_base64 === 'string' && value.bytes_base64) return value.bytes_base64;
+  if (value.result) {
+    const nested = imageBytesBase64(value.result);
+    if (nested) return nested;
+  }
+  const blocks = Array.isArray(value.content) ? value.content : [];
+  for (const block of blocks) {
+    const encoded = imageBytesBase64(block?.json) || imageBytesBase64(block);
+    if (encoded) return encoded;
+  }
+  return '';
+}
+
+function imageArtifactFromToolResult(toolResult) {
+  const roots = [toolResult, toolResult?.result, toolResult?.result?.result].filter(root => root && typeof root === 'object');
+  for (const root of roots) {
+    if (imageBytesBase64(root)) return root.bytes_base64 ? root : (root.result?.bytes_base64 ? root.result : root);
+  }
+  for (const root of roots) {
+    const blocks = Array.isArray(root.content) ? root.content : [];
+    for (const block of blocks) {
+      if (imageBytesBase64(block?.json)) return block.json;
+    }
+  }
+  return roots[0] || null;
+}
+
 function guessImageMime(artifact, bytes) {
   const name = String(artifact?.name || artifact?.filename || '').toLowerCase();
   const kind = String(artifact?.kind || '').toLowerCase();
@@ -45,6 +74,22 @@ function guessImageMime(artifact, bytes) {
   if (/\.webp$/.test(name)) return 'image/webp';
   if (/\.svg$/.test(name)) return 'image/svg+xml';
   return 'application/octet-stream';
+}
+
+function readImageDimensions(mime, bytes) {
+  if (!bytes || !bytes.length) return '';
+  if (mime === 'image/svg+xml') {
+    const text = new TextDecoder().decode(bytes.slice(0, 512));
+    const width = text.match(/\bwidth="(\d+(?:\.\d+)?)"/);
+    const height = text.match(/\bheight="(\d+(?:\.\d+)?)"/);
+    if (width && height) return `${Math.round(Number(width[1]))}x${Math.round(Number(height[1]))}`;
+  }
+  if (mime === 'image/png' && bytes.length >= 24) {
+    const width = ((bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19]) >>> 0;
+    const height = ((bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23]) >>> 0;
+    if (width > 0 && height > 0 && width < 100000 && height < 100000) return `${width}x${height}`;
+  }
+  return '';
 }
 
 async function parseToolResponse(response) {
@@ -137,6 +182,9 @@ export class ImageViewerApp {
           <div class="toolbar-section">
             <button class="toolbar-btn primary-action" id="open-files-btn" type="button" title="Open image files" aria-label="Open image files">Open</button>
             <button class="toolbar-btn" id="retrieve-cid-btn" type="button" data-native-gateway-binding="image-viewer.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat" data-action="retrieve-cid-image" aria-label="Retrieve CID-backed image">Retrieve CID</button>
+            <input type="text" id="iv-cid-field" class="iv-cid-input" aria-label="Artifact CID" placeholder="bafy…" spellcheck="false">
+            <input type="text" id="iv-fixture-scope" class="iv-cid-input" aria-label="Fixture scope" placeholder="svf-image-viewer-cid" spellcheck="false">
+            <label class="iv-governed-check" style="margin:0"><input type="checkbox" id="iv-retrieve-consent" aria-label="Confirm governed retrieve"><span>Confirm retrieve</span></label>
             <input type="file" id="image-file-input" accept="image/*" multiple hidden>
           </div>
           <div class="toolbar-section">
@@ -281,6 +329,8 @@ export class ImageViewerApp {
     const published = this.readPublishedIndex();
     return `
       <section class="sidebar-section image-workflow" data-svd-workflow="${escapeHTML(state.workflowId)}" aria-label="VDA-G038 Image Viewer workflow">
+        <details class="iv-diagnostics"${state.retrievalState === 'failed' ? ' open' : ''}>
+        <summary>Diagnostics</summary>
         <div class="section-header">
           <h4>VDA-G038 Workflow</h4>
           <p class="workflow-note">Retrieval and publishing run against the live ipfs_kit_py backend; every CID shown comes from a real artifacts/put or artifacts/get call. Zoom, filters and alt text are local. Backend writes ask for confirmation first.</p>
@@ -333,6 +383,7 @@ export class ImageViewerApp {
         <ol class="workflow-log" id="image-workflow-log" data-svd-vda-marker="workflow-receipts">
           ${state.log.length > 0 ? state.log.map(entry => `<li>${escapeHTML(entry)}</li>`).join('') : '<li>No backend operations yet.</li>'}
         </ol>
+        </details>
       </section>
     `;
   }
@@ -342,13 +393,25 @@ export class ImageViewerApp {
       <style>
         .image-viewer-container {
           height: 100%;
-          min-height: 520px;
+          min-height: 0;
+          max-height: calc(100vh - 88px);
           background: #111827;
           color: #f8fafc;
           display: flex;
           flex-direction: column;
           overflow: hidden;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        .iv-gateway-status {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
         }
         .image-toolbar,
         .actions-panel {
@@ -396,6 +459,12 @@ export class ImageViewerApp {
           background: #334155;
           border-color: #94a3b8;
         }
+        button:focus-visible,
+        input:focus-visible,
+        summary:focus-visible {
+          outline: 2px solid #5eead4;
+          outline-offset: 2px;
+        }
         button:disabled {
           opacity: 0.45;
           cursor: not-allowed;
@@ -421,6 +490,7 @@ export class ImageViewerApp {
           width: 350px;
           min-width: 280px;
           max-width: 42%;
+          min-height: 0;
           background: #172033;
           border-right: 1px solid #374151;
           overflow-y: auto;
@@ -506,26 +576,33 @@ export class ImageViewerApp {
           min-width: 80px;
         }
         .image-display {
-          flex: 1;
+          flex: 1 0 auto;
           min-width: 0;
+          min-height: 180px;
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: center;
           background: #0b1120;
-          overflow: hidden;
+          overflow: auto;
           position: relative;
         }
         .image-stage {
           width: 100%;
-          height: 100%;
+          min-height: 160px;
+          height: auto;
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: center;
-          overflow: hidden;
+          overflow: visible;
+          box-sizing: border-box;
+          padding: 12px;
         }
         .main-image {
-          max-width: 86%;
-          max-height: 86%;
+          max-width: 100%;
+          max-height: 70vh;
+          min-height: 96px;
+          width: auto;
+          height: auto;
           object-fit: contain;
           border-radius: 6px;
           box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
@@ -580,6 +657,16 @@ export class ImageViewerApp {
           color: #94a3b8;
           font-size: 11px;
           line-height: 1.45;
+        }
+        .iv-diagnostics {
+          margin-top: 8px;
+        }
+        .iv-diagnostics summary {
+          cursor: pointer;
+          color: #5eead4;
+          font-size: 12px;
+          min-height: 32px;
+          padding: 8px 10px;
         }
         .published-index {
           margin-top: 10px;
@@ -691,6 +778,13 @@ export class ImageViewerApp {
           font-size: 12px;
           margin-top: 4px;
         }
+        .image-toolbar .iv-cid-input {
+          width: 9.5rem;
+          max-width: 100%;
+          margin-top: 0;
+          flex: 1 1 8rem;
+          min-width: 0;
+        }
         .empty-state,
         .welcome-screen {
           color: #cbd5e1;
@@ -698,18 +792,37 @@ export class ImageViewerApp {
           padding: 24px;
         }
         @media (max-width: 700px) {
+          .image-viewer-container {
+            max-height: 100%;
+            overflow: auto;
+            padding-bottom: 72px;
+            box-sizing: border-box;
+          }
           .image-toolbar,
           .actions-panel {
             align-items: stretch;
+            flex-direction: column;
+          }
+          .actions-panel {
+            flex-shrink: 0;
+            padding-bottom: 12px;
           }
           .image-content {
             flex-direction: column;
+            overflow: visible;
+          }
+          .image-display {
+            order: -1;
+            flex: 0 1 auto;
+            min-height: 140px;
+            max-height: 32vh;
           }
           .image-sidebar {
+            order: 1;
             width: 100%;
             max-width: 100%;
             min-width: 0;
-            max-height: 48%;
+            max-height: none;
             border-right: 0;
             border-bottom: 1px solid #374151;
           }
@@ -718,6 +831,12 @@ export class ImageViewerApp {
           }
           .toolbar-section {
             flex-wrap: wrap;
+            width: 100%;
+          }
+          .image-toolbar .iv-cid-input {
+            width: 100%;
+            flex: 1 1 100%;
+            max-width: 100%;
           }
         }
       </style>
@@ -866,7 +985,17 @@ export class ImageViewerApp {
    * failures surface verbatim — never a fixture gallery entry.
    */
   async retrieveCidImage(presetCid = null, trigger = null) {
-    const cid = presetCid || await this.promptForCid(
+    const root = this.container();
+    const fieldCid = root?.querySelector('#iv-cid-field')?.value?.trim() || '';
+    const fixtureScope = root?.querySelector('#iv-fixture-scope')?.value?.trim() || '';
+    if (!presetCid && root?.querySelector('#iv-retrieve-consent')?.checked !== true) {
+      this.vdaG038.retrievalState = 'failed';
+      this.vdaG038.lastRetrievedInfo = 'Governed retrieve needs the confirmation checkbox before ipfs_kit_py is called.';
+      this.appendWorkflowLog(this.vdaG038.lastRetrievedInfo);
+      this.refreshContent();
+      return;
+    }
+    const cid = presetCid || fieldCid || await this.promptForCid(
       'Retrieve CID image',
       'Enter the CID of an image artifact stored in ipfs_kit_py. Its real bytes will be fetched and added to the gallery.'
     );
@@ -879,12 +1008,14 @@ export class ImageViewerApp {
     this.vdaG038.gatewayStatus = `${toolId} ${correlationId}`;
     this.vdaG038.lastRetrievedInfo = `Retrieving ${cid} from ipfs_kit_py…`;
     this.appendWorkflowLog(`retrieving ${cid} via ${toolId} ${correlationId}`);
-    this.refreshContent();
+    const statusNode = root?.querySelector('[data-gateway-status]');
+    if (statusNode) statusNode.textContent = this.vdaG038.lastRetrievedInfo;
     const started = performance.now();
     try {
-      const envelope = await invokeNativeTool(this.container(), 'image-viewer', bindingId, {
-        toolId, payload: { cid, scope: bindingId, limit: 1 },
-        trigger: trigger || this.container()?.querySelector('#retrieve-cid-btn'),
+      const envelope = await invokeNativeTool(root, 'image-viewer', bindingId, {
+        toolId, payload: { cid, scope: bindingId, limit: 1, fixture_scope: fixtureScope },
+        executionMode: 'execute',
+        trigger: trigger || root?.querySelector('#retrieve-cid-btn'),
       });
       if (!envelope) {
         this.vdaG038.retrievalState = 'idle';
@@ -897,37 +1028,39 @@ export class ImageViewerApp {
         throw new Error(envelope.error?.message || envelope.error || envelope.result?.error?.message || envelope.result?.error || 'Owner retrieval failed.');
       }
       const toolResult = envelope.result ?? envelope;
-      const blocks = toolResult.content?.filter(block => block.type === 'json' && block.json && typeof block.json === 'object') || [];
-      if (blocks.length > 1) throw new Error('Owner returned ambiguous retrieval data.');
-      const artifact = blocks[0]?.json ?? toolResult.result ?? toolResult;
-      if (artifact.ok === false || artifact.success === false || artifact.error) {
-        throw new Error(artifact.error?.message || artifact.error || 'Owner retrieval failed.');
+      const artifact = imageArtifactFromToolResult(toolResult);
+      if (!artifact || artifact.ok === false || artifact.success === false || artifact.error) {
+        throw new Error(artifact?.error?.message || artifact?.error || 'Owner retrieval failed.');
       }
       const ms = Math.round(performance.now() - started);
-      const bytes = bytesFromBase64(artifact?.bytes_base64 || artifact?.result?.bytes_base64 || '');
+      const encoded = imageBytesBase64(artifact);
+      const bytes = bytesFromBase64(encoded);
       if (dryRun) {
-        this.vdaG038.retrievalState = 'retrieved';
-        this.vdaG038.lastRetrievedCid = cid;
-        this.vdaG038.gatewayStatus = `${toolId} ${correlationId}`;
-        this.vdaG038.lastRetrievedInfo = `dry run ${toolId} ${correlationId}`;
+        this.vdaG038.retrievalState = 'preview';
+        this.vdaG038.lastRetrievedCid = '';
+        this.vdaG038.gatewayStatus = `${toolId} ${correlationId} preview`;
+        this.vdaG038.lastRetrievedInfo = `Preview only for ${toolId} ${correlationId}. No image bytes were stored.`;
         this.appendWorkflowLog(this.vdaG038.lastRetrievedInfo);
       } else if (bytes.length > 0) {
         const mime = guessImageMime(artifact, bytes);
-        const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+        const url = `data:${mime};base64,${encoded}`;
         const image = {
           name: artifact.name || artifact.filename || `cid-${cid.slice(0, 12)}`,
           url,
           cid,
           size: bytes.length,
-          dimensions: 'measuring…',
+          dimensions: readImageDimensions(mime, bytes) || 'measuring…',
           format: (mime.split('/')[1] || 'image').toUpperCase(),
           location: 'ipfs_kit_py artifact',
           altText: `Image retrieved from ipfs_kit_py artifact ${cid}.`,
           bytes,
         };
-        this.images.push(image);
-        this.currentImageIndex = this.images.length - 1;
+        const existingIndex = this.images.findIndex(item => item.cid === cid);
+        if (existingIndex >= 0) this.images[existingIndex] = image;
+        else this.images.push(image);
+        this.currentImageIndex = existingIndex >= 0 ? existingIndex : this.images.length - 1;
         this.currentImage = image;
+        this.rememberRetrievedImage(image);
         this.measureImageDimensions(image);
         this.vdaG038.retrievalState = 'retrieved';
         this.vdaG038.lastRetrievedCid = cid;
@@ -1082,7 +1215,8 @@ export class ImageViewerApp {
     const probe = new Image();
     probe.onload = () => {
       image.dimensions = `${probe.naturalWidth}x${probe.naturalHeight}`;
-      if (this.currentImage === image) this.refreshContent();
+      if (image.cid && !String(image.cid).startsWith('local')) this.rememberRetrievedImage(image);
+      if (this.container()) this.refreshContent();
     };
     probe.onerror = () => {
       image.dimensions = 'unreadable';
@@ -1317,6 +1451,7 @@ export class ImageViewerApp {
         // blob: URLs do not survive a reload — drop them rather than showing
         // dead gallery entries.
         if (String(image.url).startsWith('blob:')) continue;
+        if (image.cid && this.images.some(existing => existing.cid === image.cid)) continue;
         this.images.push({
           ...image,
           altText: image.altText || `Stored image ${image.name}`,
@@ -1324,8 +1459,40 @@ export class ImageViewerApp {
           cid: image.cid || 'local (not published)',
         });
       }
+      for (const image of this.images) {
+        if (!image.dimensions || image.dimensions === 'pending' || image.dimensions === 'measuring…') {
+          this.measureImageDimensions(image);
+        }
+      }
+      const restored = this.images.reduce((found, image, index) => (
+        image.cid && !String(image.cid).startsWith('local') ? index : found
+      ), -1);
+      if (restored >= 0) {
+        this.currentImageIndex = restored;
+        this.currentImage = this.images[restored];
+      }
     } catch (error) {
       console.warn('Could not load stored images:', error);
+    }
+  }
+
+  rememberRetrievedImage(image) {
+    try {
+      const stored = JSON.parse(localStorage.getItem('image-viewer-images') || '[]');
+      const next = (Array.isArray(stored) ? stored : []).filter(item => item?.cid !== image.cid);
+      next.push({
+        name: image.name,
+        url: image.url,
+        cid: image.cid,
+        size: image.size,
+        dimensions: image.dimensions,
+        format: image.format,
+        location: image.location,
+        altText: image.altText,
+      });
+      localStorage.setItem('image-viewer-images', JSON.stringify(next.slice(-20)));
+    } catch (error) {
+      console.warn('Could not store retrieved image:', error);
     }
   }
 
@@ -1473,7 +1640,7 @@ export class ImageViewerApp {
     return `
       <label class="slider-control" for="${id}-slider">
         <span>${escapeHTML(label)}</span>
-        <input type="range" id="${id}-slider" min="${min}" max="${max}" value="${value}">
+        <input type="range" id="${id}-slider" min="${min}" max="${max}" value="${value}" aria-label="${escapeHTML(label)}">
         <span class="slider-value">${value}</span>
       </label>
     `;

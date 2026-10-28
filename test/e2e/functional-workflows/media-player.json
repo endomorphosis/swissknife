@@ -1,0 +1,413 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "media-player",
+  "description": "Decode and play verified native WAV, seek using the real progress control, retain stored CID identity on reopen, then recover from an unsupported source by retrieving supported media again.",
+  "fixture_scope": "svf-media-player-422",
+  "backend_bindings": [
+    {
+      "binding_id": "media-player.ipfs_kit_py.retrieve_content",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 1048576,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/cid",
+        "operator": "equals",
+        "expected": "bafkreifumhfm2a3c7noqi3qnosbwoqt2gten3at67srom7twuvsjriq2sy"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "click",
+        "selector": ".vda-tools-summary"
+      },
+      {
+        "op": "fill",
+        "selector": "#mpArtifactCid",
+        "value": "bafkreifumhfm2a3c7noqi3qnosbwoqt2gten3at67srom7twuvsjriq2sy"
+      },
+      {
+        "op": "click",
+        "selector": "button[aria-label=\"Retrieve CID media\"]"
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"media-player.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#playerAudio[data-decoded-cid=\"bafkreifumhfm2a3c7noqi3qnosbwoqt2gten3at67srom7twuvsjriq2sy\"]",
+        "state": "attached",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "Home"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#progressBar",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "#playButton",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "media_state",
+          "selector": "#playerAudio",
+          "pointer": "/current_time",
+          "temporal_ms": 250
+        },
+        "operator": "at_least",
+        "expected": 0.05
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "click",
+        "selector": "button[aria-label=\"Playlist\"]"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "text",
+          "selector": "#playlistContent"
+        },
+        "operator": "contains",
+        "expected": "bafkreifumhfm2a3c7noqi3qnosbwoqt2gten3at67srom7twuvsjriq2sy"
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "click",
+        "selector": ".vda-tools-summary"
+      },
+      {
+        "op": "fill",
+        "selector": "#mpArtifactCid",
+        "value": "bafkreiefsedovka56qbpo5s4o2mpfq2zbhdknta7rqarqjljugxdmpriue"
+      },
+      {
+        "op": "click",
+        "selector": "button[aria-label=\"Retrieve CID media\"]"
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"media-player.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "click",
+        "selector": "button[aria-label=\"Probe missing codec\"]"
+      },
+      {
+        "op": "wait_ms",
+        "milliseconds": 500
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#trackArtist"
+        },
+        "operator": "contains",
+        "expected": "unsupported source"
+      },
+      {
+        "op": "fill",
+        "selector": "#mpArtifactCid",
+        "value": "bafkreifumhfm2a3c7noqi3qnosbwoqt2gten3at67srom7twuvsjriq2sy"
+      },
+      {
+        "op": "click",
+        "selector": "button[aria-label=\"Retrieve CID media\"]"
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"media-player.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#playerAudio[data-decoded-cid=\"bafkreifumhfm2a3c7noqi3qnosbwoqt2gten3at67srom7twuvsjriq2sy\"]",
+        "state": "attached",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "button[aria-label=\"Recover background audio\"]"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "media_state",
+          "selector": "#playerAudio",
+          "pointer": "/current_time",
+          "temporal_ms": 250
+        },
+        "operator": "at_least",
+        "expected": 0.05
+      }
+    ]
+  }
+}

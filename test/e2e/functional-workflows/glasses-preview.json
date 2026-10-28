@@ -1,0 +1,27 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "glasses-preview",
+  "description": "Replay a supported display packet in the browser simulator, reopen it, and recover from a denied live-capture packet.",
+  "fixture_scope": "svf-glasses-preview-packet",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {"op": "select", "selector": "#glasses-packet", "value": "trail-note"},
+      {"op": "fill", "selector": "#glasses-width", "value": "320"},
+      {"op": "fill", "selector": "#glasses-height", "value": "180"},
+      {"op": "press", "selector": "#glasses-width", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#glasses-preview-readout"}, "operator": "equals", "expected": "Trail note. Stay on the marked path. Preview 320 by 180. Simulator only; no physical glasses."}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#glasses-preview-readout"}, "operator": "equals", "expected": "Trail note. Stay on the marked path. Preview 320 by 180. Simulator only; no physical glasses."}
+    ],
+    "failure_recovery": [
+      {"op": "select", "selector": "#glasses-packet", "value": "unsupported-live"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#glasses-error"}, "operator": "contains", "expected": "permission denied"},
+      {"op": "select", "selector": "#glasses-packet", "value": "trail-note"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#glasses-packet-identity"}, "operator": "equals", "expected": "Replay packet trail-note."},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#glasses-preview-readout"}, "operator": "equals", "expected": "Trail note. Stay on the marked path. Preview 320 by 180. Simulator only; no physical glasses."}
+    ]
+  }
+}

@@ -76,10 +76,7 @@ class SwissKnifeDesktop {
                 .window { box-shadow: 0 8px 18px rgba(0,0,0,0.18); }
                 .window.window-active { box-shadow: 0 12px 28px rgba(0,0,0,0.28); }
                 .window.window-active .window-titlebar { outline: 2px solid #3b82f6; outline-offset: -2px; }
-                #graphics-limited-badge { position: fixed; top: 8px; right: 8px; z-index: 99999; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; }
-                #graphics-limited-badge .badge { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #f59e0b; color: #111; border: 1px solid #b45309; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 12px; }
-                #graphics-limited-badge .badge b { font-weight: 700; }
-                #graphics-limited-badge .close { margin-left: 6px; cursor: pointer; border: none; background: transparent; font-size: 14px; line-height: 1; color: #111; }
+
             `;
             document.head.appendChild(style);
         }
@@ -93,28 +90,51 @@ class SwissKnifeDesktop {
     detectAndShowGraphicsBadge() {
         const info = this.getWebGLInfo();
         this.graphicsInfo = info;
+        if ((info.supported && !info.isSoftware) || document.getElementById('graphics-limited-badge')) return;
 
-        // If unsupported at all, or software renderer detected, show limited graphics badge
-        const shouldShow = !info.supported || info.isSoftware;
-        if (!shouldShow) return;
-
-        if (document.getElementById('graphics-limited-badge')) return;
-
-        const container = document.createElement('div');
-        container.id = 'graphics-limited-badge';
-        const renderer = info.renderer || 'Unknown Renderer';
-        const label = !info.supported ? 'Graphics unavailable' : 'Limited graphics (software)';
-        container.innerHTML = `
-            <div class="badge" title="${renderer}">
-                <span>⚠️</span>
-                <span><b>${label}</b>${info.supported ? ` · ${renderer}` : ''}</span>
-                <button class="close" aria-label="Dismiss" title="Dismiss">×</button>
-            </div>
+        const style = document.createElement('style');
+        style.id = 'swissknife-graphics-status-style';
+        style.textContent = `
+            #graphics-limited-badge { flex:0 0 auto; margin:0; font:12px system-ui,sans-serif; color:#fbbf24; }
+            #graphics-limited-badge > summary { display:grid; place-items:center; list-style:none; width:28px; height:28px; box-sizing:border-box; cursor:pointer; border:1px solid #b45309; border-radius:5px; background:#302714; }
+            #graphics-limited-badge > summary::-webkit-details-marker { display:none; }
+            #graphics-limited-badge > summary:focus-visible { outline:2px solid #93c5fd; outline-offset:2px; }
+            #graphics-limited-badge .graphics-details { position:fixed; right:8px; bottom:56px; z-index:10001; box-sizing:border-box; width:min(24rem,calc(100vw - 16px)); max-height:min(16rem,calc(100vh - 96px)); overflow:auto; overflow-wrap:anywhere; padding:12px; border:1px solid #b45309; border-radius:6px; background:#302714; color:#fff4ce; box-shadow:0 2px 8px #0006; }
+            #graphics-limited-badge .graphics-details h3 { margin:0 0 8px; font-size:14px; }
+            #graphics-limited-badge .graphics-details p { margin:6px 0; }
+            #graphics-limited-badge[data-taskbar-fallback] { position:fixed; bottom:4px; right:8px; z-index:10001; }
         `;
-        document.body.appendChild(container);
-
-        const closeBtn = container.querySelector('.close');
-        if (closeBtn) closeBtn.addEventListener('click', () => container.remove());
+        document.head.appendChild(style);
+        const container = document.createElement('details');
+        container.id = 'graphics-limited-badge';
+        const label = !info.supported ? 'Graphics unavailable' : 'Limited graphics (software)';
+        const summary = document.createElement('summary');
+        summary.textContent = '⚠';
+        summary.title = label;
+        summary.setAttribute('aria-label', `${label}. Show graphics details`);
+        const panel = document.createElement('div');
+        panel.className = 'graphics-details';
+        const heading = document.createElement('h3');
+        heading.textContent = label;
+        const explanation = document.createElement('p');
+        explanation.textContent = info.supported
+            ? 'Software rendering is active. Graphics-heavy applications may run more slowly.'
+            : 'WebGL is unavailable. Applications requiring graphics acceleration may not work.';
+        const renderer = document.createElement('p');
+        renderer.textContent = `Renderer: ${info.renderer || 'Unknown renderer'}`;
+        panel.append(heading, explanation, renderer);
+        container.append(summary, panel);
+        const taskbar = document.querySelector('.system-panel .panel-right') || document.querySelector('.system-panel');
+        if (!taskbar) container.dataset.taskbarFallback = 'true';
+        (taskbar || document.body).prepend(container);
+        container.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && container.open) {
+                container.open = false;
+                summary.focus();
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        });
     }
 
     // Query WebGL support and renderer details
@@ -685,12 +705,14 @@ class SwissKnifeDesktop {
                 </div>
             </div>
             <div class="window-content">
-                <div class="window-app-content" id="${windowId}-content">
-                    <div class="window-loading">
-                        <div class="window-loading-spinner"></div>
+                <div class="window-app-content">
+                    <div id="${windowId}-content">
+                        <div class="window-loading">
+                            <div class="window-loading-spinner"></div>
+                        </div>
                     </div>
+                    <div class="live-tool-gateway-host" id="${windowId}-gateway"></div>
                 </div>
-                <div class="live-tool-gateway-host" id="${windowId}-gateway"></div>
             </div>
         `;
         
@@ -1907,36 +1929,63 @@ class SwissKnifeDesktop {
             index: 'preview_dataset_preparation', sync_status: 'read_dataset_progress',
         };
         const nativeAttributes = tool => `data-native-gateway-binding="datasets-browser.ipfs_datasets_py.${operations[tool]}" data-native-tool-id="${tool}"`;
+        const primarySurface = contentElement.closest('.window-app-content');
+        const nativeWindowContent = contentElement.closest('.window-content');
+        if (nativeWindowContent) Object.assign(nativeWindowContent.style, { minHeight: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
+        if (primarySurface) Object.assign(primarySurface.style, { height: '100%', minHeight: '0', minWidth: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
+        Object.assign(contentElement.style, { flex: '1 1 0%', minHeight: '0', minWidth: '0', overflow: 'auto' });
+        const gatewayHost = primarySurface?.querySelector('.live-tool-gateway-host');
+        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '3.25rem', minHeight: '0', flexShrink: '0', overflow: 'auto', position: 'static', zIndex: '0' });
+        if (!document.getElementById('datasets-browser-fit-style')) {
+            const fitStyle = document.createElement('style');
+            fitStyle.id = 'datasets-browser-fit-style';
+            fitStyle.textContent = `
+                .window[data-app-id="datasets-browser"] .window-content { padding-bottom: 0; }
+                .datasets-browser-workflow.sk-app { height: auto; max-height: 100%; min-width: 0; overflow: auto; box-sizing: border-box; }
+                .datasets-browser-workflow .sk-card { min-width: 0; max-width: 100%; overflow: visible; align-self: start; }
+                .datasets-browser-workflow :is(button,select,input,textarea):is(:focus, :focus-visible) { outline: 2px solid #93c5fd; outline-offset: 2px; }
+                .datasets-browser-workflow :is(p, span, label, h2, h3, td) { max-width: 100%; min-width: 0; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
+                .datasets-browser-workflow :is(input, select, button) { max-width: 100%; min-width: 0; box-sizing: border-box; }
+                .datasets-browser-workflow #datasets-match-summary { display:block; margin:0 0 6px; font-size:13px; line-height:1.35; } .datasets-browser-workflow .datasets-rows-wrap { max-height: 8rem; max-width: 100%; overflow: auto; }
+                .datasets-browser-workflow table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                .datasets-browser-workflow td { border-top: 1px solid #26384a; padding: 4px 0; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
+                .datasets-browser-workflow .datasets-actions { position: sticky; bottom: 0; z-index: 2; background: var(--sk-bg-panel, #101820); }
+                .datasets-browser-workflow .datasets-diagnostics { margin-top: 8px; }
+                .datasets-browser-workflow .datasets-diagnostics pre { max-height: 4.5rem; overflow: auto; white-space: pre-wrap; }
+            `;
+            document.head.appendChild(fitStyle);
+        }
 
         contentElement.innerHTML = `
             <div class="generated-service-surface generated-mcp-app datasets-browser-workflow sk-app"
                 data-app-id="datasets-browser"
                 data-service="ipfs_datasets_py"
                 data-svd-workflow="datasets-browser.semantic-provenance-preparation"
-                style="height:100%; min-height:0; padding:16px; overflow:auto; background:var(--sk-bg-panel, #101820); color:var(--sk-text, #f7fafc);">
+                style="min-height:0; padding:12px; background:var(--sk-bg-panel, #101820); color:var(--sk-text, #f7fafc);">
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
-                    <div style="min-width:220px; flex:1;">
+                    <div style="min-width:0; flex:1;">
                         <h2 style="margin:0 0 6px; font-size:22px;">IPFS Datasets Browser</h2>
-                        <p class="sk-honest-note">Search reads the declared live semantic collection. Provenance and dataset preparation require your confirmation and validate a request without writing or creating a job. Backend status reads actual IPFS availability. Local filter validation sends no request.</p>
+                        <p class="sk-honest-note">Search the selected dataset, then filter by schema and split. Matching rows stay in this window.</p>
                     </div>
                     <span class="sk-badge" style="text-transform:uppercase;">VDA-G048</span>
                 </div>
 
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap:12px; align-items:start;">
                     <section class="sk-card" data-svd-vda-marker="dataset-cid">
                         <h3 class="sk-section-head">Dataset</h3>
                         <div style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
-                            <label>Dataset ID or CID <input data-datasets-id class="sk-input" aria-label="Dataset ID or CID" placeholder="Actual dataset identifier for provenance and status"></label>
-                            <label>Preparation records (JSON) <textarea data-datasets-source class="sk-input" aria-label="Preparation dataset records" placeholder='{"data":[{"text":"your actual record"}]}'></textarea></label>
-                            <span id="datasets-catalog-status">An empty preparation source uses the reviewed owner catalog records, displayed before confirmation. No dataset CID or job is invented.</span>
+                            <label>Dataset ID or CID <input id="datasets-record-id" data-datasets-id class="sk-input" aria-label="Dataset ID or CID" placeholder="Dataset identifier"></label>
+                            <p id="datasets-match-summary">No rows loaded yet.</p>
+                            <div class="datasets-rows-wrap"><table><tbody id="datasets-rows"></tbody></table></div>
+                            <span id="datasets-catalog-status">The identifier stays in this field until you change it.</span>
                         </div>
                     </section>
 
                     <section class="sk-card" data-svd-vda-marker="semantic-operation">
                         <h3 class="sk-section-head">Semantic Operation</h3>
-                        <label>Query <input data-datasets-query class="sk-input" aria-label="Semantic dataset query" value="desktop note provenance"></label>
+                        <label>Query <input id="datasets-query" data-datasets-query class="sk-input" aria-label="Semantic dataset query" value="desktop note provenance"></label>
                         <div id="datasets-semantic-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            No search has run. Search uses the actual collection and embedding model declared by the owner catalog, with your query and staged filters.
+                            No search has run.
                         </div>
                     </section>
 
@@ -1949,6 +1998,7 @@ class SwissKnifeDesktop {
 
                     <section class="sk-card" data-svd-vda-marker="preparation-job">
                         <h3 class="sk-section-head">Preparation Preview</h3>
+                        <label>Preparation records (JSON) <textarea data-datasets-source class="sk-input" aria-label="Preparation dataset records" placeholder='{"data":[{"text":"your actual record"}]}'></textarea></label>
                         <div id="datasets-preparation-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
                             No preparation request has run. Prepare validates the genuine process_dataset callable signature for the actual records; it does not execute processing or create an index or job.
                         </div>
@@ -1958,39 +2008,39 @@ class SwissKnifeDesktop {
                         <h3 class="sk-section-head">Schema and Filters</h3>
                         <div style="display:grid; gap:8px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
                             <label class="sk-label" style="display:grid; gap:4px;">Schema
-                                <select data-datasets-filter="schema" aria-label="Dataset schema selector" class="sk-select">
+                                <select id="datasets-schema" data-datasets-filter="schema" aria-label="Dataset schema selector" class="sk-select">
                                     <option value="support-intent-v2">support-intent-v2</option>
                                     <option value="chat-transcript-v1">chat-transcript-v1</option>
                                 </select>
                             </label>
                             <label class="sk-label" style="display:grid; gap:4px;">Split
-                                <select data-datasets-filter="split" aria-label="Dataset split filter" class="sk-select">
+                                <select id="datasets-split" data-datasets-filter="split" aria-label="Dataset split filter" class="sk-select">
                                     <option value="train">train</option>
                                     <option value="validation">validation</option>
                                 </select>
                             </label>
-                            <span>Selections are staged locally and sent as semantic_search filters when Search runs.</span>
+                            <span>Selections stay in this form and are sent the next time Search runs.</span>
                         </div>
                     </section>
 
                     <section class="sk-card" data-svd-vda-marker="error-ui">
                         <h3 class="sk-section-head">Schema Error Recovery</h3>
                         <div id="datasets-error-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Filter validation runs locally before transport. Recover Error demonstrates the rejection of an unsupported filter field; invalid input is never sent to a backend.
+                            No query failure.
                         </div>
                     </section>
 
                     <section class="sk-card" data-svd-vda-marker="progress-ui">
                         <h3 class="sk-section-head">Backend Status</h3>
                         <div style="display:grid; gap:8px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
-                            <progress id="datasets-progress-bar" max="100" aria-label="Preparation progress unavailable" style="width:100%;"></progress>
+                            <progress id="datasets-progress-bar" max="100" value="0" aria-label="Preparation progress unavailable" style="width:100%;"></progress>
                             <span id="datasets-progress-status" role="status" aria-live="polite">No sync_status read yet. This operation reports actual IPFS availability; it does not provide preparation job progress.</span>
                         </div>
                     </section>
                 </div>
 
-                <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button ${nativeAttributes('semantic_search')} class="sk-btn" data-svd-workflow-action="run-semantic-search" data-action="semantic-search" aria-label="Run primary semantic dataset search">Search</button>
+                <div class="datasets-actions" style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button id="datasets-search" ${nativeAttributes('semantic_search')} class="sk-btn" data-svd-workflow-action="run-semantic-search" data-action="semantic-search" aria-label="Run primary semantic dataset search">Search</button>
                     <button ${nativeAttributes('record_provenance')} class="sk-btn" data-svd-workflow-action="record-provenance" data-action="record-provenance" aria-label="Record dataset provenance">Provenance</button>
                     <button ${nativeAttributes('index')} class="sk-btn" data-svd-workflow-action="start-preparation-job" data-action="prepare-dataset" aria-label="Preview dataset preparation request">Prepare</button>
                     <button class="sk-btn" data-svd-workflow-action="apply-schema-filter" data-action="apply-schema-filter" aria-label="Apply schema and split filters">Apply Filters</button>
@@ -2005,6 +2055,59 @@ class SwissKnifeDesktop {
             </div>
         `;
         this.setupEventListeners();
+
+        const datasetRowLabel = record => {
+            if (typeof record === 'string') return record.slice(0, 160);
+            const meta = record?.document?.metadata || record?.metadata || {};
+            const note = meta.note_id || record?.note_id || '';
+            const text = meta.text || record?.text || record?.document?.text || '';
+            const parts = [];
+            if (note) parts.push(`note_id=${note}`);
+            if (text) parts.push(String(text).slice(0, 120));
+            return parts.length ? parts.join(' · ') : JSON.stringify(record).slice(0, 160);
+        };
+        const fitPrimaryDatasetBrowser = () => {
+            const workflow = contentElement.querySelector('.datasets-browser-workflow');
+            const primary = contentElement.querySelector('[data-svd-vda-marker="dataset-cid"]');
+            const queryLabel = contentElement.querySelector('#datasets-query')?.closest('label');
+            const summaryNode = contentElement.querySelector('#datasets-match-summary');
+            const rowsWrap = contentElement.querySelector('.datasets-rows-wrap');
+            if (workflow && rowsWrap) workflow.insertBefore(rowsWrap, workflow.firstChild);
+            if (workflow && summaryNode) workflow.insertBefore(summaryNode, workflow.firstChild);
+            const summaryParent = primary;
+            if (summaryParent && queryLabel && !summaryParent.contains(queryLabel)) summaryParent.append(queryLabel);
+            const schema = contentElement.querySelector('[data-svd-vda-marker="schema-filter-ui"]');
+            if (summaryParent && schema && !summaryParent.contains(schema)) summaryParent.append(schema);
+            const actions = contentElement.querySelector('#datasets-search')?.parentElement;
+            if (summaryParent && actions && !summaryParent.contains(actions)) summaryParent.append(actions);
+            const errorCard = contentElement.querySelector('[data-svd-vda-marker="error-ui"]');
+            if (workflow && errorCard && rowsWrap && errorCard !== rowsWrap.nextElementSibling) rowsWrap.insertAdjacentElement('afterend', errorCard);
+            const semanticStatusNode = contentElement.querySelector('#datasets-semantic-status');
+            if (primary && semanticStatusNode && !primary.contains(semanticStatusNode)) primary.append(semanticStatusNode);
+            const semantic = contentElement.querySelector('[data-svd-vda-marker="semantic-operation"]');
+            if (semantic && !semantic.querySelector('#datasets-query') && !semantic.querySelector('#datasets-semantic-status')) semantic.remove();
+            let diagnostics = contentElement.querySelector('.datasets-diagnostics');
+            if (!diagnostics) {
+                diagnostics = document.createElement('details');
+                diagnostics.className = 'datasets-diagnostics';
+                const summary = document.createElement('summary');
+                summary.textContent = 'Diagnostics';
+                diagnostics.append(summary);
+                const actions = contentElement.querySelector('#datasets-search')?.parentElement;
+                if (actions) actions.insertAdjacentElement('afterend', diagnostics);
+                else contentElement.querySelector('.datasets-browser-workflow')?.append(diagnostics);
+            }
+            for (const marker of ['provenance-operation', 'preparation-job', 'progress-ui']) {
+                const node = contentElement.querySelector(`[data-svd-vda-marker="${marker}"]`);
+                if (node && !diagnostics.contains(node)) diagnostics.append(node);
+            }
+            for (const id of ['datasets-envelope-result', 'datasets-workflow-log']) {
+                const node = contentElement.querySelector(`#${id}`);
+                if (node && !diagnostics.contains(node)) diagnostics.append(node);
+            }
+            contentElement.scrollTop = 0;
+        };
+        fitPrimaryDatasetBrowser();
 
         const semanticStatus = contentElement.querySelector('#datasets-semantic-status');
         const provenanceStatus = contentElement.querySelector('#datasets-provenance-status');
@@ -2055,19 +2158,68 @@ class SwissKnifeDesktop {
                 const defaults = control.safe_payloads?.[operation] || control.safe_payload || {};
                 const payload = buildInput(defaults);
                 const envelope = await invokeNativeTool(contentElement, 'datasets-browser', bindingId, { toolId: operation, payload, trigger });
-                if (!envelope) { if (statusEl) statusEl.textContent = 'Cancelled before owner dispatch.'; return null; }
+                if (!envelope) {
+                    if (statusEl) { statusEl.hidden = false; statusEl.textContent = 'Cancelled before owner dispatch.'; }
+                    return null;
+                }
                 const value = ownerResult(envelope);
                 const preview = value?.dry_run === true && value?.mutation_performed === false;
                 if (['index', 'record_provenance'].includes(operation) && (!preview || value.body_executed !== false || value.validation !== 'real-callable-signature')) throw new Error('Owner did not return the required no-mutation validated preview.');
                 if (operation === 'semantic_search' && (value.fallback === true || !Array.isArray(value.results))) throw new Error('Owner did not return actual semantic search results.');
+                if (operation === 'semantic_search') {
+                    const records = Array.isArray(value.results) ? value.results : [];
+                    const schema = contentElement.querySelector('#datasets-schema')?.value || '';
+                    const split = contentElement.querySelector('#datasets-split')?.value || '';
+                    const identity = contentElement.querySelector('#datasets-record-id')?.value.trim() || '';
+                    const first = records[0];
+                    const firstMeta = first && typeof first === 'object' ? (first.document?.metadata || first.metadata || {}) : {};
+                    const noteId = first && typeof first === 'object' ? (firstMeta.note_id || first.note_id || '') : '';
+                    const hadQueryFailure = (contentElement.querySelector('#datasets-error-status')?.textContent || '').includes('Query failed');
+                    const summaryText = records.length
+                        ? `rows=${records.length}${noteId ? `; note_id=${noteId}` : ''}; split=${split}; schema=${schema}; ${hadQueryFailure ? 'recovered=1; ' : ''}id=${identity}`
+                        : 'No records matched this query.';
+                    const summaryNode = contentElement.querySelector('#datasets-match-summary');
+                    if (summaryNode) summaryNode.textContent = summaryText;
+                    const errorNode = contentElement.querySelector('#datasets-error-status');
+                    if (errorNode) errorNode.textContent = records.length ? 'No query failure.' : 'No records matched this query. The dataset selection was kept.';
+                    const body = contentElement.querySelector('#datasets-rows');
+                    if (body) {
+                        body.replaceChildren();
+                        for (const record of records) {
+                            const tr = document.createElement('tr');
+                            tr.className = 'datasets-row';
+                            const td = document.createElement('td');
+                            td.textContent = datasetRowLabel(record);
+                            tr.appendChild(td);
+                            body.appendChild(tr);
+                        }
+                    }
+                    if (records.length) {
+                        try {
+                            sessionStorage.setItem('datasets-browser-open-record', JSON.stringify({
+                                id: identity,
+                                query: contentElement.querySelector('#datasets-query')?.value ?? '',
+                                schema, split, rows: records, summary: summaryText,
+                            }));
+                        } catch { /* storage unavailable */ }
+                    }
+                    if (statusEl) { statusEl.hidden = false; statusEl.textContent = summaryText; }
+                }
                 const summary = `${operation} ${preview ? 'preview validated; body not executed, no record, index or job created' : envelope.outcome} via ${envelope.transport || 'declared transport'}; receipt ${envelope.receipt?.receipt_id || 'unavailable'}`;
                 if (result) { const pre = document.createElement('pre'); pre.textContent = JSON.stringify(envelope, null, 2); result.replaceChildren(pre); }
-                if (statusEl) statusEl.textContent = `${summary}: ${JSON.stringify(value)}`;
+                if (statusEl && operation !== 'semantic_search') statusEl.textContent = summary;
                 appendLog(summary);
                 return { envelope, value, preview };
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
-                if (statusEl) statusEl.textContent = `${operation} could not be invoked: ${message}`;
+                if (statusEl) { statusEl.hidden = false; statusEl.textContent = `${operation} could not be invoked: ${message}`; }
+                if (operation === 'semantic_search') {
+                    const errorNode = contentElement.querySelector('#datasets-error-status');
+                    if (errorNode) errorNode.textContent = `Query failed: ${message}. The dataset selection was kept.`;
+                    const summaryNode = contentElement.querySelector('#datasets-match-summary');
+                    if (summaryNode) summaryNode.textContent = 'No search result. The dataset selection was kept.';
+                    contentElement.querySelector('#datasets-rows')?.replaceChildren();
+                }
                 if (result) result.replaceChildren();
                 appendLog(`${operation} invocation error: ${message}`);
                 return null;
@@ -2079,12 +2231,15 @@ class SwissKnifeDesktop {
             return value;
         };
         contentElement.querySelector('[data-svd-workflow-action="run-semantic-search"]')?.addEventListener('click', async event => {
+            if (semanticStatus) semanticStatus.hidden = true;
             await runOperation('semantic_search', defaults => {
                 const query = contentElement.querySelector('[data-datasets-query]').value.trim();
                 if (!query) throw new Error('Enter a non-empty search query.');
                 if (!defaults.collection || !defaults.model) throw new Error('The owner has not declared an actual search collection and embedding model.');
                 return { ...defaults, query, top_k: 5, filters: { ...defaults.filters, ...stagedFilters() } };
             }, { trigger: event.currentTarget, statusEl: semanticStatus });
+            contentElement.scrollTop = 0;
+            contentElement.querySelector('#datasets-query')?.focus({ preventScroll: true });
         });
         contentElement.querySelector('[data-svd-workflow-action="record-provenance"]')?.addEventListener('click', async event => {
             await runOperation('record_provenance', defaults => ({
@@ -2126,6 +2281,39 @@ class SwissKnifeDesktop {
                     : ` IPFS backend unavailable: ${state.ipfs_error || state.note || 'owner did not report availability'}. No preparation progress is available.`;
             }
         });
+        contentElement.querySelector('#datasets-query')?.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' || event.repeat) return;
+            event.preventDefault();
+            contentElement.querySelector('#datasets-search')?.click();
+        });
+        try {
+            const saved = JSON.parse(sessionStorage.getItem('datasets-browser-open-record') || 'null');
+            if (saved && typeof saved === 'object') {
+                const idNode = contentElement.querySelector('#datasets-record-id');
+                const queryNode = contentElement.querySelector('#datasets-query');
+                const schemaNode = contentElement.querySelector('#datasets-schema');
+                const splitNode = contentElement.querySelector('#datasets-split');
+                if (idNode && typeof saved.id === 'string') idNode.value = saved.id;
+                if (queryNode && typeof saved.query === 'string') queryNode.value = saved.query;
+                if (schemaNode && typeof saved.schema === 'string') schemaNode.value = saved.schema;
+                if (splitNode && typeof saved.split === 'string') splitNode.value = saved.split;
+                const summaryNode = contentElement.querySelector('#datasets-match-summary');
+                if (summaryNode && typeof saved.summary === 'string') summaryNode.textContent = saved.summary;
+                const body = contentElement.querySelector('#datasets-rows');
+                if (body && Array.isArray(saved.rows)) {
+                    body.replaceChildren();
+                    for (const record of saved.rows) {
+                        const tr = document.createElement('tr');
+                        tr.className = 'datasets-row';
+                        const td = document.createElement('td');
+                        td.textContent = datasetRowLabel(record);
+                        tr.appendChild(td);
+                        body.appendChild(tr);
+                    }
+                }
+                contentElement.scrollTop = 0;
+            }
+        } catch { /* no saved dataset */ }
     }
 
     async createMCPPlusPlusExplorerSurface(contentElement) {
@@ -2155,431 +2343,575 @@ class SwissKnifeDesktop {
         const selectedMethod = selectedInspection?.method_schemas?.find(method => method.method === 'run_inference_job')
             || selectedInspection?.method_schemas?.find(method => method.policy_class === 'write')
             || selectedInspection?.method_schemas?.[0];
-        const descriptorPackCid = 'bafyorbg052descriptorpack';
-        const layoutSchemaCid = 'bafyorbg052layoutschema';
-        const rendererBundleCid = 'bafyorbg052rendererbundle';
-        const intentPolicyCid = 'bafyorbg052intentpolicy';
-        const executionPreviewCid = 'bafyorbg052executionpreview';
-        const schemaErrorCid = 'bafyorbg052schemaerror';
-        const confirmationCid = 'bafyorbg052confirmation';
-        const fallbackRendererCid = 'bafyorbg052fallbackrenderer';
-        const generatedReceipt = 'receipt:orb-auto-ui:g052:artifacts:generated';
-        const previewReceipt = 'receipt:orb-auto-ui:g052:preview:dry-run';
-        const schemaErrorReceipt = 'receipt:orb-auto-ui:g052:schema-error:rejected';
-        const confirmationReceipt = 'receipt:orb-auto-ui:g052:confirmation:required';
-        const executionReceipt = 'receipt:orb-auto-ui:g052:execution:confirmed';
-        const fallbackReceipt = 'receipt:orb-auto-ui:g052:fallback:rendered';
-        const selectedDescriptorId = selectedInspection?.id || 'ipfs_accelerate_py';
-        const selectedOperation = selectedMethod?.method || 'run_inference_job';
-
+        const owners = [
+            { owner: 'ipfs_datasets_py', tool: 'tools_get_schema', bindingId: 'orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor' },
+            { owner: 'ipfs_kit_py', tool: 'node_id', bindingId: 'orb-auto-ui.ipfs_kit_py.inspect_tool_descriptor' },
+            { owner: 'ipfs_accelerate_py', tool: 'HealthChecker.check_detailed', bindingId: 'orb-auto-ui.ipfs_accelerate_py.inspect_tool_descriptor' },
+        ];
+        const storageKey = 'orb-auto-ui-open-record';
+        const primarySurface = contentElement.closest('.window-app-content');
+        const nativeWindowContent = contentElement.closest('.window-content');
+        if (nativeWindowContent) Object.assign(nativeWindowContent.style, { minHeight: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
+        if (primarySurface) Object.assign(primarySurface.style, { height: '100%', minHeight: '0', minWidth: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
+        Object.assign(contentElement.style, { flex: '1 1 0%', minHeight: '0', minWidth: '0', overflow: 'auto' });
+        const gatewayHost = primarySurface?.querySelector('.live-tool-gateway-host');
+        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '22%', minHeight: '0', flexShrink: '0', overflow: 'auto' });
+        if (!document.getElementById('orb-auto-ui-fit-style')) {
+            const fitStyle = document.createElement('style');
+            fitStyle.id = 'orb-auto-ui-fit-style';
+            fitStyle.textContent = `
+                .orb-auto-ui-workflow.sk-app { height:auto; max-height:100%; overflow:auto; box-sizing:border-box; }
+                .orb-auto-ui-workflow .sk-card { min-width:0; overflow:visible; align-self:start; }
+                .orb-auto-ui-workflow :is(button,select,textarea):focus-visible { outline:2px solid #93c5fd; outline-offset:2px; }
+                .orb-auto-ui-workflow textarea { width:100%; min-height:4.5rem; max-height:7rem; box-sizing:border-box; }
+                .orb-auto-ui-workflow .orb-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+                .orb-auto-ui-workflow p, .orb-auto-ui-workflow pre { overflow-wrap:anywhere; }
+                .orb-auto-ui-workflow pre { max-height:8rem; overflow:auto; white-space:pre-wrap; }
+            `;
+            document.head.appendChild(fitStyle);
+        }
+        const ownerOptions = owners.map((item, index) => `<option value="${item.bindingId}"${index === 0 ? ' selected' : ''}>${escapeHtml(item.owner)} · ${escapeHtml(item.tool)}</option>`).join('');
         contentElement.innerHTML = `
-            <div class="generated-service-surface generated-mcp-app orb-auto-ui-workflow sk-app"
-                data-app-id="orb-auto-ui"
-                data-service="orb_auto_ui"
-                data-svd-workflow="orb-auto-ui.generate-governed-auto-ui"
-                style="height:100%; min-height:0; padding:16px; overflow:auto; background:var(--sk-bg-panel, #101820); color:var(--sk-text, #f7fafc);">
-                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
-                    <div style="min-width:220px; flex:1;">
-                        <h2 style="margin:0 0 6px; font-size:22px;">ORB Auto UI</h2>
-                        <p class="sk-honest-note">Descriptor-backed applications are generated with artifact CIDs, intent policy, dry-run previews, schema rejection, confirmation, and fallback rendering.</p>
-                    </div>
-                    <span class="sk-badge" style="text-transform:uppercase;">VDA-G052 ready</span>
-                </div>
-
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap:12px;">
-                    <section class="sk-card" data-svd-vda-marker="generated-artifact-cids">
-                        <h3 class="sk-section-head">Generated Artifact CIDs</h3>
-                        <div id="orb-artifact-status" role="status" aria-live="polite" style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            <span>Descriptor pack CID: <code class="sk-code">${descriptorPackCid}</code></span>
-                            <span>Layout schema CID: <code class="sk-code">${layoutSchemaCid}</code></span>
-                            <span>Renderer bundle CID: <code class="sk-code">${rendererBundleCid}</code></span>
-                            <span>Generated descriptors: <code class="sk-code">${descriptors.map(descriptor => `${escapeHtml(descriptor.id)}:${escapeHtml(descriptor.interface_cid)}`).join(', ')}</code></span>
-                            <span><code class="sk-code">${generatedReceipt}</code></span>
-                        </div>
+            <div class="generated-service-surface generated-mcp-app orb-auto-ui-workflow sk-app" data-app-id="orb-auto-ui" data-service="orb_auto_ui" style="min-height:0;padding:12px;background:var(--sk-bg-panel,#101820);color:var(--sk-text,#f7fafc)">
+                <h2 style="margin:0 0 6px;font-size:18px">ORB Auto UI</h2>
+                <p class="sk-honest-note">Load a declared descriptor, match arguments to its fields, and inspect it with that owner. Invalid arguments are not sent.</p>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;align-items:start">
+                    <section class="sk-card">
+                        <h3 class="sk-section-head">Descriptor</h3>
+                        <label class="sk-label">Owner tool
+                            <select id="orb-owner" class="sk-select" aria-label="Owner tool">${ownerOptions}</select>
+                        </label>
+                        <p id="orb-schema-ready" role="status" hidden>Descriptor fields are not loaded.</p>
                     </section>
-
-                    <section class="sk-card" data-svd-vda-marker="intent-schema-policy">
-                        <h3 class="sk-section-head">Intent and Schema Policy</h3>
-                        <div style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            intent_policy CID: <code class="sk-code">${intentPolicyCid}</code>. ${escapeHtml(selectedDescriptorId)}.${escapeHtml(selectedOperation)} maps input_schema, output_schema, permissions, default_deny, confirmation_policy, and receipt_policy before any gateway dispatch. Writes use require_confirmation; reads use no side effects.
-                        </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="execution-preview">
-                        <h3 class="sk-section-head">Execution Preview</h3>
-                        <div id="orb-preview-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Execution preview CID: <code class="sk-code">${executionPreviewCid}</code>. dry_run envelope for ${escapeHtml(selectedDescriptorId)}.${escapeHtml(selectedOperation)} shows capability id <code class="sk-code">${escapeHtml(selectedMethod?.capability_id || 'ipfs.accelerate.operation.run_inference_job')}</code>, sanitized input, policy decision require_confirmation, and no side effects. <code class="sk-code">${previewReceipt}</code>.
-                        </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="schema-error">
-                        <h3 class="sk-section-head">Schema Error</h3>
-                        <div id="orb-schema-error-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Schema error CID: <code class="sk-code">${schemaErrorCid}</code>. Invalid input rejected before transport: model must be string, input is required, max_tokens must be number. <code class="sk-code">${schemaErrorReceipt}</code>.
-                        </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="confirmation">
-                        <h3 class="sk-section-head">Confirmation</h3>
-                        <div id="orb-confirmation-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Confirmation CID: <code class="sk-code">${confirmationCid}</code>. ${escapeHtml(selectedOperation)} requires user confirmation and records confirm_governed policy receipt before execution. <code class="sk-code">${confirmationReceipt}</code>. <code class="sk-code">${executionReceipt}</code>.
-                        </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="fallback-renderer">
-                        <h3 class="sk-section-head">Fallback Renderer</h3>
-                        <div id="orb-fallback-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Fallback renderer CID: <code class="sk-code">${fallbackRendererCid}</code>. Renderer order is descriptor-fallback, mobile-card, then audio-summary when generated controls are unavailable. <code class="sk-code">${fallbackReceipt}</code>.
-                        </div>
-                        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; font-size:12px;">
-                            ${['descriptor-fallback', 'mobile-card', 'audio-summary'].map(renderer => `
-                                <span data-orb-fallback-renderer="${renderer}" class="sk-badge">${renderer}</span>
-                            `).join('')}
-                        </div>
+                    <section class="sk-card">
+                        <h3 class="sk-section-head">Arguments</h3>
+                        <label class="sk-label">Arguments
+                            <textarea id="orb-arguments" class="sk-input" aria-label="Descriptor arguments" spellcheck="false"></textarea>
+                        </label>
+                        <p id="orb-error" role="status"></p>
                     </section>
                 </div>
-
-                <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="sk-btn" data-svd-workflow-action="generate-auto-ui-artifacts" data-action="generate-auto-ui-artifacts" aria-label="Generate Auto UI artifacts">Generate Artifacts</button>
-                    <button class="sk-btn" data-svd-workflow-action="preview-execution-envelope" data-action="preview-execution-envelope" aria-label="Preview execution envelope">Preview</button>
-                    <button class="sk-btn" data-svd-workflow-action="validate-schema-error" data-action="validate-schema-error" aria-label="Validate schema error">Schema Error</button>
-                    <button class="sk-btn" data-svd-workflow-action="confirm-governed-execution" data-action="confirm-governed-execution" aria-label="Confirm governed execution">Confirm</button>
-                    <button class="sk-btn" data-svd-workflow-action="render-fallback-surface" data-action="render-fallback-surface" aria-label="Render fallback surface">Fallback</button>
+                <div class="orb-actions">
+                    <button type="button" class="sk-btn" id="orb-refresh" aria-label="Refresh the declared descriptor">Refresh descriptor</button>
+                    <button type="button" class="sk-btn" id="orb-inspect" aria-label="Inspect the declared descriptor">Inspect descriptor</button>
                 </div>
-
-                <div id="orb-envelope-result" style="margin-top:14px;"></div>
-                <ol id="orb-workflow-log" style="margin:14px 0 0; padding-left:22px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
-                    <li>${generatedReceipt} ${descriptorPackCid} ${layoutSchemaCid} ${rendererBundleCid}</li>
-                    <li>${previewReceipt} ${executionPreviewCid} dry_run no side effects</li>
-                    <li>${schemaErrorReceipt} ${schemaErrorCid} rejected before transport</li>
-                    <li>${confirmationReceipt} ${confirmationCid} requires user confirmation</li>
-                    <li>${executionReceipt} confirm_governed ${confirmationCid}</li>
-                    <li>${fallbackReceipt} ${fallbackRendererCid} descriptor-fallback mobile-card audio-summary</li>
-                </ol>
-            </div>
-        `;
+                <p id="orb-output" role="status" hidden></p>
+                <p id="orb-retained">No retained descriptor result.</p>
+                <details style="margin-top:12px">
+                    <summary>Diagnostics</summary>
+                    <pre id="orb-diagnostics"></pre>
+                </details>
+            </div>`;
         this.setupEventListeners();
-
         const root = contentElement.querySelector('.orb-auto-ui-workflow');
-        const artifactStatus = contentElement.querySelector('#orb-artifact-status');
-        const previewStatus = contentElement.querySelector('#orb-preview-status');
-        const schemaErrorStatus = contentElement.querySelector('#orb-schema-error-status');
-        const confirmationStatus = contentElement.querySelector('#orb-confirmation-status');
-        const fallbackStatus = contentElement.querySelector('#orb-fallback-status');
-        const result = contentElement.querySelector('#orb-envelope-result');
-        const log = contentElement.querySelector('#orb-workflow-log');
-
-        const appendLog = (message) => {
-            if (!log) return;
-            const item = document.createElement('li');
-            item.textContent = message;
-            log.appendChild(item);
-        };
-
-        root?.querySelector('[data-svd-workflow-action="generate-auto-ui-artifacts"]')?.addEventListener('click', () => {
-            if (artifactStatus) {
-                const last = artifactStatus.querySelector('span:last-child');
-                if (last) last.textContent = `${generatedReceipt} regenerated ${descriptors.length} descriptor_generated surfaces with ${descriptorPackCid}, ${layoutSchemaCid}, and ${rendererBundleCid}.`;
-            }
-            appendLog(`receipt:orb-auto-ui:g052:artifacts:regenerated ${descriptorPackCid} ${layoutSchemaCid} ${rendererBundleCid}`);
-        });
-
-        root?.querySelector('[data-svd-workflow-action="preview-execution-envelope"]')?.addEventListener('click', () => {
-            if (previewStatus) {
-                previewStatus.textContent = `Execution preview ready: dry_run envelope ${executionPreviewCid} for ${selectedDescriptorId}.${selectedOperation}; policy decision require_confirmation, sanitized input, no side effects. ${previewReceipt}.`;
-            }
-            appendLog(`${previewReceipt} ${executionPreviewCid} dry_run require_confirmation no side effects`);
-        });
-
-        root?.querySelector('[data-svd-workflow-action="validate-schema-error"]')?.addEventListener('click', () => {
-            if (schemaErrorStatus) {
-                schemaErrorStatus.textContent = `Schema error verified: invalid input rejected before transport by input_schema. ${schemaErrorCid}. ${schemaErrorReceipt}.`;
-            }
-            appendLog(`${schemaErrorReceipt} ${schemaErrorCid} invalid input rejected before transport`);
-        });
-
-        root?.querySelector('[data-svd-workflow-action="confirm-governed-execution"]')?.addEventListener('click', async () => {
-            if (confirmationStatus) {
-                confirmationStatus.textContent = `Confirmed governed execution for ${selectedDescriptorId}.${selectedOperation}; confirmation CID ${confirmationCid}, ${confirmationReceipt}, ${executionReceipt}.`;
-            }
-            appendLog(`${confirmationReceipt} ${confirmationCid} confirmed governed execution`);
+        const ownerSelect = root.querySelector('#orb-owner');
+        const argumentsInput = root.querySelector('#orb-arguments');
+        const schemaReady = root.querySelector('#orb-schema-ready');
+        const errorStatus = root.querySelector('#orb-error');
+        const outputStatus = root.querySelector('#orb-output');
+        const retainedStatus = root.querySelector('#orb-retained');
+        const diagnostics = root.querySelector('#orb-diagnostics');
+        let loaded = null;
+        const valueType = value => Array.isArray(value) ? 'array' : value === null ? 'null' : typeof value;
+        const selectedOwner = () => owners.find(item => item.bindingId === ownerSelect.value) || owners[0];
+        const remember = () => {
             try {
-                const envelope = await invokeDescriptorOperation({
-                    descriptor_id: selectedDescriptorId,
-                    operation: selectedOperation,
-                    input: selectedOperation === 'run_inference_job'
-                        ? { model: 'sentence-transformers/all-MiniLM-L6-v2', input: 'orb auto ui preview', max_tokens: 64 }
-                        : {},
-                    app_id: 'orb-auto-ui',
-                    execution_mode: 'confirmed',
-                    desktop: this,
+                sessionStorage.setItem(storageKey, JSON.stringify({
+                    bindingId: loaded?.bindingId || ownerSelect.value,
+                    fields: loaded?.fields || [],
+                    schemaText: schemaReady.textContent,
+                    schemaReady: schemaReady.hidden !== true,
+                    argumentsText: argumentsInput.value,
+                    output: outputStatus.hidden ? '' : outputStatus.textContent,
+                    retained: retainedStatus.textContent,
+                    error: errorStatus.textContent,
+                }));
+            } catch { /* storage unavailable */ }
+        };
+        const validateArguments = () => {
+            const current = selectedOwner();
+            if (!loaded || loaded.bindingId !== current.bindingId) {
+                return { ok: false, message: 'Refresh the declared descriptor before inspection. Nothing was sent.' };
+            }
+            let parsed;
+            try {
+                parsed = JSON.parse(argumentsInput.value);
+            } catch {
+                return { ok: false, message: 'Schema mismatch: arguments must be a JSON object. Invalid arguments were not executed.' };
+            }
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                return { ok: false, message: 'Schema mismatch: arguments must be a JSON object. Invalid arguments were not executed.' };
+            }
+            const allowed = new Set(loaded.fields.map(field => field.name));
+            const extras = Object.keys(parsed).filter(key => !allowed.has(key));
+            if (extras.length) return { ok: false, message: `Schema mismatch: unexpected field ${extras[0]}. Invalid arguments were not executed.` };
+            for (const field of loaded.fields) {
+                if (!Object.prototype.hasOwnProperty.call(parsed, field.name)) {
+                    return { ok: false, message: `Schema mismatch: ${field.name} is required. Invalid arguments were not executed.` };
+                }
+                const actual = valueType(parsed[field.name]);
+                if (field.type !== 'null' && actual !== field.type) {
+                    return { ok: false, message: `Schema mismatch: ${field.name} must be ${field.type}. Invalid arguments were not executed.` };
+                }
+            }
+            return { ok: true, value: parsed };
+        };
+        const ownerResult = envelope => {
+            if (!envelope || envelope.ok !== true || envelope.outcome !== 'executed') {
+                throw new Error(envelope?.error?.message || envelope?.error || 'Owner did not execute the inspection.');
+            }
+            if (envelope.dry_run === true || envelope.preview === true) throw new Error('Preview only; the inspection did not execute.');
+            let value = envelope.result;
+            for (let depth = 0; depth < 8 && value && typeof value === 'object'; depth++) {
+                if (value.ok === false || value.success === false || value.isError === true || value.error || value.status === 'error') {
+                    throw new Error(value.error?.message || value.error || value.message || 'Owner rejected the inspection.');
+                }
+                if (value.dry_run === true || value.preview === true) throw new Error('Preview only; the inspection did not execute.');
+                const blocks = Array.isArray(value.content) ? value.content : [];
+                const jsonBlocks = blocks.filter(item => item && item.type === 'json' && item.json && typeof item.json === 'object');
+                if (jsonBlocks.length > 1) throw new Error('Owner returned ambiguous descriptor data.');
+                if (jsonBlocks.length === 1) { value = jsonBlocks[0].json; continue; }
+                const textBlock = blocks.find(item => item && item.type === 'text' && typeof item.text === 'string' && item.text.trim());
+                if (textBlock && !value.result) return textBlock.text.trim();
+                if (value.result && typeof value.result === 'object') { value = value.result; continue; }
+                return value;
+            }
+            if (value == null || value === '') throw new Error('Owner returned no descriptor output.');
+            return value;
+        };
+        const summarize = value => {
+            if (typeof value === 'string' && value.trim()) return value.trim().slice(0, 500);
+            if (value && typeof value === 'object') {
+                const keys = Object.keys(value).filter(key => key !== 'receipt').slice(0, 8);
+                return keys.length ? `fields ${keys.join(', ')}` : '';
+            }
+            return value == null ? '' : String(value);
+        };
+        const refreshDescriptor = async () => {
+            const current = selectedOwner();
+            schemaReady.hidden = true;
+            try {
+                const response = await fetch('/mcp/tools/bindings?app_id=orb-auto-ui', { cache: 'no-store' });
+                if (!response.ok) throw new Error('The declared descriptor catalog is unavailable.');
+                const controls = (await response.json()).controls || [];
+                const control = controls.find(item => item.binding_id === current.bindingId);
+                if (!control) throw new Error(`${current.tool} is not a declared descriptor binding.`);
+                const payload = control.safe_payloads?.[current.tool] || control.safe_payload || {};
+                if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('Declared descriptor arguments are unavailable.');
+                const normalized = JSON.parse(JSON.stringify(payload));
+                const fields = Object.keys(normalized).map(name => ({ name, type: valueType(normalized[name]) }));
+                const fieldText = fields.length ? fields.map(field => `${field.name} (${field.type}, required)`).join(', ') : 'no fields';
+                loaded = { bindingId: current.bindingId, owner: current.owner, tool: current.tool, fields };
+                argumentsInput.value = JSON.stringify(normalized, null, 2);
+                schemaReady.textContent = `Descriptor ${current.bindingId} tool ${current.tool} fields: ${fieldText}`;
+                schemaReady.hidden = false;
+                if ((errorStatus.textContent || '').includes('Schema mismatch')) errorStatus.textContent = 'Schema mismatch cleared.';
+            } catch (error) {
+                loaded = null;
+                const message = error instanceof Error ? error.message : String(error);
+                errorStatus.textContent = `${message} Nothing was executed.`;
+                schemaReady.textContent = 'Descriptor fields are not loaded.';
+            }
+            remember();
+        };
+        const inspectDescriptor = async trigger => {
+            const check = validateArguments();
+            if (!check.ok) {
+                errorStatus.textContent = check.message;
+                outputStatus.hidden = true;
+                remember();
+                return;
+            }
+            const current = selectedOwner();
+            try {
+                const envelope = await invokeNativeTool(contentElement, 'orb-auto-ui', current.bindingId, {
+                    executionMode: 'execute', toolId: current.tool, payload: check.value, trigger,
                 });
-                if (result) result.innerHTML = renderEnvelopeHTML(envelope);
-                appendLog(`${executionReceipt} ${envelope.status} ${envelope.trace?.transport || 'browser-gateway'} ${envelope.receipt_refs?.[0]?.receipt_cid || ''}`);
+                if (!envelope) {
+                    errorStatus.textContent = 'Inspection cancelled before dispatch. Nothing was executed.';
+                    remember();
+                    return;
+                }
+                const value = ownerResult(envelope);
+                const summary = summarize(value);
+                if (!summary) throw new Error('Owner returned no descriptor output.');
+                const line = `tool ${current.tool} descriptor ${current.bindingId} owner ${current.owner} ${summary}`;
+                outputStatus.hidden = false;
+                outputStatus.textContent = line;
+                retainedStatus.textContent = `${line} input ${JSON.stringify(check.value)}`;
+                errorStatus.textContent = '';
+                if (diagnostics) diagnostics.textContent = JSON.stringify({
+                    owner: current.owner, tool: current.tool, outcome: envelope.outcome, transport: envelope.transport || '',
+                    receipt_id: envelope.receipt?.receipt_id || '',
+                });
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
-                appendLog(`${executionReceipt} descriptor-fallback ${message}`);
+                errorStatus.textContent = `${current.tool} is unavailable: ${message} Nothing was accepted.`;
+                outputStatus.hidden = true;
             }
+            remember();
+        };
+        ownerSelect.addEventListener('change', () => {
+            loaded = null;
+            schemaReady.hidden = true;
+            schemaReady.textContent = 'Descriptor fields are not loaded.';
+            errorStatus.textContent = 'Refresh the declared descriptor for this owner. Nothing was sent.';
+            remember();
         });
-
-        root?.querySelector('[data-svd-workflow-action="render-fallback-surface"]')?.addEventListener('click', () => {
-            if (fallbackStatus) {
-                fallbackStatus.textContent = `Fallback renderer active with ${fallbackRendererCid}: descriptor-fallback renders schema-only controls, mobile-card renders compact confirmation, audio-summary reads the policy and schema error. ${fallbackReceipt}.`;
+        root.querySelector('#orb-refresh').addEventListener('click', () => { refreshDescriptor(); });
+        root.querySelector('#orb-inspect').addEventListener('click', event => { inspectDescriptor(event.currentTarget); });
+        argumentsInput.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' || event.repeat || event.shiftKey) return;
+            event.preventDefault();
+            inspectDescriptor(event.currentTarget);
+        });
+        try {
+            const saved = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
+            if (saved && typeof saved === 'object') {
+                if (owners.some(item => item.bindingId === saved.bindingId)) ownerSelect.value = saved.bindingId;
+                if (typeof saved.argumentsText === 'string') argumentsInput.value = saved.argumentsText;
+                if (typeof saved.retained === 'string' && saved.retained) retainedStatus.textContent = saved.retained;
+                if (typeof saved.output === 'string' && saved.output) {
+                    outputStatus.hidden = false;
+                    outputStatus.textContent = saved.output;
+                }
+                if (typeof saved.error === 'string') errorStatus.textContent = saved.error;
+                if (saved.schemaReady === true && Array.isArray(saved.fields) && saved.bindingId === ownerSelect.value) {
+                    const current = selectedOwner();
+                    loaded = { bindingId: current.bindingId, owner: current.owner, tool: current.tool, fields: saved.fields.filter(field => field && typeof field.name === 'string' && typeof field.type === 'string') };
+                    schemaReady.hidden = false;
+                    schemaReady.textContent = typeof saved.schemaText === 'string' ? saved.schemaText : `Descriptor ${current.bindingId} tool ${current.tool}`;
+                }
             }
-            appendLog(`${fallbackReceipt} ${fallbackRendererCid} descriptor-fallback mobile-card audio-summary rendered`);
-        });
+        } catch { /* no retained descriptor */ }
     }
 
     async createGlassesPreviewSurface(contentElement) {
-        const replayBundleCid = 'bafyglassg051simulatorreplaybundle';
-        const displayPacketCid = 'bafyglassg051displaypacket';
-        const cameraPacketCid = 'bafyglassg051camerapacket';
-        const microphonePacketCid = 'bafyglassg051microphonepacket';
-        const speakerPacketCid = 'bafyglassg051speakerpacket';
-        const privacyPolicyCid = 'bafyglassg051privacypolicy';
-        const analysisCid = 'bafyglassg051displayaudioanalysis';
-        const fallbackProofCid = 'bafyglassg051fallbackproof';
-        const replayReceipt = 'receipt:glasses-preview:g051:replay-bundle:loaded';
-        const displayReceipt = 'receipt:glasses-preview:g051:denial:display';
-        const cameraReceipt = 'receipt:glasses-preview:g051:denial:camera';
-        const microphoneReceipt = 'receipt:glasses-preview:g051:denial:microphone';
-        const speakerReceipt = 'receipt:glasses-preview:g051:denial:speaker';
-        const analysisReceipt = 'receipt:glasses-preview:g051:analysis:display-audio';
-        const fallbackReceipt = 'receipt:glasses-preview:g051:fallback:mobile-card';
+        const packets = {
+            'trail-note': { title: 'Trail note', body: 'Stay on the marked path.', supported: true },
+            'unsupported-live': { title: 'Live capture', body: 'Camera and microphone are unavailable.', supported: false },
+        };
+        const storageKey = 'glasses-preview-open-packet';
+        const denialText = 'Display, camera, and audio permission denied for Live capture. Physical glasses were not used. Choose a supported replay packet or the desktop or mobile card fallback.';
+        const previewText = (packet, width, height) => `${packet.title}. ${packet.body} Preview ${width} by ${height}. Simulator only; no physical glasses.`;
+        const primarySurface = contentElement.closest('.window-app-content');
+        const nativeWindowContent = contentElement.closest('.window-content');
+        if (nativeWindowContent) Object.assign(nativeWindowContent.style, { minHeight: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
+        if (primarySurface) Object.assign(primarySurface.style, { height: '100%', minHeight: '0', minWidth: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
+        Object.assign(contentElement.style, { flex: '1 1 0%', minHeight: '0', minWidth: '0', overflow: 'auto' });
+        const gatewayHost = primarySurface?.querySelector('.live-tool-gateway-host');
+        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '22%', minHeight: '0', flexShrink: '0', overflow: 'auto' });
+        if (!document.getElementById('glasses-preview-fit-style')) {
+            const fitStyle = document.createElement('style');
+            fitStyle.id = 'glasses-preview-fit-style';
+            fitStyle.textContent = `
+                .glasses-preview-workflow.sk-app { height: auto; max-height: 100%; overflow: auto; box-sizing: border-box; }
+                .glasses-preview-workflow .sk-card { min-width: 0; overflow: visible; }
+                .glasses-preview-workflow :is(button, select, input):focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
+                .glasses-preview-workflow .glasses-preview-frame { box-sizing: border-box; max-width: 100%; min-height: 4.5rem; overflow: auto; border: 1px solid var(--sk-border, #26384a); border-radius: 6px; padding: 8px; }
+                .glasses-preview-workflow .sk-label { display: flex; flex-direction: column; align-items: stretch; gap: 4px; max-width: 100%; }
+                .glasses-preview-workflow .sk-label input { width: 100%; min-width: 0; box-sizing: border-box; }
+                .glasses-preview-workflow .glasses-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+                .window[data-app-id="glasses-preview"] :is(.all-app-backend-status-row, .all-app-backend-status-detail, .live-tool-gateway-control) { grid-template-columns: minmax(0, 1fr); }
+                .window[data-app-id="glasses-preview"] :is(.all-app-backend-status-panel, .live-tool-gateway-host, .glasses-preview-workflow) { max-width: 100%; min-width: 0; }
+                .window[data-app-id="glasses-preview"] :is(.all-app-backend-status-row, .all-app-backend-status-detail, p, span, label) { overflow-wrap: anywhere; }
+            `;
+            document.head.appendChild(fitStyle);
+        }
 
         contentElement.innerHTML = `
-            <div class="generated-service-surface generated-mcp-app glasses-preview-workflow sk-app"
-                data-app-id="glasses-preview"
-                data-service="meta_glasses"
-                data-svd-workflow="glasses-preview.replay-orb-handoff"
-                style="height:100%; min-height:0; padding:16px; overflow:auto; background:var(--sk-bg-panel, #101820); color:var(--sk-text, #f7fafc);">
-                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
-                    <div style="min-width:220px; flex:1;">
-                        <h2 style="margin:0 0 6px; font-size:22px;">Meta Glasses Preview</h2>
-                        <p class="sk-honest-note">ORB handoff packets are replayed through the supported device simulator with privacy policy, denied device states, analysis, and fallback evidence visible.</p>
-                    </div>
-                    <span class="sk-badge" style="text-transform:uppercase;">VDA-G051 ready</span>
-                </div>
-
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap:12px;">
-                    <section class="sk-card" data-svd-vda-marker="replay-bundle">
-                        <h3 class="sk-section-head">Simulator Replay Bundle</h3>
-                        <div id="glasses-replay-status" role="status" aria-live="polite" style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            <span>Replay bundle CID: <code class="sk-code">${replayBundleCid}</code></span>
-                            <span>Packet IDs: <code class="sk-code">handoff:app:glasses-preview:primary:87acee7931c44321, svd-071:glasses-preview:display.output:f124143761c4</code></span>
-                            <span>Packet CIDs: <code class="sk-code">${displayPacketCid}, ${cameraPacketCid}, ${microphonePacketCid}, ${speakerPacketCid}</code></span>
-                            <span><code class="sk-code">${replayReceipt}</code></span>
-                        </div>
+            <div class="glasses-preview-workflow sk-app" data-app-id="glasses-preview" style="min-height:0; padding:12px; background:var(--sk-bg-panel, #101820); color:var(--sk-text, #f7fafc);">
+                <h2 style="margin:0 0 6px; font-size:18px;">Meta Glasses Preview</h2>
+                <p class="sk-honest-note">Replay a display packet in this browser window. The simulator does not deliver it to physical glasses.</p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap:12px; align-items:start;">
+                    <section class="sk-card">
+                        <h3 class="sk-section-head">Replay packet</h3>
+                        <label class="sk-label">Replay packet
+                            <select id="glasses-packet" class="sk-select" aria-label="Replay packet">
+                                <option value="">Select a replay packet</option>
+                                <option value="trail-note">Trail note</option>
+                                <option value="unsupported-live">Live capture</option>
+                            </select>
+                        </label>
                     </section>
-
-                    <section class="sk-card" data-svd-vda-marker="privacy-policy">
-                        <h3 class="sk-section-head">Privacy Policy</h3>
-                        <div style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Policy CID: <code class="sk-code">${privacyPolicyCid}</code>. Camera, microphone, display, and speaker requests default to denied in desktop replay. Raw media capture is false, transcript text is redacted, rollback mode is no-mutation, and receipts are preserved through denial and recovery.
-                        </div>
+                    <section class="sk-card">
+                        <h3 class="sk-section-head">Display size</h3>
+                        <label class="sk-label">Width
+                            <input id="glasses-width" class="sk-input" aria-label="Preview width" inputmode="numeric" placeholder="320" value="">
+                        </label>
+                        <label class="sk-label">Height
+                            <input id="glasses-height" class="sk-input" aria-label="Preview height" inputmode="numeric" placeholder="180" value="">
+                        </label>
+                        <p>Supported size is 160-480 by 90-270. Press Enter in either field to apply.</p>
                     </section>
-
-                    <section class="sk-card" data-svd-vda-marker="display-denial">
-                        <h3 class="sk-section-head">Display State</h3>
-                        <div id="glasses-display-state" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            display state denied for <code class="sk-code">meta_glasses.display.render</code>. Fallback target mobile-card via display-webapp bridge. <code class="sk-code">${displayReceipt}</code>.
+                    <section class="sk-card">
+                        <h3 class="sk-section-head">Preview</h3>
+                        <p id="glasses-packet-identity">No replay packet is selected.</p>
+                        <div id="glasses-preview-frame" class="glasses-preview-frame">
+                            <p id="glasses-preview-readout">No display packet is loaded.</p>
                         </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="camera-denial">
-                        <h3 class="sk-section-head">Camera State</h3>
-                        <div id="glasses-camera-state" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            camera state denied for <code class="sk-code">meta_glasses.camera.photo</code> and <code class="sk-code">meta_glasses.camera.video</code>. Raw media captured: false. Fallback target mobile-card. <code class="sk-code">${cameraReceipt}</code>.
-                        </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="microphone-denial">
-                        <h3 class="sk-section-head">Microphone State</h3>
-                        <div id="glasses-microphone-state" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            microphone state denied for <code class="sk-code">meta_glasses.microphone.capture</code>. Redacted transcript fallback routes to audio-summary and mobile-card. <code class="sk-code">${microphoneReceipt}</code>.
-                        </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="speaker-denial">
-                        <h3 class="sk-section-head">Speaker State</h3>
-                        <div id="glasses-speaker-state" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            speaker state denied for <code class="sk-code">meta_glasses.audio.playback</code>. Audio playback uses audio-summary fallback with mobile-card target. <code class="sk-code">${speakerReceipt}</code>.
-                        </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="display-audio-analysis">
-                        <h3 class="sk-section-head">Display and Audio Analysis</h3>
-                        <div id="glasses-analysis-state" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Analysis CID: <code class="sk-code">${analysisCid}</code>. Display projection is <code class="sk-code">safe_display_fallback_projection</code>; microphone transcript and speaker playback are summarized without raw media. <code class="sk-code">${analysisReceipt}</code>.
-                        </div>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="fallback-proof">
-                        <h3 class="sk-section-head">Fallback Proof</h3>
-                        <div id="glasses-fallback-state" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Fallback proof CID: <code class="sk-code">${fallbackProofCid}</code>. Selected fallback target mobile-card remains visible for display, camera, mic, and speaker denial. <code class="sk-code">${fallbackReceipt}</code>.
+                        <p id="glasses-status" role="status">Select a replay packet and a supported preview size.</p>
+                        <p id="glasses-error" role="status"></p>
+                        <p id="glasses-fallback-note">No fallback is active.</p>
+                        <div class="glasses-actions">
+                            <button type="button" class="sk-btn" id="glasses-use-desktop" aria-label="Use desktop fallback">Desktop fallback</button>
+                            <button type="button" class="sk-btn" id="glasses-use-mobile" aria-label="Use mobile card fallback">Mobile card</button>
                         </div>
                     </section>
                 </div>
-
-                <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="sk-btn" data-svd-workflow-action="replay-simulator-bundle" data-action="replay-simulator-bundle" aria-label="Replay simulator bundle">Replay Bundle</button>
-                    <button class="sk-btn" data-svd-workflow-action="deny-display" data-action="deny-display" aria-label="Replay display denial">Display Denial</button>
-                    <button class="sk-btn" data-svd-workflow-action="deny-camera" data-action="deny-camera" aria-label="Replay camera denial">Camera Denial</button>
-                    <button class="sk-btn" data-svd-workflow-action="deny-microphone" data-action="deny-microphone" aria-label="Replay microphone denial">Mic Denial</button>
-                    <button class="sk-btn" data-svd-workflow-action="deny-speaker" data-action="deny-speaker" aria-label="Replay speaker denial">Speaker Denial</button>
-                    <button class="sk-btn" data-svd-workflow-action="run-display-audio-analysis" data-action="run-display-audio-analysis" aria-label="Run display and audio analysis">Analysis</button>
-                    <button class="sk-btn" data-svd-workflow-action="prove-fallback" data-action="prove-fallback" aria-label="Prove fallback target">Fallback</button>
-                </div>
-
-                <ol id="glasses-workflow-log" data-svd-vda-marker="fallback-proof" style="margin:14px 0 0; padding-left:22px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
-                    <li>${replayReceipt} ${replayBundleCid}</li>
-                    <li>${displayReceipt} ${displayPacketCid}</li>
-                    <li>${cameraReceipt} ${cameraPacketCid}</li>
-                    <li>${microphoneReceipt} ${microphonePacketCid}</li>
-                    <li>${speakerReceipt} ${speakerPacketCid}</li>
-                    <li>${analysisReceipt} ${analysisCid}</li>
-                    <li>${fallbackReceipt} ${fallbackProofCid} fallback target mobile-card</li>
-                </ol>
+                <details style="margin-top:12px;">
+                    <summary>Diagnostics</summary>
+                    <p>Browser-local simulator. No owner tool is called, and display, camera, and audio stay in this page.</p>
+                </details>
             </div>
         `;
         this.setupEventListeners();
 
         const root = contentElement.querySelector('.glasses-preview-workflow');
-        const replayStatus = contentElement.querySelector('#glasses-replay-status');
-        const displayState = contentElement.querySelector('#glasses-display-state');
-        const cameraState = contentElement.querySelector('#glasses-camera-state');
-        const microphoneState = contentElement.querySelector('#glasses-microphone-state');
-        const speakerState = contentElement.querySelector('#glasses-speaker-state');
-        const analysisState = contentElement.querySelector('#glasses-analysis-state');
-        const fallbackState = contentElement.querySelector('#glasses-fallback-state');
-        const log = contentElement.querySelector('#glasses-workflow-log');
-
-        const appendLog = (message) => {
-            if (!log) return;
-            const item = document.createElement('li');
-            item.textContent = message;
-            log.appendChild(item);
+        const packetSelect = root.querySelector('#glasses-packet');
+        const widthInput = root.querySelector('#glasses-width');
+        const heightInput = root.querySelector('#glasses-height');
+        const frame = root.querySelector('#glasses-preview-frame');
+        const readout = root.querySelector('#glasses-preview-readout');
+        const status = root.querySelector('#glasses-status');
+        const error = root.querySelector('#glasses-error');
+        const fallbackNote = root.querySelector('#glasses-fallback-note');
+        const identity = root.querySelector('#glasses-packet-identity');
+        const showIdentity = () => {
+            const packetId = packetSelect.value;
+            if (identity) identity.textContent = packets[packetId] ? `Replay packet ${packetId}.` : 'No replay packet is selected.';
         };
 
-        root?.querySelector('[data-svd-workflow-action="replay-simulator-bundle"]')?.addEventListener('click', () => {
-            if (replayStatus) {
-                replayStatus.querySelector('span:last-child').textContent = `${replayReceipt} replayed primary, permission_denied, and route_unavailable scenarios.`;
+        const remember = (packetId, width, height, text) => {
+            try {
+                sessionStorage.setItem(storageKey, JSON.stringify({ id: packetId, width, height, readout: text }));
+            } catch { /* storage unavailable */ }
+        };
+        const apply = () => {
+            const packet = packets[packetSelect.value];
+            showIdentity();
+            if (!packet) {
+                error.textContent = '';
+                status.textContent = 'Select a replay packet and a supported preview size.';
+                return;
             }
-            appendLog(`receipt:glasses-preview:g051:replay-bundle:replayed ${replayBundleCid} primary permission_denied route_unavailable`);
-        });
+            if (!packet.supported) {
+                error.textContent = denialText;
+                status.textContent = 'Simulator only. No content was sent to physical glasses.';
+                fallbackNote.textContent = 'Live capture is not a supported replay target.';
+                return;
+            }
+            const width = Number(widthInput.value);
+            const height = Number(heightInput.value);
+            const widthOk = Number.isInteger(width) && width >= 160 && width <= 480;
+            const heightOk = Number.isInteger(height) && height >= 90 && height <= 270;
+            if (!widthOk || !heightOk) {
+                error.textContent = widthInput.value.trim() && heightInput.value.trim()
+                    ? `Preview ${widthInput.value} by ${heightInput.value} is outside the supported display range of 160-480 by 90-270. The packet selection was kept.`
+                    : '';
+                status.textContent = 'Enter a preview width and height in the supported range, then press Enter.';
+                return;
+            }
+            const text = previewText(packet, width, height);
+            readout.textContent = text;
+            error.textContent = '';
+            status.textContent = 'Showing the packet in this browser simulator.';
+            frame.style.maxWidth = `${width}px`;
+            frame.style.minHeight = `${Math.min(height, 120)}px`;
+            remember(packetSelect.value, String(width), String(height), text);
+        };
+        const useFallback = (target) => {
+            packetSelect.value = 'trail-note';
+            if (!widthInput.value.trim()) widthInput.value = '320';
+            if (!heightInput.value.trim()) heightInput.value = '180';
+            apply();
+            if (error.textContent) return;
+            fallbackNote.textContent = target === 'mobile-card'
+                ? 'Mobile card fallback is showing the supported packet in this browser.'
+                : 'Desktop fallback is showing the supported packet in this browser.';
+        };
 
-        root?.querySelector('[data-svd-workflow-action="deny-display"]')?.addEventListener('click', () => {
-            if (displayState) displayState.textContent = `display state denied and recovered to display-webapp bridge with selected fallback target mobile-card. ${displayReceipt}.`;
-            appendLog(`${displayReceipt} denied display.output fallback target mobile-card`);
-        });
-
-        root?.querySelector('[data-svd-workflow-action="deny-camera"]')?.addEventListener('click', () => {
-            if (cameraState) cameraState.textContent = `camera state denied for photo and video; raw media captured false; mobile-card fallback retained. ${cameraReceipt}.`;
-            appendLog(`${cameraReceipt} denied camera.photo camera.video raw_media_captured:false`);
-        });
-
-        root?.querySelector('[data-svd-workflow-action="deny-microphone"]')?.addEventListener('click', () => {
-            if (microphoneState) microphoneState.textContent = `microphone state denied; redacted transcript fallback visible in audio-summary and mobile-card. ${microphoneReceipt}.`;
-            appendLog(`${microphoneReceipt} denied microphone.input microphone.transcription redacted`);
-        });
-
-        root?.querySelector('[data-svd-workflow-action="deny-speaker"]')?.addEventListener('click', () => {
-            if (speakerState) speakerState.textContent = `speaker state denied; playback summarized through audio-summary fallback with mobile-card target. ${speakerReceipt}.`;
-            appendLog(`${speakerReceipt} denied speaker.output audio-summary fallback target mobile-card`);
-        });
-
-        root?.querySelector('[data-svd-workflow-action="run-display-audio-analysis"]')?.addEventListener('click', () => {
-            if (analysisState) analysisState.textContent = `Analysis complete for display projection and audio transcript/playback. ${analysisCid}. ${analysisReceipt}.`;
-            appendLog(`${analysisReceipt} ${analysisCid} display audio analysis complete`);
-        });
-
-        root?.querySelector('[data-svd-workflow-action="prove-fallback"]')?.addEventListener('click', () => {
-            if (fallbackState) fallbackState.textContent = `Fallback proof verified: fallback target mobile-card is visible for display, camera, mic, and speaker denial. ${fallbackProofCid}. ${fallbackReceipt}.`;
-            appendLog(`${fallbackReceipt} ${fallbackProofCid} fallback target mobile-card visible`);
-        });
+        packetSelect.addEventListener('change', apply);
+        for (const field of [widthInput, heightInput]) {
+            field.addEventListener('keydown', event => {
+                if (event.key !== 'Enter' || event.repeat) return;
+                event.preventDefault();
+                apply();
+            });
+        }
+        root.querySelector('#glasses-use-desktop').addEventListener('click', () => useFallback('desktop'));
+        root.querySelector('#glasses-use-mobile').addEventListener('click', () => useFallback('mobile-card'));
+        try {
+            const saved = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
+            if (saved && packets[saved.id]?.supported && typeof saved.readout === 'string') {
+                packetSelect.value = saved.id;
+                widthInput.value = String(saved.width ?? '');
+                heightInput.value = String(saved.height ?? '');
+                readout.textContent = saved.readout;
+                showIdentity();
+                error.textContent = '';
+                status.textContent = 'Restored the supported replay packet in this browser simulator.';
+                const width = Number(saved.width);
+                const height = Number(saved.height);
+                if (Number.isInteger(width)) frame.style.maxWidth = `${width}px`;
+                if (Number.isInteger(height)) frame.style.minHeight = `${Math.min(height, 120)}px`;
+            }
+        } catch { /* no saved packet */ }
     }
 
     async createIDLExplorerSurface(contentElement) {
         const { listBrowserMCPDescriptors, inspectBrowserMCPDescriptor } = await import('./core/mcp-descriptor-registry.js');
-        const descriptors = listBrowserMCPDescriptors();
-        const inspections = descriptors.map(descriptor => inspectBrowserMCPDescriptor(descriptor.id)).filter(Boolean);
+        const inspections = listBrowserMCPDescriptors().map(descriptor => inspectBrowserMCPDescriptor(descriptor.id)).filter(Boolean);
         const escape = value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
-        const hash = async value => {
-            const bytes = new TextEncoder().encode(JSON.stringify(value));
-            const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
-            return `sha256:${Array.from(digest, byte => byte.toString(16).padStart(2, '0')).join('')}`;
-        };
-        const descriptorHashes = await Promise.all(inspections.map(async inspection => ({ id: inspection.id, content_hash: await hash(inspection) })));
-        const fixtureSchema = { type: 'object', required: ['descriptor_id', 'limit'], properties: {
-            descriptor_id: { type: 'string', enum: inspections.map(inspection => inspection.id) },
-            limit: { type: 'integer', minimum: 1, maximum: 50 },
-        } };
-        const runLocalFixture = input => {
-            const errors = [];
-            if (typeof input?.descriptor_id !== 'string') errors.push('descriptor_id must be a string');
-            else if (!fixtureSchema.properties.descriptor_id.enum.includes(input.descriptor_id)) errors.push('descriptor_id must name a local registry descriptor');
-            if (!Number.isInteger(input?.limit) || input.limit < 1 || input.limit > 50) errors.push('limit must be an integer between 1 and 50');
-            if (errors.length) throw new Error(errors.join('; '));
-            const inspection = inspections.find(item => item.id === input.descriptor_id);
-            return { descriptor_id: inspection.id, method_names: inspection.method_schemas.slice(0, input.limit).map(method => method.method),
-                total_method_count: inspection.method_schemas.length, execution: 'local-only', remote_execution: false };
-        };
-        const fixtureInput = { descriptor_id: inspections.find(item => item.id === 'ipfs_datasets_py')?.id || inspections[0]?.id, limit: 5 };
-        const declaredRoutes = [...new Set(inspections.flatMap(inspection => inspection.services.map(service => service.transport)))];
+        const storageKey = 'idl-explorer-selected-descriptor';
+        const schemaTextFor = id => `${id} fields descriptor_id:string required, limit:integer required 1-50`;
+        const unavailableText = 'Descriptor unavailable. Select an existing local descriptor. No owner tool was invoked.';
+        const primarySurface = contentElement.closest('.window-app-content');
+        const nativeWindowContent = contentElement.closest('.window-content');
+        if (nativeWindowContent) Object.assign(nativeWindowContent.style, { minHeight: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
+        if (primarySurface) Object.assign(primarySurface.style, { height: '100%', minHeight: '0', minWidth: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
+        Object.assign(contentElement.style, { flex: '1 1 0%', minHeight: '0', minWidth: '0', overflow: 'auto' });
+        const gatewayHost = primarySurface?.querySelector('.live-tool-gateway-host');
+        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '22%', minHeight: '0', flexShrink: '0', overflow: 'auto' });
+        if (!document.getElementById('idl-explorer-fit-style')) {
+            const fitStyle = document.createElement('style');
+            fitStyle.id = 'idl-explorer-fit-style';
+            fitStyle.textContent = `
+                .idl-explorer-workflow.sk-app { height:auto; max-height:100%; overflow:auto; box-sizing:border-box; }
+                .idl-explorer-workflow .sk-card { min-width:0; overflow:visible; }
+                .idl-explorer-workflow :is(button,select,textarea):focus-visible { outline:2px solid #93c5fd; outline-offset:2px; }
+                .idl-explorer-workflow textarea { width:100%; min-height:4.5rem; max-height:7rem; box-sizing:border-box; }
+                .idl-explorer-workflow .idl-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+            `;
+            document.head.appendChild(fitStyle);
+        }
+        let storedRecord = {};
+        try { storedRecord = JSON.parse(sessionStorage.getItem(storageKey) || 'null') || {}; } catch { storedRecord = {}; }
+        if (!storedRecord || typeof storedRecord !== 'object' || Array.isArray(storedRecord)) storedRecord = {};
+        let storedId = typeof storedRecord.id === 'string' ? storedRecord.id : '';
+        if (!inspections.some(item => item.id === storedId)) storedId = '';
+        const storedParameter = typeof storedRecord.parameter === 'string' && storedRecord.parameter
+            ? storedRecord.parameter
+            : '{"descriptor_id":"ipfs_datasets_py","limit":5}';
+        const options = ['<option value="">Select a descriptor</option>'].concat(inspections.map(item => `<option value="${escape(item.id)}"${item.id === storedId ? ' selected' : ''}>${escape(item.id)}</option>`)).join('');
         contentElement.innerHTML = `
-            <div class="generated-service-surface generated-mcp-app idl-explorer-workflow sk-app" data-app-id="idl-explorer" data-service="orb_idl" data-svd-workflow="idl-explorer.inspect-governed-descriptors"
-                style="height:100%;padding:16px;overflow:auto;background:var(--sk-bg-panel,#101820);color:var(--sk-text,#f7fafc)">
-                <h2>ORB IDL Explorer</h2><p class="sk-honest-note">Inspect the local descriptor registry and run a local typed fixture. No owner tool or remote transport is invoked here.</p>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px">
-                    <section class="sk-card" data-svd-vda-marker="descriptor-cids"><h3>Local descriptor content hashes</h3>
-                        ${descriptorHashes.map(item => `<p>${escape(item.id)}: <code>${escape(item.content_hash)}</code></p>`).join('')}
-                        <p>Computed from the current local inspection JSON; these are not remote attestations or persisted IPFS CIDs.</p></section>
-                    <section class="sk-card" data-svd-vda-marker="schema-policy"><h3>Local fixture input schema</h3><pre>${escape(JSON.stringify(fixtureSchema, null, 2))}</pre>
-                        <p>Provider policy declarations can be inspected locally. No owner policy decision has been requested.</p>
-                        <details><summary>Current local method schemas and policy declarations</summary><pre>${escape(JSON.stringify(inspections.map(inspection => ({ id: inspection.id, methods: inspection.method_schemas, permissions: inspection.permissions })), null, 2))}</pre></details></section>
-                    <section class="sk-card" data-svd-vda-marker="compatibility-fixture"><h3>Local compatibility fixture</h3>
-                        <pre>${escape(JSON.stringify(fixtureInput, null, 2))}</pre><div id="idl-compatibility-status" role="status" aria-live="polite">Not run. The fixture lists actual methods from the local registry.</div></section>
-                    <section class="sk-card" data-svd-vda-marker="invalid-input"><h3>Invalid input fixture</h3><div id="idl-invalid-status" role="status">Not run. Numeric descriptor IDs and string limits will be tested against the local fixture validator.</div></section>
-                    <section class="sk-card" data-svd-vda-marker="transport-badges"><h3>Declared routes</h3>${declaredRoutes.map(route => `<span class="sk-badge" data-transport-badge="${escape(route)}">${escape(route)}</span>`).join(' ')}
-                        <p id="idl-transport-status">Local declarations only; connectivity has not been tested.</p></section>
-                    <section class="sk-card" data-svd-vda-marker="receipt-drill-down"><h3>Local fixture output</h3><details id="idl-receipt-drilldown"><summary>No remote receipt</summary><pre id="idl-local-result">Fixture not run.</pre></details></section>
+            <div class="generated-service-surface generated-mcp-app idl-explorer-workflow sk-app" data-app-id="idl-explorer" data-service="orb_idl" data-svd-workflow="idl-explorer.inspect-governed-descriptors" style="min-height:0;padding:12px;background:var(--sk-bg-panel,#101820);color:var(--sk-text,#f7fafc)">
+                <h2 style="margin:0 0 6px;font-size:18px">ORB IDL Explorer</h2>
+                <p class="sk-honest-note">Choose a local descriptor, compare its field definitions, and validate a parameter object in this browser. No owner tool is invoked.</p>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;align-items:start">
+                    <section class="sk-card">
+                        <h3 class="sk-section-head">Descriptor</h3>
+                        <label class="sk-label">Descriptor
+                            <select id="idl-descriptor-select" class="sk-select" aria-label="Descriptor">${options}</select>
+                        </label>
+                        <div id="idl-schema-view" role="status" aria-live="polite" style="margin-top:8px;overflow-wrap:anywhere"></div>
+                    </section>
+                    <section class="sk-card">
+                        <h3 class="sk-section-head">Parameter object</h3>
+                        <label class="sk-label">Parameter object
+                            <textarea id="idl-parameter-input" class="sk-input" aria-label="Parameter object" spellcheck="false">${escape(storedParameter)}</textarea>
+                        </label>
+                        <div id="idl-validation-status" role="status" aria-live="polite" style="margin-top:8px;overflow-wrap:anywhere">Parameter not validated yet.</div>
+                        <div class="idl-actions">
+                            <button type="button" class="sk-btn" id="idl-validate-parameter" data-action="validate-parameter" aria-label="Validate parameter">Validate parameter</button>
+                        </div>
+                    </section>
                 </div>
-                <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
-                    <button class="sk-btn" data-svd-workflow-action="run-compatibility-fixture" data-action="run-compatibility-fixture">Run local fixture</button>
-                    <button class="sk-btn" data-svd-workflow-action="validate-invalid-input" data-action="validate-invalid-input">Validate invalid input</button>
-                    <button class="sk-btn" data-svd-workflow-action="open-receipt-drilldown" data-action="open-receipt-drilldown">Inspect local output</button>
-                    <button class="sk-btn" data-svd-workflow-action="refresh-transport-badges" data-action="refresh-transport-badges">Inspect declared routes</button>
-                </div><ol id="idl-workflow-log"><li>Local descriptor schemas loaded. No remote invocation.</li></ol>
+                <details class="idl-diagnostics" style="margin-top:12px">
+                    <summary>Diagnostics</summary>
+                    <p id="idl-diagnostics-note">Local registry only. Method names stay collapsed so the descriptor and parameter stay on screen.</p>
+                    <pre id="idl-method-names" style="max-height:8rem;overflow:auto;white-space:pre-wrap"></pre>
+                </details>
             </div>`;
         this.setupEventListeners();
         const root = contentElement.querySelector('.idl-explorer-workflow');
-        const log = contentElement.querySelector('#idl-workflow-log');
-        const appendLog = message => { const item = document.createElement('li'); item.textContent = message; log.append(item); };
-        root.querySelector('[data-action="run-compatibility-fixture"]').addEventListener('click', async () => {
-            const status = root.querySelector('#idl-compatibility-status');
-            try {
-                const result = runLocalFixture(fixtureInput);
-                const output = { result, content_hash: await hash(result), receipt: null };
-                root.querySelector('#idl-local-result').textContent = JSON.stringify(output, null, 2);
-                status.dataset.fixtureState = 'passed-local';
-                status.textContent = `Local fixture passed: ${result.method_names.length} methods inspected. No owner tool was dispatched or remote receipt created.`;
-                appendLog('Executed the local typed fixture against the current descriptor registry.');
-            } catch (error) {
-                status.dataset.fixtureState = 'failed-local'; status.textContent = `Local fixture failed: ${error.message}`;
+        const descriptorSelect = root.querySelector('#idl-descriptor-select');
+        const schemaView = root.querySelector('#idl-schema-view');
+        const parameterInput = root.querySelector('#idl-parameter-input');
+        const validationStatus = root.querySelector('#idl-validation-status');
+        const methodNames = root.querySelector('#idl-method-names');
+        const inspectionFor = id => inspections.find(item => item.id === id) || null;
+        const showSelection = () => {
+            const id = descriptorSelect.value;
+            const inspection = inspectionFor(id);
+            if (!inspection) {
+                schemaView.dataset.descriptorState = 'unavailable';
+                schemaView.textContent = unavailableText;
+                if (methodNames) methodNames.textContent = '';
+                try { sessionStorage.removeItem(storageKey); } catch { /* storage unavailable */ }
+                return;
             }
+            schemaView.dataset.descriptorState = 'ready';
+            schemaView.dataset.descriptorId = id;
+            schemaView.textContent = schemaTextFor(id);
+            if (methodNames) methodNames.textContent = (inspection.method_schemas || []).map(method => method.method).join('\n');
+            try { sessionStorage.setItem(storageKey, JSON.stringify({ id })); } catch { /* storage unavailable */ }
+        };
+        const explainParameter = () => {
+            const id = descriptorSelect.value;
+            if (!inspectionFor(id)) {
+                showSelection();
+                validationStatus.dataset.validationState = 'unavailable';
+                validationStatus.textContent = unavailableText;
+                return;
+            }
+            const schemaLine = schemaTextFor(id);
+            let parsed;
+            try {
+                parsed = JSON.parse(parameterInput.value);
+            } catch {
+                validationStatus.dataset.validationState = 'invalid';
+                const prior = validationStatus.dataset.validPassed === 'true' ? ' Valid parameter passed.' : '';
+                validationStatus.textContent = `Schema ${schemaLine}.${prior} Invalid field parameter: parameter object must be JSON. No owner tool was invoked.`;
+                return;
+            }
+            const errors = [];
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) errors.push(['parameter', 'parameter object must be a JSON object']);
+            else {
+                if (typeof parsed.descriptor_id !== 'string') errors.push(['descriptor_id', 'descriptor_id must be a string']);
+                else if (parsed.descriptor_id !== id) errors.push(['descriptor_id', `descriptor_id must match the selected descriptor ${id}`]);
+                if (!Object.prototype.hasOwnProperty.call(parsed, 'limit')) errors.push(['limit', 'limit is required']);
+                else if (!Number.isInteger(parsed.limit) || parsed.limit < 1 || parsed.limit > 50) errors.push(['limit', 'limit must be an integer between 1 and 50']);
+                const extras = Object.keys(parsed).filter(key => key !== 'descriptor_id' && key !== 'limit');
+                if (extras.length) errors.push([extras[0], `unexpected field ${extras.join(', ')}`]);
+            }
+            if (errors.length) {
+                validationStatus.dataset.validationState = 'invalid';
+                const prior = validationStatus.dataset.validPassed === 'true' ? ' Valid parameter passed.' : '';
+                validationStatus.textContent = `Schema ${schemaLine}.${prior} Invalid field ${errors[0][0]}: ${errors.map(item => item[1]).join('; ')}. No owner tool was invoked.`;
+                return;
+            }
+            validationStatus.dataset.validPassed = 'true';
+            validationStatus.dataset.validationState = 'passed';
+            validationStatus.textContent = `Valid parameter passed for ${id}. Schema ${schemaLine}. No owner tool was invoked.`;
+            rememberValidation();
+        };
+        const rememberValidation = () => {
+            try {
+                const current = JSON.parse(sessionStorage.getItem(storageKey) || 'null') || {};
+                const next = (current && typeof current === 'object' && !Array.isArray(current)) ? current : {};
+                next.parameter = parameterInput.value;
+                next.validationText = validationStatus.textContent;
+                next.validationState = validationStatus.dataset.validationState || '';
+                next.validPassed = validationStatus.dataset.validPassed === 'true';
+                if (descriptorSelect.value) next.id = descriptorSelect.value;
+                sessionStorage.setItem(storageKey, JSON.stringify(next));
+            } catch { /* storage unavailable */ }
+        };
+        const explainAndRemember = () => { explainParameter(); rememberValidation(); };
+        descriptorSelect.addEventListener('change', showSelection);
+        root.querySelector('#idl-validate-parameter').addEventListener('click', explainAndRemember);
+        parameterInput.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' || event.repeat || event.shiftKey) return;
+            event.preventDefault();
+            explainAndRemember();
         });
-        root.querySelector('[data-action="validate-invalid-input"]').addEventListener('click', () => {
-            const status = root.querySelector('#idl-invalid-status');
-            try { runLocalFixture({ descriptor_id: 42, limit: 'five' }); status.dataset.fixtureState = 'unexpectedly-accepted'; status.textContent = 'Local validator incorrectly accepted invalid input.'; }
-            catch (error) { status.dataset.fixtureState = 'rejected-local'; status.textContent = `Local validation rejected input: ${error.message}. No transport was invoked.`; }
-        });
-        root.querySelector('[data-action="open-receipt-drilldown"]').addEventListener('click', () => {
-            root.querySelector('#idl-receipt-drilldown').open = true; appendLog('Opened actual local fixture output. No remote receipt exists.');
-        });
-        root.querySelector('[data-action="refresh-transport-badges"]').addEventListener('click', () => {
-            root.querySelector('#idl-transport-status').textContent = `Locally declared routes: ${declaredRoutes.join(', ') || 'none'}. Connectivity remains untested.`;
-        });
+        showSelection();
+        if (typeof storedRecord.validationText === 'string' && storedRecord.validationText) {
+            validationStatus.textContent = storedRecord.validationText;
+            if (typeof storedRecord.validationState === 'string' && storedRecord.validationState) validationStatus.dataset.validationState = storedRecord.validationState;
+            if (storedRecord.validPassed === true) validationStatus.dataset.validPassed = 'true';
+        }
     }
 
     async createAcceleratePanelSurface(contentElement) {
@@ -2589,81 +2921,114 @@ class SwissKnifeDesktop {
         };
         const nativeAttributes = tool => `data-native-gateway-binding="accelerate-panel.ipfs_accelerate_py.${operations[tool]}" data-native-tool-id="${tool}"`;
         let lastJobId = null;
+        // Keep scrolling inside this app's mount rather than scrolling the
+        // primary surface above its native window after focusing a control.
+        const primarySurface = contentElement.closest('.window-app-content');
+        const nativeWindowContent = contentElement.closest('.window-content');
+        if (nativeWindowContent) Object.assign(nativeWindowContent.style, {
+            minHeight: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingBottom: '0',
+        });
+        if (primarySurface) Object.assign(primarySurface.style, {
+            height: '100%', minHeight: '0', minWidth: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        });
+        Object.assign(contentElement.style, { flex: '1 1 0%', minHeight: '0', minWidth: '0', overflow: 'auto', overflowWrap: 'anywhere' });
+        if (!document.getElementById('accelerate-panel-fit-style')) {
+            const fitStyle = document.createElement('style');
+            fitStyle.id = 'accelerate-panel-fit-style';
+            fitStyle.textContent = `
+                .accelerate-panel-workflow.sk-app { height: auto; max-height: 100%; overflow: auto; }
+                .accelerate-panel-workflow .sk-card { height: auto; max-height: none; overflow: visible; align-self: start; }
+                #accelerate-run-record { display: block; margin: 0 0 12px; overflow-wrap: anywhere; line-height: 1.35; }
+            `;
+            document.head.appendChild(fitStyle);
+        }
+        const gatewayHost = primarySurface?.querySelector('.live-tool-gateway-host');
+        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '24%', minHeight: '0', flexShrink: '0', overflow: 'auto' });
 
         contentElement.innerHTML = `
             <div class="generated-service-surface generated-mcp-app accelerate-panel-workflow sk-app"
                 data-app-id="accelerate-panel"
                 data-service="ipfs_accelerate_py"
                 data-svd-workflow="accelerate-panel.hardware-model-queue-recovery"
-                style="height:100%; min-height:0; padding:16px; overflow:auto; background:var(--sk-bg-panel, #101820); color:var(--sk-text, #f7fafc);">
+                style="min-height:0; height:auto; overflow:visible; box-sizing:border-box; padding:16px; background:var(--sk-bg-panel, #101820); color:var(--sk-text, #f7fafc);">
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
                     <div style="min-width:220px; flex:1;">
                         <h2 style="margin:0 0 6px; font-size:22px;">IPFS Accelerate Panel</h2>
-                        <p class="sk-honest-note">Model artifacts, evaluation policy, hardware fit, primary execution, queue state, and recovery probes are invoked through ipfs_accelerate_py descriptors through reviewed native gateway bindings. Every status below reports a gateway envelope returned in this session, or states plainly that the operation has not run yet; this surface asserts no run result of its own.</p>
+                        <p class="sk-honest-note">Run a bounded model request, inspect its output, and reopen the saved result. Backend actions require your confirmation.</p>
                     </div>
                     <span class="sk-badge" style="text-transform:uppercase;">VDA-G049</span>
                 </div>
+                <span id="accelerate-run-record">No saved run record yet.</span>
 
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap:12px;">
-                    <section class="sk-card" data-svd-vda-marker="model-artifacts">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap:12px; align-items:start;">
+                    <section class="sk-card" data-svd-vda-marker="model-artifacts" style="overflow:visible; max-height:none; height:auto; min-width:0; align-self:start;">
                         <h3 class="sk-section-head">Model Artifacts</h3>
                         <div style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
-                            <label>Model ID <input id="accelerate-model-id" class="sk-input" placeholder="Reviewed owner default when empty"></label>
+                            <label>Model ID <input id="accelerate-model-id" class="sk-input" aria-label="Model ID" placeholder="Reviewed owner default when empty"></label>
+                            <label>Test input <input id="accelerate-prompt" class="sk-input" aria-label="Test input" value="short test" maxlength="512"></label>
+                            <div class="accelerate-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button ${nativeAttributes('run_inference_job')} class="sk-btn" data-svd-workflow-action="launch-primary-execution" data-action="run-primary-inference" aria-label="Run primary governed inference job">Run Inference</button>
+                                <button ${nativeAttributes('list_models')} class="sk-btn" data-svd-workflow-action="inspect-model-artifacts" data-action="inspect-artifacts" aria-label="Inspect model artifacts">Artifacts</button>
+                                <button ${nativeAttributes('hardware_profile')} class="sk-btn" data-svd-workflow-action="refresh-hardware-fit" data-action="refresh-hardware" aria-label="Refresh hardware fit">Hardware</button>
+                                <button ${nativeAttributes('job_status')} class="sk-btn" data-svd-workflow-action="read-job-status" data-action="read-job-status" aria-label="Read actual inference job status">Read Job Status</button>
+                                <button class="sk-btn" data-svd-workflow-action="cancel-queued-job" data-action="cancel-job" aria-label="Cancel queued inference job">Cancel</button>
+                                <button ${nativeAttributes('telemetry')} class="sk-btn" data-svd-workflow-action="recover-no-capacity" data-action="recover-capacity" aria-label="Recover from no capacity state">Recover</button>
+                            </div>
                             <span id="accelerate-selected-model">No model has been selected by a returned owner request yet.</span>
-                            <span id="accelerate-model-status">list_models has not run yet in this session. Artifacts reports the registered models from the gateway envelope; this surface asserts no artifact CIDs.</span>
+                            <span id="accelerate-output" role="status">No model output yet.</span>
+                            <span id="accelerate-error-status" role="status"></span>
+
                         </div>
                     </section>
 
                     <section class="sk-card" data-svd-vda-marker="evaluation-policy">
                         <h3 class="sk-section-head">Evaluation Policy</h3>
                         <div style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Governed executions run under the descriptor's policy class with a confirmed execution mode; the gateway enforces policy and confirmation and reports the outcome envelope for every invocation.
+                            Review and confirm each backend execution before it runs.
                         </div>
                     </section>
 
                     <section class="sk-card" data-svd-vda-marker="hardware-fit">
                         <h3 class="sk-section-head">Hardware Fit</h3>
                         <div id="accelerate-hardware-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            hardware_profile has not run yet in this session; no fit score or memory figure is asserted before the gateway responds.
+                            Hardware has not been checked yet.
                         </div>
                     </section>
 
                     <section class="sk-card" data-svd-vda-marker="primary-execution">
                         <h3 class="sk-section-head">Primary Execution</h3>
                         <div id="accelerate-primary-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            run_inference_job has not run yet in this session. Run Inference invokes it after explicit confirmation; previews create no job, and job status is read separately; the outcome shown is the gateway's envelope, never a locally claimed completion.
+                            No request has run in this session. Confirm Run Inference to start.
                         </div>
                         <progress id="accelerate-inference-progress" max="100" value="0" aria-label="Inference request progress" style="width:100%; margin-top:8px;"></progress>
+                        <span id="accelerate-progress-label">Not started</span>
                     </section>
 
                     <section class="sk-card" data-svd-vda-marker="queue-log-cancel">
                         <h3 class="sk-section-head">Queue, Log, Cancel</h3>
                         <div id="accelerate-queue-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Queue state is reported by run_inference_job and job_status envelopes in this session. Cancellation is unavailable: the owner exposes no reviewed cancellation operation. Read Job Status queries an actual task without claiming cancellation.
+                            Read Job Status checks a returned execution record. Cancellation is unavailable for this backend.
                         </div>
                     </section>
 
                     <section class="sk-card" data-svd-vda-marker="no-capacity-recovery">
                         <h3 class="sk-section-head">No-Capacity Recovery</h3>
                         <div id="accelerate-recovery-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Recovery probes read live telemetry through the gateway; no recovery outcome is asserted before an envelope returns.
+                            Retry a valid model and input after a failure. Recover checks available backend telemetry.
                         </div>
                     </section>
                 </div>
 
-                <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button ${nativeAttributes('run_inference_job')} class="sk-btn" data-svd-workflow-action="launch-primary-execution" data-action="run-primary-inference" aria-label="Run primary governed inference job">Run Inference</button>
-                    <button ${nativeAttributes('list_models')} class="sk-btn" data-svd-workflow-action="inspect-model-artifacts" data-action="inspect-artifacts" aria-label="Inspect model artifacts">Artifacts</button>
-                    <button ${nativeAttributes('hardware_profile')} class="sk-btn" data-svd-workflow-action="refresh-hardware-fit" data-action="refresh-hardware" aria-label="Refresh hardware fit">Hardware</button>
-                    <button ${nativeAttributes('job_status')} class="sk-btn" data-svd-workflow-action="read-job-status" data-action="read-job-status" aria-label="Read actual inference job status">Read Job Status</button>
-                    <button class="sk-btn" data-svd-workflow-action="cancel-queued-job" data-action="cancel-job" aria-label="Cancel queued inference job">Cancel</button>
-                    <button ${nativeAttributes('telemetry')} class="sk-btn" data-svd-workflow-action="recover-no-capacity" data-action="recover-capacity" aria-label="Recover from no capacity state">Recover</button>
-                </div>
-
-                <div id="accelerate-envelope-result" style="margin-top:14px;"></div>
-                <ol id="accelerate-workflow-log" data-svd-vda-marker="receipts" style="margin:14px 0 0; padding-left:22px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
-                    <li class="sk-empty">No gateway operations have run yet in this session; real envelope outcomes will appear here.</li>
-                </ol>
+                <details class="accelerate-diagnostics" style="margin-top:14px;">
+                    <summary>Diagnostics</summary>
+                    <div style="max-height:220px; overflow:auto; overflow-wrap:anywhere;">
+                        <p id="accelerate-model-status">Model catalog has not been checked in this session.</p>
+                        <div id="accelerate-envelope-result" style="white-space:pre-wrap;"></div>
+                        <ol id="accelerate-workflow-log" data-svd-vda-marker="receipts" style="padding-left:22px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
+                            <li class="sk-empty">No backend operations in this session.</li>
+                        </ol>
+                    </div>
+                </details>
             </div>
         `;
         this.setupEventListeners();
@@ -2706,20 +3071,33 @@ class SwissKnifeDesktop {
         const runOperation = async (operation, input, { trigger, statusEl } = {}) => {
             try {
                 const bindingId = `accelerate-panel.ipfs_accelerate_py.${operations[operation]}`;
-                const control = (await controls()).find(control => control.binding_id === bindingId);
+                const catalog = await controls();
+                const control = catalog.find(item => item.binding_id === bindingId);
                 if (!control) throw new Error(`The exact ${operation} binding is undeclared.`);
-                const payload = { ...control.safe_payload, ...input };
-                if (operation === 'run_inference_job' && !payload.model && !payload.model_id) throw new Error('Enter a real catalog model ID or configure a reviewed owner default.');
-                const envelope = await invokeNativeTool(contentElement, 'accelerate-panel', bindingId, { toolId: operation, payload, trigger });
+                const defaults = { ...(control.safe_payload || {}), ...(control.safe_payloads?.[operation] || {}) };
+                const overlay = typeof input === 'function' ? input(defaults) : (input || {});
+                const payload = { ...defaults, ...overlay };
+                if (operation === 'run_inference_job') {
+                    delete payload.dry_run;
+                    delete payload.preview;
+                    const typedText = [payload.input, payload.prompt, payload.text, payload.query].find(item => typeof item === 'string' && item.trim());
+                    if (typedText) payload.input = typedText.trim();
+                }
+                const envelope = await invokeNativeTool(contentElement, 'accelerate-panel', bindingId, { ...(operation === 'run_inference_job' ? { executionMode: 'execute' } : {}), toolId: operation, payload, trigger });
                 if (!envelope) {
                     if (statusEl) statusEl.textContent = 'Cancelled before owner dispatch.';
                     return null;
                 }
                 const value = ownerResult(envelope);
-                const preview = value?.dry_run === true || value?.preview === true || value?.mutation_performed === false;
+                const preview = value?.dry_run === true || value?.preview === true;
                 const summary = `${operation} ${preview ? 'preview validated; no job or remote change was created' : envelope.outcome} via ${envelope.transport || 'declared transport'}; ${envelope.correlation_id}; receipt ${envelope.receipt?.receipt_id || 'unavailable'}`;
-                if (result) { const pre = document.createElement('pre'); pre.textContent = JSON.stringify(envelope, null, 2); result.replaceChildren(pre); }
-                if (statusEl) statusEl.textContent = `${summary}: ${JSON.stringify(value)}`;
+                if (result) { const pre = document.createElement('pre'); pre.textContent = JSON.stringify(envelope, null, 2); pre.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0'; result.replaceChildren(pre); }
+                if (statusEl) {
+                    const state = value?.state || value?.status || envelope.outcome;
+                    statusEl.textContent = preview
+                        ? `${operation} preview validated; no job or remote change was created.`
+                        : `${operation} ${state}. See Diagnostics for the receipt and full response.`;
+                }
                 if (operation === 'run_inference_job') {
                     contentElement.querySelector('#accelerate-selected-model').textContent = `Actual requested model: ${payload.model || payload.model_id}`;
                 }
@@ -2733,20 +3111,103 @@ class SwissKnifeDesktop {
             }
         };
 
-        contentElement.querySelector('[data-svd-workflow-action="launch-primary-execution"]')?.addEventListener('click', async event => {
+        const accelerateRunKey = 'accelerate-panel-run-record';
+        const accelerateOutput = contentElement.querySelector('#accelerate-output');
+        const accelerateRecord = contentElement.querySelector('#accelerate-run-record');
+        const accelerateError = contentElement.querySelector('#accelerate-error-status');
+        const accelerateProgressLabel = contentElement.querySelector('#accelerate-progress-label');
+        const accelerateModelInput = contentElement.querySelector('#accelerate-model-id');
+        const acceleratePromptInput = contentElement.querySelector('#accelerate-prompt');
+        const readAccelerateOutput = value => {
+            const visit = item => {
+                if (typeof item === 'string' && item.trim()) return item.trim();
+                if (Array.isArray(item)) {
+                    for (const entry of item) {
+                        const found = visit(entry);
+                        if (found) return found;
+                    }
+                }
+                if (item && typeof item === 'object') {
+                    for (const key of ['output', 'output_text', 'text', 'generated_text', 'completion', 'content', 'response', 'message', 'choices', 'generated']) {
+                        if (item[key] && item[key] !== item) {
+                            const found = visit(item[key]);
+                            if (found) return found;
+                        }
+                    }
+                }
+                return '';
+            };
+            return visit(value);
+        };
+        const showAccelerateRecord = saved => {
+            if (!saved || typeof saved.output !== 'string' || !saved.output.trim()) return;
+            if (accelerateModelInput && typeof saved.model === 'string') accelerateModelInput.value = saved.model;
+            if (acceleratePromptInput && typeof saved.input === 'string') acceleratePromptInput.value = saved.input;
+            if (accelerateOutput) accelerateOutput.textContent = saved.output;
+            const selectedModel = contentElement.querySelector('#accelerate-selected-model');
+            if (selectedModel && saved.model) selectedModel.textContent = `Saved model: ${saved.model}`;
+            if (accelerateRecord) accelerateRecord.textContent = `Saved run model=${saved.model || 'owner default'}; state=${saved.state}; finished=${saved.finished}`
+
+        };
+        try { showAccelerateRecord(JSON.parse(sessionStorage.getItem(accelerateRunKey) || 'null')); } catch { /* no saved run */ }
+        const launchAccelerate = contentElement.querySelector('[data-svd-workflow-action="launch-primary-execution"]');
+        acceleratePromptInput?.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' || event.repeat) return;
+            event.preventDefault();
+            launchAccelerate?.click();
+        });
+        launchAccelerate?.addEventListener('click', async event => {
+            const model = accelerateModelInput?.value.trim() || '';
+            const typedInput = acceleratePromptInput?.value.trim() || '';
+            if (!typedInput) {
+                if (accelerateError) accelerateError.textContent = `Enter a short test input. Model ID kept: ${accelerateModelInput?.value || ''}`;
+                if (inferenceProgress) inferenceProgress.value = 0;
+                if (accelerateProgressLabel) accelerateProgressLabel.textContent = 'Not started';
+                return;
+            }
             if (inferenceProgress) inferenceProgress.removeAttribute('value');
-            const model = contentElement.querySelector('#accelerate-model-id').value.trim();
-            const response = await runOperation('run_inference_job', {
-                ...(model ? { model } : {}), input: 'accelerate panel governed inference', max_length: 64,
+            if (accelerateProgressLabel) accelerateProgressLabel.textContent = 'Running';
+            const started = new Date().toISOString();
+            const response = await runOperation('run_inference_job', defaults => {
+                const patch = { fixture_scope: 'svf-accelerate-panel-run' };
+                if (model) {
+                    if (!defaults || Object.prototype.hasOwnProperty.call(defaults, 'model') || !Object.prototype.hasOwnProperty.call(defaults, 'model_id')) patch.model = model;
+                    if (defaults && Object.prototype.hasOwnProperty.call(defaults, 'model_id')) patch.model_id = model;
+                }
+                const declaredTextKeys = ['input', 'prompt', 'text', 'query'].filter(key => defaults && typeof defaults[key] === 'string');
+                for (const key of (declaredTextKeys.length ? declaredTextKeys : ['input'])) patch[key] = typedInput;
+                return patch;
             }, { trigger: event.currentTarget, statusEl: primaryStatus });
+            const ownerState = [response?.value?.state, response?.value?.status, response?.value?.queue_state].find(item => typeof item === 'string' && item.trim()) || '';
             const jobId = response?.preview ? null : response?.value?.job_id || response?.value?.task_id;
+            const usableOutput = response?.preview ? '' : readAccelerateOutput(response?.value);
             if (jobId) {
                 lastJobId = jobId;
-                if (queueStatus) queueStatus.textContent = `Owner returned job ${jobId}; use Read Job Status to observe its actual state.`;
-            } else if (queueStatus) {
-                queueStatus.textContent = response?.preview ? 'Preview only; no job was created.' : 'No actual job ID was returned; no job completion or cancellation is claimed.';
+                if (queueStatus) queueStatus.textContent = `Owner returned job ${jobId}${ownerState ? `; state ${ownerState}` : ''}. Use Read Job Status to observe its actual state.`;
+            } else if (queueStatus && response) {
+                queueStatus.textContent = response.preview ? 'Preview only; no job was created.' : 'No actual job ID was returned; no job completion or cancellation is claimed.';
             }
+            if (!response || response.preview || !usableOutput) {
+                if (inferenceProgress) inferenceProgress.value = 0;
+                if (accelerateProgressLabel) accelerateProgressLabel.textContent = response?.preview ? 'Preview only' : 'Not started';
+                if (accelerateOutput) accelerateOutput.textContent = response?.preview ? 'Preview only; this is not execution.' : 'Owner returned no usable output for this input.';
+                if (accelerateError) accelerateError.textContent = !response
+                    ? (primaryStatus?.textContent || 'Inference did not run.')
+                    : (response.preview
+                        ? 'Preview only; this is not execution.'
+                        : 'Owner returned no usable output for this input.');
+                return;
+            }
+            const saved = {
+                model: response.value?.model_id || response.value?.model || model,
+                input: typedInput, output: usableOutput, started: response.value?.started_at || response.value?.created_at || started,
+                finished: response.value?.finished_at || response.value?.completed_at || new Date().toISOString(), state: ownerState || 'unnamed',
+            };
+            try { sessionStorage.setItem(accelerateRunKey, JSON.stringify(saved)); } catch { /* storage unavailable */ }
+            showAccelerateRecord(saved);
+            if (accelerateError) accelerateError.textContent = '';
             if (inferenceProgress) inferenceProgress.value = 100;
+            if (accelerateProgressLabel) accelerateProgressLabel.textContent = 'completed';
         });
         contentElement.querySelector('[data-svd-workflow-action="inspect-model-artifacts"]')?.addEventListener('click', async event => {
             await runOperation('list_models', undefined, { trigger: event.currentTarget, statusEl: modelStatus });
@@ -3236,7 +3697,7 @@ function installToolSmokeStyles() {
         .all-app-backend-status-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
         .all-app-backend-status-header span{color:#bdd7ff;overflow-wrap:anywhere}
         .all-app-backend-status-grid{display:grid;gap:8px}
-        .all-app-backend-status-row{display:grid;grid-template-columns:minmax(88px,.8fr) minmax(160px,1.2fr) minmax(220px,2fr);gap:10px;align-items:start;padding:8px;border:1px solid #2f3945;background:#151e27}
+        .all-app-backend-status-row{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr) minmax(0,2fr);gap:10px;align-items:start;padding:8px;border:1px solid #2f3945;background:#151e27;min-width:0;max-width:100%;overflow-wrap:anywhere}
         .all-app-backend-status-family{display:flex;align-items:center;gap:8px;min-width:0}
         .all-app-backend-status-family span,.all-app-backend-status-facts span:first-child{display:inline-flex;align-items:center;min-height:22px;padding:2px 6px;border:1px solid #45617f;color:#bdd7ff}
         .all-app-backend-status-family strong,.all-app-backend-status-facts span,.all-app-backend-status-detail dd{overflow-wrap:anywhere}

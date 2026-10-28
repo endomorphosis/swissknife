@@ -55,6 +55,42 @@ async function callMcpTool(tool, toolArguments) {
   return parseToolResponse(response);
 }
 
+
+function nativeMediaResult(envelope) {
+  if (envelope?.ok !== true || envelope.outcome !== 'executed') throw new Error(envelope?.error?.message || envelope?.error || 'The owner did not execute this request.');
+  let result = envelope.result;
+  for (let depth = 0; depth < 10 && result && typeof result === 'object'; depth++) {
+    if (result.ok === false || result.success === false || result.isError === true || result.error) throw new Error(result.error?.message || result.error || 'The owner rejected this request.');
+    const content = Array.isArray(result.content) ? result.content : [];
+    const blocks = content.filter(block => block.type === 'json' && block.json && typeof block.json === 'object');
+    if (blocks.length > 1) throw new Error('The owner returned ambiguous operation data.');
+    if (blocks.length === 1) { result = blocks[0].json; continue; }
+    const text = content.find(block => block.type === 'text')?.text;
+    if (text) { try { result = JSON.parse(text); continue; } catch { throw new Error('The owner returned invalid operation data.'); } }
+    if (!result.cid && result.result && typeof result.result === 'object') { result = result.result; continue; }
+    if (!envelope.receipt?.receipt_id || !envelope.correlation_id) throw new Error('The owner response has no gateway receipt.');
+    return result;
+  }
+  throw new Error('The owner returned no operation data.');
+}
+
+function waitForDecodedMedia(element, timeoutMs = 10000) {
+  return new Promise((resolve, reject) => {
+    let timer;
+    const clean = () => { clearTimeout(timer); element.removeEventListener('loadeddata', ready); element.removeEventListener('error', failed); };
+    const failed = () => { clean(); reject(new Error('The returned media could not be decoded.')); };
+    const ready = () => {
+      if (element.error) return failed();
+      if (element.readyState < 2 || !Number.isFinite(element.duration) || element.duration <= 0) return;
+      clean(); resolve(element.duration);
+    };
+    element.addEventListener('loadeddata', ready);
+    element.addEventListener('error', failed);
+    timer = setTimeout(() => { clean(); reject(new Error('Timed out decoding returned media.')); }, timeoutMs);
+    ready();
+  });
+}
+
 function bytesFromBase64(b64) {
   const bin = atob(String(b64 || '').replace(/\s+/g, ''));
   const bytes = new Uint8Array(bin.length);
@@ -63,15 +99,12 @@ function bytesFromBase64(b64) {
 }
 
 function guessVideoMime(artifact, bytes, fileName = '') {
-  const name = String(artifact?.name || artifact?.filename || fileName).toLowerCase();
-  if (bytes && bytes.length >= 12) {
-    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return 'video/webm';
-    if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) return 'video/mp4';
+  if (bytes?.length >= 12) {
+    if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) return 'video/webm';
+    if (String.fromCharCode(...bytes.slice(4, 8)) === 'ftyp') return 'video/mp4';
+    if (String.fromCharCode(...bytes.slice(0, 4)) === 'OggS') return 'video/ogg';
   }
-  if (/\.webm$/.test(name)) return 'video/webm';
-  if (/\.ogv$/.test(name)) return 'video/ogg';
-  if (/\.mov$/.test(name)) return 'video/quicktime';
-  return 'video/mp4';
+  throw new Error('Unsupported video source bytes.');
 }
 
 function escapeHtmlPt(value) {
@@ -80,7 +113,21 @@ function escapeHtmlPt(value) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+function formatPlaybackTime(value) {
+  if (!Number.isFinite(value) || value < 0) return '—';
+  const tenths = Math.floor(value * 10);
+  const seconds = Math.floor(tenths / 10);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor(seconds / 60) % 60;
+  return (hours ? `${hours}:${String(minutes).padStart(2, '0')}` : String(minutes))
+    + ':' + String(seconds % 60).padStart(2, '0') + '.' + String(tenths % 10);
+}
+
 export class PeerTubeApp {
+  // Closing a desktop window must not discard already retrieved local media.
+  // Keep the actual media element in this tab only; no backend proof is minted.
+  static retainedPlayback = new WeakMap();
+
   constructor(desktop) {
     this.desktop = desktop;
     this.swissknife = null;
@@ -133,7 +180,7 @@ export class PeerTubeApp {
       const raw = JSON.parse(localStorage.getItem('peertube-library') || '[]');
       if (!Array.isArray(raw)) return;
       for (const entry of raw) {
-        if (entry && entry.cid && entry.id) this.videoLibrary.set(entry.id, entry);
+        if (entry && entry.cid && entry.id) this.videoLibrary.set(entry.id, { ...entry, verified: false, storedMetadataOnly: true });
       }
     } catch (error) {
       console.warn('Could not load PeerTube library index:', error);
@@ -216,6 +263,7 @@ export class PeerTubeApp {
   
   async createInterface(container) {
     await this.initialize();
+    if (this.container) this.retainPlayback();
     
     this.container = container;
     container.innerHTML = this.getHTML();
@@ -228,8 +276,155 @@ export class PeerTubeApp {
     this.setupEventListeners(container);
     this.renderVideoLibrary();
     this.updatePlayerState();
+    this.bindPlaybackControls(container, container.querySelector('#video-element'));
+    this.bindDesktopControls();
+    await this.restorePlayback();
     
     console.log('✅ PeerTube interface created successfully');
+  }
+
+  bindDesktopControls() {
+    // The desktop removes its window directly; capture Close before removal.
+    const close = this.container.closest('.window')?.querySelector('.window-control.close');
+    if (this.desktopCloseControl && this.desktopCloseListener) {
+      this.desktopCloseControl.removeEventListener('click', this.desktopCloseListener, true);
+    }
+    this.desktopCloseControl = close;
+    this.desktopCloseListener = () => this.cleanup();
+    close?.addEventListener('click', this.desktopCloseListener, { capture: true, once: true });
+    const browse = this.container.querySelector('[data-mobile-browse]');
+    const shell = this.container.querySelector('.peertube-container');
+    if (browse && shell) {
+      browse.onclick = () => {
+        const expanded = shell.classList.toggle('navigation-open');
+        browse.setAttribute('aria-expanded', String(expanded));
+      };
+      this.container.querySelector('.sidebar')?.addEventListener('click', event => {
+        if (!event.target.closest('[data-view], [data-category]')) return;
+        shell.classList.remove('navigation-open');
+        browse.setAttribute('aria-expanded', 'false');
+      });
+    }
+  }
+
+  retainPlayback() {
+    const video = this.container?.querySelector('#video-element');
+    const key = this.desktop || window;
+    const previous = PeerTubeApp.retainedPlayback.get(key);
+    if (!video || !this.currentVideo || !this.currentObjectUrl || video.error
+        || this.cidOpenPending || this.libraryPlaybackPending
+        || video.readyState < 2 || video.dataset.cid !== this.currentVideo.cid
+        || video.dataset.decodedCid && video.dataset.decodedCid !== this.currentVideo.cid
+        || video.src !== this.currentObjectUrl) {
+      if (previous?.owner === this) PeerTubeApp.retainedPlayback.delete(key);
+      return;
+    }
+    PeerTubeApp.retainedPlayback.set(key, { owner: this, video, objectUrl: this.currentObjectUrl,
+      entry: { ...this.currentVideo }, wasPlaying: !video.paused && !video.ended,
+      workflow: { ...this.vdaG036, log: [...this.vdaG036.log] } });
+    video.pause();
+  }
+
+  async restorePlayback() {
+    const key = this.desktop || window;
+    const saved = PeerTubeApp.retainedPlayback.get(key);
+    const placeholder = this.container?.querySelector('#video-element');
+    if (!saved || !placeholder || saved.video.isConnected
+        || saved.video.ownerDocument !== placeholder.ownerDocument) return;
+    PeerTubeApp.retainedPlayback.delete(key);
+    placeholder.replaceWith(saved.video);
+    this.currentObjectUrl = saved.objectUrl;
+    if (saved.owner !== this && saved.owner.currentObjectUrl === saved.objectUrl) saved.owner.currentObjectUrl = null;
+    try {
+      await waitForDecodedMedia(saved.video);
+    } catch (error) {
+      this.container.querySelector('#video-player')?.classList.add('media-failed');
+      delete saved.video.dataset.decodedCid;
+      saved.video.removeAttribute('src');
+      saved.video.load();
+      URL.revokeObjectURL(saved.objectUrl);
+      this.currentObjectUrl = null;
+      throw error;
+    }
+    this.currentVideo = saved.entry;
+    this.videoLibrary.set(saved.entry.id, this.currentVideo);
+    this.vdaG036 = saved.workflow;
+    this.container.querySelector('#video-grid')?.classList.add('hidden');
+    this.container.querySelector('#video-player')?.classList.remove('hidden');
+    this.container.querySelector('#video-title').textContent = saved.entry.title;
+    this.container.querySelector('#video-desc').textContent = saved.entry.description || '';
+    this.container.querySelector('#video-views').textContent = 'Retrieved video ready';
+    this.bindPlaybackControls(this.container, saved.video);
+    this.refreshWorkflowSection();
+    this.setCidOpenStatus('Playback restored.');
+    if (saved.wasPlaying) {
+      await saved.video.play().catch(error => this.setCidOpenStatus(`Play blocked: ${error.message}`));
+    }
+  }
+
+  bindPlaybackControls(container, videoElement) {
+    this.playbackControlsCleanup?.();
+    if (!videoElement) return;
+    const play = container.querySelector('[data-cid-play]');
+    const seek = container.querySelector('[data-cid-seek]');
+    const clock = container.querySelector('[data-cid-time]');
+    let active = true;
+    let seekTarget = null;
+    const update = event => {
+      if (!active) return;
+      const duration = videoElement.duration;
+      const current = videoElement.currentTime;
+      const knownDuration = Number.isFinite(duration) && duration > 0;
+      const ready = knownDuration && videoElement.readyState >= 2 && !videoElement.error;
+      const player = container.querySelector('#video-player');
+      if (event?.type === 'error') player?.classList.add('media-failed');
+      else if (event?.type === 'loadeddata' && ready) player?.classList.remove('media-failed');
+      if (play) {
+        const playing = !videoElement.paused && !videoElement.ended;
+        play.textContent = playing ? 'Pause' : 'Play';
+        play.setAttribute('aria-label', `${playing ? 'Pause' : 'Play'} retrieved video`);
+        play.disabled = !ready;
+      }
+      if (clock) clock.textContent = `${formatPlaybackTime(current)} / ${formatPlaybackTime(duration)}`;
+      if (seek) {
+        seek.value = knownDuration && Number.isFinite(current) ? String(Math.max(0, Math.min(100, current / duration * 100))) : '0';
+        seek.disabled = !ready;
+        seek.setAttribute('aria-valuetext', knownDuration && Number.isFinite(current)
+          ? `${formatPlaybackTime(current)} of ${formatPlaybackTime(duration)}` : 'Playback time unavailable');
+      }
+      if (event?.type === 'seeked' && seekTarget !== null) {
+        if (Math.abs(current - seekTarget) <= 0.2) videoElement.dataset.seekState = 'observed';
+        seekTarget = null;
+      }
+    };
+    const toggle = async () => {
+      try {
+        if (!videoElement.paused && !videoElement.ended) videoElement.pause();
+        else await videoElement.play();
+      } catch (error) {
+        if (active) this.setCidOpenStatus(`Play blocked: ${error.message}`);
+      }
+      update();
+    };
+    const seekTo = () => {
+      if (Number.isFinite(videoElement.duration) && videoElement.duration > 0 && Number.isFinite(Number(seek.value))) {
+        seekTarget = Number(seek.value) / 100 * videoElement.duration;
+        videoElement.dataset.seekState = 'seeking';
+        videoElement.currentTime = seekTarget;
+      }
+    };
+    const events = ['loadedmetadata', 'loadeddata', 'durationchange', 'play', 'playing', 'pause', 'timeupdate', 'seeked', 'ended', 'emptied', 'error'];
+    for (const name of events) videoElement.addEventListener(name, update);
+    if (play) play.onclick = toggle;
+    if (seek) seek.onchange = seekTo;
+    this.playbackControlsCleanup = () => {
+      active = false;
+      for (const name of events) videoElement.removeEventListener(name, update);
+      if (play?.onclick === toggle) play.onclick = null;
+      if (seek?.onchange === seekTo) seek.onchange = null;
+      this.playbackControlsCleanup = null;
+    };
+    update();
   }
   
   getHTML() {
@@ -243,11 +438,12 @@ export class PeerTubeApp {
               <span class="logo-text">PeerTube</span>
             </div>
             <div class="search-bar">
-              <input type="text" id="search-input" placeholder="Search videos...">
-              <button id="search-btn">🔍</button>
+              <input type="text" id="search-input" placeholder="Search videos..." aria-label="Search videos">
+              <button id="search-btn" aria-label="Search">🔍</button>
             </div>
           </div>
           <div class="header-right">
+            <button type="button" class="header-btn mobile-browse" data-mobile-browse aria-expanded="false" aria-controls="peertube-navigation">Browse</button>
             <button id="upload-btn" class="header-btn">📤 Upload</button>
             <button id="room-btn" class="header-btn">🏠 Join Room</button>
             <div class="peer-count">
@@ -260,7 +456,7 @@ export class PeerTubeApp {
         <!-- Main Content -->
         <div class="peertube-main">
           <!-- Sidebar -->
-          <div class="sidebar">
+          <div id="peertube-navigation" class="sidebar">
             <div class="nav-section">
               <button class="nav-item active" data-view="home">
                 <span class="nav-icon">🏠</span>
@@ -305,8 +501,13 @@ export class PeerTubeApp {
           
           <!-- Content Area -->
           <div class="content-area">
+            <div class="cid-open-bar" aria-label="Open video by CID">
+              <input type="text" id="cid-open-input" placeholder="Open a video by artifact CID (bafy…)" spellcheck="false" aria-label="Video artifact CID" aria-describedby="cid-open-status">
+              <button id="cid-open-btn" data-native-gateway-binding="peertube.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat" class="header-btn" aria-label="📥 Open by CID">📥 Open by CID</button>
+              <span class="cid-open-note" id="cid-open-status" role="status">Enter an artifact CID. Playback stays in this window.</span>
+            </div>
             <!-- Video Player (hidden initially) -->
-            <div id="video-player" class="video-player hidden">
+            <div id="video-player" class="video-player">
               <div class="player-container">
                 <video id="video-element" controls data-cid="">
                   <track id="caption-track" kind="captions" label="English captions" srclang="en" src="${this.getCaptionTrackDataUri()}">
@@ -319,9 +520,14 @@ export class PeerTubeApp {
                 </div>
               </div>
               
+                <div class="cid-playback-controls">
+                  <button type="button" data-cid-play aria-label="Play retrieved video">Play</button>
+                  <label>Playback position <input type="range" data-cid-seek aria-label="Video playback position" min="0" max="100" step="10" value="0" aria-valuetext="Playback time unavailable"></label>
+                  <output data-cid-time aria-label="Playback time">— / —</output>
+                </div>
               <!-- Video Info -->
               <div class="video-info">
-                <h2 id="video-title">Video Title</h2>
+                <h2 id="video-title">No video loaded</h2>
                 <div class="video-meta">
                   <span id="video-views">No video loaded</span>
                   <div class="video-actions">
@@ -346,13 +552,12 @@ export class PeerTubeApp {
                   <button id="list-view" class="view-btn">☰</button>
                 </div>
               </div>
-              <div class="cid-open-bar" aria-label="Open video by CID">
-                <input type="text" id="cid-open-input" placeholder="Open a video by artifact CID (bafy…)" spellcheck="false" aria-label="Video artifact CID">
-                <button id="cid-open-btn" data-native-gateway-binding="peertube.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat" class="header-btn" aria-label="📥 Open by CID">📥 Open by CID</button>
-                <span class="cid-open-note" id="cid-open-status">Fetches real bytes from ipfs_kit_py. Playback is local.</span>
-              </div>
               <div class="videos-container" id="videos-container">
-                <!-- Videos will be populated by JavaScript -->
+                <div class="empty-library">
+                  <div class="empty-icon">📺</div>
+                  <h3>No videos yet</h3>
+                  <p>Publish a video with Upload or open one by artifact CID. Only videos you publish or open appear here.</p>
+                </div>
               </div>
             </div>
 
@@ -379,7 +584,7 @@ export class PeerTubeApp {
         <div id="upload-modal" class="modal hidden">
           <div class="modal-content">
             <div class="modal-header">
-              <h3>Publish Video to ipfs_kit_py</h3>
+              <h3>Publish video</h3>
               <button id="close-upload" class="modal-close">×</button>
             </div>
             <div class="upload-form">
@@ -425,11 +630,12 @@ export class PeerTubeApp {
   getVdaG036WorkflowHTML() {
     const state = this.vdaG036;
     return `
-      <section class="peertube-workflow" data-svd-workflow="${state.workflowId}" aria-label="VDA-G036 PeerTube CID playback workflow">
+      <details class="peertube-workflow" data-svd-workflow="${state.workflowId}">
+        <summary>Playback diagnostics</summary>
         <div class="workflow-header">
           <div>
             <h3>VDA-G036 governed playback</h3>
-            <p>CID playback, captions, diagnostics, buffering state, missing-content recovery, and media fallback. Every CID and timing below comes from a live ipfs_kit_py call or the real video element — nothing is fabricated. Backend writes ask for confirmation first; playback is local.</p>
+            <p>CID playback, captions, diagnostics, buffering, missing-content recovery, and media fallback. Values come from a confirmed retrieval or the video element. Playback stays in this window.</p>
           </div>
           <span class="workflow-badge">${state.vdaId}</span>
         </div>
@@ -474,12 +680,18 @@ export class PeerTubeApp {
         <ol id="peertube-workflow-log" class="workflow-log" data-svd-vda-marker="workflow-receipts">
           ${state.log.length > 0 ? state.log.map(entry => `<li>${escapeHtmlPt(entry)}</li>`).join('\n          ') : '<li>No backend operations yet.</li>'}
         </ol>
-      </section>
+      </details>
     `;
   }
   
   getCSS() {
     return `
+      .window[data-app-id="peertube"] .window-content { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding-bottom:64px; box-sizing:border-box; }
+      .window[data-app-id="peertube"] .window-app-content { display:flex; flex-direction:column; flex:1 1 0px; min-height:0; min-width:0; overflow:hidden; padding-bottom:0; }
+      .window[data-app-id="peertube"] .window-app-content > [id$="-content"] { display:flex; flex-direction:column; flex:1 1 0px; align-self:stretch; width:100%; min-height:0; min-width:0; overflow:hidden; }
+      .window[data-app-id="peertube"] .peertube-container { flex:1 1 0px; height:auto; min-height:0; min-width:0; }
+      .window[data-app-id="peertube"] .peertube-main { flex:1 1 0px; min-height:0; min-width:0; overflow:hidden; }
+      .window[data-app-id="peertube"] .peertube-main > .content-area { min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; }
       .peertube-container {
         display: flex;
         flex-direction: column;
@@ -596,9 +808,13 @@ export class PeerTubeApp {
       /* Sidebar */
       .sidebar {
         width: 250px;
+        align-self: stretch;
+        max-height: 100%;
+        min-height: 0;
         background: rgba(0, 0, 0, 0.2);
-        padding: 1rem;
-        overflow-y: auto;
+        padding: 0.75rem 0.75rem 5.5rem;
+        overflow-y: scroll;
+        scrollbar-gutter: stable;
         flex-shrink: 0;
       }
       
@@ -713,14 +929,33 @@ export class PeerTubeApp {
       /* Content Area */
       .content-area {
         flex: 1;
-        padding: 1rem;
+        padding: 0.75rem;
         overflow-y: auto;
         min-width: 0;
       }
       
       /* Video Player */
       .video-player {
-        margin-bottom: 2rem;
+        margin-bottom: 0.5rem;
+        flex: 0 0 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        z-index: 2;
+      }
+
+      .window[data-app-id="peertube"] .content-area:has(.video-player:not(.hidden)) {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .window[data-app-id="peertube"] .video-player:not(.hidden) .player-container {
+        flex: 0 0 auto;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        max-height: min(46vh, 420px);
       }
       
       .player-container {
@@ -737,6 +972,8 @@ export class PeerTubeApp {
         object-fit: contain;
       }
       
+      .peertube-container .cid-playback-controls { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; gap: 8px; position: relative; z-index: 3; margin-top: 8px; padding: 8px; border-radius: 6px; background: rgba(15, 23, 42, 0.94); }
+      .peertube-container .cid-playback-controls label { display: flex; align-items: center; gap: 6px; min-width: 0; }
       .player-overlay {
         position: absolute;
         top: 1rem;
@@ -794,11 +1031,20 @@ export class PeerTubeApp {
       }
 
       .peertube-workflow {
-        margin-top: 1.5rem;
+        position: relative;
+        z-index: 1;
+        clear: both;
+        margin-top: 0.75rem;
         padding: 1rem;
         background: rgba(4, 12, 24, 0.62);
         border: 1px solid rgba(148, 163, 184, 0.28);
         border-radius: 8px;
+      }
+
+      .peertube-workflow > summary {
+        cursor: pointer;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
       }
 
       .workflow-header {
@@ -936,11 +1182,16 @@ export class PeerTubeApp {
         gap: 0.75rem;
         margin-bottom: 1.25rem;
         flex-wrap: wrap;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .cid-open-bar input {
-        flex: 1;
-        min-width: 220px;
+        flex: 1 1 15rem;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
         padding: 0.6rem 0.75rem;
         background: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -955,9 +1206,20 @@ export class PeerTubeApp {
       }
 
       .cid-open-note {
+        flex: 1 0 100%;
+        min-width: 0;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
         font-size: 0.78rem;
         color: rgba(255, 255, 255, 0.6);
       }
+
+      .cid-open-bar .header-btn { max-width: 100%; white-space: normal; }
+      .cid-playback-controls { display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem; min-width:0; max-width:100%; }
+      .cid-playback-controls label { display:flex; flex:1 1 13rem; flex-wrap:wrap; align-items:center; gap:0.25rem; min-width:0; }
+      .cid-playback-controls input[type="range"] { flex:1 1 8rem; width:100%; min-width:0; max-width:100%; }
+      .cid-playback-controls output { flex:0 0 auto; white-space:nowrap; font-variant-numeric:tabular-nums; }
 
       .video-real-meta {
         color: rgba(255, 255, 255, 0.65);
@@ -1348,28 +1610,107 @@ export class PeerTubeApp {
       }
       
       @media (max-width: 900px) {
+        .peertube-header {
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .header-left, .header-right {
+          flex-wrap: wrap;
+          min-width: 0;
+          width: 100%;
+          gap: 0.5rem;
+        }
+
+        .search-bar {
+          min-width: 0;
+          width: 100%;
+          flex: 1 1 auto;
+        }
+
         .peertube-main {
           flex-direction: column;
         }
-        
-        .sidebar {
+
+        .window[data-app-id="peertube"] .peertube-main > .content-area {
+          order: -1;
+          flex: 1 1 0px;
+          min-height: 0;
+          overflow-x: hidden;
+          overflow-y: auto;
+        }
+
+        .window[data-app-id="peertube"] .video-player:not(.hidden) {
+          position: relative;
+          top: auto;
+          z-index: 1;
+          background: transparent;
+          flex: 0 0 auto;
+        }
+
+        .window[data-app-id="peertube"] .video-player:not(.hidden) .player-container {
+          flex: 0 0 auto;
           width: 100%;
-          padding: 0.5rem;
+          height: 22vh;
+          min-height: 112px;
+          max-height: 22vh;
+          aspect-ratio: auto;
+        }
+
+        .window[data-app-id="peertube"] .video-player:not(.hidden) .player-container video {
+          width: 100%;
+          height: 100%;
+          max-height: 22vh;
+          object-fit: contain;
+        }
+
+        .peertube-container .cid-playback-controls {
+          position: relative;
+          z-index: 5;
+          flex: 0 0 auto;
+        }
+
+        .video-info {
+          margin-top: 0.35rem;
+        }
+
+        .video-info h2 {
+          font-size: 1.05rem;
+          margin-bottom: 0.25rem;
+        }
+
+        .video-meta {
+          margin-bottom: 0.35rem;
+        }
+
+        .sidebar {
+          order: 1;
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          max-height: 30vh;
+          overflow-y: scroll;
+          flex: 0 0 auto;
+          min-height: 0;
+          padding: 0.35rem 0.5rem 4.75rem;
         }
         
         .nav-section {
           display: flex;
+          flex-wrap: wrap;
           gap: 0.5rem;
-          overflow-x: auto;
         }
         
         .nav-item {
-          min-width: max-content;
+          min-width: 0;
+          width: auto;
           margin-bottom: 0;
         }
         
         .categories-section, .room-section {
-          display: none;
+          display: block;
+          max-height: none;
+          overflow: visible;
         }
         
         .chat-panel {
@@ -1378,8 +1719,36 @@ export class PeerTubeApp {
         }
         
         .videos-container {
-          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+          grid-template-columns: minmax(0, 1fr);
         }
+      }
+
+      .peertube-container .mobile-browse { display: none; }
+      @media (max-width: 900px) {
+        .window[data-app-id="peertube"] .peertube-header { padding: 0.5rem 0.75rem; gap: 0.4rem; }
+        .window[data-app-id="peertube"] .header-left { gap: 0.4rem; }
+        .window[data-app-id="peertube"] .header-right { flex-wrap: nowrap; gap: 0.35rem; }
+        .window[data-app-id="peertube"] .header-right .header-btn { min-height: 32px; padding: 0.35rem 0.5rem; font-size: 0.8rem; }
+        .window[data-app-id="peertube"] .mobile-browse { display: inline-flex; align-items: center; justify-content: center; }
+        .window[data-app-id="peertube"] .peertube-main { min-height: 0; flex: 1 1 0; overflow: hidden; }
+        .window[data-app-id="peertube"] .peertube-main > .sidebar { display: none; order: 0; width: 100%; padding: 0.5rem 0.75rem; max-height: 10rem; overflow: auto; flex: 0 0 auto; }
+        .window[data-app-id="peertube"] .navigation-open .peertube-main > .sidebar { display: block; }
+        .window[data-app-id="peertube"] .peertube-main > .content-area { order: 0; flex: 1 1 0; min-height: 0; padding: 0.75rem; overflow: auto; }
+        .window[data-app-id="peertube"] .video-player:not(.hidden) .player-container { height: clamp(120px, 24vh, 200px); min-height: 120px; max-height: 200px; }
+        .window[data-app-id="peertube"] .video-player:not(.hidden) .player-container video { max-height: 200px; }
+        .window[data-app-id="peertube"] .cid-playback-controls { z-index: auto; }
+      }
+
+      .window[data-app-id="peertube"] .video-player.media-failed:not(.hidden) .player-container {
+        flex: 0 0 120px;
+        height: 120px;
+        min-height: 120px;
+        max-height: 120px;
+        aspect-ratio: auto;
+      }
+      .window[data-app-id="peertube"] .video-player.media-failed:not(.hidden) .player-container video {
+        height: 100%;
+        max-height: 100%;
       }
     `;
   }
@@ -1666,7 +2035,7 @@ export class PeerTubeApp {
           <div class="empty-icon">📺</div>
           <h3>No videos yet</h3>
           <p>Publish a video with the Upload button or open one by CID above.<br>
-          Only real artifacts from ipfs_kit_py appear here — there is no canned catalog.</p>
+          Only videos you publish or open by CID appear here.</p>
         </div>`;
       return;
     }
@@ -1789,7 +2158,7 @@ export class PeerTubeApp {
 
     document.querySelector('#video-title').textContent = video.title;
     document.querySelector('#video-desc').textContent = video.description || '';
-    document.querySelector('#video-views').textContent = `CID ${video.cid}`;
+    document.querySelector('#video-views').textContent = 'Retrieved video ready';
     const likeCount = document.querySelector('#like-count');
     if (likeCount) likeCount.textContent = '';
 
@@ -1797,6 +2166,7 @@ export class PeerTubeApp {
     if (!videoElement) return;
 
     const started = performance.now();
+    this.libraryPlaybackPending = true;
     try {
       const artifact = await callMcpTool('mcp++:ipfs_kit_py/artifacts/get', { cid: video.cid });
       const ms = Math.round(performance.now() - started);
@@ -1825,6 +2195,8 @@ export class PeerTubeApp {
       this.lastFailedCid = video.cid;
       this.appendWorkflowLog(`playback failed for ${video.cid}: ${message}`);
       document.querySelector('#video-desc').textContent = `Retrieval failed: ${message}`;
+    } finally {
+      this.libraryPlaybackPending = false;
     }
     this.refreshWorkflowSection();
 
@@ -2002,27 +2374,29 @@ export class PeerTubeApp {
       this.setCidOpenStatus('Enter an artifact CID first.');
       return;
     }
+    if (this.cidOpenPending) return;
+    this.cidOpenPending = true;
+    const container = this.container || document.querySelector('.peertube-container');
+    const prior = container?.querySelector('#video-element');
+    if (prior) delete prior.dataset.decodedCid;
+    const status = container?.querySelector('#cid-open-status');
+    if (status) status.dataset.retrievalState = 'loading';
     this.setCidOpenStatus(`Fetching ${cid} from ipfs_kit_py…`);
     const started = performance.now();
     const dryRun = globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true;
     try {
       const bindingId = 'peertube.ipfs_kit_py.retrieve_content';
-      const container = this.container || document.querySelector('.peertube-container');
       const envelope = await invokeNativeTool(container, 'peertube', bindingId, {
-        toolId: 'ipfs_cat', payload: { cid, scope: bindingId, limit: 1 },
-        trigger: trigger || container?.querySelector('#cid-open-btn'),
+        executionMode: 'execute',
+        toolId: 'ipfs_cat', payload: { cid, fixture_scope: 'svf-peertube-cid-playback' },
+        trigger: trigger instanceof Element ? trigger : container?.querySelector('#cid-open-btn'),
       });
       if (!envelope) { this.setCidOpenStatus('Cancelled before retrieval.'); return; }
       if (envelope.ok === false || envelope.error || envelope.result?.ok === false || envelope.result?.error) {
         throw new Error(envelope.error?.message || envelope.error || envelope.result?.error?.message || envelope.result?.error || 'Owner retrieval failed.');
       }
-      const toolResult = envelope.result ?? envelope;
-      const blocks = toolResult.content?.filter(block => block.type === 'json' && block.json && typeof block.json === 'object') || [];
-      if (blocks.length > 1) throw new Error('Owner returned ambiguous retrieval data.');
-      const artifact = blocks[0]?.json ?? toolResult.result ?? toolResult;
-      if (artifact.ok === false || artifact.success === false || artifact.error) {
-        throw new Error(artifact.error?.message || artifact.error || 'Owner retrieval failed.');
-      }
+      if (dryRun) { this.setCidOpenStatus('Preview only; no video was retrieved.'); return; }
+      const artifact = nativeMediaResult(envelope);
       if (dryRun || artifact.dry_run === true) {
         const line = `dry run ipfs_cat ${envelope.correlation_id || ''}`;
         this.setCidOpenStatus(line);
@@ -2035,12 +2409,13 @@ export class PeerTubeApp {
       }
       const bytes = bytesFromBase64(artifact.bytes_base64 || '');
       if (bytes.length === 0) throw new Error(`Artifact ${cid} returned no bytes from ipfs_kit_py.`);
+      if (await contentCidForBytes(bytes) !== cid || artifact.cid !== cid) throw new Error('Source bytes do not match the requested CID.');
       const mime = guessVideoMime(artifact, bytes);
       const id = `cid-${cid.slice(0, 12)}`;
-      this.videoLibrary.set(id, {
+      const libraryEntry = {
         id,
-        title: artifact.name || artifact.filename || `Video ${cid.slice(0, 12)}…`,
-        description: 'Opened by CID from ipfs_kit_py.',
+        title: artifact.name || artifact.filename || 'Retrieved video',
+        description: 'Opened from the saved artifact.',
         cid,
         size: bytes.length,
         mime,
@@ -2048,22 +2423,73 @@ export class PeerTubeApp {
         uploader: 'local user',
         publishedAt: new Date().toISOString().split('T')[0],
         source: 'opened',
-        verified: artifact.verified === true
-      });
-      this.saveLocalLibraryIndex();
+        verified: true
+      };
       this.vdaG036.missingInfo = 'No retrieval failures recorded.';
       this.lastFailedCid = null;
-      this.appendWorkflowLog(`opened ${cid} by CID (${bytes.length.toLocaleString()} bytes, verified=${artifact.verified === true}, ${ms} ms)`);
+      const videoGrid = container.querySelector('#video-grid');
+      const videoPlayer = container.querySelector('#video-player');
+      if (videoGrid && videoPlayer) {
+        videoGrid.classList.add('hidden');
+        videoPlayer.classList.remove('hidden');
+      }
+      const openedTitle = artifact.name || artifact.filename || 'Retrieved video';
+      const titleEl = container.querySelector('#video-title');
+      if (titleEl) titleEl.textContent = openedTitle;
+      const descEl = container.querySelector('#video-desc');
+      if (descEl) descEl.textContent = 'Opened from the saved artifact.';
+      const viewsEl = container.querySelector('#video-views');
+      if (viewsEl) viewsEl.textContent = 'Retrieved video ready';
+      const videoElement = container.querySelector('#video-element');
+      if (!videoElement) throw new Error('The video player is unavailable.');
+      if (videoElement) {
+        if (this.currentObjectUrl) URL.revokeObjectURL(this.currentObjectUrl);
+        this.currentObjectUrl = URL.createObjectURL(new Blob([bytes], { type: mime }));
+        videoElement.dataset.cid = cid;
+        videoElement.src = this.currentObjectUrl;
+        videoElement.muted = true;
+        videoElement.playsInline = true;
+        this.currentVideo = libraryEntry;
+        videoElement.pause();
+        videoElement.preload = 'auto';
+        videoElement.load();
+        await waitForDecodedMedia(videoElement);
+        videoElement.dataset.decodedCid = cid;
+        videoPlayer?.classList.remove('media-failed');
+        this.bindPlaybackControls(container, videoElement);
+
+      }
+      this.videoLibrary.set(id, libraryEntry);
+      this.saveLocalLibraryIndex();
+      this.renderVideoLibrary();
+      this.vdaG036.playbackCid = cid;
+      this.vdaG036.playbackInfo = `${bytes.length.toLocaleString()} bytes, verified=true, measured ${ms} ms — playback is local.`;
+      this.appendWorkflowLog(`opened ${cid} by CID (${bytes.length.toLocaleString()} bytes, verified=true, ${ms} ms)`);
+      if (status) status.dataset.retrievalState = 'decoded';
       this.setCidOpenStatus(`Opened ${cid} (${ms} ms)`);
-      await this.playVideo(id);
+      this.refreshWorkflowSection();
     } catch (error) {
+      if (status) status.dataset.retrievalState = 'failed';
       const message = error instanceof Error ? error.message : String(error);
       this.vdaG036.missingInfo = `Retrieval failed for ${cid}: ${message}. Use “Retry missing” to try again.`;
       this.lastFailedCid = cid;
       this.appendWorkflowLog(`open-by-CID failed for ${cid}: ${message}`);
       this.setCidOpenStatus(`Open failed: ${message}`);
+      container.querySelector('#video-player')?.classList.remove('hidden');
+      container.querySelector('#video-player')?.classList.add('media-failed');
+      const failedTitle = container.querySelector('#video-title');
+      if (failedTitle) failedTitle.textContent = 'Playback unavailable';
+      const failedDesc = container.querySelector('#video-desc');
+      if (failedDesc) failedDesc.textContent = `Retrieval failed: ${message}`;
+      const failedViews = container.querySelector('#video-views');
+      if (failedViews) failedViews.textContent = `CID ${cid}`;
+      const failedVideo = container.querySelector('#video-element');
+      if (failedVideo) {
+        failedVideo.removeAttribute('src');
+        failedVideo.load();
+      }
       this.refreshWorkflowSection();
-    }
+    } finally { this.cidOpenPending = false; }
   }
 
   /**
@@ -2341,6 +2767,8 @@ export class PeerTubeApp {
   
   updatePlayerState() {
     // Update UI based on current state
+    const syncStatus = this.container?.querySelector('.sync-status');
+    if (syncStatus) syncStatus.style.display = this.roomId ? '' : 'none';
     const peerCountElement = document.querySelector('#peer-count');
     if (peerCountElement) {
       peerCountElement.textContent = this.peers.size;
@@ -2349,6 +2777,8 @@ export class PeerTubeApp {
   
   cleanup() {
     try {
+      this.retainPlayback();
+      this.playbackControlsCleanup?.();
       // Clean up IPFS connections
       if (this.ipfsNode) {
         this.ipfsNode = null;

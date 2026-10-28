@@ -254,6 +254,7 @@ export class NeuralNetworkDesignerApp {
     }
     const envelope = await invokeNativeTool(container, 'neural-network-designer', bindingId, {
       toolId: tool, ...(payload === undefined ? {} : { payload }),
+      ...(tool === 'list_models' ? { executionMode: 'execute' } : {}),
       trigger: trigger || container.querySelector(`[data-native-gateway-binding="${bindingId}"]`),
     });
     if (!envelope) {
@@ -439,6 +440,8 @@ export class NeuralNetworkDesignerApp {
       if (!byId.has(connection.from)) errors.push(`Edge ${connection.id} references missing layer ${connection.from}.`);
       if (!byId.has(connection.to)) errors.push(`Edge ${connection.id} references missing layer ${connection.to}.`);
       if (connection.from === connection.to) errors.push(`Edge ${connection.id} is a self-loop.`);
+      const shapeError = this.edgeShapeError(connection, byId);
+      if (shapeError) errors.push(shapeError);
     }
     const cycleEdges = this.findCycleEdges(layers, connections);
     if (cycleEdges.size > 0) errors.push(`Cycle detected involving edge(s): ${[...cycleEdges].join(', ')}.`);
@@ -507,6 +510,9 @@ export class NeuralNetworkDesignerApp {
         invalid.push({ edge: connection.id, from: connection.from, to: connection.to, reason: 'Self-loop: a layer cannot feed itself.' });
       } else if (cycleEdges.has(connection.id)) {
         invalid.push({ edge: connection.id, from: connection.from, to: connection.to, reason: 'Participates in a directed cycle; feed-forward graphs must be acyclic.' });
+      } else {
+        const shapeError = this.edgeShapeError(connection, byId);
+        if (shapeError) invalid.push({ edge: connection.id, from: connection.from, to: connection.to, reason: shapeError });
       }
     }
     this.designArtifacts.invalidEdges = invalid;
@@ -516,6 +522,14 @@ export class NeuralNetworkDesignerApp {
 
   // Real compile plan document derived from the current graph (local).
   async buildCompilePlan() {
+    if (this.collectShapeErrors().length > 0) {
+      this.designArtifacts.plan = null;
+      this.designArtifacts.planCid = null;
+      this.designArtifacts.backendStatus = this.validationMessage();
+      this.showStatusMessage(this.designArtifacts.backendStatus);
+      this.recordWorkflowAction('build-compile-plan', 'refused: invalid edge');
+      return null;
+    }
     const parameters = this.calculateParameters(this.networkConfig.layers);
     const plan = {
       schema: 'swissknife.neural-network-designer.compile-plan.v1',
@@ -766,7 +780,10 @@ export class NeuralNetworkDesignerApp {
           </div>
           
           <div class="toolbar-section">
-            <button class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.validateNetwork()">✅ Validate</button>
+            <button type="button" id="nnd-load-fixture" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.loadShapeFixture()">Load example graph</button>
+            <div class="nnd-label-field"><span id="nnd-graph-label-caption">Graph label</span><input id="nnd-graph-label" class="sk-input" aria-labelledby="nnd-graph-label-caption" value="fixture-graph" onkeydown="if (event.key === 'Enter') { event.preventDefault(); window.neuralDesignerApp?.publishValidation(); }"></div>
+            <button type="button" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.publishValidation()">✅ Validate</button>
+            <button type="button" id="nnd-correct-shape" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.correctGraphShape()">Correct graph shape</button>
             <button data-native-gateway-binding="neural-network-designer.ipfs_accelerate_py.run_inference_job" data-native-tool-id="run_inference_job" class="btn btn-sm btn-success sk-btn sk-btn-primary" title="Runs the current design as a real ipfs_accelerate_py inference job. Training is not exposed by that backend." onclick="window.neuralDesignerApp?.runInferenceJob(event.currentTarget)">▶ Run inference</button>
             <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.deployToP2P(event.currentTarget)">🌐 Deploy</button>
           </div>
@@ -778,11 +795,11 @@ export class NeuralNetworkDesignerApp {
           </div>
         </div>
 
-        <section class="vda-g031-panel" data-svd-workflow="${VDA_G031_WORKFLOW}" aria-label="VDA-G031 neural network workflow">
+        <section class="vda-g031-panel" data-svd-workflow="${VDA_G031_WORKFLOW}" aria-label="Neural network workflow">
           <div class="vda-g031-header">
             <div>
-              <h3>VDA-G031 Neural Network Workflow</h3>
-              <p>Local design canvas below. Graph artifacts, validation records, and compile plans are computed locally with real content CIDs; backend persistence happens only behind your explicit confirmation. Inference runs as a real ipfs_accelerate_py job — training is not exposed by that backend, so no training outcome is ever claimed.</p>
+              <h3>Neural network workflow</h3>
+              <p>Design on the canvas. Extra graph diagnostics stay in the scrolling panel and do not replace the canvas. An incompatible edge is rejected and is not treated as a completed compile.</p>
             </div>
             <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" class="btn btn-primary workflow-primary sk-btn sk-btn-primary" data-svd-workflow="${VDA_G031_WORKFLOW}" data-svd-workflow-action="generate-graph-artifacts" onclick="window.neuralDesignerApp?.requestGraphPersist(event.currentTarget)">Build + persist graph artifact</button>
           </div>
@@ -825,6 +842,8 @@ export class NeuralNetworkDesignerApp {
           <!-- Canvas Container -->
           <div class="canvas-container">
             <div class="canvas-local-label">Local design canvas — every edit stays in this browser until you export or persist.</div>
+            <p id="nnd-workflow-status" role="status">${this.escapeHtml(this.validationMessage())}</p>
+            <p id="nnd-graph-summary">${this.escapeHtml(this.graphSummaryText())}</p>
             <canvas id="network-canvas" width="800" height="600"></canvas>
             <div class="canvas-overlay" id="canvas-overlay"></div>
           </div>
@@ -967,8 +986,8 @@ export class NeuralNetworkDesignerApp {
       <div class="vda-g031-grid">
         <div class="vda-g031-card sk-card" data-svd-vda-marker="graph-artifacts">
           <h4>Graph Artifact</h4>
-          <p>${artifacts.graphCid ? `Computed CID <code>${artifacts.graphCid}</code>` : 'Not built yet.'}</p>
-          <p>${artifacts.graphPersistedCid ? `Persisted <code>${artifacts.graphPersistedCid}</code> (retrieval verified: ${artifacts.graphVerified})` : 'Not persisted to the backend yet.'}</p>
+          <p>${artifacts.graphCid ? `Computed CID <code>${artifacts.graphCid}</code>` : this.networkConfig.layers.length ? `Local draft: ${this.networkConfig.layers.length} layers on the canvas.` : 'Not built yet.'}</p>
+          <p>${artifacts.graphPersistedCid ? `Persisted <code>${artifacts.graphPersistedCid}</code> (retrieval verified: ${artifacts.graphVerified})` : this.networkConfig.layers.length ? 'Saved in this browser draft. Not sent to the backend.' : 'Not persisted to the backend yet.'}</p>
           <p>${this.networkConfig.layers.length} layers, ${this.networkConfig.connections.length} edges on the local canvas.</p>
           <button class="btn btn-sm sk-btn" data-svd-workflow-action="generate-graph-artifacts" onclick="window.neuralDesignerApp?.buildGraphArtifact()">Build graph artifact</button>
           <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.requestGraphPersist(event.currentTarget)">Persist</button>
@@ -979,7 +998,7 @@ export class NeuralNetworkDesignerApp {
           ${artifacts.validation
             ? `<p>Status: <strong>${this.escapeHtml(artifacts.validation.status)}</strong> · CID <code>${artifacts.validationCid}</code></p>
                ${artifacts.validation.errors.length ? `<p>${artifacts.validation.errors.map(e => this.escapeHtml(e)).join('<br>')}</p>` : '<p>Input layer, output layer, edge references, and acyclicity all check out.</p>'}`
-            : '<p>Not validated yet. Checks the current graph locally: input/output presence, edge references, cycles.</p>'}
+            : `<p>${this.networkConfig.layers.length ? this.escapeHtml(this.validationMessage()) : 'Not validated yet. Checks the current graph locally: input/output presence, edge references, cycles.'}</p>`}
           <button class="btn btn-sm sk-btn" data-svd-workflow-action="validate-schema-contract" onclick="window.neuralDesignerApp?.validateNetwork()">Validate contract</button>
         </div>
         <div class="vda-g031-card sk-card" data-svd-vda-marker="compile-train-planning">
@@ -988,7 +1007,7 @@ export class NeuralNetworkDesignerApp {
             ? `<p>adam lr ${artifacts.plan.learning_rate}, ${artifacts.plan.epochs} epochs, batch ${artifacts.plan.batch_size}</p>
                <p>${artifacts.plan.parameters.toLocaleString()} parameters · ~${artifacts.plan.estimated_memory_mb} MB · CID <code>${artifacts.planCid}</code></p>
                <p>${artifacts.planPersistedCid ? `Persisted <code>${artifacts.planPersistedCid}</code>` : 'Not persisted yet.'}</p>`
-            : '<p>Not built yet. Derived locally from the current graph; parameter counts are real arithmetic, not estimates from a run.</p>'}
+            : `<p>${this.networkConfig.layers.length && this.collectShapeErrors().length === 0 ? 'Shape checks passed. The compile plan is local arithmetic and does not claim compilation.' : 'Not built yet. Derived locally from the current graph; parameter counts are real arithmetic, not estimates from a run.'}</p>`}
           <button class="btn btn-sm sk-btn" data-svd-workflow-action="plan-compile-train" onclick="window.neuralDesignerApp?.buildCompilePlan().then(() => window.neuralDesignerApp?.updateWorkflowPanel())">Build plan</button>
           <button data-native-gateway-binding="neural-network-designer.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.requestPlanPersist(event.currentTarget)">Persist plan</button>
         </div>
@@ -1002,7 +1021,7 @@ export class NeuralNetworkDesignerApp {
         <div class="vda-g031-card sk-card" data-svd-vda-marker="result-receipts">
           <h4>Inference Job (backend)</h4>
           <label>Model ID <input id="nnd-model-id" class="sk-input" placeholder="Owner default or catalog model ID"></label>
-          <button class="btn btn-sm sk-btn" data-native-gateway-binding="neural-network-designer.ipfs_accelerate_py.read_model_catalog" data-native-tool-id="list_models" onclick="window.neuralDesignerApp?.refreshModelCatalog(event.currentTarget)">Read model catalog</button>
+          <button type="button" id="nnd-read-catalog" class="btn btn-sm sk-btn" data-native-gateway-binding="neural-network-designer.ipfs_accelerate_py.read_model_catalog" data-native-tool-id="list_models" onclick="window.neuralDesignerApp?.refreshModelCatalog(event.currentTarget)">Read model catalog</button>
           <label>Job ID <input id="nnd-job-id" class="sk-input" placeholder="Reviewed sample job when empty"></label>
           <button class="btn btn-sm sk-btn" data-native-gateway-binding="neural-network-designer.ipfs_accelerate_py.read_job_status" data-native-tool-id="job_status" onclick="window.neuralDesignerApp?.refreshJobStatus(event.currentTarget)">Read job status</button>
           ${inferenceBody}
@@ -1047,6 +1066,7 @@ export class NeuralNetworkDesignerApp {
   createWindow() {
     // Make this instance globally available for onclick handlers
     window.neuralDesignerApp = this;
+    this.restoreDraft();
     
     const content = this.render();
     
@@ -1295,6 +1315,116 @@ export class NeuralNetworkDesignerApp {
     if (statusLayers) statusLayers.textContent = this.networkConfig.layers.length;
     if (totalParams) totalParams.textContent = parameters.toLocaleString();
     if (memoryUsage) memoryUsage.textContent = `${Math.max(1, Math.round((parameters * 4) / (1024 * 1024)))} MB`;
+    const summary = document.getElementById('nnd-graph-summary');
+    if (summary) summary.textContent = this.graphSummaryText();
+  }
+
+  graphSummaryText() {
+    const layers = this.networkConfig.layers.map(layer => layer.id).join(',') || 'none';
+    const edges = this.networkConfig.connections.map(connection => connection.id).join(',') || 'none';
+    return `layers ${layers} edges ${edges}`;
+  }
+
+  layerOutputWidth(layer) {
+    if (!layer) return null;
+    if (layer.type === 'input') return Number(layer.params?.inputSize);
+    if (layer.type === 'dense') return Number(layer.params?.units);
+    if (layer.type === 'output') return Number(layer.params?.outputSize);
+    return null;
+  }
+
+  edgeShapeError(connection, byId) {
+    const source = byId.get(connection.from);
+    const target = byId.get(connection.to);
+    if (!source || !target || target.type !== 'output') return null;
+    const sourceWidth = this.layerOutputWidth(source);
+    const targetWidth = this.layerOutputWidth(target);
+    if (!Number.isFinite(sourceWidth) || !Number.isFinite(targetWidth) || sourceWidth !== targetWidth) {
+      return `Invalid edge rejected: ${connection.id} ${connection.from} width ${sourceWidth} does not match ${connection.to} width ${targetWidth}.`;
+    }
+    return null;
+  }
+
+  collectShapeErrors() {
+    const byId = new Map(this.networkConfig.layers.map(layer => [layer.id, layer]));
+    const errors = [];
+    for (const connection of this.networkConfig.connections) {
+      const shapeError = this.edgeShapeError(connection, byId);
+      if (shapeError) errors.push(shapeError);
+    }
+    return errors;
+  }
+
+  validationMessage(recoveryNote = '') {
+    const errors = this.collectShapeErrors();
+    if (this.networkConfig.layers.length === 0) return 'No graph validated yet.';
+    const geometry = this.networkConfig.layers.every(layer => Number.isFinite(layer.x) && Number.isFinite(layer.y))
+      ? 'Graph geometry and schema agree.'
+      : 'Graph geometry does not match the schema.';
+    const note = recoveryNote ? ` ${recoveryNote}` : '';
+    if (errors.length === 0) return `${geometry}${note} Compilation was not claimed.`;
+    return `${geometry}${note} ${errors[0]} Compilation was not run.`;
+  }
+
+  publishValidation(recoveryNote = '') {
+    const message = this.validationMessage(recoveryNote);
+    this.designArtifacts.backendStatus = message;
+    this.showStatusMessage(message);
+    const workflowStatus = document.getElementById('nnd-workflow-status');
+    if (workflowStatus) workflowStatus.textContent = message;
+    return message;
+  }
+
+  persistDraft() {
+    try {
+      localStorage.setItem('neural-designer-draft', JSON.stringify(this.networkConfig));
+    } catch {
+      this.designArtifacts.backendStatus = 'The local graph draft could not be saved in this browser.';
+    }
+  }
+
+  restoreDraft() {
+    try {
+      const raw = localStorage.getItem('neural-designer-draft');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.layers) || !Array.isArray(parsed.connections) || !parsed.metadata) return;
+      this.networkConfig = parsed;
+    } catch {
+      /* Keep the in-memory graph when the draft cannot be read. */
+    }
+  }
+
+  loadShapeFixture() {
+    this.pushHistory();
+    this.networkConfig.metadata = { ...this.networkConfig.metadata, name: 'fixture-graph' };
+    this.networkConfig.layers = [
+      { id: 'nnd-in', type: 'input', name: 'Input', x: 70, y: 48, params: { inputSize: '4', inputType: 'vector' } },
+      { id: 'nnd-hidden', type: 'dense', name: 'Hidden', x: 210, y: 48, params: { units: '2', activation: 'relu', dropout: '0' } },
+      { id: 'nnd-out', type: 'output', name: 'Output', x: 350, y: 48, params: { outputSize: '2', activation: 'softmax' } },
+    ];
+    this.networkConfig.connections = [
+      { id: 'nnd-e1', from: 'nnd-in', to: 'nnd-hidden' },
+      { id: 'nnd-e2', from: 'nnd-hidden', to: 'nnd-out' },
+      { id: 'nnd-bad', from: 'nnd-in', to: 'nnd-out' },
+    ];
+    this.selectedLayer = null;
+    this.persistDraft();
+    this.renderCanvas();
+    this.updateNetworkSummary();
+    this.updatePropertiesPanel();
+    this.updateWorkflowPanel();
+  }
+
+  correctGraphShape() {
+    const byId = new Map(this.networkConfig.layers.map(layer => [layer.id, layer]));
+    this.pushHistory();
+    this.networkConfig.connections = this.networkConfig.connections.filter(connection => !this.edgeShapeError(connection, byId));
+    this.persistDraft();
+    this.renderCanvas();
+    this.updateNetworkSummary();
+    this.updateWorkflowPanel();
+    this.publishValidation('Graph shape corrected.');
   }
 
   // Action Methods
@@ -1585,7 +1715,10 @@ export class NeuralNetworkDesignerApp {
       .vda-g031-panel {
         border-bottom: 1px solid #d7dde3;
         background: #ffffff;
-        padding: 12px;
+        padding: 8px 12px;
+        flex: 0 1 auto;
+        max-height: 132px;
+        overflow: auto;
       }
 
       .vda-g031-header {
@@ -1593,7 +1726,7 @@ export class NeuralNetworkDesignerApp {
         justify-content: space-between;
         align-items: flex-start;
         gap: 12px;
-        margin-bottom: 10px;
+        margin-bottom: 4px;
       }
 
       .vda-g031-header h3 {
@@ -1615,7 +1748,7 @@ export class NeuralNetworkDesignerApp {
 
       .vda-g031-grid {
         display: grid;
-        grid-template-columns: repeat(5, minmax(150px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 8px;
       }
 
@@ -1718,11 +1851,57 @@ export class NeuralNetworkDesignerApp {
         border-bottom: 1px solid #e2e8f0;
         padding: 4px 10px;
       }
+
+      #nnd-workflow-status,
+      #nnd-graph-summary {
+        margin: 0;
+        padding: 4px 10px;
+        font-size: 12px;
+        line-height: 1.35;
+        color: #102a43;
+        background: #f8fafc;
+      }
+
+      .nnd-label-field {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 2px;
+        position: static;
+        min-width: 8.5rem;
+        max-width: 11rem;
+      }
+
+      .nnd-label-field span {
+        position: static;
+        transform: none;
+        display: block;
+        overflow: visible;
+        white-space: nowrap;
+        font-size: 11px;
+        line-height: 1.2;
+        color: #102a43;
+        background: transparent;
+        opacity: 1;
+        height: auto;
+        width: auto;
+      }
+
+      #nnd-graph-label {
+        width: 8.5rem;
+        min-height: 28px;
+        color: #102a43;
+        background: #ffffff;
+        border: 1px solid #486581;
+        position: static;
+      }
       
       .toolbar-section {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 6px;
+        flex-wrap: wrap;
+        min-width: 0;
       }
       
       .network-name {
@@ -1732,8 +1911,9 @@ export class NeuralNetworkDesignerApp {
       }
       
       .designer-content {
-        flex: 1;
+        flex: 1 1 auto;
         display: flex;
+        min-height: 0;
         overflow: hidden;
       }
       
@@ -1743,6 +1923,8 @@ export class NeuralNetworkDesignerApp {
         border-right: 1px solid #dee2e6;
         padding: 15px;
         overflow-y: auto;
+        min-height: 0;
+        max-height: 100%;
       }
       
       .layer-palette h3 {
@@ -1760,13 +1942,17 @@ export class NeuralNetworkDesignerApp {
       .layer-type {
         display: flex;
         align-items: center;
+        flex-wrap: nowrap;
         gap: 8px;
-        padding: 10px;
+        padding: 4px 8px;
         background: white;
         border: 1px solid #dee2e6;
         border-radius: 6px;
         cursor: grab;
         transition: all 0.2s;
+        height: auto;
+        min-height: 28px;
+        overflow: visible;
       }
       
       .layer-type:hover {
@@ -1783,8 +1969,12 @@ export class NeuralNetworkDesignerApp {
       }
       
       .layer-name {
+        flex: 1 0 auto;
         font-size: 12px;
         font-weight: 500;
+        color: #102a43;
+        white-space: nowrap;
+        overflow: visible;
       }
       
       .connection-tools h4 {
@@ -1817,15 +2007,21 @@ export class NeuralNetworkDesignerApp {
       }
       
       .canvas-container {
-        flex: 1;
+        flex: 1 1 auto;
         position: relative;
         overflow: auto;
         background: #fff;
+        min-height: 0;
+        min-width: 0;
       }
       
       #network-canvas {
         border: none;
         cursor: crosshair;
+        display: block;
+        width: min(100%, 720px);
+        height: auto;
+        max-height: 240px;
       }
       
       .canvas-overlay {
@@ -1841,6 +2037,8 @@ export class NeuralNetworkDesignerApp {
         border-left: 1px solid #dee2e6;
         padding: 15px;
         overflow-y: auto;
+        min-height: 0;
+        max-height: 100%;
       }
       
       .properties-panel h3 {
@@ -2078,21 +2276,72 @@ export class NeuralNetworkDesignerApp {
         font-size: 11px;
       }
 
+      .neural-designer-container .btn:not(.btn-primary):not(.btn-success):not(.btn-danger) {
+        color: #102a43;
+        background: #f8fafc;
+        border-color: #486581;
+      }
+
+      .neural-designer-container .btn:disabled {
+        color: #334e68;
+        background: #e4e7eb;
+        opacity: 1;
+      }
+
       @media (max-width: 700px) {
         .neural-designer-container {
           min-width: 0;
+          overflow: auto;
         }
 
-        .designer-toolbar,
+        .designer-toolbar {
+          align-items: stretch;
+          flex-direction: column;
+          flex-wrap: nowrap;
+          max-height: none;
+          overflow-x: hidden;
+          overflow-y: visible;
+          gap: 4px;
+          padding: 6px;
+        }
+
+        .designer-toolbar .btn,
+        .designer-toolbar .nnd-label-field,
+        .designer-toolbar .network-name,
+        #nnd-graph-label {
+          position: static;
+          float: none;
+          inset: auto;
+          transform: none;
+          margin: 0;
+          max-width: 100%;
+        }
+
         .vda-g031-header,
         .designer-status {
           align-items: stretch;
           flex-direction: column;
         }
 
+        .vda-g031-panel {
+          max-height: 8rem;
+          overflow: auto;
+        }
+
+        .vda-g031-header .workflow-primary {
+          order: -1;
+          align-self: flex-start;
+        }
+
         .toolbar-section,
         .status-section {
           flex-wrap: wrap;
+          width: 100%;
+          position: static;
+        }
+
+        .network-name {
+          min-width: 0;
         }
 
         .vda-g031-grid {
@@ -2100,24 +2349,43 @@ export class NeuralNetworkDesignerApp {
         }
 
         .designer-content {
-          display: block;
+          display: flex;
+          flex-direction: column;
           overflow: auto;
+          min-height: 0;
+        }
+
+        .canvas-container {
+          order: -1;
+          flex: 0 0 auto;
+          min-height: 0;
+          max-height: 7.5rem;
+          overflow: hidden;
         }
 
         .layer-palette,
         .properties-panel {
           width: auto;
+          max-height: none;
+          overflow: visible;
           border: 0;
           border-bottom: 1px solid #dee2e6;
         }
 
-        .canvas-container {
-          min-height: 280px;
+        .properties-panel {
+          max-height: 7rem;
+          overflow-y: auto;
+        }
+
+        .layer-name {
+          color: #102a43;
+          font-size: 13px;
         }
 
         #network-canvas {
-          width: 800px;
-          height: 600px;
+          width: 100%;
+          height: auto;
+          max-height: none;
         }
       }
     `;

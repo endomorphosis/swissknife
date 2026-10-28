@@ -1,0 +1,37 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "neural-network-designer",
+  "description": "Load a three-node graph with one shape-incompatible edge, reject compile, reopen the draft, then remove that edge.",
+  "fixture_scope": "svf-nnd-shape-352",
+  "backend_bindings": [
+    {
+      "binding_id": "neural-network-designer.ipfs_accelerate_py.read_model_catalog",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/result/models/0/id",
+        "operator": "equals",
+        "expected": "gpt2"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {"op": "click", "selector": "#nnd-load-fixture"},
+      {"op": "click", "selector": "#nnd-read-catalog"},
+      {"op": "press", "selector": "#nnd-graph-label", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#nnd-workflow-status"}, "operator": "contains", "expected": "Invalid edge rejected"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#nnd-graph-summary"}, "operator": "equals", "expected": "layers nnd-in,nnd-hidden,nnd-out edges nnd-e1,nnd-e2,nnd-bad"}
+    ],
+    "failure_recovery": [
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#nnd-workflow-status"}, "operator": "contains", "expected": "Compilation was not run."},
+      {"op": "click", "selector": "#nnd-correct-shape"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#nnd-workflow-status"}, "operator": "contains", "expected": "Graph shape corrected"}
+    ]
+  }
+}

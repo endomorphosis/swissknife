@@ -1,0 +1,28 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "music-studio-unified",
+  "description": "Edit the active note on the two-track local demo, save and reopen it, then reject an unknown project and restore the demo without claiming playback.",
+  "fixture_scope": "svf-music-studio-unified",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {"op": "wait_for", "selector": "#ums-note", "state": "visible", "timeout_ms": 10000},
+      {"op": "fill", "selector": "#ums-note", "value": "C4"},
+      {"op": "press", "selector": "#ums-note", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#ums-status"}, "operator": "contains", "expected": "Tracks: Drums, Bass · Tempo: 120 BPM · Transport: stopped · Note: C4"}
+    ],
+    "persist_reopen": [
+      {"op": "click", "selector": "#ums-save-project"},
+      {"op": "reopen_app"},
+      {"op": "wait_for", "selector": "#ums-status", "state": "visible", "timeout_ms": 10000},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#ums-status"}, "operator": "contains", "expected": "Tracks: Drums, Bass · Tempo: 120 BPM · Transport: stopped · Note: C4"}
+    ],
+    "failure_recovery": [
+      {"op": "fill", "selector": "#ums-project-key", "value": "missing-project"},
+      {"op": "click", "selector": "#ums-load-project"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#ums-status"}, "operator": "equals", "expected": "Invalid project. Playback did not start."},
+      {"op": "click", "selector": "#ums-use-demo"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#ums-status"}, "operator": "contains", "expected": "Tracks: Drums, Bass · Tempo: 120 BPM · Transport: stopped"}
+    ]
+  }
+}

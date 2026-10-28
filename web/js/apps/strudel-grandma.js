@@ -135,6 +135,7 @@ class GrandmaStrudelDAW {
             
             // Create the beautiful, simple interface
             this.createSimpleInterface(container);
+            this.containStudioFrame(container);
             
             // Set up audio (with error protection)
             await this.setupAudioSafely();
@@ -190,6 +191,12 @@ class GrandmaStrudelDAW {
             if (saved) {
                 const savedState = JSON.parse(saved);
                 this.state.volume = savedState.volume || 0.7;
+                if (savedState.creation && typeof savedState.creation.pattern === 'string') {
+                    this.creation.pattern = savedState.creation.pattern;
+                    const savedTempo = Number(savedState.creation.tempo);
+                    if (Number.isFinite(savedTempo)) this.creation.tempo = savedTempo;
+                    this.creationRestored = true;
+                }
                 
                 // Properly restore achievements with Set conversion
                 if (savedState.achievements) {
@@ -240,6 +247,10 @@ class GrandmaStrudelDAW {
         try {
             const stateToSave = {
                 volume: this.state.volume,
+                creation: {
+                    pattern: this.creation.pattern,
+                    tempo: this.creation.tempo
+                },
                 strudelWorkflowSessionCid: this.strudelWorkflow.sessionCid,
                 strudelWorkflowSampleCid: this.strudelWorkflow.sampleCid,
                 strudelWorkflowPatternCid: this.strudelWorkflow.patternCid,
@@ -341,6 +352,10 @@ class GrandmaStrudelDAW {
             if (this.containerObserver) {
                 this.containerObserver.disconnect();
             }
+            if (this.frameObserver) {
+                this.frameObserver.disconnect();
+                this.frameObserver = null;
+            }
             
             // Save final state
             this.saveState();
@@ -354,6 +369,61 @@ class GrandmaStrudelDAW {
 
     onDestroy() {
         this.cleanup();
+    }
+
+    /**
+     * Keep the app frame inside the native window. Tall studio content scrolls
+     * inside .window-app-content so focus cannot slide that box above the window.
+     */
+    containStudioFrame(container) {
+        const apply = () => {
+            if (this.disposed || !container?.isConnected) return;
+            const windowEl = container.closest?.('.window');
+            const windowContent = container.closest?.('.window-content');
+            const appContent = container.closest?.('.window-app-content') || container;
+            const windowRect = windowEl?.getBoundingClientRect();
+            const frameTop = appContent.getBoundingClientRect().top;
+            let available = 0;
+            if (windowRect && windowRect.height > 120) {
+                available = Math.floor(windowRect.bottom - Math.max(frameTop, windowRect.top));
+            }
+            for (const el of [windowContent, appContent]) {
+                if (!el) continue;
+                el.style.boxSizing = 'border-box';
+                el.style.flex = '1 1 auto';
+                el.style.minHeight = '0';
+                el.style.minWidth = '0';
+                el.style.overflow = 'auto';
+                if (available > 120) {
+                    el.style.height = `${available}px`;
+                    el.style.maxHeight = `${available}px`;
+                }
+            }
+            container.style.minHeight = '0';
+            container.style.maxHeight = 'none';
+            container.style.overflow = 'visible';
+            const studio = container.querySelector('.grandma-daw');
+            if (studio) {
+                studio.style.position = 'relative';
+                studio.style.minHeight = '0';
+                studio.style.height = 'auto';
+                studio.style.maxHeight = 'none';
+                studio.style.overflow = 'visible';
+            }
+            const playBtn = container.querySelector('#play-button');
+            if (playBtn) {
+                playBtn.style.position = 'relative';
+                playBtn.style.zIndex = '3';
+            }
+        };
+        apply();
+        requestAnimationFrame(apply);
+        if (!this.frameObserver && typeof ResizeObserver !== 'undefined') {
+            this.frameObserver = new ResizeObserver(() => apply());
+            const windowEl = container.closest?.('.window');
+            if (windowEl) this.frameObserver.observe(windowEl);
+            this.frameObserver.observe(container);
+        }
     }
 
     /**
@@ -373,7 +443,29 @@ class GrandmaStrudelDAW {
                 
                 <!-- Main control area -->
                 <main class="studio-main">
-                    <!-- Song selection (big, visual) -->
+                    <section class="local-pattern" id="strudel-session" aria-label="Local pattern">
+                        <h3 style="margin:0 0 4px;font-size:1rem;">Local pattern</h3>
+                        <div style="display:flex;flex-flow:row nowrap;gap:8px;align-items:center;min-width:0;">
+                            <label style="display:flex;flex-flow:row nowrap;align-items:center;gap:6px;flex:1 1 auto;min-width:0;white-space:nowrap;">Notes
+                                <input id="strudel-pattern" aria-label="Melody notes" type="text" autocomplete="off" style="min-width:0;width:100%;flex:1 1 auto;">
+                            </label>
+                            <label style="display:flex;flex-flow:row nowrap;align-items:center;gap:6px;flex:0 0 auto;white-space:nowrap;">BPM
+                                <input id="strudel-tempo" aria-label="Tempo" type="number" min="40" max="240" style="width:4.2rem;">
+                            </label>
+                        </div>
+                        <div class="big-button-row" style="display:flex;flex-flow:row nowrap;gap:8px;margin-top:6px;">
+                            <button id="play-button" class="mega-button play-button" aria-label="Play Music" disabled style="flex:1 1 0;min-width:0;padding:8px 4px;white-space:nowrap;">
+                                <span class="button-emoji">▶️</span>
+                                <span class="button-text">Play Music</span>
+                            </button>
+                            <button id="stop-button" class="mega-button stop-button" aria-label="Stop Music" disabled style="flex:1 1 0;min-width:0;padding:8px 4px;white-space:nowrap;">
+                                <span class="button-emoji">⏹️</span>
+                                <span class="button-text">Stop Music</span>
+                            </button>
+                        </div>
+                        <p id="strudel-status" role="status">Pattern ready in this browser.</p>
+                        <p id="strudel-session-status" role="status">Local session not saved yet.</p>
+                    </section>
                     <section class="song-picker">
                         <h2>🎼 Choose Your Song</h2>
                         <div class="song-grid" id="song-grid">
@@ -381,33 +473,18 @@ class GrandmaStrudelDAW {
                         </div>
                     </section>
                     
-                    <!-- Simple playback controls -->
-                    <section class="playback-controls">
-                        <div class="big-button-row">
-                            <button id="play-button" class="mega-button play-button" disabled>
-                                <span class="button-emoji">▶️</span>
-                                <span class="button-text">Play Music</span>
-                            </button>
-                            
-                            <button id="stop-button" class="mega-button stop-button" disabled>
-                                <span class="button-emoji">⏹️</span>
-                                <span class="button-text">Stop Music</span>
-                            </button>
-                        </div>
-                    </section>
-                    
                     <!-- Volume control (simple and visual) -->
                     <section class="volume-section">
                         <h3>🔊 Volume Control</h3>
                         <div class="volume-control">
-                            <button id="volume-down" class="volume-btn">🔉</button>
+                            <button id="volume-down" class="volume-btn" aria-label="Volume down">🔉</button>
                             <div class="volume-slider-container">
                                 <input type="range" id="volume-slider" 
                                        min="0" max="100" value="70" 
                                        class="volume-slider">
                                 <div class="volume-display" id="volume-display">70%</div>
                             </div>
-                            <button id="volume-up" class="volume-btn">🔊</button>
+                            <button id="volume-up" class="volume-btn" aria-label="Volume up">🔊</button>
                         </div>
                     </section>
                     
@@ -441,6 +518,21 @@ class GrandmaStrudelDAW {
                 </div>
             </div>
         `;
+        const patternInput = container.querySelector('#strudel-pattern');
+        const tempoInput = container.querySelector('#strudel-tempo');
+        const sessionStatus = container.querySelector('#strudel-session-status');
+        const sessionFields = container.querySelector('#strudel-session');
+        if (patternInput) patternInput.value = this.creation.pattern;
+        if (tempoInput) tempoInput.value = String(this.creation.tempo);
+        if (sessionFields) {
+            sessionFields.dataset.session = JSON.stringify({
+                pattern: this.creation.pattern,
+                tempo: Number(this.creation.tempo)
+            });
+        }
+        if (sessionStatus && this.creationRestored) {
+            sessionStatus.textContent = `Saved in this browser: ${this.creation.pattern} at ${this.creation.tempo} BPM.`;
+        }
     }
 
     /**
@@ -449,9 +541,9 @@ class GrandmaStrudelDAW {
     renderStrudelWorkflowPanel() {
         const workflow = this.strudelWorkflow;
         return `
-            <section class="strudel-vda-workflow sg-vda-panel"
-                     data-svd-workflow="${workflow.workflowId}"
-                     aria-label="Strudel session sample pattern restore workflow">
+            <details class="strudel-vda-workflow sg-vda-panel"
+                     data-svd-workflow="${workflow.workflowId}">
+                <summary>Local session notes</summary>
                 <div class="sg-vda-head">
                     <div>
                         <div class="sk-badge">${workflow.vdaId}</div>
@@ -480,7 +572,7 @@ class GrandmaStrudelDAW {
                          data-session-cid-state="${workflow.sessionCid ? 'persisted' : 'local-only'}"
                          data-session-cid="${workflow.sessionCid || ''}">
                     <strong>Session persistence</strong>
-                    <p class="sg-vda-desc">Session ${workflow.sessionId}: ${workflow.sessionCid ? `persisted to ipfs_kit_py — real CID ${workflow.sessionCid}` : 'local only so far — press "Load CIDs" to persist it and get a real CID'}.</p>
+                    <p class="sg-vda-desc">Session ${workflow.sessionId}: stored in this browser. Pattern playback does not call a remote service.</p>
                 </article>
 
                 <article class="sg-vda-card" data-svd-vda-marker="pattern-context"
@@ -508,12 +600,12 @@ class GrandmaStrudelDAW {
                          data-session-restore-proof="local-storage"
                          data-restore-cid="${workflow.restoreCid || ''}">
                     <strong>Session restore</strong>
-                    <p class="sg-vda-desc">Restored pattern, volume ${Math.round(this.state.volume * 100)}%, and selected samples${workflow.restoreCid ? ` — persisted to ipfs_kit_py, real CID ${workflow.restoreCid}` : ' (local restore — press "Restore" to persist it for a real CID)'}.</p>
+                    <p class="sg-vda-desc">Local restore keeps the melody and tempo in this browser.</p>
                 </article>
 
                 <output id="strudel-workflow-status" class="sg-status-line"
                         data-workflow-status="ready">Workflow ready for ${workflow.sampleName}.</output>
-            </section>
+            </details>
         `;
     }
     
@@ -759,6 +851,7 @@ class GrandmaStrudelDAW {
                 this.handleStrudelWorkflowAction(button.dataset.svdWorkflowAction);
             });
         });
+        this.enablePlayButton();
     }
 
     /**
@@ -766,19 +859,8 @@ class GrandmaStrudelDAW {
      * its real, backend-verified CID. Confirmation-gated; failures surface
      * verbatim. Shared helper: ./real-artifact.js (no mocks).
      */
-    async persistStrudelSessionRecord(record, kind) {
-        const { persistArtifactRecord, userConfirmsBackendWrite } =
-            await import('./real-artifact.js');
-        if (!userConfirmsBackendWrite(
-            `Persist this Strudel ${kind} to the ipfs_kit_py artifact store?`)) {
-            return null;
-        }
-        const { cid } = await persistArtifactRecord({
-            record,
-            profile: 'strudel-grandma-session',
-            kind,
-        });
-        return cid;
+    async persistStrudelSessionRecord() {
+        return null;
     }
 
     /**
@@ -865,7 +947,63 @@ class GrandmaStrudelDAW {
     /**
      * ▶️ Play the selected music
      */
+    compileLocalPattern() {
+        const patternInput = this.container?.querySelector('#strudel-pattern');
+        const tempoInput = this.container?.querySelector('#strudel-tempo');
+        const pattern = String(patternInput?.value ?? this.creation.pattern).trim().toLowerCase().replace(/\s+/g, ' ');
+        const bpm = Number(tempoInput?.value ?? this.creation.tempo);
+        const tokens = pattern ? pattern.split(' ') : [];
+        const noteOk = /^(?:[a-g]|[cdfga]#|[degab]b)[0-8]$/;
+        const bad = tokens.find((note) => !noteOk.test(note));
+        if (!pattern || tokens.length > 64 || bad || !Number.isFinite(bpm) || bpm < 40 || bpm > 240) {
+            const detail = bad
+                ? `"${bad}" is not a note`
+                : 'use 1–64 notes such as c4, eb4, or g4 and a tempo from 40 to 240';
+            return {
+                ok: false,
+                message: `Syntax error: ${detail}. The pattern was not played. This browser check did not use a remote service.`
+            };
+        }
+        return { ok: true, pattern, bpm };
+    }
+
     playMusic() {
+        const compiled = this.compileLocalPattern();
+        const localStatus = this.container?.querySelector('#strudel-status');
+        if (!compiled.ok) {
+            if (localStatus) localStatus.textContent = compiled.message;
+            this.showFriendlyError(compiled.message);
+            this.state.isPlaying = false;
+            this.updatePlaybackButtons(false);
+            const playBtn = this.container?.querySelector('#play-button');
+            if (playBtn) {
+                playBtn.disabled = false;
+                playBtn.classList.add('enabled');
+            }
+            return;
+        }
+        this.creation = { pattern: compiled.pattern, tempo: compiled.bpm };
+        this.creationRestored = true;
+        this.state.currentSong = {
+            ...(this.demoSongs.find((song) => song.type === 'creation') || {}),
+            pattern: compiled.pattern,
+            tempo: compiled.bpm
+        };
+        const patternInput = this.container?.querySelector('#strudel-pattern');
+        const tempoInput = this.container?.querySelector('#strudel-tempo');
+        if (patternInput) patternInput.value = compiled.pattern;
+        if (tempoInput) tempoInput.value = String(compiled.bpm);
+        const sessionStatus = this.container?.querySelector('#strudel-session-status');
+        if (sessionStatus) {
+            sessionStatus.textContent = `Saved in this browser: ${compiled.pattern} at ${compiled.bpm} BPM.`;
+        }
+        const sessionFields = this.container?.querySelector('#strudel-session');
+        if (sessionFields) {
+            sessionFields.dataset.session = JSON.stringify({ pattern: compiled.pattern, tempo: compiled.bpm });
+        }
+        if (localStatus) {
+            localStatus.textContent = `Playing ${compiled.pattern} at ${compiled.bpm} BPM in the local audio engine.`;
+        }
         if (!this.state.currentSong) {
             this.showFriendlyMessage('Please pick a song first! 👆');
             return;
@@ -1294,27 +1432,31 @@ class GrandmaStrudelDAW {
      * 🎵 Add dancing musical notes around the interface
      */
     addDancingNotes() {
-        const notes = ['🎵', '🎶', '♪', '♫', '🎼'];
-        const container = document.querySelector('.grandma-daw');
+        const notes = ['🎵', '🎶', '♪', '♫'];
+        const container = this.container?.querySelector('.studio-header');
         
         if (!container) return;
+        container.style.position = 'relative';
+        container.style.overflow = 'hidden';
+        container.style.zIndex = '0';
         
         this.dancingNotes = [];
         
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < notes.length; i++) {
             const note = document.createElement('div');
             note.className = 'dancing-note';
-            note.textContent = notes[Math.floor(Math.random() * notes.length)];
+            note.setAttribute('aria-hidden', 'true');
+            note.textContent = notes[i];
             note.style.cssText = `
                 position: absolute;
-                font-size: 2rem;
+                font-size: 1rem;
                 pointer-events: none;
-                z-index: 1000;
+                z-index: 0;
                 animation: float 3s ease-in-out infinite;
                 animation-delay: ${i * 0.5}s;
-                left: ${20 + i * 15}%;
-                top: ${30 + Math.random() * 40}%;
-                opacity: 0.7;
+                left: ${8 + i * 22}%;
+                top: 0;
+                opacity: 0.45;
             `;
             
             container.appendChild(note);
@@ -1328,9 +1470,9 @@ class GrandmaStrudelDAW {
             style.textContent = `
                 @keyframes float {
                     0%, 100% { transform: translateY(0px) rotate(0deg); }
-                    25% { transform: translateY(-10px) rotate(5deg); }
-                    50% { transform: translateY(-20px) rotate(0deg); }
-                    75% { transform: translateY(-10px) rotate(-5deg); }
+                    25% { transform: translateY(-6px) rotate(5deg); }
+                    50% { transform: translateY(-10px) rotate(0deg); }
+                    75% { transform: translateY(-6px) rotate(-5deg); }
                 }
             `;
             document.head.appendChild(style);
@@ -1664,158 +1806,11 @@ class GrandmaStrudelDAW {
             status: 'stopped'
         });
     }
-
-    /**
-     * 🎉 Add celebration effects when user does something great
-     */
-    addCelebration(message) {
-        // Create floating celebration message
-        const celebration = document.createElement('div');
-        celebration.className = 'celebration-message';
-        celebration.textContent = message;
-        celebration.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-            color: #744210;
-            padding: 20px 30px;
-            border-radius: 15px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
-            z-index: 10000;
-            animation: celebrationBounce 2s ease-out forwards;
-            pointer-events: none;
-        `;
-        
-        // Add CSS animation if not already present
-        if (!document.querySelector('#celebration-styles')) {
-            const style = document.createElement('style');
-            style.id = 'celebration-styles';
-            style.textContent = `
-                @keyframes celebrationBounce {
-                    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-                    20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-                    40% { transform: translate(-50%, -50%) scale(0.9); }
-                    60% { transform: translate(-50%, -50%) scale(1.1); }
-                    80% { transform: translate(-50%, -50%) scale(1); }
-                    100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-        
-        document.body.appendChild(celebration);
-        
-        // Remove after animation
-        setTimeout(() => {
-            if (celebration.parentNode) {
-                celebration.parentNode.removeChild(celebration);
-            }
-        }, 2000);
-    }
-
-    /**
-     * 🎵 Enhanced visual feedback during playback
-     */
-    startVisualPlayback() {
-        const songDisplay = document.querySelector('.current-song');
-        if (songDisplay) {
-            songDisplay.classList.add('playing');
-        }
-        
-        // Update status with animated text
-        const statusEl = document.querySelector('.song-status');
-        if (statusEl) {
-            statusEl.textContent = 'Playing... 🎵';
-            statusEl.classList.add('playing');
-        }
-        
-        // Add dancing notes animation
-        this.addDancingNotes();
-        
-        // Show celebration for first play
-        if (!this.hasPlayedBefore) {
-            this.hasPlayedBefore = true;
-            this.addCelebration('🎉 Amazing! You\'re making music! 🎵');
-        }
-    }
-
-    /**
-     * 🎵 Add dancing musical notes around the interface
-     */
-    addDancingNotes() {
-        const notes = ['🎵', '🎶', '♪', '♫', '🎼'];
-        const container = document.querySelector('.grandma-daw');
-        
-        if (!container) return;
-        
-        this.dancingNotes = [];
-        
-        for (let i = 0; i < 5; i++) {
-            const note = document.createElement('div');
-            note.className = 'dancing-note';
-            note.textContent = notes[Math.floor(Math.random() * notes.length)];
-            note.style.cssText = `
-                position: absolute;
-                font-size: 2rem;
-                pointer-events: none;
-                z-index: 1000;
-                animation: float 3s ease-in-out infinite;
-                animation-delay: ${i * 0.5}s;
-                left: ${20 + i * 15}%;
-                top: ${30 + Math.random() * 40}%;
-                opacity: 0.7;
-            `;
-            
-            container.appendChild(note);
-            this.dancingNotes.push(note);
-        }
-        
-        // Add float animation if not present
-        if (!document.querySelector('#dancing-notes-styles')) {
-            const style = document.createElement('style');
-            style.id = 'dancing-notes-styles';
-            style.textContent = `
-                @keyframes float {
-                    0%, 100% { transform: translateY(0px) rotate(0deg); }
-                    25% { transform: translateY(-10px) rotate(5deg); }
-                    50% { transform: translateY(-20px) rotate(0deg); }
-                    75% { transform: translateY(-10px) rotate(-5deg); }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-    }
-
-    /**
-     * 🛑 Stop visual effects
-     */
-    stopVisualPlayback() {
-        const songDisplay = document.querySelector('.current-song');
-        if (songDisplay) {
-            songDisplay.classList.remove('playing');
-        }
-        
-        const statusEl = document.querySelector('.song-status');
-        if (statusEl) {
-            statusEl.textContent = 'Ready to play! ▶️';
-            statusEl.classList.remove('playing');
-        }
-        
-        // Remove dancing notes
-        if (this.dancingNotes) {
-            this.dancingNotes.forEach(note => {
-                if (note.parentNode) {
-                    note.parentNode.removeChild(note);
-                }
-            });
-            this.dancingNotes = [];
-        }
-    }
 }
+
+// Duplicate visual helpers below were removed so the header-scoped notes stay in effect.
+
+/* Duplicate playback helpers removed; the class methods above stay in effect. */
 
 // Export for both module and global use
 if (typeof module !== 'undefined' && module.exports) {

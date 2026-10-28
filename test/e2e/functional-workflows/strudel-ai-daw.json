@@ -1,0 +1,85 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "strudel-ai-daw",
+  "description": "Edit a local Strudel pattern, undo back to it, save, reopen, then record one unavailable assistance request and keep composing.",
+  "fixture_scope": "svf-strudel-ai-daw-local",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "fill",
+        "selector": "#strudel-code-editor",
+        "value": "note(\"c3 e3 g3\").sound(\"sine\").cpm(120)"
+      },
+      {
+        "op": "click",
+        "selector": "#new-pattern"
+      },
+      {
+        "op": "click",
+        "selector": "#undo-btn"
+      },
+      {
+        "op": "press",
+        "selector": "#strudel-code-editor",
+        "key": "Control+s"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "value",
+          "selector": "#strudel-code-editor"
+        },
+        "operator": "equals",
+        "expected": "note(\"c3 e3 g3\").sound(\"sine\").cpm(120)"
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "value",
+          "selector": "#strudel-code-editor"
+        },
+        "operator": "equals",
+        "expected": "note(\"c3 e3 g3\").sound(\"sine\").cpm(120)"
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "click",
+        "selector": "#ai-generate"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#assistance-status"
+        },
+        "operator": "contains",
+        "expected": "not executed"
+      },
+      {
+        "op": "fill",
+        "selector": "#strudel-code-editor",
+        "value": "note(\"d3 f3 a3\").sound(\"sine\").cpm(120)"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "value",
+          "selector": "#strudel-code-editor"
+        },
+        "operator": "equals",
+        "expected": "note(\"d3 f3 a3\").sound(\"sine\").cpm(120)"
+      }
+    ]
+  }
+}

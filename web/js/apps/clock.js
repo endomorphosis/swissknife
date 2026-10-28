@@ -84,10 +84,88 @@ export class ClockApp {
     this.initializeApp();
   }
 
+  loadClockUserState() {
+    try {
+      const raw = localStorage.getItem('swissknife-clock-user');
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.alarms) && data.alarms.length > 0) this.alarms = data.alarms;
+      if (data.timer && typeof data.timer === 'object') {
+        this.timer.duration = Number(data.timer.duration) || 0;
+        this.timer.endTime = Number(data.timer.endTime) || null;
+        if (data.timer.isRunning && this.timer.endTime) {
+          this.timer.remaining = Math.max(0, this.timer.endTime - Date.now());
+          this.timer.isRunning = this.timer.remaining > 0;
+          if (!this.timer.isRunning) this.timer.remaining = 0;
+        } else {
+          this.timer.isRunning = false;
+          this.timer.remaining = Math.max(0, Number(data.timer.remaining) || 0);
+        }
+      }
+      this.alarmStatus = typeof data.alarmStatus === 'string' ? data.alarmStatus : '';
+    } catch (error) {
+      console.warn('Failed to load clock user state:', error);
+    }
+  }
+
+  persistClockUserState() {
+    try {
+      localStorage.setItem('swissknife-clock-user', JSON.stringify({
+        alarms: this.alarms,
+        timer: {
+          isRunning: this.timer.isRunning,
+          duration: this.timer.duration,
+          remaining: this.timer.isRunning
+            ? Math.max(0, (this.timer.endTime || Date.now()) - Date.now())
+            : this.timer.remaining,
+          endTime: this.timer.endTime
+        },
+        alarmStatus: this.alarmStatus || ''
+      }));
+    } catch (error) {
+      console.warn('Failed to save clock user state:', error);
+    }
+  }
+
+  saveAlarmFromForm() {
+    const time = (document.querySelector('#alarm-time')?.value || '').trim();
+    const label = (document.querySelector('#alarm-label')?.value || '').trim() || 'Alarm';
+    this.alarmDraftTime = time;
+    this.alarmDraftLabel = label;
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+      this.alarmError = 'Invalid alarm time. No notification will be delivered.';
+      this.alarmStatus = '';
+      this.refreshContent();
+      return;
+    }
+    const nextId = Math.max(0, ...this.alarms.map(item => Number(item.id) || 0)) + 1;
+    this.alarms.unshift({
+      id: nextId,
+      time,
+      label,
+      enabled: true,
+      repeat: ['today'],
+      sound: 'chime'
+    });
+    this.alarmError = '';
+    const permission = this.readNotificationPermission();
+    const permissionNote = permission === 'granted'
+      ? 'Notifications are granted; this save does not claim delivery.'
+      : `Notifications are ${permission}; delivery not claimed.`;
+    this.alarmStatus = `Saved ${label} at ${time} locally. ${permissionNote} Local timer retained.`;
+    this.persistClockUserState();
+    this.refreshContent();
+  }
+
   initializeApp() {
     if (typeof window !== 'undefined') {
       window.clockApp = this;
     }
+    this.alarmError = '';
+    this.alarmStatus = '';
+    this.alarmDraftTime = '';
+    this.alarmDraftLabel = '';
+    this.loadClockUserState();
     this.startTimeUpdates();
   }
 
@@ -121,12 +199,12 @@ export class ClockApp {
           </div>
         </div>
 
-        ${this.renderVdaG034Workflow()}
-
         <!-- Main Content -->
         <div class="clock-content" id="clock-content">
           ${this.renderContentForView()}
         </div>
+
+        ${this.renderVdaG034Workflow()}
 
         <!-- Settings Panel -->
         <div class="settings-panel" id="settings-panel" style="display: none;">
@@ -159,6 +237,8 @@ export class ClockApp {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
         }
 
         .view-tabs {
@@ -191,6 +271,15 @@ export class ClockApp {
           box-shadow: 0 2px 8px rgba(139, 216, 189, 0.3);
         }
 
+        .view-tab:focus-visible,
+        .control-btn:focus-visible,
+        .stopwatch-btn:focus-visible,
+        .add-alarm-btn:focus-visible,
+        .clock-workflow-actions button:focus-visible {
+          outline: 2px solid var(--sk-accent, #8bd8bd);
+          outline-offset: 2px;
+        }
+
         .header-controls {
           display: flex;
           gap: 8px;
@@ -216,15 +305,17 @@ export class ClockApp {
         }
 
         .clock-content {
-          flex: 1;
+          flex: 1 1 auto;
+          min-height: 0;
           display: flex;
           flex-direction: column;
-          overflow: hidden;
+          overflow: auto;
         }
 
         .clock-workflow {
-          margin: 10px 12px 0;
-          padding: 10px;
+          flex: 0 0 auto;
+          margin: 8px 12px 10px;
+          padding: 8px 10px;
           border: 1px solid rgba(255, 255, 255, 0.22);
           background: rgba(8, 18, 38, 0.58);
           border-radius: 8px;
@@ -237,6 +328,12 @@ export class ClockApp {
           justify-content: space-between;
           gap: 12px;
           align-items: start;
+          flex-wrap: wrap;
+        }
+
+        .clock-workflow > summary.clock-workflow-head {
+          cursor: pointer;
+          list-style: none;
         }
 
         .clock-workflow h3 {
@@ -283,11 +380,17 @@ export class ClockApp {
 
         .clock-workflow-card code {
           display: block;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          overflow-wrap: anywhere;
+          white-space: normal;
           font-size: 10px;
           color: var(--sk-accent, #8bd8bd);
+        }
+
+        .workflow-summary {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          font-size: 11px;
         }
 
         .clock-workflow-actions {
@@ -527,8 +630,9 @@ export class ClockApp {
         .timer-setup {
           display: flex;
           align-items: center;
-          gap: 16px;
-          margin-bottom: 30px;
+          flex-wrap: wrap;
+          gap: 8px 16px;
+          margin-bottom: 16px;
         }
 
         .time-input {
@@ -826,7 +930,11 @@ export class ClockApp {
           }
           
           .tab-text {
-            display: none;
+            font-size: 11px;
+          }
+
+          .view-tabs {
+            flex-wrap: wrap;
           }
         }
       </style>
@@ -926,7 +1034,7 @@ export class ClockApp {
     return `
       <div class="timer-view">
         <div class="timer-progress" style="background: conic-gradient(var(--sk-warn, #ffd166) ${progressPercent * 3.6}deg, rgba(255, 255, 255, 0.2) ${progressPercent * 3.6}deg);">
-          <div class="timer-time">${remainingDisplay}</div>
+          <div class="timer-time" id="timer-time" data-timer-sample="${this.escapeHtml(JSON.stringify({ elapsed_ms: Math.max(0, (this.timer.duration || 0) - (this.timer.remaining || 0)) }))}">${remainingDisplay}</div>
         </div>
         
         ${!this.timer.isRunning ? `
@@ -950,7 +1058,7 @@ export class ClockApp {
         
         <div class="stopwatch-controls">
           <button class="stopwatch-btn ${this.timer.isRunning ? 'stop' : 'start'}" id="timer-toggle">
-            ${this.timer.isRunning ? 'Stop' : 'Start'}
+            ${this.timer.isRunning ? 'Pause' : (this.timer.remaining > 0 ? 'Resume' : 'Start')}
           </button>
           <button class="stopwatch-btn reset" id="timer-reset">
             Reset
@@ -965,9 +1073,16 @@ export class ClockApp {
       <div class="alarm-view">
         <div class="alarm-header">
           <h3>Alarms</h3>
-          <button class="add-alarm-btn sk-btn sk-btn-primary" id="add-alarm-btn">+ Add Alarm</button>
         </div>
-        
+        <form class="timer-setup" id="alarm-form">
+          <label for="alarm-time">Time</label>
+          <input id="alarm-time" class="time-input" type="text" inputmode="numeric" value="${this.escapeHtml(this.alarmDraftTime || '23:59')}" aria-label="Alarm time" style="width:88px">
+          <label for="alarm-label">Label</label>
+          <input id="alarm-label" class="time-input" type="text" value="${this.escapeHtml(this.alarmDraftLabel || 'Desk check')}" aria-label="Alarm label" style="width:140px">
+          <button type="button" class="add-alarm-btn sk-btn sk-btn-primary" id="add-alarm-btn">Save alarm</button>
+        </form>
+        <p id="alarm-error" role="alert" style="color:var(--sk-err,#ff6b6b);min-height:1.2em;margin:0 0 8px">${this.escapeHtml(this.alarmError || '')}</p>
+        <p id="alarm-status" role="status" style="min-height:1.2em;margin:0 0 12px">${this.escapeHtml(this.alarmStatus || '')}</p>
         <div class="alarms-list">
           ${this.alarms.map(alarm => `
             <div class="alarm-item" data-id="${alarm.id}">
@@ -995,7 +1110,7 @@ export class ClockApp {
     const alarmTime = new Date(now.getTime() + 45 * 60 * 1000);
     const scheduleLabel = alarmTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     return {
-      status: 'ready',
+      status: 'local only',
       timerState: 'ready',
       reminderPolicyState: 'default',
       schedulingState: 'pending',
@@ -1034,7 +1149,7 @@ export class ClockApp {
   renderVdaG034Workflow() {
     const state = this.vdaG034 || this.buildVdaG034State();
     const compact = this.buildCompactClockSnapshot();
-    const timerReceiptLabel = state.timerReceiptCid || 'no receipt timer started yet';
+    const timerReceiptLabel = state.timerReceiptCid || 'not started';
     const policyLabel = state.reminderPolicyCid || 'not persisted yet';
     const schedulingLabel = state.schedulingCid || 'not scheduled yet';
     const permissionLabel = state.permissionRecoveryCid || 'not recorded yet';
@@ -1045,14 +1160,11 @@ export class ClockApp {
       ? state.checkpointRefs.map(ref => this.escapeHtml(ref)).join(' ')
       : 'none yet';
     return `
-      <section class="clock-workflow" data-svd-workflow="${VDA_G034_WORKFLOW}" aria-label="VDA-G034 Clock workflow">
-        <div class="clock-workflow-head">
-          <div>
-            <h3>VDA-G034 governed clock workflow</h3>
-            <p>Clock face, stopwatch, timer, alarms, reminders, permission recovery, and the compact strip stay in this browser. Every visible control is local-only and calls no tool.</p>
-          </div>
-          <span class="clock-workflow-status" id="vda-g034-status" role="status" aria-live="polite">Status: ${this.escapeHtml(state.status)}</span>
-        </div>
+      <details class="clock-workflow" data-svd-workflow="${VDA_G034_WORKFLOW}">
+        <summary class="clock-workflow-head" aria-label="Clock diagnostics">
+          <span>Clock diagnostics</span>
+          <span class="clock-workflow-status" id="vda-g034-status" role="status" aria-live="polite">${this.escapeHtml(state.status)}; notifications ${this.escapeHtml(state.permissionState)}</span>
+        </summary>
 
         <div class="clock-workflow-grid">
           <article class="clock-workflow-card"
@@ -1122,9 +1234,10 @@ export class ClockApp {
 
         <div class="workflow-summary">
           <span>Receipts: ${receiptList}</span>
+          <span aria-hidden="true">·</span>
           <span>Checkpoints: ${checkpointList}</span>
         </div>
-      </section>
+      </details>
     `;
   }
 
@@ -1256,7 +1369,7 @@ export class ClockApp {
       compactTime.dataset.epochMs = String(compact.epochMs);
     }
     const compactTimer = document.querySelector('#clockCompactTimer');
-    if (compactTimer) compactTimer.textContent = this.vdaG034.timerReceipt;
+    if (compactTimer) compactTimer.textContent = this.vdaG034.timerReceiptCid || '—';
     const compactPolicy = document.querySelector('#clockCompactPolicy');
     if (compactPolicy) compactPolicy.textContent = this.vdaG034.reminderPolicyState;
     const compactPermission = document.querySelector('#clockCompactPermission');
@@ -1377,6 +1490,13 @@ export class ClockApp {
         this.toggleAlarm(parseInt(toggle.dataset.id));
       });
     });
+
+    const addAlarmBtn = container.querySelector('#add-alarm-btn');
+    if (addAlarmBtn) {
+      addAlarmBtn.addEventListener('click', () => {
+        this.saveAlarmFromForm();
+      });
+    }
 
     // Settings handlers
     this.setupSettingsHandlers(container);
@@ -1511,6 +1631,8 @@ export class ClockApp {
     const timeDisplay = document.querySelector('.timer-time');
     if (timeDisplay) {
       timeDisplay.textContent = this.formatStopwatchTime(this.timer.remaining);
+      const elapsedMs = Math.max(0, (this.timer.duration || 0) - (this.timer.remaining || 0));
+      timeDisplay.dataset.timerSample = JSON.stringify({ elapsed_ms: elapsedMs });
     }
   }
 
@@ -1551,19 +1673,23 @@ export class ClockApp {
 
   toggleTimer() {
     if (this.timer.isRunning) {
+      this.timer.remaining = Math.max(0, (this.timer.endTime || Date.now()) - Date.now());
       this.timer.isRunning = false;
+    } else if (this.timer.remaining > 0 && this.timer.duration > 0) {
+      this.timer.endTime = Date.now() + this.timer.remaining;
+      this.timer.startTime = Date.now() - (this.timer.duration - this.timer.remaining);
+      this.timer.isRunning = true;
     } else {
-      // Get timer duration from inputs
       const hours = parseInt(document.querySelector('#timer-hours')?.value || 0);
-      const minutes = parseInt(document.querySelector('#timer-minutes')?.value || 5);
+      const minutes = parseInt(document.querySelector('#timer-minutes')?.value || 0);
       const seconds = parseInt(document.querySelector('#timer-seconds')?.value || 0);
-      
       this.timer.duration = (hours * 3600 + minutes * 60 + seconds) * 1000;
       this.timer.remaining = this.timer.duration;
       this.timer.startTime = Date.now();
       this.timer.endTime = Date.now() + this.timer.duration;
-      this.timer.isRunning = true;
+      this.timer.isRunning = this.timer.duration > 0;
     }
+    this.persistClockUserState();
     this.refreshContent();
   }
 
@@ -1571,6 +1697,8 @@ export class ClockApp {
     this.timer.isRunning = false;
     this.timer.remaining = 0;
     this.timer.duration = 0;
+    this.timer.endTime = null;
+    this.persistClockUserState();
     this.refreshContent();
   }
 
@@ -1625,6 +1753,7 @@ export class ClockApp {
     const alarm = this.alarms.find(a => a.id === alarmId);
     if (alarm) {
       alarm.enabled = !alarm.enabled;
+      this.persistClockUserState();
       this.refreshContent();
     }
   }

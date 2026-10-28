@@ -1,0 +1,69 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "mcp-control",
+  "description": "Declared read-only owner diagnostics, retained result, invalid parameters, and retry.",
+  "fixture_scope": "svf-mcp-control-diagnostic",
+  "backend_bindings": [
+    {
+      "binding_id": "mcp-control.ipfs_kit_py.inspect_tool_registry",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 60,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/ID",
+        "operator": "not_equals",
+        "expected": ""
+      }
+    },
+    {
+      "binding_id": "mcp-control.ipfs_datasets_py.inspect_tool_registry",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 60,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/categories",
+        "operator": "not_equals",
+        "expected": []
+      }
+    },
+    {
+      "binding_id": "mcp-control.ipfs_accelerate_py.inspect_tool_registry",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 60,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/status",
+        "operator": "equals",
+        "expected": "healthy"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {"op": "wait_for", "selector": "#mcp-owner-select", "state": "visible", "timeout_ms": 10000},
+      {"op": "select", "selector": "#mcp-owner-select", "value": "ipfs_kit_py"},
+      {"op": "select", "selector": "#mcp-tool-select", "value": "node_id"},
+      {"op": "fill", "selector": "#mcp-tool-params", "value": "{}"},
+      {"op": "click", "selector": "#mcp-refresh-discovery"},
+      {"op": "press", "selector": "#mcp-run-diagnostic", "key": "Enter"},
+      {"op": "wait_for", "selector": "#mcp-diagnostic-ready", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#mcp-diagnostic-ready"}, "operator": "contains", "expected": "Accelerate SDK health: healthy at "}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#mcp-diagnostic-ready"}, "operator": "contains", "expected": "Accelerate SDK health: healthy at "}
+    ],
+    "failure_recovery": [
+      {"op": "fill", "selector": "#mcp-tool-params", "value": "{"},
+      {"op": "press", "selector": "#mcp-run-diagnostic", "key": "Enter"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#mcp-diagnostic-status"}, "operator": "contains", "expected": "Invalid parameters"},
+      {"op": "fill", "selector": "#mcp-tool-params", "value": "{}"},
+      {"op": "click", "selector": "#mcp-run-diagnostic"},
+      {"op": "wait_for", "selector": "#mcp-diagnostic-ready", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#mcp-diagnostic-status"}, "operator": "contains", "expected": "Retry succeeded"}
+    ]
+  }
+}

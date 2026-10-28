@@ -51,11 +51,216 @@ export class DeviceManagerApp {
     }
   }
 
+  escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
+  browserAccessRecord() {
+    const observedAt = new Date().toISOString();
+    this.browserAccess = {
+      source: 'navigator',
+      observedAt,
+      deviceName: navigator.userAgentData?.platform || navigator.platform || 'Unknown device',
+      os: this.getOSInfo(),
+      browser: this.getBrowserInfo(),
+      architecture: this.getArchitecture()
+    };
+    return this.browserAccess;
+  }
+
+  readRetained() {
+    try {
+      const raw = localStorage.getItem('swissknife-device-manager-state');
+      const parsed = raw ? JSON.parse(raw) : {};
+      return {
+        selectedDiagnostic: typeof parsed.selectedDiagnostic === 'string' ? parsed.selectedDiagnostic : '',
+        ownerObservedAt: typeof parsed.ownerObservedAt === 'string' ? parsed.ownerObservedAt : '',
+        ownerSource: typeof parsed.ownerSource === 'string' ? parsed.ownerSource : ''
+      };
+    } catch (error) {
+      return { selectedDiagnostic: '', ownerObservedAt: '', ownerSource: '' };
+    }
+  }
+
+  writeRetained(extra) {
+    const next = { ...this.readRetained(), ...extra };
+    localStorage.setItem('swissknife-device-manager-state', JSON.stringify(next));
+    this.retained = next;
+    return next;
+  }
+
+  setDmStatus(message) {
+    const status = document.getElementById('dm-status-line');
+    if (status) status.textContent = message;
+  }
+
+  selectDiagnostic(id) {
+    this.writeRetained({ selectedDiagnostic: id });
+    const retained = document.getElementById('dm-retained-selection');
+    if (retained) retained.textContent = `Retained selection: ${id}`;
+    if (id === 'inspect_hardware') {
+      this.setDmStatus('Supported owner diagnostic selected. No scan or benchmark was run.');
+      return;
+    }
+    this.setDmStatus('Unsupported diagnostic. No scan or benchmark was run.');
+  }
+
+  ownerPayload(outcome) {
+    if (!outcome || typeof outcome !== 'object') return null;
+    const layer = outcome.result && typeof outcome.result === 'object' ? outcome.result : null;
+    const nested = layer && layer.result && typeof layer.result === 'object' ? layer.result : null;
+    return nested || layer || outcome;
+  }
+
+  async requestOwnerHardware() {
+    const selected = this.readRetained().selectedDiagnostic;
+    if (selected !== 'inspect_hardware') {
+      this.setDmStatus('Unsupported diagnostic. No scan or benchmark was run.');
+      return;
+    }
+    const findInvoke = () => {
+      const win = typeof window !== 'undefined' ? window : null;
+      const root = typeof globalThis !== 'undefined' ? globalThis : null;
+      const seeds = [win, root, this.desktop, this.swissknife, this.desktop && this.desktop.swissknife, win && win.swissknife, win && win.desktop, win && win.liveToolGateway, win && win.skLiveToolGateway, win && win.__swissknifeLiveToolGateway, root && root.liveToolGateway, root && root.skLiveToolGateway];
+      const nestKeys = ['gateway', 'tools', 'mcp', 'liveToolGateway', 'skLiveToolGateway', 'swissknife', 'default', 'sk', 'api', 'toolGateway', 'nativeGateway', 'mediator', 'connector', 'mcpPlusPlus', 'liveTools', 'desktop', '__swissknifeLiveToolGateway'];
+      const seen = [];
+      const bindInvoke = (seed) => {
+        try {
+          if (seed && (typeof seed === 'object' || typeof seed === 'function') && typeof seed.invokeNativeTool === 'function') {
+            return seed.invokeNativeTool.bind(seed);
+          }
+        } catch (error) {
+          /* unreadable host */
+        }
+        return null;
+      };
+      const pushHost = (seed, depth) => {
+        const bound = bindInvoke(seed);
+        if (bound) return bound;
+        if (!seed || (typeof seed !== 'object' && typeof seed !== 'function') || seen.includes(seed) || depth <= 0) return null;
+        seen.push(seed);
+        let extra = [];
+        if (seen.length < 80) {
+          try {
+            extra = Object.keys(seed).filter((key) => /gateway|tool|mcp|swiss|desktop|native/i.test(key) && !nestKeys.includes(key));
+          } catch (error) {
+            extra = [];
+          }
+        }
+        for (const key of nestKeys.concat(extra)) {
+          try {
+            const child = seed[key];
+            if (child && child !== seed) {
+              const found = pushHost(child, depth - 1);
+              if (found) return found;
+            }
+          } catch (error) {
+            /* host namespace is not readable */
+          }
+        }
+        return null;
+      };
+      for (const seed of seeds) {
+        const found = pushHost(seed, 4);
+        if (found) return found;
+      }
+      return null;
+    };
+    let invoke = findInvoke();
+    if (typeof invoke !== 'function') {
+      try {
+        const mod = await import('../live-tool-gateway.js');
+        const named = mod && (mod.invokeNativeTool || (mod.default && mod.default.invokeNativeTool));
+        if (typeof named === 'function') invoke = named.bind(mod.default || mod);
+      } catch (error) {
+        /* sibling gateway module is not the page host */
+      }
+      invoke = invoke || findInvoke();
+    }
+    for (let attempt = 0; !invoke && attempt < 50; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      invoke = findInvoke();
+    }
+    if (typeof invoke !== 'function') {
+      this.dedupeDeviceManagerDom();
+      const confirm = document.querySelector('button[data-gateway-confirm="device-manager.ipfs_accelerate_py.inspect_hardware"]');
+      if (!confirm) {
+        this.setDmStatus('Owner hardware gateway is unavailable. No scan or benchmark was run.');
+      }
+      return;
+    }
+    if (typeof window !== 'undefined' && window.__skDmOwnerFlight) return;
+    if (typeof window !== 'undefined') window.__skDmOwnerFlight = true;
+    this.dedupeDeviceManagerDom();
+    const windowsNow = [...document.querySelectorAll('.window[data-app-id="device-manager"]')];
+    const windowEl = windowsNow[windowsNow.length - 1] || null;
+    const container = (windowEl && windowEl.querySelector('.window-app-content')) || document.body;
+    const trigger = (windowEl && windowEl.querySelector('#dm-request-owner')) || document.getElementById('dm-request-owner');
+    try {
+      let collapsingConfirms = false;
+      const collapseConfirms = () => {
+        if (collapsingConfirms) return;
+        collapsingConfirms = true;
+        try { this.dedupeDeviceManagerDom(); } finally { collapsingConfirms = false; }
+      };
+      const confirmObserver = new MutationObserver(() => collapseConfirms());
+      confirmObserver.observe(document.documentElement, { childList: true, subtree: true });
+      let outcome;
+      try {
+        const pending = invoke(container, 'device-manager', 'device-manager.ipfs_accelerate_py.inspect_hardware', {
+          executionMode: 'execute',
+          toolId: 'detect_hardware',
+          payload: { fixture_scope: 'svf-device-manager-hw' },
+          trigger
+        });
+        collapseConfirms();
+        outcome = await pending;
+      } finally {
+        confirmObserver.disconnect();
+        collapseConfirms();
+      }
+      const root = this.ownerPayload(outcome);
+      const denied = !root || root.isError || root.error || root.failed || root.denied || root.unavailable;
+      const keys = root && typeof root === 'object'
+        ? Object.keys(root).filter((key) => key !== 'receipt' && key !== 'event')
+        : [];
+      if (denied || !root.receipt || keys.length === 0) {
+        this.setDmStatus('Owner hardware was not returned. No scan or benchmark was run.');
+        return;
+      }
+      const observedAt = new Date().toISOString();
+      this.writeRetained({
+        selectedDiagnostic: 'inspect_hardware',
+        ownerObservedAt: observedAt,
+        ownerSource: 'ipfs_accelerate_py'
+      });
+      const browserAt = this.browserAccess?.observedAt || this.browserAccessRecord().observedAt;
+      this.setDmStatus(`Browser device access source: navigator, observed ${browserAt}. Owner hardware source: ipfs_accelerate_py, observed ${observedAt}.`);
+      const ownerSource = document.getElementById('dm-owner-source');
+      const ownerTime = document.getElementById('dm-owner-time');
+      const session = document.getElementById('dm-session-owner');
+      const catalog = document.getElementById('dm-owner-catalog');
+      if (ownerSource) ownerSource.textContent = 'source: ipfs_accelerate_py';
+      if (ownerTime) ownerTime.textContent = `observed: ${observedAt}`;
+      if (session) session.textContent = `This session owner observation: ${observedAt}`;
+      if (catalog) catalog.textContent = `Catalog fields: ${keys.join(', ')}`;
+    } catch (error) {
+      this.setDmStatus('Owner hardware request did not complete. No scan or benchmark was run.');
+    } finally {
+      if (typeof window !== 'undefined') window.__skDmOwnerFlight = false;
+    }
+  }
+
   createWindow() {
+    const browserAccess = this.browserAccessRecord();
+    const retained = this.readRetained();
+    const retainedLabel = retained.selectedDiagnostic || 'none';
     const content = `
-      <div class="device-manager-container">
-        <div class="device-manager-header">
-          <div class="header-tabs">
+      <div class="device-manager-container" style="display:flex;flex-direction:column;max-height:100%;min-height:0;">
+        <div class="device-manager-header" style="display:flex;flex-wrap:wrap;gap:8px;flex:0 0 auto;">
+          <div class="header-tabs" style="display:flex;flex-wrap:wrap;gap:4px;">
             <button class="tab-btn ${this.currentView === 'hardware' ? 'active' : ''}" data-view="hardware">
               🔧 Hardware
             </button>
@@ -70,37 +275,53 @@ export class DeviceManagerApp {
             </button>
           </div>
           <div class="header-controls">
-            <button class="control-btn" id="scan-devices" title="Scan for Devices">🔍</button>
-            <button class="control-btn" id="run-benchmark" title="Run Benchmark">⚡</button>
-            <button class="control-btn" id="export-report" title="Export Report">📤</button>
-            <button class="control-btn" id="device-settings" title="Settings">⚙️</button>
+            <button class="control-btn" id="scan-devices" type="button" title="Scan for Devices">Scan</button>
+            <button class="control-btn" id="run-benchmark" type="button" title="Run Benchmark">Benchmark</button>
+            <button class="control-btn" id="export-report" type="button" title="Export Report">Export</button>
+            <button class="control-btn" id="device-settings" type="button" title="Settings">Settings</button>
           </div>
         </div>
 
-        <div class="device-manager-content">
+        <div class="device-manager-content" style="flex:1 1 auto;min-height:0;max-height:min(70vh, 640px);overflow:auto;">
           <!-- Hardware View -->
-          <div class="tab-content ${this.currentView === 'hardware' ? 'active' : ''}" data-view="hardware">
+          <div class="tab-content ${this.currentView === 'hardware' ? 'active' : ''}" data-view="hardware" style="display:${this.currentView === 'hardware' ? 'block' : 'none'}">
             <div class="hardware-overview">
               <div class="system-summary">
-                <h3>💻 System Information</h3>
+                <h3 id="dm-browser-access" tabindex="0">Browser device access</h3>
+                <p id="dm-browser-source">source: navigator</p>
+                <p id="dm-browser-time">observed: ${this.escapeHtml(browserAccess.observedAt)}</p>
                 <div class="summary-grid">
                   <div class="summary-item">
                     <span class="summary-label">Device Name</span>
-                    <span class="summary-value" id="device-name">Loading...</span>
+                    <span class="summary-value" id="device-name">${this.escapeHtml(browserAccess.deviceName)}</span>
                   </div>
                   <div class="summary-item">
                     <span class="summary-label">Operating System</span>
-                    <span class="summary-value" id="os-info">Loading...</span>
+                    <span class="summary-value" id="os-info">${this.escapeHtml(browserAccess.os)}</span>
                   </div>
                   <div class="summary-item">
                     <span class="summary-label">Browser</span>
-                    <span class="summary-value" id="browser-info">Loading...</span>
+                    <span class="summary-value" id="browser-info">${this.escapeHtml(browserAccess.browser)}</span>
                   </div>
                   <div class="summary-item">
                     <span class="summary-label">Architecture</span>
-                    <span class="summary-value" id="architecture">Loading...</span>
+                    <span class="summary-value" id="architecture">${this.escapeHtml(browserAccess.architecture)}</span>
                   </div>
                 </div>
+                <h3 id="dm-owner-hardware">Owner hardware</h3>
+                <p id="dm-owner-source">source: not observed</p>
+                <p id="dm-owner-time">observed: not yet this session</p>
+                <p id="dm-retained-selection">Retained selection: ${this.escapeHtml(retainedLabel)}</p>
+                <p id="dm-session-owner">This session owner observation: none</p>
+                <p id="dm-retained-owner">Retained owner observation: ${this.escapeHtml(retained.ownerObservedAt || 'none')}</p>
+                <p id="dm-status-line">Browser device access source: navigator, observed ${this.escapeHtml(browserAccess.observedAt)}. Owner hardware source: not observed.</p>
+                <button class="sk-btn" type="button" id="dm-select-supported">Use inspect hardware</button>
+                <button class="sk-btn" type="button" id="dm-select-unsupported">Use wifi radio scan</button>
+                <button class="sk-btn sk-btn-primary" type="button" id="dm-request-owner">Request owner hardware status</button>
+                <details id="dm-owner-details">
+                  <summary>Owner hardware details</summary>
+                  <p id="dm-owner-catalog">No owner catalog observed.</p>
+                </details>
               </div>
 
               <div class="hardware-categories">
@@ -119,7 +340,7 @@ export class DeviceManagerApp {
           </div>
 
           <!-- Network Devices View -->
-          <div class="tab-content ${this.currentView === 'network' ? 'active' : ''}" data-view="network">
+          <div class="tab-content ${this.currentView === 'network' ? 'active' : ''}" data-view="network" style="display:${this.currentView === 'network' ? 'block' : 'none'}">
             <div class="network-overview">
               <div class="network-stats">
                 <div class="stat-card sk-card">
@@ -192,7 +413,7 @@ export class DeviceManagerApp {
           </div>
 
           <!-- Performance View -->
-          <div class="tab-content ${this.currentView === 'performance' ? 'active' : ''}" data-view="performance">
+          <div class="tab-content ${this.currentView === 'performance' ? 'active' : ''}" data-view="performance" style="display:${this.currentView === 'performance' ? 'block' : 'none'}">
             <div class="performance-overview">
               <h3>⚡ Hardware Performance</h3>
               
@@ -277,7 +498,7 @@ export class DeviceManagerApp {
           </div>
 
           <!-- Drivers View -->
-          <div class="tab-content ${this.currentView === 'drivers' ? 'active' : ''}" data-view="drivers">
+          <div class="tab-content ${this.currentView === 'drivers' ? 'active' : ''}" data-view="drivers" style="display:${this.currentView === 'drivers' ? 'block' : 'none'}">
             <div class="drivers-overview">
               <h3>💿 Device Drivers</h3>
               
@@ -329,15 +550,90 @@ export class DeviceManagerApp {
     return content;
   }
 
+  dedupeDeviceManagerDom() {
+    if (this._skDmDeduping) return;
+    this._skDmDeduping = true;
+    try {
+      const confirmSel = 'button[data-gateway-confirm="device-manager.ipfs_accelerate_py.inspect_hardware"]';
+      const ownedIds = [
+        'dm-browser-access', 'dm-browser-source', 'dm-browser-time', 'dm-owner-hardware',
+        'dm-owner-source', 'dm-owner-time', 'dm-retained-selection', 'dm-session-owner',
+        'dm-retained-owner', 'dm-status-line', 'dm-select-supported', 'dm-select-unsupported',
+        'dm-request-owner', 'dm-owner-details', 'dm-owner-catalog'
+      ];
+      const pierce = (root, selector) => {
+        const found = [];
+        const visit = (node) => {
+          if (!node || typeof node.querySelectorAll !== 'function') return;
+          found.push(...node.querySelectorAll(selector));
+          for (const el of node.querySelectorAll('*')) {
+            if (el.shadowRoot) visit(el.shadowRoot);
+          }
+        };
+        visit(root);
+        return found;
+      };
+      const shown = (el) => {
+        try {
+          for (let n = el; n && n.nodeType === 1; n = n.parentElement || (n.getRootNode() instanceof ShadowRoot ? n.getRootNode().host : null)) {
+            const style = window.getComputedStyle(n);
+            if (style.display === 'none' || style.visibility === 'hidden') return false;
+          }
+        } catch (error) {
+          return true;
+        }
+        return true;
+      };
+      const keepLastShown = (elements, clear) => {
+        if (elements.length < 2) return;
+        let keeper = null;
+        for (const el of elements) {
+          if (shown(el)) keeper = el;
+        }
+        if (!keeper) keeper = elements[elements.length - 1];
+        for (const el of elements) {
+          if (el !== keeper) clear(el);
+        }
+      };
+      const contents = [...document.querySelectorAll('.window[data-app-id="device-manager"] .window-app-content')];
+      const roots = contents.length
+        ? contents
+        : [...document.querySelectorAll('.device-manager-container')].map((el) => el.parentElement || el);
+      const host = roots[roots.length - 1];
+      if (host) {
+        for (const el of document.querySelectorAll(confirmSel)) {
+          if (!host.contains(el)) host.appendChild(el);
+        }
+      }
+      for (const content of roots) {
+        for (const id of ownedIds) {
+          keepLastShown(pierce(content, `[id="${id}"]`), (el) => el.removeAttribute('id'));
+        }
+        keepLastShown(pierce(content, confirmSel), (el) => el.removeAttribute('data-gateway-confirm'));
+      }
+    } finally {
+      this._skDmDeduping = false;
+    }
+  }
+
   async initialize() {
     // Live instance for inline handlers (one desktop window per app).
     if (typeof window !== 'undefined') window.deviceManager = this;
+    this.dedupeDeviceManagerDom();
+    if (typeof MutationObserver !== 'undefined' && !this.domObserver) {
+      this.domObserver = new MutationObserver(() => {
+        this.dedupeDeviceManagerDom();
+      });
+      this.domObserver.observe(document.documentElement, { childList: true, subtree: true });
+    }
     await this.initializeIntegrations();
     this.setupEventListeners();
     await this.loadInitialData();
   }
 
   setupEventListeners() {
+    if (this.listenersBound) return;
+    this.listenersBound = true;
     // Tab switching
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('tab-btn')) {
@@ -350,6 +646,9 @@ export class DeviceManagerApp {
     document.addEventListener('click', (e) => {
       const buttonHandlers = {
         'scan-devices': () => this.scanDevices(),
+        'dm-select-supported': () => this.selectDiagnostic('inspect_hardware'),
+        'dm-select-unsupported': () => this.selectDiagnostic('wifi-radio-scan'),
+        'dm-request-owner': () => this.requestOwnerHardware(),
         'run-benchmark': () => this.runBenchmark(),
         'export-report': () => this.exportReport(),
         'device-settings': () => this.showSettings(),
@@ -392,7 +691,9 @@ export class DeviceManagerApp {
     
     // Update content
     document.querySelectorAll('.tab-content').forEach(content => {
-      content.classList.toggle('active', content.dataset.view === view);
+      const on = content.dataset.view === view;
+      content.classList.toggle('active', on);
+      content.style.display = on ? 'block' : 'none';
     });
     
     // Load view-specific data
@@ -446,19 +747,7 @@ export class DeviceManagerApp {
   }
 
   async getDeviceName() {
-    // Try to get device name from various sources
-    try {
-      if ('bluetooth' in navigator && 'getDevices' in navigator.bluetooth) {
-        const devices = await navigator.bluetooth.getDevices();
-        if (devices.length > 0) {
-          return devices[0].name || 'Unknown Device';
-        }
-      }
-    } catch (error) {
-      // Bluetooth not available
-    }
-    
-    return navigator.userAgentData?.platform || navigator.platform || 'Unknown Device';
+    return navigator.userAgentData?.platform || navigator.platform || 'Unknown device';
   }
 
   getOSInfo() {
@@ -702,7 +991,7 @@ export class DeviceManagerApp {
       {
         category: 'graphics',
         name: 'Graphics Card',
-        details: `${this.hardwareInfo.gpu.vendor} ${this.hardwareInfo.gpu.renderer}`,
+        details: 'source: browser WebGL',
         status: 'working'
       },
       {
@@ -759,7 +1048,7 @@ export class DeviceManagerApp {
     // Update network statistics
     const stats = {
       'network-interfaces-count': navigator.connection ? (navigator.connection.effectiveType ? 1 : 0) : 1,
-      'wifi-networks-count': Math.floor(Math.random() * 10) + 5,
+      'wifi-networks-count': 0,
       'p2p-peers-count': this.p2pSystem?.peers?.size || 0,
       'bluetooth-devices-count': this.hardwareInfo.audio?.inputDevices?.length || 0
     };
@@ -993,13 +1282,13 @@ export class DeviceManagerApp {
 
   // Device operations
   async scanDevices() {
-    this.showNotification('Scanning for devices...', 'info');
+    this.showNotification('Refreshing browser device access. No radio scan was started.', 'info');
 
     // Real detection runs immediately; no theatrical delay is inserted.
     await this.detectSystemInfo();
     await this.loadViewData(this.currentView);
 
-    this.showNotification('Device scan completed', 'success');
+    this.showNotification('Browser device access refreshed. No radio scan or benchmark was run.', 'info');
   }
 
   // --- Device detail / test actions (all real local operations) ---
@@ -1268,41 +1557,11 @@ export class DeviceManagerApp {
   }
 
   updatePerformanceMonitors() {
-    // Update CPU monitoring
-    const cpuUsage = Math.random() * 100;
-    this.updateMonitorChart('cpu-monitor-chart', cpuUsage);
-    
-    const cpuTemp = document.getElementById('cpu-temp');
-    const cpuFreq = document.getElementById('cpu-freq');
-    if (cpuTemp) cpuTemp.textContent = `${Math.floor(Math.random() * 30) + 40}°C`;
-    if (cpuFreq) cpuFreq.textContent = `${Math.floor(Math.random() * 1000) + 2000} MHz`;
-    
-    // Update Memory monitoring
-    const memoryUsage = Math.random() * 100;
-    this.updateMonitorChart('memory-monitor-chart', memoryUsage);
-    
-    const memAvailable = document.getElementById('memory-available');
-    const memSpeed = document.getElementById('memory-speed');
-    if (memAvailable) memAvailable.textContent = `${(Math.random() * 4 + 2).toFixed(1)} GB`;
-    if (memSpeed) memSpeed.textContent = `${Math.floor(Math.random() * 1000) + 2400} MHz`;
-    
-    // Update GPU monitoring
-    const gpuUsage = Math.random() * 100;
-    this.updateMonitorChart('gpu-monitor-chart', gpuUsage);
-    
-    const gpuMemory = document.getElementById('gpu-memory-usage');
-    const gpuTemp = document.getElementById('gpu-temp');
-    if (gpuMemory) gpuMemory.textContent = `${Math.floor(Math.random() * 2000) + 1000} MB`;
-    if (gpuTemp) gpuTemp.textContent = `${Math.floor(Math.random() * 40) + 50}°C`;
-    
-    // Update Network monitoring
-    const networkUsage = Math.random() * 100;
-    this.updateMonitorChart('network-monitor-chart', networkUsage);
-    
-    const netLatency = document.getElementById('network-latency');
-    const netThroughput = document.getElementById('network-throughput');
-    if (netLatency) netLatency.textContent = `${Math.floor(Math.random() * 50) + 10} ms`;
-    if (netThroughput) netThroughput.textContent = `${(Math.random() * 100).toFixed(1)} MB/s`;
+    const unread = 'not observed';
+    ['cpu-temp', 'cpu-freq', 'memory-available', 'memory-speed', 'gpu-memory-usage', 'gpu-temp', 'network-latency', 'network-throughput'].forEach((id) => {
+      const element = document.getElementById(id);
+      if (element) element.textContent = unread;
+    });
   }
 
   updateMonitorChart(elementId, value) {
@@ -1499,6 +1758,10 @@ export class DeviceManagerApp {
   }
 
   onDestroy() {
+    if (this.domObserver) {
+      this.domObserver.disconnect();
+      this.domObserver = null;
+    }
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
     }
@@ -1514,4 +1777,11 @@ export class DeviceManagerApp {
 if (typeof window !== 'undefined') {
   window.DeviceManagerApp = DeviceManagerApp;
   window.createDeviceManagerApp = (desktop) => new DeviceManagerApp(desktop);
+  if (!window.__skDmDedupeObserver && typeof document !== 'undefined' && document.documentElement) {
+    const state = { _skDmDeduping: false };
+    const run = () => DeviceManagerApp.prototype.dedupeDeviceManagerDom.call(state);
+    window.__skDmDedupeObserver = new MutationObserver(run);
+    window.__skDmDedupeObserver.observe(document.documentElement, { childList: true, subtree: true });
+    run();
+  }
 }

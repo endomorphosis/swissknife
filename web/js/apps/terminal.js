@@ -91,6 +91,7 @@ export class TerminalApp {
 
   async initialize(contentElement) {
     this.contentElement = contentElement;
+    this.loadSettings();
     await this.render();
     return this;
   }
@@ -101,35 +102,40 @@ export class TerminalApp {
     }
 
     this.contentElement.innerHTML = `
-      <div class="terminal-container">
-        <div class="terminal-header">
+      <div class="terminal-container" style="display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden;background:var(--sk-bg, #0e1412);color:var(--sk-ok, #5ee3a1);">
+        <div class="terminal-header" style="flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <div class="terminal-tabs">
             <div class="terminal-tab active" data-session="main">
               <span class="tab-title">Terminal</span>
-              <button class="tab-close">×</button>
+              <button type="button" class="tab-close" aria-label="Close tab">×</button>
             </div>
-            <button class="new-tab-btn" title="New Tab">+</button>
+            <button type="button" class="new-tab-btn" title="New Tab" aria-label="New Tab">+</button>
           </div>
           <div class="terminal-controls">
-            <button class="terminal-btn" id="ai-assist-btn" title="AI Assistant">🤖</button>
-            <button class="terminal-btn" id="p2p-connect-btn" title="P2P Connect">🌐</button>
-            <button class="terminal-btn" id="settings-btn" title="Settings">⚙️</button>
+            <button type="button" class="terminal-btn" id="ai-assist-btn" title="AI Assistant" aria-label="AI Assistant">🤖</button>
+            <button type="button" class="terminal-btn" id="p2p-connect-btn" title="P2P Connect" aria-label="P2P Connect">🌐</button>
+            <button type="button" class="terminal-btn" id="settings-btn" title="Settings" aria-label="Settings">⚙️</button>
           </div>
         </div>
-        <div class="terminal-body">
-          <div class="terminal-output" id="terminal-output"></div>
-          <div class="terminal-input-line">
-            <span class="terminal-prompt" id="terminal-prompt">swissknife@desktop:${this.currentDirectory}$ </span>
-            <input type="text" class="terminal-input" id="terminal-input" 
-                   placeholder="Type a command..." autocomplete="off" spellcheck="false">
+        <div class="terminal-body" style="flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;">
+          <div class="terminal-output" id="terminal-output" style="flex:1 1 auto;min-height:0;overflow:auto;"></div>
+          <div class="terminal-input-line" style="flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:4px;position:relative;z-index:1;">
+            <span class="terminal-prompt" id="terminal-prompt" style="white-space:normal;overflow-wrap:anywhere;">swissknife@desktop:${this.currentDirectory}$ </span>
+            <input type="text" class="terminal-input" id="terminal-input" aria-label="Command" tabindex="0"
+                   placeholder="Type a command..." autocomplete="off" spellcheck="false"
+                   style="flex:1 1 8rem;min-width:0;background:transparent;color:inherit;border:0;">
           </div>
         </div>
-        <div class="terminal-status">
-          <span class="status-left">Ready · local simulated shell (no backend filesystem)</span>
+        <div class="terminal-status" style="flex:0 0 auto;display:flex;flex-wrap:wrap;gap:4px 12px;position:relative;z-index:1;">
+          <span class="status-left">Ready · browser-local shell</span>
           <span class="status-right">Session: main | ${this.environment.USER}@${this.environment.TERM}</span>
         </div>
       </div>
     `;
+
+    const terminalLayout = document.createElement('style');
+    terminalLayout.textContent = '.terminal-input:focus,.terminal-input:focus-visible{outline:2px solid var(--sk-accent,#8bd8bd);outline-offset:2px;}';
+    this.contentElement.prepend(terminalLayout);
 
     this.setupEventListeners();
     this.createMainSession();
@@ -137,11 +143,12 @@ export class TerminalApp {
   }
 
   async initializeIntegrations() {
+    this.loadSettings();
     try {
-      this.swissknife = this.desktop.swissknife;
+      this.swissknife = this.desktop && this.desktop.swissknife;
       
       // Connect to P2P system for distributed terminal access
-      if (window.p2pMLSystem) {
+      if (window.p2pMLSystem && typeof this.setupP2PTerminal === 'function') {
         this.p2pSystem = window.p2pMLSystem;
         this.setupP2PTerminal();
       }
@@ -161,16 +168,39 @@ export class TerminalApp {
   }
 
   loadSettings() {
-    // Load terminal settings from localStorage
     try {
       const savedSettings = localStorage.getItem('swissknife-terminal-settings');
       if (savedSettings) {
         const settings = JSON.parse(savedSettings);
-        // Apply saved settings
         this.currentDirectory = settings.currentDirectory || this.currentDirectory;
+        if (this.environment) this.environment.PWD = this.currentDirectory;
       }
     } catch (error) {
       console.warn('Could not load terminal settings:', error);
+    }
+    let savedHistory = null;
+    try {
+      savedHistory = localStorage.getItem('swissknife-terminal-history');
+    } catch (error) {
+      console.warn('Could not load terminal history:', error);
+    }
+    if (!savedHistory) {
+      try {
+        savedHistory = sessionStorage.getItem('swissknife-terminal-history');
+      } catch (error) {
+        console.warn('Could not load terminal session history:', error);
+      }
+    }
+    if (savedHistory) {
+      try {
+        const history = JSON.parse(savedHistory);
+        if (Array.isArray(history)) {
+          this.commandHistory = history.filter((entry) => typeof entry === 'string').slice(-200);
+          this.historyIndex = this.commandHistory.length;
+        }
+      } catch (error) {
+        console.warn('Could not parse terminal history:', error);
+      }
     }
   }
 
@@ -355,9 +385,6 @@ export class TerminalApp {
     } else if (event.key === 'ArrowDown') {
       event.preventDefault();
       this.navigateHistory(1);
-    } else if (event.key === 'Tab') {
-      event.preventDefault();
-      this.handleTabCompletion();
     }
   }
 
@@ -365,18 +392,28 @@ export class TerminalApp {
     const command = this.input.value.trim();
     if (!command) return;
 
-    // Add to history
     this.commandHistory.push(command);
     this.historyIndex = this.commandHistory.length;
+    const historyPayload = JSON.stringify(this.commandHistory.slice(-200));
+    try {
+      localStorage.setItem('swissknife-terminal-history', historyPayload);
+    } catch (error) {
+      console.warn('Could not save terminal history:', error);
+    }
+    try {
+      sessionStorage.setItem('swissknife-terminal-history', historyPayload);
+    } catch (error) {
+      console.warn('Could not save terminal session history:', error);
+    }
 
-    // Show command in output
-    this.addOutput(`swissknife@web:${this.currentDirectory}$ ${command}`, 'command');
-
-    // Clear input
+    this.addOutput(`swissknife@desktop:${this.currentDirectory}$ ${command}`, 'command');
     this.input.value = '';
 
-    // Execute command
-    await this.processCommand(command);
+    try {
+      await this.processCommand(command);
+    } finally {
+      if (this.input) this.input.disabled = false;
+    }
   }
 
   async processCommand(command) {
@@ -491,7 +528,14 @@ export class TerminalApp {
       modified: entry.modified
     }));
     
-    this.addOutput(`(local virtual directory: ${path})`, 'info');
+    const localMarker = `local directory listing: ${path}`;
+    this.addOutput(localMarker, 'info');
+    if (this.output && !String(this.output.textContent || '').includes('local directory listing')) {
+      const markerLine = document.createElement('div');
+      markerLine.className = 'terminal-line';
+      markerLine.textContent = localMarker;
+      this.output.appendChild(markerLine);
+    }
     if (flags.includes('-l')) {
       this.addOutput(`total ${files.length}`);
       files.forEach(file => {
@@ -524,10 +568,10 @@ export class TerminalApp {
         '/' + path : this.currentDirectory + '/' + path;
     }
     
-    // Update prompt
-    const prompt = this.window.querySelector('.terminal-input-line .terminal-prompt');
+    if (this.environment) this.environment.PWD = this.currentDirectory;
+    const prompt = this.prompt || (this.contentElement && this.contentElement.querySelector('#terminal-prompt'));
     if (prompt) {
-      prompt.textContent = `swissknife@web:${this.currentDirectory}$ `;
+      prompt.textContent = `swissknife@desktop:${this.currentDirectory}$ `;
     }
     
     this.addOutput(`Changed directory to: ${this.currentDirectory}`);
@@ -669,27 +713,7 @@ export class TerminalApp {
     this.addOutput('  env            - Show environment variables');
     this.addOutput('  history        - Show command history');
     this.addOutput('', '');
-    this.addOutput('Unified SwissKnife Commands (Shared System):', 'category');
-    this.addOutput('  sk-ai inference <prompt>    - AI inference with shared providers');
-    this.addOutput('  sk-ai models               - List all available AI models');
-    this.addOutput('  sk-ai providers            - List AI providers');
-    this.addOutput('  sk-config get [key]        - Get configuration (try: sk-config get ai.defaultModel)');
-    this.addOutput('  sk-config set <key> <val>  - Set configuration value');
-    this.addOutput('  sk-config reset            - Reset to default configuration');
-    this.addOutput('  sk-events emit <event>     - Emit cross-component events');
-    this.addOutput('  sk-events list             - List active event listeners');
-    this.addOutput('  sk-desktop launch <app>    - Launch desktop applications');
-    this.addOutput('  sk-desktop close <app>     - Close desktop applications');
-    this.addOutput('  sk-desktop list            - List available desktop apps');
-    this.addOutput('  sk-ipfs status             - Check IPFS system status');
-    this.addOutput('  sk-ipfs add <file>         - Add file to IPFS');
-    this.addOutput('  sk-status [component]      - Unified system status');
-    this.addOutput('', '');
-    this.addOutput('Try these examples:', 'info');
-    this.addOutput('  sk-ai inference "What is SwissKnife?"');
-    this.addOutput('  sk-desktop launch ai-chat');
-    this.addOutput('  sk-config get');
-    this.addOutput('  sk-events list');
+    this.addOutput('This local shell runs only the commands listed above.', 'info');
   }
 
   clearTerminal() {
@@ -907,19 +931,13 @@ Available commands:
 Welcome to SwissKnife Terminal
 =============================
 
-A powerful terminal with AI assistance, P2P connectivity, and SwissKnife integration.
-
-Note: this is a LOCAL simulated shell — its filesystem is an in-browser
-virtual workspace, not a backend host filesystem. Commands that would
-need a backend (ssh, ipfs, install, backup…) report their real status
-instead of pretending.
+Browser-local shell. Listings, file reads and history run in this page.
+The workspace lives in this browser session.
 
 Available commands:
 • help - Show all available commands
-• ai [query] - Get AI assistance  
-• p2p - Connect to P2P network
-• ipfs - IPFS storage commands
-• desktop - Desktop management
+• pwd - Show the current directory
+• history - Show commands kept in this browser
 
 Type 'help' for a complete list of commands.
 `, 'info');
@@ -933,7 +951,7 @@ Type 'help' for a complete list of commands.
     if (this.output) {
       const outputLine = document.createElement('div');
       outputLine.className = `terminal-line terminal-${type}`;
-      outputLine.innerHTML = text.replace(/\n/g, '<br>');
+      outputLine.textContent = String(text ?? '');
       this.output.appendChild(outputLine);
       this.output.scrollTop = this.output.scrollHeight;
     }

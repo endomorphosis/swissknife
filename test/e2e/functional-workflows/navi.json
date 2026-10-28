@@ -1,0 +1,43 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "navi",
+  "description": "Retrieve the qualified actual catalog CID, resolve its matching gpt2 row, reopen the selected target, and recover from an unresolved intent.",
+  "fixture_scope": "svf-navi-catalog-intent",
+  "backend_bindings": [
+    {
+      "binding_id": "navi.ipfs_datasets_py.query_catalog",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 60,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/content",
+        "operator": "contains",
+        "expected": "\"id\":\"gpt2\""
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {"op": "fill", "selector": "#message-input", "value": "gpt2"},
+      {"op": "press", "selector": "#message-input", "key": "Enter"},
+      {"op": "wait_for", "selector": "#navi-match-list", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#navi-match-list"}, "operator": "contains", "expected": "gpt2"},
+      {"op": "click", "selector": "#navi-use-target"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#navi-selected-target"}, "operator": "contains", "expected": "Selected target: gpt2"}
+    ],
+    "failure_recovery": [
+      {"op": "fill", "selector": "#message-input", "value": "??"},
+      {"op": "press", "selector": "#message-input", "key": "Enter"},
+      {"op": "wait_for", "selector": "#navi-intent-status", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#navi-intent-status"}, "operator": "contains", "expected": "Not resolved"},
+      {"op": "fill", "selector": "#message-input", "value": "gpt2"},
+      {"op": "press", "selector": "#message-input", "key": "Enter"},
+      {"op": "wait_for", "selector": "#navi-match-list", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#navi-match-list"}, "operator": "contains", "expected": "gpt2"}
+    ]
+  }
+}

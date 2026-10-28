@@ -1,4 +1,5 @@
 import { getHallucinateBackendBridge } from '../hallucinate-backend-bridge.js';
+import { invokeNativeTool } from '../live-tool-gateway.js';
 import {
     BROWSER_LIBP2P_DEFAULT_CAPABILITY_ORDER,
     getBrowserLibp2pDefaultStatus,
@@ -56,6 +57,33 @@ const MCP_DASHBOARD_BROWSER_POLICY = Object.freeze({
 
 const MCP_DASHBOARD_PYTHON_HOST_INTERPRETERS = new Set(['python', 'python3', 'uvicorn', 'gunicorn', 'pip', 'pip3']);
 const MCP_DASHBOARD_PYTHON_TEXT_PATTERN = /\bpython[0-9.]*\b/i;
+
+const MCP_CONTROL_DECLARED_DIAGNOSTICS = Object.freeze([
+    Object.freeze({
+        owner: 'ipfs_kit_py',
+        bindingId: 'mcp-control.ipfs_kit_py.inspect_tool_registry',
+        toolId: 'node_id',
+        operation: 'inspect_tool_registry',
+        policyClass: 'read',
+        transports: 'http, libp2p'
+    }),
+    Object.freeze({
+        owner: 'ipfs_datasets_py',
+        bindingId: 'mcp-control.ipfs_datasets_py.inspect_tool_registry',
+        toolId: 'tools_list_categories',
+        operation: 'inspect_tool_registry',
+        policyClass: 'read',
+        transports: 'http, libp2p'
+    }),
+    Object.freeze({
+        owner: 'ipfs_accelerate_py',
+        bindingId: 'mcp-control.ipfs_accelerate_py.inspect_tool_registry',
+        toolId: 'HealthChecker.check_detailed',
+        operation: 'inspect_tool_registry',
+        policyClass: 'read',
+        transports: 'http, libp2p'
+    })
+]);
 
 /** Extracts the leading interpreter/launcher token from a host command string. */
 function detectMcpDashboardHostCommandInterpreter(command) {
@@ -138,6 +166,8 @@ class MCPControlApp {
         this.libp2pBrowserDefaultsError = null;
         this.libp2pBrowserDefaultsLoading = false;
         this.libp2pBrowserDefaultsPromise = null;
+        this.lastDiagnostic = null;
+        this.diagnosticHadInvalidParams = false;
         
         // Initialize common server templates
         this.initializeServerTemplates();
@@ -253,6 +283,7 @@ class MCPControlApp {
         return `
             <div class="mcp-control-app enhanced">
                 ${this.renderLibp2pBrowserStyles()}
+                ${this.renderOwnerDiagnostics()}
                 <div class="mcp-header">
                     <div class="header-left">
                         <h2>🔌 MCP Server Control Center</h2>
@@ -271,8 +302,8 @@ class MCPControlApp {
                     <div class="mcp-actions">
                         <button onclick="mcpControlApp.refreshServers()" class="btn-primary sk-btn sk-btn-primary">🔄 Refresh</button>
                         <button onclick="mcpControlApp.showServerTemplates()" class="btn-secondary sk-btn">📋 Templates</button>
-                        <button onclick="mcpControlApp.showAddServer()" class="btn-secondary sk-btn" title="${MCP_DASHBOARD_BROWSER_POLICY.hostDaemonCommandDisclaimer}">🖥️ Add Host Daemon</button>
-                        <button onclick="mcpControlApp.showAddRemote()" class="btn-secondary sk-btn" title="Browser-connectable remotes: ${MCP_DASHBOARD_BROWSER_POLICY.browserConnectableTransports.join(', ')}">🌐 Add Browser Remote</button>
+                        <button type="button" onclick="mcpControlApp.showAddServer()" class="btn-secondary sk-btn" aria-label="Add Host Daemon">🖥️ Add Host Daemon</button>
+                        <button type="button" onclick="mcpControlApp.showAddRemote()" class="btn-secondary sk-btn" aria-label="Add Browser Remote">🌐 Add Browser Remote</button>
                         <button onclick="mcpControlApp.showDiscovery()" class="btn-secondary sk-btn">🔍 Discovery</button>
                         <button onclick="mcpControlApp.showMetrics()" class="btn-secondary sk-btn">📊 Metrics</button>
                         <button onclick="mcpControlApp.refreshLibp2pBrowserDefaults()" class="btn-secondary sk-btn">🔄 libp2p</button>
@@ -479,6 +510,143 @@ class MCPControlApp {
                 .btn-sm {
                     padding: 4px 8px;
                     font-size: 12px;
+                }
+
+                .mcp-control-app .mcp-header {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 8px;
+                    position: relative;
+                    z-index: 1;
+                }
+
+                .mcp-control-app .mcp-header .header-left,
+                .mcp-control-app .mcp-header .server-status,
+                .mcp-control-app .mcp-header .mcp-actions {
+                    position: static;
+                    inset: auto;
+                    float: none;
+                    width: 100%;
+                    max-width: 100%;
+                    transform: none;
+                    white-space: normal;
+                }
+
+                .mcp-control-app .mcp-header h2 {
+                    position: static;
+                    margin: 0 0 4px;
+                    line-height: 1.3;
+                }
+
+                .mcp-control-app .mcp-header .header-left {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                    min-width: 0;
+                }
+
+                .mcp-control-app .mcp-header .status-indicator,
+                .mcp-control-app .mcp-header .discovery-status {
+                    display: inline-flex;
+                    flex: 0 1 auto;
+                    align-items: center;
+                    gap: 4px;
+                    width: auto;
+                    height: auto;
+                    min-width: 0;
+                    max-width: 100%;
+                    box-sizing: border-box;
+                    line-height: 1.35;
+                    white-space: normal;
+                    overflow-wrap: anywhere;
+                    background: transparent;
+                    animation: none;
+                }
+
+                .mcp-control-app .server-status,
+                .mcp-control-app .mcp-actions,
+                .mcp-owner-diagnostics .mcp-diagnostic-actions {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .mcp-control-app.enhanced {
+                    box-sizing: border-box;
+                    min-height: 0;
+                    max-height: calc(100vh - 96px);
+                    overflow: auto;
+                }
+
+                .mcp-control-app .mcp-content {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                    min-height: 0;
+                    flex: 1 1 auto;
+                    overflow: auto;
+                }
+
+                .mcp-control-app .mcp-sidebar {
+                    max-height: 220px;
+                    overflow: auto;
+                }
+
+                .mcp-control-app .server-list-container,
+                .mcp-control-app .server-list {
+                    min-height: 0;
+                    height: auto;
+                    flex: 0 1 auto;
+                }
+
+                .mcp-owner-diagnostics {
+                    padding: 8px;
+                    border: 1px solid var(--sk-border, #263a34);
+                    border-radius: 8px;
+                    background: var(--sk-card, #17241f);
+                    color: var(--sk-text, #edf7f2);
+                    display: grid;
+                    gap: 6px;
+                    min-height: 0;
+                    overflow: auto;
+                }
+
+                .mcp-owner-diagnostics h3 {
+                    margin: 0;
+                    font-size: 16px;
+                }
+
+                #mcp-gateway-confirm-host {
+                    display: inline-flex;
+                    align-items: center;
+                    min-height: 32px;
+                }
+
+                #mcp-gateway-confirm-host [data-gateway-confirm] {
+                    position: relative !important;
+                    inset: auto !important;
+                    display: inline-block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    z-index: 5 !important;
+                }
+
+                #mcp-tool-schema,
+                #mcp-diagnostic-status,
+                #mcp-diagnostic-ready {
+                    white-space: pre-wrap;
+                    word-break: break-word;
+                    margin: 0;
+                }
+
+                .mcp-control-app button:focus-visible,
+                .mcp-control-app select:focus-visible,
+                .mcp-control-app textarea:focus-visible,
+                .mcp-control-app input:focus-visible {
+                    outline: 2px solid #5ee3a1;
+                    outline-offset: 2px;
                 }
             </style>
         `;
@@ -1245,6 +1413,8 @@ class MCPControlApp {
 
             // Load connection history
             this.connectionHistory = JSON.parse(localStorage.getItem('mcp-connection-history') || '[]');
+            const storedDiagnostic = JSON.parse(localStorage.getItem('mcp-control-last-diagnostic') || 'null');
+            this.lastDiagnostic = storedDiagnostic && typeof storedDiagnostic.summary === 'string' ? storedDiagnostic : null;
         } catch (error) {
             console.warn('Failed to load saved MCP data:', error);
         }
@@ -2253,6 +2423,310 @@ class MCPControlApp {
 
         this.refreshUI();
         return snapshot;
+    }
+
+    describeDeclaredOwnerSchema() {
+        return MCP_CONTROL_DECLARED_DIAGNOSTICS.map(entry =>
+            entry.owner + ' / ' + entry.toolId + ' / ' + entry.policyClass
+        ).join('\n');
+    }
+
+    renderOwnerDiagnostics() {
+        const saved = this.lastDiagnostic;
+        const statusText = saved && typeof saved.statusText === 'string' && saved.statusText
+            ? saved.statusText
+            : (saved && typeof saved.summary === 'string' ? 'Diagnostic executed for declared owners' : 'No diagnostic run yet');
+        const ready = saved && typeof saved.summary === 'string'
+            ? '<div id="mcp-diagnostic-ready">' + this.escapeHtml(saved.summary) + '</div>'
+            : '';
+        const options = MCP_CONTROL_DECLARED_DIAGNOSTICS.map(entry =>
+            '<option value="' + this.escapeHtml(entry.owner) + '">' + this.escapeHtml(entry.owner) + '</option>'
+        ).join('');
+        const first = MCP_CONTROL_DECLARED_DIAGNOSTICS[0];
+        return [
+            '<section class="mcp-owner-diagnostics" aria-label="Owner diagnostics">',
+            '<h3>Owner diagnostics</h3>',
+            '<div class="mcp-diagnostic-actions">',
+            '<button type="button" id="mcp-refresh-discovery" class="btn-secondary sk-btn" aria-label="Refresh discovery" onclick="mcpControlApp.refreshOwnerDiscovery()">Refresh discovery</button>',
+            '<button type="button" id="mcp-run-diagnostic" class="btn-primary sk-btn sk-btn-primary" aria-label="Run diagnostic" onclick="mcpControlApp.runOwnerDiagnostic(event)" onkeydown="mcpControlApp.onDiagnosticActivateKey(event)">Run diagnostic</button>',
+            '<div id="mcp-gateway-confirm-host"></div>',
+            '</div>',
+            '<label for="mcp-owner-select">Owner</label>',
+            '<select id="mcp-owner-select" class="sk-select" aria-label="Owner" onchange="mcpControlApp.onOwnerDiagnosticChanged()">' + options + '</select>',
+            '<label for="mcp-tool-select">Tool</label>',
+            '<select id="mcp-tool-select" class="sk-select" aria-label="Tool"><option value="' + this.escapeHtml(first.toolId) + '">' + this.escapeHtml(first.toolId) + '</option></select>',
+            '<label for="mcp-tool-params">Parameters</label>',
+            '<textarea id="mcp-tool-params" class="sk-textarea" rows="2" aria-label="Parameters">{}</textarea>',
+            '<pre id="mcp-tool-schema">' + this.escapeHtml(this.describeDeclaredOwnerSchema()) + '</pre>',
+            '<p id="mcp-diagnostic-status">' + this.escapeHtml(statusText) + '</p>',
+            '<div id="mcp-diagnostic-detail">' + ready + '</div>',
+            '</section>'
+        ].join('');
+    }
+
+    onOwnerDiagnosticChanged() {
+        const ownerSelect = document.getElementById('mcp-owner-select');
+        const toolSelect = document.getElementById('mcp-tool-select');
+        const owner = ownerSelect ? ownerSelect.value : MCP_CONTROL_DECLARED_DIAGNOSTICS[0].owner;
+        const entry = MCP_CONTROL_DECLARED_DIAGNOSTICS.find(item => item.owner === owner) || MCP_CONTROL_DECLARED_DIAGNOSTICS[0];
+        if (toolSelect) {
+            toolSelect.innerHTML = '<option value="' + this.escapeHtml(entry.toolId) + '">' + this.escapeHtml(entry.toolId) + '</option>';
+            toolSelect.value = entry.toolId;
+        }
+        const schema = document.getElementById('mcp-tool-schema');
+        if (schema) schema.textContent = this.describeDeclaredOwnerSchema();
+    }
+
+    refreshOwnerDiscovery() {
+        this.onOwnerDiagnosticChanged();
+        const toolSelect = document.getElementById('mcp-tool-select');
+        const status = document.getElementById('mcp-diagnostic-status');
+        if (status) status.textContent = 'Discovery refreshed; tool remains ' + (toolSelect ? toolSelect.value : '');
+    }
+
+    onDiagnosticActivateKey(event) {
+        if (!event || event.key !== ' ') return;
+        event.preventDefault();
+        this.runOwnerDiagnostic(event);
+    }
+
+    runOwnerDiagnostic(event) {
+        if (this._diagnosticRunning) return;
+        const scopeCarrier = event && event.currentTarget && event.currentTarget.closest
+            ? event.currentTarget
+            : (document.activeElement && document.activeElement.closest ? document.activeElement : null);
+        this._diagnosticScope = scopeCarrier && scopeCarrier.closest
+            ? scopeCarrier.closest('.window-app-content')
+            : null;
+        const status = document.getElementById('mcp-diagnostic-status');
+        const toolSelect = document.getElementById('mcp-tool-select');
+        const paramsInput = document.getElementById('mcp-tool-params');
+        const toolId = toolSelect ? toolSelect.value : '';
+        const raw = paramsInput ? paramsInput.value : '';
+        let parameters;
+        try {
+            parameters = raw.trim() ? JSON.parse(raw) : {};
+            if (parameters === null || typeof parameters !== 'object' || Array.isArray(parameters)) {
+                throw new Error('parameters must be a JSON object');
+            }
+        } catch (error) {
+            this.diagnosticHadInvalidParams = true;
+            const ready = document.getElementById('mcp-diagnostic-ready');
+            if (ready) ready.remove();
+            if (status) status.textContent = 'Invalid parameters; tool remains ' + toolId;
+            return;
+        }
+        this._diagnosticRunning = true;
+        const pending = this.executeDeclaredDiagnostics(parameters);
+        if (pending && typeof pending.finally === 'function') {
+            pending.finally(() => { this._diagnosticRunning = false; });
+        } else {
+            this._diagnosticRunning = false;
+        }
+        return pending;
+    }
+
+    readDiagnosticValue(entry, result) {
+        if (!result || result.ok !== true || result.outcome !== 'executed' || result.owner !== entry.owner
+            || result.tool_id !== entry.toolId) throw new Error('Owner diagnostic did not execute for its declared owner/tool');
+        let data = result.result;
+        for (let depth = 0; depth < 8 && data && typeof data === 'object'; depth += 1) {
+            if (data.isError === true || data.success === false || data.ok === false) throw new Error('Owner diagnostic failed');
+            const json = Array.isArray(data.content) ? data.content.find(block => block.type === 'json' && block.json && typeof block.json === 'object') : null;
+            if (json) { data = json.json; continue; }
+            if (data.result && typeof data.result === 'object') { data = data.result; continue; }
+            break;
+        }
+        if (!data || typeof data !== 'object') throw new Error('Owner diagnostic returned no structured data');
+        if (entry.toolId === 'node_id') {
+            if (typeof data.ID !== 'string' || !/^[A-Za-z0-9]{16,128}$/.test(data.ID)) throw new Error('Kit node identity is missing');
+            return { node_id: data.ID, summary: 'Kit node ID: ' + data.ID };
+        }
+        if (entry.toolId === 'tools_list_categories') {
+            if (!Array.isArray(data.categories) || data.categories.length === 0 || data.categories.length > 512
+                || data.categories.some(row => !row || typeof row.name !== 'string' || !row.name.trim() || row.name.length > 256
+                    || !Number.isInteger(row.count) || row.count < 0)) throw new Error('Dataset owner category records are missing');
+            return { categories: data.categories.map(row => ({ name: row.name, count: row.count })),
+                summary: 'Dataset categories: ' + data.categories.map(row => row.name + ' (' + row.count + ')').join(', ') };
+        }
+        if (entry.toolId === 'HealthChecker.check_detailed') {
+            if (!['healthy', 'degraded'].includes(data.status) || typeof data.timestamp !== 'string'
+                || !Number.isFinite(Date.parse(data.timestamp))) throw new Error('Accelerate SDK health observation is missing');
+            if (data.status !== 'healthy') throw new Error('Accelerate SDK health is ' + data.status + ' at ' + data.timestamp);
+            return { status: data.status, timestamp: data.timestamp, summary: 'Accelerate SDK health: ' + data.status + ' at ' + data.timestamp };
+        }
+        throw new Error('Unsupported declared diagnostic');
+    }
+
+    readDiagnosticProof(result) {
+        const layers = [];
+        const push = (value) => { if (value && typeof value === 'object') layers.push(value); };
+        push(result);
+        push(result && result.result);
+        push(result && result.result && result.result.result);
+        push(result && result.payload);
+        push(result && result.payload && result.payload.result);
+        push(result && result.payload && result.payload.result && result.payload.result.result);
+        let receiptId = '';
+        let correlationId = '';
+        let outcome = '';
+        let isError = false;
+        for (const layer of layers) {
+            if (typeof layer.receipt_id === 'string' && layer.receipt_id) receiptId = layer.receipt_id;
+            if (layer.receipt && typeof layer.receipt.receipt_id === 'string' && layer.receipt.receipt_id) receiptId = layer.receipt.receipt_id;
+            if (typeof layer.correlation_id === 'string' && layer.correlation_id) correlationId = layer.correlation_id;
+            if (typeof layer.outcome === 'string' && layer.outcome) outcome = layer.outcome;
+            if (layer.isError === true || layer.failed === true || layer.denied === true) isError = true;
+        }
+        const blockedOutcome = /preview|dry_run|error|failed|denied|unavailable/i.test(outcome);
+        const blocked = result?.ok !== true || result?.outcome !== 'executed' || isError || blockedOutcome || !receiptId;
+        return {
+            receiptId,
+            correlationId,
+            outcome,
+            blocked,
+            reason: !receiptId ? 'authenticated receipt missing' : ((isError || blockedOutcome) ? ('diagnostic ' + (outcome || 'failed')) : '')
+        };
+    }
+
+    placeGatewayConfirm(container, bindingId) {
+        const host = (container && container.querySelector && container.querySelector('#mcp-gateway-confirm-host')) || container;
+        if (!host || !bindingId) return false;
+        const matches = document.querySelectorAll('[data-gateway-confirm="' + bindingId + '"]');
+        const confirm = matches.length ? matches[matches.length - 1] : null;
+        if (!confirm || confirm === host) return false;
+        confirm.hidden = false;
+        confirm.removeAttribute('hidden');
+        confirm.classList.remove('hidden');
+        if (typeof confirm.show === 'function' && confirm.open === false) confirm.show();
+        if (confirm.parentElement !== host) host.appendChild(confirm);
+        confirm.style.setProperty('display', 'inline-block', 'important');
+        confirm.style.setProperty('visibility', 'visible', 'important');
+        confirm.style.setProperty('opacity', '1', 'important');
+        confirm.style.setProperty('position', 'relative', 'important');
+        confirm.style.setProperty('inset', 'auto', 'important');
+        confirm.style.setProperty('z-index', '5', 'important');
+        confirm.style.setProperty('width', 'auto', 'important');
+        confirm.style.setProperty('height', 'auto', 'important');
+        confirm.style.setProperty('min-width', '44px', 'important');
+        confirm.style.setProperty('min-height', '32px', 'important');
+        confirm.style.setProperty('max-height', 'none', 'important');
+        confirm.style.setProperty('overflow', 'visible', 'important');
+        confirm.style.setProperty('clip', 'auto', 'important');
+        confirm.style.setProperty('clip-path', 'none', 'important');
+        confirm.style.setProperty('transform', 'none', 'important');
+        confirm.style.setProperty('pointer-events', 'auto', 'important');
+        return true;
+    }
+
+    resolveInvokeNativeTool() {
+        const windowRef = typeof window === 'undefined' ? null : window;
+        const roots = [
+            typeof globalThis === 'undefined' ? null : globalThis,
+            windowRef,
+            windowRef && windowRef.swissknife,
+            windowRef && windowRef.desktop,
+            windowRef && windowRef.desktop && windowRef.desktop.swissknife,
+            windowRef && windowRef.liveToolGateway
+        ];
+        try { if (windowRef && windowRef.parent) roots.push(windowRef.parent, windowRef.parent.swissknife); } catch (error) {}
+        try { if (windowRef && windowRef.top) roots.push(windowRef.top, windowRef.top.swissknife); } catch (error) {}
+        for (let index = 0; index < roots.length; index += 1) {
+            const root = roots[index];
+            if (root && typeof root.invokeNativeTool === 'function') return root.invokeNativeTool.bind(root);
+        }
+        return null;
+    }
+
+    async ensureInvokeNativeTool() {
+        const existing = this.resolveInvokeNativeTool();
+        if (existing) return existing;
+        if (!this._gatewayModuleLoad) {
+            this._gatewayModuleLoad = import('../live-tool-gateway.js').then(mod => {
+                const candidate = mod && (mod.invokeNativeTool || (mod.default && mod.default.invokeNativeTool));
+                return typeof candidate === 'function' ? candidate : null;
+            }).catch(() => null);
+        }
+        const imported = await this._gatewayModuleLoad;
+        return this.resolveInvokeNativeTool() || (typeof imported === 'function' ? imported : null);
+    }
+
+    async qualifiedDiagnosticPayload(entry, parameters) {
+        const userPayload = parameters && typeof parameters === 'object' && !Array.isArray(parameters) ? parameters : {};
+        if (Object.keys(userPayload).length > 0) return userPayload;
+        try {
+            const response = await fetch('/mcp/tools/bindings?app_id=mcp-control', { headers: { Accept: 'application/json' } });
+            if (!response.ok) return userPayload;
+            const body = await response.json();
+            const safe = body && body.controls && body.controls.safe_payloads
+                ? body.controls.safe_payloads[entry.toolId]
+                : null;
+            if (safe && typeof safe === 'object' && !Array.isArray(safe)) return safe;
+        } catch (error) {
+            console.warn('MCP safe payload lookup failed:', error);
+        }
+        return userPayload;
+    }
+
+    async dispatchDeclaredDiagnostic(entry, parameters) {
+        const payload = await this.qualifiedDiagnosticPayload(entry, parameters);
+        const scoped = this._diagnosticScope || null;
+        const trigger = (scoped && scoped.querySelector('#mcp-run-diagnostic'))
+            || document.getElementById('mcp-run-diagnostic');
+        const container = scoped
+            || (trigger && trigger.closest && trigger.closest('.window-app-content'))
+            || document.querySelector('.window[data-app-id="mcp-control"] .window-app-content')
+            || document.querySelector('.mcp-control-app');
+        if (!container || typeof invokeNativeTool !== 'function') {
+            throw new Error('Gateway binding unavailable');
+        }
+        return await invokeNativeTool(container, 'mcp-control', entry.bindingId, {
+            executionMode: 'execute',
+            toolId: entry.toolId,
+            payload,
+            trigger
+        });
+    }
+
+    async executeDeclaredDiagnostics(parameters) {
+        const status = document.getElementById('mcp-diagnostic-status');
+        const toolSelect = document.getElementById('mcp-tool-select');
+        const retainedTool = toolSelect ? toolSelect.value : '';
+        const proofs = [];
+        const observations = [];
+        const oldReady = document.getElementById('mcp-diagnostic-ready');
+        if (oldReady) oldReady.remove();
+        if (status) status.textContent = 'Running declared owner diagnostics';
+        try {
+            for (const entry of MCP_CONTROL_DECLARED_DIAGNOSTICS) {
+                const result = await this.dispatchDeclaredDiagnostic(entry, parameters);
+                const proof = this.readDiagnosticProof(result);
+                if (!proof.receiptId || proof.blocked) {
+                    throw new Error(entry.owner + ' ' + entry.toolId + ': ' + (proof.reason || 'authenticated receipt missing'));
+                }
+                const value = this.readDiagnosticValue(entry, result);
+                observations.push({ owner: entry.owner, tool: entry.toolId, ...value, receipt_id: proof.receiptId, correlation_id: proof.correlationId });
+                proofs.push(value.summary + '\n' + entry.owner + ' ' + entry.toolId + ' receipt ' + proof.receiptId + ' correlation ' + (proof.correlationId || 'none'));
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            if (status) status.textContent = 'Owner outage: ' + message + '; tool remains ' + retainedTool;
+            return;
+        }
+        const summary = MCP_CONTROL_DECLARED_DIAGNOSTICS.map(entry => entry.toolId).join(' ') + '\n' + proofs.join('\n');
+        const statusText = this.diagnosticHadInvalidParams
+            ? 'Retry succeeded for declared owners'
+            : 'Diagnostic executed for declared owners';
+        this.lastDiagnostic = { schema: 'swissknife.mcp-control-owner-diagnostic.v1', summary, observations, statusText };
+        try {
+            localStorage.setItem('mcp-control-last-diagnostic', JSON.stringify(this.lastDiagnostic));
+        } catch (error) {
+            console.warn('Failed to retain MCP diagnostic:', error);
+        }
+        const detail = document.getElementById('mcp-diagnostic-detail');
+        if (detail) detail.innerHTML = '<div id="mcp-diagnostic-ready">' + this.escapeHtml(summary) + '</div>';
+        if (status) status.textContent = statusText;
+        this.diagnosticHadInvalidParams = false;
     }
 
     showNotification(message, type = 'info') {

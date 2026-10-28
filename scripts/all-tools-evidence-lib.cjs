@@ -1956,10 +1956,18 @@ function markdownTable(title, headers, rows) {
   return lines.join('\n');
 }
 
+const nativeAccelerateAuthorities = new Map();
+
 function startAccelerateCompatServer(options = {}) {
   const host = options.host ?? '127.0.0.1';
   const port = Number(options.port ?? 3003);
-  const upstream = options.upstream ?? 'http://127.0.0.1:9000';
+  const nativeEndpoint = options.nativeMcpUrl ?? process.env.SWISSKNIFE_ACCELERATE_NATIVE_MCP_URL;
+  const upstream = nativeEndpoint || options.upstream || 'http://127.0.0.1:9000';
+  const requireNative = options.requireNativeReady ?? process.env.SWISSKNIFE_ACCELERATE_REQUIRE_NATIVE_READY === '1';
+  if (requireNative && !nativeEndpoint) throw new Error('Native Accelerate readiness requires its configured native endpoint.');
+  const native = nativeEndpoint
+    ? require('./ipfs-accelerate-native-forwarder.cjs').createNativeAccelerateForwarder({ endpoint: nativeEndpoint }) : null;
+  if (native) nativeAccelerateAuthorities.set(upstream, native);
   const artifactStore = createArtifactStore({ service: 'ipfs_accelerate_py' });
   const profileCService = getProfileCService('ipfs_accelerate_py');
   const eventDag = getEventDagService('ipfs_accelerate_py');
@@ -1969,6 +1977,7 @@ function startAccelerateCompatServer(options = {}) {
   const profileAPersistence = new Map();
 
   async function healthPayload() {
+    if (native) await native.health();
     const manifest = await accelerateCompatManifest(upstream);
     return {
       status: 'ok',
@@ -1980,6 +1989,7 @@ function startAccelerateCompatServer(options = {}) {
       upstream_available: manifest.upstream_available,
       hierarchy_facade: manifest.hierarchy_facade,
       alias_mappings: manifest.alias_mappings,
+      ...(native ? { backend: 'native_python', native_endpoint: upstream } : {}),
     };
   }
 
@@ -2215,11 +2225,16 @@ function startAccelerateCompatServer(options = {}) {
     }
   });
 
-  server.listen(port, host, () => {
+  const listen = () => server.listen(port, host, () => {
     console.log(`ipfs_accelerate_py compatibility MCP adapter listening on http://${host}:${port}`);
     console.log(`proxy upstream: ${upstream}`);
     steering.warm();
   });
+  if (native) {
+    server.nativeReady = Promise.all([native.health(), native.listTools()]);
+    server.nativeReady.then(listen, error => server.emit('error', error));
+  } else listen();
+  server.once('close', () => { if (native) { nativeAccelerateAuthorities.delete(upstream); accelerateCatalogCache.delete(upstream); } });
   return server;
 }
 
@@ -2321,6 +2336,15 @@ async function accelerateCompatCatalog(upstream) {
 }
 
 async function buildAccelerateCompatCatalog(upstream) {
+  const native = nativeAccelerateAuthorities.get(upstream);
+  if (native) {
+    const domainTools = await native.listTools();
+    await native.health();
+    const tools = require('./ipfs-accelerate-native-forwarder.cjs').nativeAccelerateCatalog(domainTools);
+    return { upstream_available: true, tools, tool_names: tools.map(tool => tool.name),
+      real_tools: domainTools, real_tool_names: domainTools.map(tool => tool.name), alias_mappings: {},
+      categories: buildCompatCategories(tools) };
+  }
   const real = await fetchText(`${upstream}/mcp/tools`);
   const realTools = extractTools(real.json)
     .map(tool => normalizeCompatTool(tool, 'Real local ipfs_accelerate_py tool proxied through SwissKnife adapter.'))
@@ -2683,6 +2707,8 @@ async function callAccelerateCompatTool(upstream, name, args) {
     }
     return callAccelerateCompatTool(upstream, dispatchName, dispatchArgs);
   }
+  const native = nativeAccelerateAuthorities.get(upstream);
+  if (native) return native.execute(name, args);
   if (name === 'get_hardware_info') {
     return {
       content: [{ type: 'json', json: localHardwareInfo() }],

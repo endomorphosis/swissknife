@@ -1,0 +1,199 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "neural-photoshop",
+  "description": "Retrieve and decode native source bytes, edit the real canvas with Undo/Redo, save an encoded PNG and editable layers, reopen matching pixels and bytes, then preserve edits across an invalid CID and a genuine valid retry.",
+  "fixture_scope": "svf-neural-photoshop-442",
+  "backend_bindings": [
+    {
+      "binding_id": "neural-photoshop.ipfs_kit_py.retrieve_content",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 1048576,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/cid",
+        "operator": "equals",
+        "expected": "bafkreiefsedovka56qbpo5s4o2mpfq2zbhdknta7rqarqjljugxdmpriue"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "fill",
+        "selector": "[data-source-cid-input]",
+        "value": "bafkreiefsedovka56qbpo5s4o2mpfq2zbhdknta7rqarqjljugxdmpriue"
+      },
+      {
+        "op": "click",
+        "selector": "#load-source-bytes"
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"neural-photoshop.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#main-canvas[data-source-cid=\"bafkreiefsedovka56qbpo5s4o2mpfq2zbhdknta7rqarqjljugxdmpriue\"][data-source-pixels-sha256=\"9fdb6b885b647934503a0738caad55ff72c56f47726e06b09332fd606ebafc11\"][width=\"64\"][height=\"48\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-tool=\"brush\"]"
+      },
+      {
+        "op": "press",
+        "selector": "#main-canvas",
+        "key": "Enter"
+      },
+      {
+        "op": "click",
+        "selector": "#undo-btn"
+      },
+      {
+        "op": "click",
+        "selector": "#redo-btn"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#project-meta[data-project-width=\"64\"][data-project-height=\"48\"][data-layer-names=\"Background\"][data-edit-action=\"Brush stroke\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "#save-btn"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-project-storage-state=\"saved\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "image_state",
+          "selector": "[data-saved-project-image]",
+          "pointer": "/natural_width"
+        },
+        "operator": "equals",
+        "expected": 64
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "click",
+        "selector": "#add-layer-btn"
+      },
+      {
+        "op": "click",
+        "selector": "#save-btn"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-project-storage-state=\"saved\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#project-meta[data-project-width=\"64\"][data-project-height=\"48\"][data-layer-names=\"Background, Layer 2\"][data-edit-action=\"Brush stroke\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-project-storage-state=\"restored\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "image_state",
+          "selector": "[data-saved-project-image][data-layer-names=\"Background, Layer 2\"]",
+          "pointer": "/natural_width"
+        },
+        "operator": "equals",
+        "expected": 64
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "fill",
+        "selector": "[data-source-cid-input]",
+        "value": "not-a-cid"
+      },
+      {
+        "op": "click",
+        "selector": "#load-source-bytes"
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"neural-photoshop.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-source-cid-state=\"error\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "[data-source-result]"
+        },
+        "operator": "contains",
+        "expected": "Source read failed"
+      },
+      {
+        "op": "fill",
+        "selector": "[data-source-cid-input]",
+        "value": "bafkreiefsedovka56qbpo5s4o2mpfq2zbhdknta7rqarqjljugxdmpriue"
+      },
+      {
+        "op": "click",
+        "selector": "#load-source-bytes"
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"neural-photoshop.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-source-cid-state=\"decoded-image\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "wait_for",
+        "selector": "#project-meta[data-project-width=\"64\"][data-project-height=\"48\"][data-layer-names=\"Background, Layer 2\"][data-edit-action=\"Brush stroke\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "backend_result",
+          "binding_id": "neural-photoshop.ipfs_kit_py.retrieve_content",
+          "pointer": "/result/result/content/0/json/sha256"
+        },
+        "operator": "equals",
+        "expected": "859106eaa81df402f7765c7698f2c35909c6a6cc1f8c01182569a1ae363e28a1"
+      }
+    ]
+  }
+}

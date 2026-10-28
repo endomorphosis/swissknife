@@ -12,10 +12,10 @@ function workflowOwnerResult(envelope) {
   let result = envelope.result;
   for (let depth = 0; depth < 8 && result && typeof result === 'object'; depth++) {
     if (result.ok === false || result.success === false || result.isError === true || result.error) throw new Error(result.error?.message || result.error || 'The owner rejected this request.');
-    const blocks = result.content?.filter(block => block.type === 'json' && block.json && typeof block.json === 'object') || [];
+    const blocks = Array.isArray(result.content) ? result.content.filter(block => block.type === 'json' && block.json && typeof block.json === 'object') : [];
     if (blocks.length > 1) throw new Error('The owner returned ambiguous operation data.');
     if (blocks.length === 1) { result = blocks[0].json; continue; }
-    const text = result.content?.find(block => block.type === 'text')?.text;
+    const text = Array.isArray(result.content) ? result.content.find(block => block.type === 'text')?.text : null;
     if (text) { try { result = JSON.parse(text); continue; } catch { throw new Error('The owner returned no verifiable operation data.'); } }
     if (result.result && typeof result.result === 'object') { result = result.result; continue; }
     if (!envelope.receipt?.receipt_id || !envelope.correlation_id) throw new Error('The owner response has no verifiable gateway receipt.');
@@ -88,7 +88,7 @@ export class NeuralPhotoshopApp {
     this.panels = {
       tools: true,
       layers: true,
-      properties: true,
+      properties: globalThis.window?.matchMedia?.('(max-width: 720px)')?.matches !== true,
       history: false,
       ai: true
     };
@@ -121,11 +121,8 @@ export class NeuralPhotoshopApp {
       const windowConfig = this.createWindow();
       this.container.innerHTML = windowConfig.content;
       
-      // Set up event handlers after a short delay
-      setTimeout(() => {
-        this.setupEventHandlers(this.container);
-        console.log('✅ Neural Photoshop initialized in virtual desktop');
-      }, 100);
+      await this.setupEventHandlers(this.container);
+      console.log('✅ Neural Photoshop initialized in virtual desktop');
     }
   }
 
@@ -425,6 +422,8 @@ export class NeuralPhotoshopApp {
     }
     
     this.layers.push(layer);
+    this.projectRenderRevision = (this.projectRenderRevision || 0) + 1;
+    if (this.savedProjectFrame) this.projectStorageStatus('Unsaved image changes.', 'unsaved');
     this.activeLayerIndex = this.layers.length - 1;
     
     return layer;
@@ -501,11 +500,17 @@ export class NeuralPhotoshopApp {
               </div>
             </div>
             
+            <figure data-saved-project-output class="saved-project-output" hidden>
+              <img data-saved-project-image alt="Saved image preview">
+              <figcaption></figcaption>
+            </figure>
+            <output data-project-storage-status data-project-storage-state="unsaved" aria-live="polite"></output>
             <!-- Canvas Status Bar -->
             <div class="canvas-status">
               <span class="status-info" id="canvas-info">
-                ${this.currentProject ? this.currentProject.width : 1024} × ${this.currentProject ? this.currentProject.height : 1024} px | RGB | 300 DPI
+                ${this.currentProject ? this.currentProject.width : 1024} × ${this.currentProject ? this.currentProject.height : 1024} px | RGB
               </span>
+              <span class="status-info" id="project-meta">No decoded source</span>
               <span class="status-info" id="cursor-info">X: 0, Y: 0</span>
               <span class="status-info" id="selection-info"></span>
             </div>
@@ -1072,22 +1077,85 @@ export class NeuralPhotoshopApp {
         /* Window size is independent of the desktop viewport. Keep the image
            inside its own scroll area so it cannot push panels out of a small
            window or cover the controls and real confirmation inputs. */
-        .window[data-app-id="neural-photoshop"] > .window-content { container-type: size; position: relative; }
-        .neural-photoshop-container { min-width: 0; min-height: 0; width: 100%; position: relative; height: 420px; height: 100cqh; }
+        .window[data-app-id="neural-photoshop"] > .window-content { container-type: size; position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+        .neural-photoshop-container { min-width: 0; min-height: 0; width: 100%; position: relative; flex: 1 1 auto; height: 100%; height: 100cqh; overflow: hidden; }
         .neural-photoshop-container > .menu-bar { flex: 0 0 auto; overflow-x: auto; }
         .neural-photoshop-container > .main-content { flex: 1 1 0; flex-direction: row; min-width: 0; min-height: 0; width: 100%; position: relative; }
         .neural-photoshop-container .left-panel,
-        .neural-photoshop-container .right-panel { position: relative; flex: 0 0 clamp(160px, 25%, 240px); width: auto; min-width: 0; min-height: 0; height: auto; max-height: 100%; overflow-y: auto; overflow-x: hidden; transform: none; }
+        .neural-photoshop-container .right-panel { position: relative; flex: 0 0 clamp(160px, 25%, 240px); width: auto; min-width: 0; min-height: 0; height: auto; max-height: 100%; overflow-y: auto; overflow-x: hidden; transform: none; padding-bottom: 8px; scroll-padding-bottom: 8px; }
         .neural-photoshop-container .canvas-area { flex: 1 1 0; min-width: 0; min-height: 0; overflow: hidden; }
         .neural-photoshop-container .canvas-container { min-width: 0; min-height: 0; display: block; }
-        .neural-photoshop-container .main-canvas { display: block; max-width: none; }
+        .neural-photoshop-container .canvas-status { flex-wrap: wrap; gap: 6px; overflow-wrap: anywhere; }
+        .neural-photoshop-container #project-meta { font-weight: 700; color: #bbf7d0; }
+        .neural-photoshop-container .main-canvas,
+        .neural-photoshop-container .overlay-canvas { display: block; width: min(100%, 480px); min-width: min(100%, 192px); height: auto; image-rendering: pixelated; }
+        .neural-photoshop-container [data-generation-prompt] { box-sizing: border-box; width: 100%; max-width: 100%; min-width: 0; min-height: 6.5em; overflow-wrap: anywhere; white-space: pre-wrap; }
         .neural-photoshop-container .panel-section { display: block; position: static; inset: auto; width: auto; height: auto; }
         .neural-photoshop-container .ai-panel { position: static; inset: auto; width: auto; height: auto; max-height: none; display: block; }
         .neural-photoshop-container [hidden] { display: none !important; }
         .neural-photoshop-container .vda-g042-actions { grid-template-columns: minmax(0, 1fr); }
+        .neural-photoshop-container .ai-tool-btn,
+        .neural-photoshop-container .menu-btn { white-space: normal; overflow-wrap: anywhere; height: auto; max-width: 100%; }
         .neural-photoshop-container .vda-g042-actions input,
         .neural-photoshop-container .vda-g042-actions textarea { box-sizing: border-box; width: 100%; min-width: 0; }
+        .neural-photoshop-container [data-source-cid-input] { display: block; min-height: 7.5em; resize: vertical; font: 11px/1.35 ui-monospace, monospace; overflow-wrap: anywhere; white-space: pre-wrap; }
+        @media (max-width: 768px) {
+          .neural-photoshop-container > .main-content { flex-direction: column; overflow: auto; }
+          .neural-photoshop-container .left-panel,
+          .neural-photoshop-container .right-panel { position: relative; transform: none; width: 100%; flex: 0 0 auto; max-height: none; }
+          .neural-photoshop-container .canvas-area { order: -1; position: sticky; top: 0; z-index: 4; flex: 0 0 auto; min-height: 128px; max-height: 46%; overflow: auto; background: #2a2a3e; }
+        }
+        @container (max-width: 720px) {
+          .neural-photoshop-container { height: 100cqh; min-height: 0; overflow: hidden; }
+          .neural-photoshop-container > .menu-bar,
+          .neural-photoshop-container > .menu-bar .menu-section,
+          .neural-photoshop-container > .menu-bar .menu-group { flex-wrap: wrap; }
+          .neural-photoshop-container > .main-content { flex: 1 1 auto; min-height: 0; flex-direction: column; overflow: auto; }
+          .neural-photoshop-container > .main-content { scroll-padding-bottom: 72px; }
+          .neural-photoshop-container .left-panel { order: -2; position: relative; top: auto; z-index: 1; flex: 0 0 auto; width: 100%; max-height: none; overflow: visible; background: #1a1a2e; }
+          .neural-photoshop-container .right-panel { order: 1; flex: 0 0 auto; width: 100%; max-height: none; min-height: 0; position: relative; z-index: 1; overflow: visible; }
+          .neural-photoshop-container .tools-panel .tool-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+          .neural-photoshop-container .tool-btn { padding: 4px 2px; gap: 1px; font-size: 10px; }
+          .neural-photoshop-container .tool-icon { font-size: 12px; }
+          .neural-photoshop-container .layers-panel { max-height: none; overflow: visible; }
+          .neural-photoshop-container .canvas-area { order: -1; position: sticky; top: 0; z-index: 4; flex: 0 0 auto; min-height: 132px; max-height: 180px; overflow: auto; background: #2a2a3e; }
+          .neural-photoshop-container .canvas-container { overflow: auto; min-height: 72px; }
+          .neural-photoshop-container .main-canvas,
+          .neural-photoshop-container .overlay-canvas { max-width: 100%; max-height: 120px; height: auto; }
+          .neural-photoshop-container .canvas-status { position: sticky; bottom: 0; z-index: 2; background: #1a1a2e; }
+          .neural-photoshop-container .canvas-status { flex-wrap: wrap; gap: 6px; }
+          .neural-photoshop-container [data-source-cid-input] { min-height: 2.6em; }
+          .neural-photoshop-container [data-generation-prompt] { min-height: 3em; }
+        }
         
+        /* Fit the real app allocation; native desktop footer remains outside. */
+        .window[data-app-id="neural-photoshop"] > .window-content { padding-bottom: 0; }
+        .window[data-app-id="neural-photoshop"] .window-app-content { display: flex; flex-direction: column; flex: 1 1 0%; min-height: 0; min-width: 0; overflow: hidden; }
+        .window[data-app-id="neural-photoshop"] .window-app-content > [id$="-content"] { display: flex; flex-direction: column; flex: 1 1 0%; min-height: 0; min-width: 0; overflow: hidden; }
+        .window[data-app-id="neural-photoshop"] .window-app-content > .live-tool-gateway-host { flex: 0 0 auto; max-height: 40%; min-height: 0; overflow: auto; }
+        .neural-photoshop-container { height: auto; flex: 1 1 0; min-height: 0; }
+        .neural-photoshop-container .left-panel,
+        .neural-photoshop-container .right-panel { scrollbar-width: thin; scrollbar-color: #8b91a8 #25283b; scroll-padding-block: 8px 48px; }
+        .neural-photoshop-container .saved-project-output { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: #202335; }
+        .neural-photoshop-container .saved-project-output img { width: 64px; height: 48px; object-fit: contain; image-rendering: pixelated; }
+        .neural-photoshop-container .saved-project-output figcaption { font-size: 11px; overflow-wrap: anywhere; }
+        .neural-photoshop-container [data-project-storage-status] { flex: 0 0 auto; font-size: 11px; padding-inline: 8px; overflow-wrap: anywhere; }
+        .neural-photoshop-container .project-optional-tools { display: block; margin-top: 8px; }
+        .neural-photoshop-container .project-optional-tools > summary { cursor: pointer; padding: 8px 4px; color: #dbeafe; font-size: 12px; }
+        .neural-photoshop-container :is(button,input,textarea,select,summary):focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
+        @container (max-width: 720px) {
+          .neural-photoshop-container > .menu-bar .menu-section { gap: 4px; }
+          .neural-photoshop-container > .menu-bar .menu-btn { padding: 5px 7px; }
+          .neural-photoshop-container .left-panel { position: sticky; top: 0; z-index: 6; height: 128px; max-height: 128px; overflow: auto; flex: 0 0 128px; }
+          .neural-photoshop-container .tools-panel .tool-grid { display: flex; overflow-x: auto; gap: 4px; padding: 4px; }
+          .neural-photoshop-container .tool-btn { flex: 0 0 48px; min-height: 44px; }
+          .neural-photoshop-container .panel-header { padding: 6px 10px; }
+          .neural-photoshop-container .canvas-area { top: 128px; min-height: 192px; max-height: 240px; }
+          .neural-photoshop-container .right-panel { padding-bottom: 72px; }
+          .neural-photoshop-container .vda-g042-header { display: flex; flex-wrap: wrap; }
+          .neural-photoshop-container .vda-g042-subtitle { max-width: 100%; }
+        }
+
         /* Drag and drop styles */
         .canvas-area.drag-over {
           background: rgba(74, 222, 128, 0.1) !important;
@@ -1305,7 +1373,7 @@ export class NeuralPhotoshopApp {
   renderAIPanel() {
     return `
       ${this.renderVdaG042WorkflowPanel()}
-
+      <details class="project-optional-tools"><summary>More image tools</summary>
       <div class="ai-tool-group">
         <div class="property-label">🧠 Segmentation & Masking</div>
         <button class="ai-tool-btn" id="ai-segment-btn">
@@ -1366,18 +1434,23 @@ export class NeuralPhotoshopApp {
           <span class="property-value">${this.toolSettings.ai.steps}</span>
         </div>
       </div>
+      </details>
     `;
   }
 
   renderVdaG042WorkflowPanel() {
     return `
       <section class="vda-g042-panel" data-svd-workflow="neural-photoshop.source-result-provenance-edit" data-workflow-state="idle" aria-labelledby="vda-g042-title">
-        <div class="vda-g042-header"><div><div id="vda-g042-title" class="property-label">Image request and provenance</div>
-          <div class="vda-g042-subtitle">Review an owner request. A validated preview does not generate or store an image.</div></div><span class="vda-g042-badge">Idle</span></div>
+        <div class="vda-g042-header"><div><div id="vda-g042-title" class="property-label">Source image</div>
+          <div class="vda-g042-subtitle">Edit locally, then Save or Export your image. Generation is a separate request.</div></div><span class="vda-g042-badge">Idle</span></div>
         <div class="vda-g042-actions">
-          <label>Source artifact CID <input data-source-cid-input aria-label="Artifact CID" placeholder="bafy…" value=""></label>
-          <button class="ai-tool-btn" data-svd-workflow-action="load-source-cid" data-native-gateway-binding="neural-photoshop.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat">Read source bytes</button>
-          <label>Generation prompt <textarea data-generation-prompt>${escapeWorkflow(this.vdaG042.prompt)}</textarea></label>
+          <label>Source artifact CID <textarea data-source-cid-input aria-label="Artifact CID" placeholder="bafy…" rows="2" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></label>
+          <button class="ai-tool-btn" id="load-source-bytes" data-svd-workflow-action="load-source-cid" data-native-gateway-binding="neural-photoshop.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat">Read source bytes</button>
+        </div>
+        <article data-svd-vda-marker="source-result-cids" data-source-cid-state="not-loaded" data-result-cid-state="unavailable" class="vda-g042-card"><strong>Loaded source</strong><span data-source-result>No source bytes have been read.</span></article>
+        <details class="project-optional-tools"><summary>Generation and request details</summary>
+        <div class="vda-g042-actions">
+          <label>Generation prompt <textarea data-generation-prompt spellcheck="false" rows="3">${escapeWorkflow(this.vdaG042.prompt)}</textarea></label>
           <label>Model <input data-generation-model placeholder="Reviewed owner default when empty" value="${escapeWorkflow(this.vdaG042.model)}"></label>
           <button class="ai-tool-btn" data-svd-workflow-action="start-generation" data-native-gateway-binding="neural-photoshop.ipfs_accelerate_py.run_inference_job" data-native-tool-id="run_inference_job">Review generation request</button>
           <button class="ai-tool-btn" data-svd-workflow-action="apply-edit-progress">Inspect local edit history</button>
@@ -1386,7 +1459,7 @@ export class NeuralPhotoshopApp {
           <button class="ai-tool-btn" data-svd-workflow-action="open-comparison-ui">Inspect comparison state</button>
         </div>
         <div class="vda-g042-grid">
-          <article data-svd-vda-marker="source-result-cids" data-source-cid-state="not-loaded" data-result-cid-state="unavailable" class="vda-g042-card"><strong>Source and result</strong><span data-source-result>No source bytes have been read.</span><span class="vda-result-cid">No generated result artifact.</span></article>
+          <article class="vda-g042-card"><strong>Generated result</strong><span class="vda-result-cid">No generated result artifact.</span></article>
           <article data-svd-vda-marker="prompt-model-provenance" data-prompt-provenance-state="local-draft" data-model-provenance-state="unverified" class="vda-g042-card"><strong>Prompt and model</strong><span>The form is a local draft. No prompt or model artifact has been persisted.</span></article>
           <article data-svd-vda-marker="generation-progress" data-generation-state="idle" class="vda-g042-card"><strong>Generation status</strong><span data-generation-status>No generation job has been submitted. Progress is unavailable.</span></article>
           <article data-svd-vda-marker="edit-progress" data-edit-state="local-only" class="vda-g042-card"><strong>Local edits</strong><span data-edit-status>No edit history inspected.</span></article>
@@ -1394,6 +1467,7 @@ export class NeuralPhotoshopApp {
           <article data-svd-vda-marker="denial" data-denial-state="not-evaluated" role="status" class="vda-g042-card"><strong>Policy</strong><span data-policy-status>No policy decision requested.</span></article>
           <article data-svd-vda-marker="comparison-ui" data-comparison-state="unavailable" class="vda-g042-card"><strong>Comparison</strong><span data-comparison-status>A verified source and generated result are required for comparison.</span></article>
         </div>
+        </details>
       </section>`;
   }
 
@@ -1413,10 +1487,10 @@ export class NeuralPhotoshopApp {
   setupEventHandlers(container) {
     const root = container.querySelector('.neural-photoshop-container') || container;
     this.boundEventRoots ||= new WeakSet();
-    if (this.boundEventRoots.has(root)) return;
+    if (this.boundEventRoots.has(root)) return this.projectRestorePromise;
     this.boundEventRoots.add(root);
     // Canvas setup
-    this.setupCanvas(container);
+    const canvasReady = this.setupCanvas(container);
     
     // Menu handlers
     this.setupMenuHandlers(container);
@@ -1441,6 +1515,7 @@ export class NeuralPhotoshopApp {
     
     // Keyboard shortcuts
     this.setupKeyboardHandlers();
+    return canvasReady;
   }
 
   setupPanelHandlers(container) {
@@ -1474,11 +1549,13 @@ export class NeuralPhotoshopApp {
       overlayCanvas.height = canvas.height;
       
       this.canvas = canvas;
+      container.inert = false;
       this.context = canvas.getContext('2d');
       this.overlayCanvas = overlayCanvas;
       this.overlayContext = overlayCanvas.getContext('2d');
       
       this.redrawCanvas();
+      return this.restoreSavedProject();
     }
   }
 
@@ -1576,22 +1653,14 @@ export class NeuralPhotoshopApp {
   }
 
   setupLayerHandlers(container) {
-    container.querySelector('#add-layer-btn')?.addEventListener('click', () => {
-      this.createLayer(`Layer ${this.layers.length + 1}`);
-      this.refreshLayersPanel();
-    });
-
-    container.querySelector('#delete-layer-btn')?.addEventListener('click', () => {
-      this.deleteActiveLayer();
-      this.refreshLayersPanel();
-    });
-
-    container.querySelectorAll('.layer-item').forEach(item => {
-      item.addEventListener('click', () => {
-        this.activeLayerIndex = parseInt(item.dataset.layerIndex);
-        this.refreshLayersPanel();
-      });
-    });
+    this.boundLayerControls ||= new WeakSet();
+    const bind = (element, handler) => {
+      if (!element || this.boundLayerControls.has(element)) return;
+      this.boundLayerControls.add(element); element.addEventListener('click', handler);
+    };
+    bind(container.querySelector('#add-layer-btn'), () => { this.createLayer(`Layer ${this.layers.length + 1}`); this.refreshLayersPanel(); });
+    bind(container.querySelector('#delete-layer-btn'), () => { this.deleteActiveLayer(); this.refreshLayersPanel(); });
+    for (const item of container.querySelectorAll('.layer-item')) bind(item, () => { this.activeLayerIndex = parseInt(item.dataset.layerIndex); this.refreshLayersPanel(); });
   }
 
   setupAIHandlers(container) {
@@ -1654,24 +1723,35 @@ export class NeuralPhotoshopApp {
     const source = container.querySelector('[data-source-cid-state]');
     const message = container.querySelector('[data-source-result]');
     if (!cid) { if (message) message.textContent = 'Enter a source artifact CID first.'; return; }
-    this.vdaG042.sourceCid = null; this.vdaG042.sourceBytes = null;
+    if (this.sourceReadPending || this.projectRestoring) return;
+    this.sourceReadPending = true;
+    const owner = this.container, currentCanvas = this.canvas;
+    if (source) source.dataset.sourceCidState = 'loading';
     try {
-      const response = await invokeNativeTool(container, 'neural-photoshop', 'neural-photoshop.ipfs_kit_py.retrieve_content', { toolId: 'ipfs_cat', payload: { cid }, trigger });
-      if (response === null) { if (message) message.textContent = 'Cancelled before reading source bytes.'; return; }
+      const response = await invokeNativeTool(container, 'neural-photoshop', 'neural-photoshop.ipfs_kit_py.retrieve_content', { executionMode: 'execute', toolId: 'ipfs_cat', payload: { cid, fixture_scope: 'svf-neural-photoshop-442' }, trigger });
+      if (response === null) { if (source) source.dataset.sourceCidState = this.vdaG042.sourceCid ? 'decoded-image' : 'not-loaded'; if (message) message.textContent = 'Cancelled before reading source bytes. Current image kept.'; this.updateVdaG042Status(container, 'Read cancelled'); return; }
       const result = workflowOwnerResult(response);
       if (typeof result.bytes_base64 !== 'string') throw new Error('The owner returned no source bytes.');
       const bytes = Uint8Array.from(atob(result.bytes_base64), char => char.charCodeAt(0));
       if (await contentCidForBytes(bytes) !== cid || (result.cid && result.cid !== cid)) throw new Error('Source bytes do not match the requested CID.');
-      this.vdaG042.sourceCid = cid; this.vdaG042.sourceBytes = bytes;
-      if (source) source.dataset.sourceCidState = 'verified-bytes';
-      if (message) message.textContent = `Verified source ${cid}: ${bytes.length} bytes.`;
-      this.appendVdaG042Receipt(container, response);
-      this.updateVdaG042Status(container, 'Source verified');
+      const image = await this.decodeProjectImage(`data:image/png;base64,${this.projectBase64(bytes)}`);
+      const decoded = document.createElement('canvas'); decoded.width = image.naturalWidth; decoded.height = image.naturalHeight; decoded.getContext('2d').drawImage(image, 0, 0);
+      const pixelHash = await this.projectPixelHash(decoded);
+      if (!this.ownsProjectCanvas(owner, currentCanvas)) throw new Error('The editor was closed while reading the source.');
+      const keepEdits = this.vdaG042.sourceCid === cid && this.vdaG042.sourceBytes
+        && bytes.length === this.vdaG042.sourceBytes.length && bytes.every((value, index) => value === this.vdaG042.sourceBytes[index]);
+      if (!keepEdits) await this.loadImageFile(new File([bytes], `Source ${cid}.png`, { type: 'image/png' }), image, { cid, bytes, pixelHash });
+      this.canvas.dataset.sourceCid = cid; this.canvas.dataset.sourcePixelsSha256 = pixelHash;
+      this.vdaG042.sourceCid = cid; this.vdaG042.sourceBytes = bytes; this.vdaG042.sourcePixelsSha256 = pixelHash;
+      if (source) source.dataset.sourceCidState = 'decoded-image';
+      if (message) { message.textContent = `${bytes.length} source bytes decoded (${image.naturalWidth}×${image.naturalHeight}).${keepEdits ? ' Current edits kept.' : ''}`; message.title = `Source CID ${cid}`; }
+      this.appendVdaG042Receipt(container, response); this.updateVdaG042Status(container, 'Source verified');
     } catch (error) {
+      if (!owner?.isConnected || this.container !== owner || (source && !owner.contains(source)) || (message && !owner.contains(message))) return;
       if (source) source.dataset.sourceCidState = 'error';
-      if (message) message.textContent = `Source read failed: ${error.message}`;
+      if (message) message.textContent = `Source read failed: ${error.message} Current image and edits kept.`;
       this.updateVdaG042Status(container, 'Source error');
-    }
+    } finally { this.sourceReadPending = false; }
   }
 
   async markVdaG042GenerationComplete(container, trigger = null) {
@@ -1772,6 +1852,32 @@ export class NeuralPhotoshopApp {
 
     this.canvas?.addEventListener('mouseup', (e) => {
       this.handleCanvasMouseUp(e);
+    });
+
+    if (this.canvas) this.canvas.tabIndex = 0;
+    this.canvas?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || this.activeTool !== 'brush') return;
+      e.preventDefault();
+      const layer = this.layers[this.activeLayerIndex];
+      if (!layer || layer.locked || !layer.context) return;
+      const ctx = layer.context;
+      const x1 = 2;
+      const y1 = 2;
+      const x2 = Math.max(x1 + 4, layer.canvas.width - 3);
+      const y2 = Math.max(y1 + 4, layer.canvas.height - 3);
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#ff2d55';
+      ctx.fillStyle = '#ff2d55';
+      ctx.lineWidth = Math.max(6, Math.round(Math.min(layer.canvas.width, layer.canvas.height) / 5));
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.restore();
+      this.redrawCanvas();
+      this.saveToHistory('Brush stroke');
     });
 
     // Touch events for mobile
@@ -2996,6 +3102,8 @@ export class NeuralPhotoshopApp {
 
   redrawCanvas() {
     if (!this.context) return;
+    this.projectRenderRevision = (this.projectRenderRevision || 0) + 1;
+    if (this.savedProjectFrame) this.projectStorageStatus('Unsaved image changes.', 'unsaved');
 
     // Clear main canvas
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -3004,7 +3112,7 @@ export class NeuralPhotoshopApp {
     this.layers.forEach(layer => {
       if (layer.visible) {
         this.context.globalAlpha = layer.opacity;
-        this.context.globalCompositeOperation = layer.blendMode;
+        this.context.globalCompositeOperation = layer.blendMode === 'normal' ? 'source-over' : layer.blendMode;
         this.context.drawImage(layer.canvas, 0, 0);
       }
     });
@@ -3024,6 +3132,8 @@ export class NeuralPhotoshopApp {
     const historyStep = {
       action: action,
       timestamp: new Date().toLocaleTimeString(),
+      project: { ...this.currentProject }, activeLayerIndex: this.activeLayerIndex,
+      source: this.vdaG042.sourceCid && this.vdaG042.sourceBytes ? { cid: this.vdaG042.sourceCid, bytes: this.vdaG042.sourceBytes, pixelHash: this.vdaG042.sourcePixelsSha256 } : null,
       layers: this.layers.map(layer => {
         const canvas = document.createElement('canvas');
         canvas.width = layer.canvas.width;
@@ -3044,6 +3154,23 @@ export class NeuralPhotoshopApp {
       this.canvasHistory.shift();
       this.historyIndex--;
     }
+    const historyList = this.container?.querySelector?.('.history-list');
+    if (historyList) {
+      historyList.innerHTML = this.canvasHistory.map((step, index) => `<div class="history-item ${index === this.historyIndex ? 'active' : ''}" data-history-index="${index}">${step.action} - ${step.timestamp}</div>`).join('');
+    }
+    this.projectMetaLabel = action;
+    this.renderProjectMeta();
+  }
+
+  renderProjectMeta() {
+    const el = this.container?.querySelector?.('#project-meta');
+    if (!el || !this.currentProject) return;
+    const info = this.container.querySelector('#canvas-info');
+    if (info && this.canvas) info.textContent = `${this.canvas.width} × ${this.canvas.height} px | RGB`;
+    const names = this.layers.map(layer => layer.name).join(', ');
+    el.textContent = `${this.currentProject.width}\u00d7${this.currentProject.height}; ${names}; ${this.projectMetaLabel || 'ready'}`;
+    el.dataset.projectWidth = String(this.currentProject.width); el.dataset.projectHeight = String(this.currentProject.height);
+    el.dataset.layerNames = names; el.dataset.editAction = this.projectMetaLabel || 'ready';
   }
 
   undo() {
@@ -3063,6 +3190,9 @@ export class NeuralPhotoshopApp {
   restoreFromHistory() {
     const step = this.canvasHistory[this.historyIndex];
     if (step) {
+      if (step.project) this.currentProject = { ...step.project };
+      if (this.canvas) { this.canvas.width = this.currentProject.width; this.canvas.height = this.currentProject.height; }
+      if (this.overlayCanvas) { this.overlayCanvas.width = this.currentProject.width; this.overlayCanvas.height = this.currentProject.height; }
       this.layers = step.layers.map(layer => {
         const canvas = document.createElement('canvas');
         canvas.width = layer.canvas.width;
@@ -3075,6 +3205,9 @@ export class NeuralPhotoshopApp {
           context: context
         };
       });
+      this.activeLayerIndex = Math.min(Math.max(step.activeLayerIndex || 0, 0), this.layers.length - 1);
+      this.restoreProjectSource(step.source || null);
+      this.projectMetaLabel = step.action;
       this.redrawCanvas();
       this.refreshUI();
     }
@@ -3127,10 +3260,10 @@ export class NeuralPhotoshopApp {
   }
 
   refreshLayersPanel() {
-    const layersPanel = document.querySelector('.layers-panel');
+    const layersPanel = this.container?.querySelector('.layers-panel');
     if (layersPanel) {
       layersPanel.innerHTML = this.renderLayersPanel();
-      this.setupLayerHandlers(document.querySelector('.neural-photoshop-container'));
+      this.setupLayerHandlers(this.container);
     }
   }
 
@@ -3138,6 +3271,7 @@ export class NeuralPhotoshopApp {
     this.updateToolUI();
     this.refreshLayersPanel();
     this.redrawCanvas();
+    this.renderProjectMeta();
   }
 
   updateCursorInfo(x, y) {
@@ -3173,46 +3307,208 @@ export class NeuralPhotoshopApp {
     input.click();
   }
 
-  async loadImageFile(file) {
-    const img = new Image();
-    img.onload = () => {
-      // Create new project with image dimensions
-      this.currentProject.width = img.width;
-      this.currentProject.height = img.height;
-      
-      // Clear existing layers and create new layer with image
-      this.layers = [];
-      const imageLayer = this.createLayer(file.name, 'normal', 1.0);
-      imageLayer.context.drawImage(img, 0, 0);
-      
-      this.setupCanvas(document.querySelector('.neural-photoshop-container'));
-      this.refreshUI();
-    };
-    img.src = URL.createObjectURL(file);
+  restoreProjectSource(source) {
+    this.vdaG042.sourceCid = source?.cid || null; this.vdaG042.sourceBytes = source?.bytes || null; this.vdaG042.sourcePixelsSha256 = source?.pixelHash || null;
+    const input = this.container?.querySelector('[data-source-cid-input]');
+    if (input) input.value = source?.cid || '';
+    if (source?.cid) { this.canvas.dataset.sourceCid = source.cid; this.canvas.dataset.sourcePixelsSha256 = source.pixelHash; }
+    else { delete this.canvas.dataset.sourceCid; delete this.canvas.dataset.sourcePixelsSha256; }
+    const status = this.container?.querySelector('[data-source-cid-state]'), message = this.container?.querySelector('[data-source-result]');
+    if (status) status.dataset.sourceCidState = source?.cid ? 'decoded-image' : 'not-loaded';
+    if (message) message.textContent = source?.cid ? 'Original image restored from local edit history.' : 'Local image; no source CID has been read.';
+    this.updateVdaG042Status(this.container, source?.cid ? 'Original image' : 'Local image');
   }
 
-  saveProject() {
-    // Save project to localStorage
+  ownsProjectCanvas(owner, canvas) {
+    return Boolean(owner?.isConnected && this.container === owner && this.canvas === canvas && canvas?.isConnected && owner.contains(canvas));
+  }
+
+  async decodeProjectImage(source, width = null, height = null) {
+    const image = await new Promise((resolve, reject) => {
+      const img = new Image();
+      const done = (error) => { clearTimeout(timer); img.onload = img.onerror = null; error ? reject(error) : resolve(img); };
+      const timer = setTimeout(() => done(new Error('Image decode timed out.')), 10000);
+      img.onload = () => done();
+      img.onerror = () => done(new Error('Saved image bytes could not be decoded.'));
+      img.src = source;
+    });
+    const w = image.naturalWidth, h = image.naturalHeight;
+    if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > 4096 || h > 4096
+        || (width !== null && (w !== width || h !== height))) throw new Error('Decoded image dimensions do not match this project.');
+    return image;
+  }
+
+  projectPngBytes(dataURL) {
+    if (typeof dataURL !== 'string' || !/^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(dataURL) || dataURL.length > 24 * 1024 * 1024) throw new Error('Saved project contains invalid PNG bytes.');
+    return Uint8Array.from(atob(dataURL.slice('data:image/png;base64,'.length)), char => char.charCodeAt(0));
+  }
+
+  projectBase64(bytes) {
+    let text = '';
+    for (let start = 0; start < bytes.length; start += 8192) text += String.fromCharCode(...bytes.subarray(start, start + 8192));
+    return btoa(text);
+  }
+
+  async projectBytesHash(bytes) {
+    return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  async projectPixelHash(canvas) {
+    return this.projectBytesHash(canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data);
+  }
+
+  compositeProjectLayers(layers, width, height) {
+    const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+    const context = canvas.getContext('2d');
+    for (const layer of layers) if (layer.visible) {
+      context.globalAlpha = layer.opacity;
+      context.globalCompositeOperation = layer.blendMode === 'normal' ? 'source-over' : layer.blendMode;
+      context.drawImage(layer.canvas, 0, 0);
+    }
+    context.globalAlpha = 1; context.globalCompositeOperation = 'source-over';
+    return canvas;
+  }
+
+  projectStorageStatus(text, state) {
+    const output = this.container?.querySelector('[data-project-storage-status]');
+    if (output) { output.textContent = text; output.dataset.projectStorageState = state; }
+  }
+
+  showSavedProjectImage(frame, image) {
+    const old = this.container?.querySelector('[data-saved-project-image]');
+    const figure = this.container?.querySelector('[data-saved-project-output]');
+    if (!old || !figure) return;
+    image.setAttribute('data-saved-project-image', ''); image.alt = 'Saved image preview';
+    image.width = frame.width; image.height = frame.height;
+    image.dataset.pngSha256 = frame.sha256; image.dataset.pngBytes = String(frame.bytes);
+    image.dataset.layerNames = (frame.layerNames || this.layers.map(layer => layer.name)).join(', ');
+    old.replaceWith(image); figure.hidden = false;
+    const caption = figure.querySelector('figcaption');
+    if (caption) { caption.textContent = `Saved PNG · ${frame.width}×${frame.height} · ${frame.bytes} bytes`; caption.title = `SHA-256 ${frame.sha256}`; }
+    this.savedProjectFrame = frame;
+  }
+
+  async loadImageFile(file, decodedImage = null, source = null) {
+    const url = decodedImage ? null : URL.createObjectURL(file);
+    const owner = this.container, currentCanvas = this.canvas;
     try {
-      const projectData = {
-        name: this.currentProject.name,
-        width: this.currentProject.width,
-        height: this.currentProject.height,
-        layers: this.layers.map(layer => ({
-          name: layer.name,
-          visible: layer.visible,
-          opacity: layer.opacity,
-          blendMode: layer.blendMode,
-          dataURL: layer.canvas.toDataURL()
-        })),
-        savedAt: new Date().toISOString()
-      };
-      
+      const image = decodedImage || await this.decodeProjectImage(url);
+      if (!this.ownsProjectCanvas(owner, currentCanvas)) throw new Error('The editor was closed while decoding the image.');
+      const width = image.naturalWidth, height = image.naturalHeight;
+      if (this.layers.length && this.context) this.saveToHistory(this.projectMetaLabel || 'Before image import');
+      this.currentProject.width = width; this.currentProject.height = height;
+      this.layers = [];
+      const imageLayer = this.createLayer('Background'); imageLayer.context.drawImage(image, 0, 0);
+      this.restoredSavedProject = true;
+      this.setupCanvas(this.container);
+      this.restoreProjectSource(source); this.refreshUI(); this.saveToHistory('Load image');
+      this.savedProjectFrame = null;
+      const preview = this.container.querySelector('[data-saved-project-output]'); if (preview) preview.hidden = true;
+      this.projectStorageStatus('Unsaved image changes.', 'unsaved');
+    } finally { if (url) URL.revokeObjectURL(url); }
+  }
+
+  restoreSavedProject() {
+    if (this.restoredSavedProject || !this.currentProject) return this.projectRestorePromise || Promise.resolve(false);
+    this.restoredSavedProject = true;
+    this.projectRestorePromise = this.restoreProjectSnapshot();
+    return this.projectRestorePromise;
+  }
+
+  async restoreProjectSnapshot() {
+    const owner = this.container, currentCanvas = this.canvas;
+    let raw;
+    try { raw = localStorage.getItem('neural-photoshop-project'); } catch { return false; }
+    if (!raw) return false;
+    this.projectRestoring = true; owner.inert = true;
+    this.projectStorageStatus('Restoring saved image…', 'loading');
+    try {
+      const data = JSON.parse(raw), width = data.width, height = data.height;
+      if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 4096 || height > 4096
+          || !Array.isArray(data.layers) || data.layers.length < 1 || data.layers.length > 50) throw new Error('Saved project dimensions or layers are invalid.');
+      const layers = await Promise.all(data.layers.map(async saved => {
+        const bytes = this.projectPngBytes(saved.dataURL);
+        const image = await this.decodeProjectImage(saved.dataURL, width, height);
+        const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+        const context = canvas.getContext('2d'); context.drawImage(image, 0, 0);
+        const pixels = await this.projectPixelHash(canvas);
+        if ((saved.pixelSha256 && saved.pixelSha256 !== pixels) || (saved.pngSha256 && saved.pngSha256 !== await this.projectBytesHash(bytes))) throw new Error('Saved layer bytes or pixels changed.');
+        return { id: this.generateLayerId(), name: String(saved.name || 'Layer'), type: saved.type || 'normal', blendMode: saved.blendMode || 'normal',
+          opacity: Number.isFinite(saved.opacity) ? saved.opacity : 1, visible: saved.visible !== false, locked: saved.locked === true,
+          canvas, context, mask: null, effects: [] };
+      }));
+      const composite = this.compositeProjectLayers(layers, width, height), pixelSha256 = await this.projectPixelHash(composite);
+      let frame = data.output;
+      if (!frame) { const dataURL = composite.toDataURL('image/png'), bytes = this.projectPngBytes(dataURL); frame = { dataURL, width, height, bytes: bytes.length, sha256: await this.projectBytesHash(bytes), pixelSha256 }; }
+      if (frame.layerNames && JSON.stringify(frame.layerNames) !== JSON.stringify(layers.map(layer => layer.name))) throw new Error('Saved output layer metadata changed.');
+      const outputBytes = this.projectPngBytes(frame.dataURL);
+      if (frame.width !== width || frame.height !== height || frame.bytes !== outputBytes.length || frame.sha256 !== await this.projectBytesHash(outputBytes) || frame.pixelSha256 !== pixelSha256) throw new Error('Saved output bytes or layer composite changed.');
+      const outputImage = await this.decodeProjectImage(frame.dataURL, width, height);
+      const outputCanvas = document.createElement('canvas'); outputCanvas.width = width; outputCanvas.height = height; outputCanvas.getContext('2d').drawImage(outputImage, 0, 0);
+      if (await this.projectPixelHash(outputCanvas) !== pixelSha256) throw new Error('Saved output pixels do not match the editable layers.');
+      let sourceBytes = null, sourcePixelHash = null;
+      if (data.source?.cid && typeof data.source.bytes_base64 === 'string') {
+        sourceBytes = Uint8Array.from(atob(data.source.bytes_base64), char => char.charCodeAt(0));
+        if (await contentCidForBytes(sourceBytes) !== data.source.cid) throw new Error('Saved original image bytes do not match their CID.');
+        const originalImage = await this.decodeProjectImage(`data:image/png;base64,${this.projectBase64(sourceBytes)}`);
+        const originalCanvas = document.createElement('canvas'); originalCanvas.width = originalImage.naturalWidth; originalCanvas.height = originalImage.naturalHeight; originalCanvas.getContext('2d').drawImage(originalImage, 0, 0);
+        sourcePixelHash = await this.projectPixelHash(originalCanvas);
+        if (data.source.pixelSha256 && data.source.pixelSha256 !== sourcePixelHash) throw new Error('Saved original image pixels changed.');
+      }
+      if (!this.ownsProjectCanvas(owner, currentCanvas)) return false;
+      this.currentProject = { ...this.currentProject, name: typeof data.name === 'string' ? data.name : this.currentProject.name, width, height,
+        resolution: Number.isFinite(data.resolution) && data.resolution > 0 ? data.resolution : this.currentProject.resolution,
+        colorMode: typeof data.colorMode === 'string' ? data.colorMode : this.currentProject.colorMode };
+      this.layers = layers; this.activeLayerIndex = Math.min(Math.max(Number.isInteger(data.activeLayerIndex) ? data.activeLayerIndex : layers.length - 1, 0), layers.length - 1);
+      this.canvas.width = width; this.canvas.height = height;
+      if (this.overlayCanvas) { this.overlayCanvas.width = width; this.overlayCanvas.height = height; }
+      this.projectMetaLabel = typeof data.label === 'string' && data.label ? data.label : 'restored';
+      this.restoreProjectSource(sourceBytes ? { cid: data.source.cid, bytes: sourceBytes, pixelHash: sourcePixelHash } : null);
+      if (sourceBytes) { const source = owner.querySelector('[data-source-cid-state]'), status = owner.querySelector('[data-source-result]'); if (source) source.dataset.sourceCidState = 'decoded-image'; if (status) status.textContent = `Original image restored from this browser (${sourceBytes.length} bytes).`; this.updateVdaG042Status(owner, 'Saved source'); }
+      this.redrawCanvas(); this.refreshLayersPanel(); this.renderProjectMeta();
+      this.canvasHistory = []; this.historyIndex = -1; this.saveToHistory(this.projectMetaLabel);
+      this.showSavedProjectImage(frame, outputImage);
+      this.projectStorageStatus('Saved image restored. Editable layers and PNG bytes match.', 'restored');
+      return true;
+    } catch (error) {
+      if (this.ownsProjectCanvas(owner, currentCanvas)) this.projectStorageStatus(`Saved image could not be restored: ${error.message} Current image kept.`, 'error');
+      return false;
+    } finally { this.projectRestoring = false; if (this.ownsProjectCanvas(owner, currentCanvas)) owner.inert = false; }
+  }
+
+  async saveProject() {
+    if (!this.canvas || !this.currentProject || this.projectSavePending || this.projectRestoring) return;
+    this.projectSavePending = true;
+    const owner = this.container, currentCanvas = this.canvas, renderRevision = this.projectRenderRevision || 0;
+    this.projectStorageStatus('Saving image…', 'loading');
+    try {
+      const width = this.currentProject.width, height = this.currentProject.height;
+      const name = this.currentProject.name, activeLayerIndex = this.activeLayerIndex, label = this.projectMetaLabel || '';
+      const resolution = this.currentProject.resolution, colorMode = this.currentProject.colorMode;
+      const source = this.vdaG042.sourceCid && this.vdaG042.sourceBytes ? { cid: this.vdaG042.sourceCid, bytes_base64: this.projectBase64(this.vdaG042.sourceBytes), pixelSha256: this.vdaG042.sourcePixelsSha256 } : null;
+      const layers = this.layers.map(layer => ({ name: layer.name, type: layer.type, visible: layer.visible, locked: layer.locked,
+        opacity: layer.opacity, blendMode: layer.blendMode, dataURL: layer.canvas.toDataURL('image/png'), pixelHash: this.projectPixelHash(layer.canvas) }));
+      const dataURL = this.canvas.toDataURL('image/png'), bytes = this.projectPngBytes(dataURL);
+      const pixelSha256 = await this.projectPixelHash(this.canvas), outputImage = await this.decodeProjectImage(dataURL, width, height);
+      const decoded = document.createElement('canvas'); decoded.width = width; decoded.height = height; decoded.getContext('2d').drawImage(outputImage, 0, 0);
+      if (await this.projectPixelHash(decoded) !== pixelSha256) throw new Error('Encoded PNG pixels do not match the canvas.');
+      const savedLayers = await Promise.all(layers.map(async ({pixelHash, ...layer}) => ({ ...layer,
+        pngSha256: await this.projectBytesHash(this.projectPngBytes(layer.dataURL)), pixelSha256: await pixelHash })));
+      const output = { dataURL, width, height, bytes: bytes.length, sha256: await this.projectBytesHash(bytes), pixelSha256, layerNames: savedLayers.map(layer => layer.name) };
+      const projectData = { schema: 'swissknife.neural-photoshop.project.v2', name, width, height,
+        layers: savedLayers, activeLayerIndex, label, resolution, colorMode, output, savedAt: new Date().toISOString() };
+      if (source) projectData.source = source;
+      if (!this.ownsProjectCanvas(owner, currentCanvas)) return;
       localStorage.setItem('neural-photoshop-project', JSON.stringify(projectData));
+      this.renderProjectMeta(); this.showSavedProjectImage(output, outputImage);
+      const changed = (this.projectRenderRevision || 0) !== renderRevision;
+      this.projectStorageStatus(changed ? 'Image saved. Newer edits are not saved.' : 'Image saved in this browser.', changed ? 'unsaved' : 'saved');
       this.showNotification('💾 Project saved to browser storage!');
     } catch (error) {
+      if (!this.ownsProjectCanvas(owner, currentCanvas)) return;
+      this.projectStorageStatus(`Image could not be saved: ${error.message}`, 'error');
       this.showNotification('❌ Failed to save project: ' + error.message);
-    }
+    } finally { this.projectSavePending = false; }
   }
 
   exportImage() {
@@ -3298,11 +3594,8 @@ export class NeuralPhotoshopApp {
       const windowConfig = this.createWindow();
       this.container.innerHTML = windowConfig.content;
       
-      // Set up event handlers after a short delay
-      setTimeout(() => {
-        this.setupEventHandlers(this.container);
-        console.log('✅ Neural Photoshop initialized in virtual desktop');
-      }, 100);
+      await this.setupEventHandlers(this.container);
+      console.log('✅ Neural Photoshop initialized in virtual desktop');
     }
     
     console.log('✅ Neural Photoshop initialized');

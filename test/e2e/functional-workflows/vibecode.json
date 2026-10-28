@@ -1,0 +1,123 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "vibecode",
+  "description": "Edit marker_fn, save the UTF-8 draft, reopen it, and recover from unbalanced source without losing the editor buffer.",
+  "fixture_scope": "svf-vibecode-source",
+  "backend_bindings": [
+    {
+      "binding_id": "vibecode.ipfs_kit_py.persist_artifact",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/cid",
+        "operator": "equals",
+        "expected": "bafkreih7nrg7wdbr2kmedje3eftehh7imcdfb4ft27aeg567pq6ggc46mm"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "fill",
+        "selector": "#code-editor",
+        "value": "def marker_fn():\n    return \"SVF152-RUN\"\n"
+      },
+      {
+        "op": "click",
+        "selector": "#save-file-btn"
+      },
+      {
+        "op": "click",
+        "selector": "#vibecode-write-file"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"vibecode.ipfs_kit_py.persist_artifact\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"vibecode.ipfs_kit_py.persist_artifact\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-workspace-outcome=\"executed\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "#code-editor",
+        "key": "End"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "text",
+          "selector": "#vibecode-diff"
+        },
+        "operator": "equals",
+        "expected": "Diff describes marker_fn"
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "value",
+          "selector": "#code-editor"
+        },
+        "operator": "equals",
+        "expected": "def marker_fn():\n    return \"SVF152-RUN\"\n"
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "fill",
+        "selector": "#code-editor",
+        "value": "def marker_fn(\n"
+      },
+      {
+        "op": "click",
+        "selector": "#save-file-btn"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#vibecode-save-error"
+        },
+        "operator": "contains",
+        "expected": "Unbalanced"
+      },
+      {
+        "op": "fill",
+        "selector": "#code-editor",
+        "value": "def marker_fn():\n    return \"SVF152-RUN\"\n"
+      },
+      {
+        "op": "click",
+        "selector": "#save-file-btn"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "value",
+          "selector": "#code-editor"
+        },
+        "operator": "equals",
+        "expected": "def marker_fn():\n    return \"SVF152-RUN\"\n"
+      }
+    ]
+  }
+}

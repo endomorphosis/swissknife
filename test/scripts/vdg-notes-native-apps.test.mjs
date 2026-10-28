@@ -121,6 +121,37 @@ test('Notes semantic search preserves the actual query and exact datasets search
   assert.equal(app.vdaG039.semanticResults[0].score, 0.71);
 });
 
+test('Notes opens actual indexed document content without uploading or indexing local edits', async t => {
+  const document = { text: 'Actual indexed body', metadata: { title: 'Owner indexed note', content: 'Actual indexed body' } };
+  const { calls } = environment(t, () => ({ results: [{ score: 0.93, document,
+    document_provenance: { source: 'duckdb_authority', document_id: 'unit-published-document' } }] }));
+  const { app, root, note } = await notesRoot();
+  const original = note.content;
+  app.refreshContent = () => { root.innerHTML = app.renderVdaG039Workflow() + app.renderNoteEditor(); };
+  app.refreshContent();
+  root.querySelector('#notes-search-collection').value = 'existing-owned-index';
+  await app.runVdaG039SemanticSearch('actual query');
+  assert.equal(calls.length, 1); assert.equal(calls[0].tool_id, 'semantic_search');
+  assert.equal(calls[0].input.payload.collection, 'existing-owned-index');
+  assert.equal(calls[0].input.payload.texts, undefined); assert.equal(calls[0].input.payload.documents, undefined);
+  assert.equal(app.vdaG039.semanticResults[0].content, document.text);
+  assert.equal(root.querySelector('#notes-open-semantic-result-0').disabled, false);
+  await app.openVdaG039SemanticResult(0);
+  assert.equal(app.currentNote.title, document.metadata.title); assert.equal(app.currentNote.content, document.text);
+  assert.equal(root.querySelector('#note-content').value, document.text);
+  assert.equal(note.content, original, 'opening a backend row cannot overwrite another local note');
+  assert.equal(calls.length, 1, 'search/open is not a remote index write');
+  assert.match(root.textContent, /not added to that index automatically/);
+});
+
+test('Notes never substitutes a local note when the owner returns only IDs', async t => {
+  const { calls } = environment(t, () => ({ results: [{ score: 0.9, document: { id: 'doc_0', source: 'duckdb_authority' } }] }));
+  const { app } = await notesRoot();
+  await app.runVdaG039SemanticSearch('local note title');
+  assert.equal(calls.length, 1); assert.deepEqual(app.vdaG039.semanticResults, []);
+  assert.equal(app.vdaG039.semanticBackend, null); assert.match(app.vdaG039.status, /IDs without a note title/);
+});
+
 test('a local canonical note CID is not treated as proof of a backend version', async t => {
   const { calls } = environment(t);
   const { app, note } = await notesRoot();
@@ -138,10 +169,11 @@ test('Notes recovery compares an actual returned artifact and previews the merge
     : { validated: true, dry_run: true, persisted: false, mutation_performed: false, expected_cid: call.input.payload.cid });
   const { app, root, note } = await notesRoot();
   const original = note.content;
-  root.querySelector('[data-notes-base-cid]').value = 'unit-stored-note-cid';
+  const storedCid = await contentCidForBytes(new TextEncoder().encode(JSON.stringify(remote)));
+  root.querySelector('[data-notes-base-cid]').value = storedCid;
   await confirm(root, app.recoverVdaG039Conflict());
   assert.deepEqual(calls.map(call => call.tool_id), ['artifacts_get', 'artifacts_put']);
-  assert.equal(calls[0].input.payload.cid, 'unit-stored-note-cid');
+  assert.equal(calls[0].input.payload.cid, storedCid);
   const merged = JSON.parse(Buffer.from(calls[1].input.payload.bytes_base64, 'base64').toString());
   assert.equal(merged.content, original);
   assert.ok(merged.tags.includes('remote'));
@@ -160,4 +192,98 @@ test('creating a local note makes zero backend requests', async t => {
   assert.equal(app.notes.length, previous + 1);
   assert.equal(calls.length, 0);
   assert.equal(app.currentNote.sync.state, 'local-only');
+});
+
+// Authored owner/DOM fixtures test transitions; they do not grant live app acceptance.
+const recoveryDocument = { text: 'Actual indexed recovery body', metadata: { title: 'Indexed recovery note' } };
+function recoveryResponse() {
+  return { results: [{ document: recoveryDocument, document_provenance: {
+    source: 'duckdb_authority', document_id: 'authored-published-document', payload_digest: `sha256:${'a'.repeat(64)}`
+  } }] };
+}
+function pressSave(app) { app.handleKeyboardSafeEditing({ ctrlKey: true, key: 's', preventDefault() {} }); }
+async function failedRecoveryEditor(t, resultFor) {
+  const fixture = environment(t, resultFor);
+  const value = await notesRoot();
+  const { app, root } = value;
+  app.refreshContent = () => { root.innerHTML = app.renderVdaG039Workflow() + app.renderNoteEditor(); };
+  app.refreshContent();
+  root.querySelector('[data-notes-base-cid]').value = 'invalid-reference';
+  await app.recoverVdaG039Conflict();
+  assert.equal(app.vdaG039.conflict.state, 'failed');
+  assert.equal(root.querySelector('[data-notes-base-cid]').value, 'invalid-reference', 'the failed reference is retained until the user clears it');
+  assert.equal(fixture.calls.length, 0, 'invalid reference is refused before any owner call');
+  return { ...fixture, ...value };
+}
+
+test('Notes recovery requires a fresh authoritative row, opening it, clearing the reference and verified local save', async t => {
+  const { app, root, calls, note } = await failedRecoveryEditor(t, recoveryResponse);
+  const original = note.content;
+  root.querySelector('[data-notes-base-cid]').value = '';
+  pressSave(app);
+  assert.equal(app.vdaG039.editorRecovery.state, 'needs-retry', 'clearing the reference and saving alone cannot claim recovery');
+  assert.match(app.vdaG039.status, /failed/);
+  await app.runVdaG039SemanticSearch('actual recovery query');
+  assert.equal(app.vdaG039.editorRecovery.state, 'searched');
+  await app.openVdaG039SemanticResult(0);
+  assert.equal(app.vdaG039.editorRecovery.state, 'opened');
+  assert.equal(app.currentNote.content, recoveryDocument.text);
+  assert.equal(note.content, original, 'restoring the owner row does not overwrite another local note');
+  root.querySelector('[data-notes-base-cid]').value = 'still-invalid';
+  pressSave(app);
+  assert.equal(app.vdaG039.editorRecovery.state, 'opened', 'the invalid reference must actually be cleared');
+  root.querySelector('[data-notes-base-cid]').value = '';
+  pressSave(app);
+  assert.equal(app.vdaG039.editorRecovery.state, 'saved-local');
+  assert.match(app.vdaG039.status, /^Ready.*saved locally/);
+  assert.equal(root.querySelector('#vda-g039-status').dataset.notesEditorRecovery, 'saved-local');
+  const stored = JSON.parse(localStorage.getItem('swissknife-notes')).find(item => item.id === app.currentNote.id);
+  assert.equal(stored.title, recoveryDocument.metadata.title);
+  assert.equal(stored.content, recoveryDocument.text);
+  assert.equal(app.vdaG039.conflict.state, 'failed', 'the earlier failed artifact request remains truthful in diagnostics');
+  assert.match(app.vdaG039.conflict.message, /not a real artifact CID/);
+  assert.deepEqual(calls.map(call => call.tool_id), ['semantic_search'], 'recovery never silently writes an index or artifact');
+});
+
+test('Notes owner failure during retry retains text and cannot claim a recovered editor', async t => {
+  const { app, root, note } = await failedRecoveryEditor(t, () => { throw new Error('authored owner unavailable'); });
+  const original = note.content;
+  root.querySelector('[data-notes-base-cid]').value = '';
+  await app.runVdaG039SemanticSearch('actual recovery query');
+  pressSave(app);
+  assert.equal(app.currentNote.content, original);
+  assert.deepEqual(app.vdaG039.semanticResults, []);
+  assert.equal(app.vdaG039.editorRecovery.state, 'needs-retry');
+  assert.match(app.vdaG039.status, /failed.*owner unavailable/);
+  assert.notEqual(root.querySelector('#vda-g039-status').dataset.notesEditorRecovery, 'saved-local');
+});
+
+test('Notes legacy or stale search rows cannot satisfy recovery', async t => {
+  const { app, root } = await failedRecoveryEditor(t, () => ({ results: [{ document: recoveryDocument }] }));
+  root.querySelector('[data-notes-base-cid]').value = '';
+  await app.runVdaG039SemanticSearch('actual recovery query');
+  await app.openVdaG039SemanticResult(0);
+  pressSave(app);
+  assert.equal(app.vdaG039.editorRecovery.state, 'searched', 'a document without native published provenance cannot mark recovery');
+  app.vdaG039.semanticResults[0].provenance = recoveryResponse().results[0].document_provenance;
+  app.vdaG039.semanticResults[0].documentId = 'authored-published-document';
+  app.vdaG039.semanticResults[0].searchRevision -= 1;
+  await app.openVdaG039SemanticResult(0);
+  pressSave(app);
+  assert.equal(app.vdaG039.editorRecovery.state, 'searched', 'a previous search revision cannot mark recovery');
+});
+
+test('Notes failed local storage readback cannot claim recovered or saved status', async t => {
+  const { app, root } = await failedRecoveryEditor(t, recoveryResponse);
+  root.querySelector('[data-notes-base-cid]').value = '';
+  await app.runVdaG039SemanticSearch('actual recovery query');
+  await app.openVdaG039SemanticResult(0);
+  const previousStorage = globalThis.localStorage;
+  globalThis.localStorage = { setItem() {}, getItem() { return '[]'; } };
+  const originalError = console.error; console.error = () => {};
+  try { pressSave(app); } finally { globalThis.localStorage = previousStorage; console.error = originalError; }
+  assert.equal(app.vdaG039.editorRecovery.state, 'opened');
+  assert.match(app.vdaG039.status, /Local save failed/);
+  assert.equal(app.currentNote.content, recoveryDocument.text);
+  assert.notEqual(root.querySelector('#vda-g039-status').dataset.notesEditorRecovery, 'saved-local');
 });

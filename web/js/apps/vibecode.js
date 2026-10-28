@@ -4,7 +4,8 @@
  *
  * Native owner actions use reviewed bindings and visible confirmation.
  */
-import { invokeNetworkNativeTool, networkNativeAttributes } from './network-native-tools.js';
+import { invokeNetworkNativeTool } from './network-native-tools.js';
+import { invokeNativeTool } from '../live-tool-gateway.js';
 
 async function vibecodeParseToolResponse(response) {
   const raw = await response.text();
@@ -59,7 +60,7 @@ class VibeCodeApp {
     
     // Core configuration  
     this.currentFile = null;
-    this.workspacePath = '/swissknife/vdg/README.md';
+    this.workspacePath = '/svf-vibecode-source/marker_fn.py';
     this.recentFiles = [];
     this.language = 'python';
     this.theme = 'dark';
@@ -110,7 +111,17 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
 
   async render() {
     console.log('🎯 Rendering VibeCode app...');
-    const currentCode = this.currentFile ? this.currentFile.content : this.getDefaultStreamlitCode();
+    const persisted = this.readDraft();
+    const currentCode = persisted !== null ? persisted : (this.currentFile ? this.currentFile.content : this.getDefaultStreamlitCode());
+    let remoteNote = 'Remote file not saved yet.';
+    try {
+      const note = JSON.parse(localStorage.getItem('vibecode-remote-note') || 'null');
+      if (note && note.content === currentCode && note.path === this.workspacePath && note.note === 'Remote file saved.') {
+        remoteNote = note.note;
+      }
+    } catch (_noteError) {
+      remoteNote = 'Remote file not saved yet.';
+    }
     
     return `
       <div class="vibecode-container" data-theme="dark">
@@ -119,6 +130,8 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             display: flex;
             flex-direction: column;
             height: 100%;
+            min-height: 0;
+            container-type: inline-size;
             background: #1e1e1e;
             color: #ffffff;
             font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
@@ -128,6 +141,8 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
             padding: 0.75rem 1rem;
             background: #252526;
             border-bottom: 1px solid #3e3e42;
@@ -155,6 +170,11 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             background: #4c4c4c;
             border-color: #777;
           }
+
+          .vibe-btn:focus-visible {
+            outline: 2px solid #8ab4ff;
+            outline-offset: 2px;
+          }
           
           .vibe-btn.ai {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -164,14 +184,18 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
           .main-content {
             display: flex;
             flex: 1;
-            overflow: hidden;
+            min-height: 0;
+            overflow: auto;
           }
           
           .code-section {
-            flex: 1;
+            flex: 1 1 16rem;
+            min-width: 0;
+            min-height: 12rem;
             display: flex;
             flex-direction: column;
             background: #1e1e1e;
+            overflow: auto;
           }
           
           .code-editor-container {
@@ -182,6 +206,7 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
           .code-editor {
             width: 100%;
             height: 100%;
+            min-height: 10rem;
             background: #1e1e1e;
             color: #d4d4d4;
             border: none;
@@ -191,10 +216,15 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             line-height: 1.5;
             resize: none;
             outline: none;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            overflow: auto;
           }
           
           .preview-section {
-            flex: 1;
+            flex: 1 1 12rem;
+            min-width: 0;
+            min-height: 6rem;
             background: #ffffff;
             border-left: 1px solid #3e3e42;
             overflow: auto;
@@ -211,11 +241,18 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 0.25rem 0.75rem;
             padding: 0.25rem 1rem;
             background: #252526;
             border-top: 1px solid #3e3e42;
             font-size: 0.75rem;
             color: #cccccc;
+          }
+
+          .status-left, .status-right {
+            min-width: 0;
+            overflow-wrap: anywhere;
           }
           
           .ai-panel {
@@ -256,8 +293,8 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
           .loading-indicator {
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 2rem;
+            justify-content: flex-start;
+            padding: 0.5rem 0.75rem;
             color: #888;
           }
           
@@ -287,18 +324,104 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             100% { transform: rotate(360deg); }
           }
           
+          #vibecode-diff {
+            margin-left: 0.75rem;
+          }
+
+          #vibecode-save-error {
+            margin-left: 0.75rem;
+            color: #ffb4b4;
+          }
+
+          #vibecode-save-error:empty {
+            display: none;
+          }
+
+          .vibecode-workspace {
+            flex: 0 0 auto;
+            overflow: visible;
+            padding: 0.35rem 0.5rem;
+            display: flex;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+            align-items: center;
+          }
+
+          .vibecode-workspace .vibe-btn {
+            flex: 0 0 auto;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.75rem;
+          }
+
+          .vibecode-workspace label {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            flex: 1 1 100%;
+            min-width: min(100%, 16rem);
+            gap: 0.2rem;
+          }
+
+          #vibecode-workspace-path {
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 0.75rem;
+          }
+
+          #vibecode-workspace-result {
+            display: block;
+            visibility: visible;
+            flex: 1 1 100%;
+            min-width: 0;
+            min-height: 1.25rem;
+            max-height: 1.5rem;
+            overflow: auto;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+          }
+
           @media (max-width: 768px) {
             .main-content {
               flex-direction: column;
             }
+
+            .code-section {
+              flex: 1 1 12rem;
+              min-height: 9rem;
+            }
             
             .preview-section {
+              flex: 0 0 2.5rem;
+              max-height: 2.5rem;
               border-left: none;
               border-top: 1px solid #3e3e42;
             }
             
             .ai-panel {
               width: 100%;
+              border-left: none;
+              border-top: 1px solid #3e3e42;
+            }
+          }
+
+          @container (max-width: 640px) {
+            .vibecode-workspace .vibe-btn {
+              padding: 0.28rem 0.4rem;
+              font-size: 0.7rem;
+            }
+
+            .main-content {
+              flex-direction: column;
+            }
+
+            .code-section {
+              flex: 1 1 12rem;
+              min-height: 9rem;
+            }
+
+            .preview-section {
+              flex: 0 0 2.5rem;
+              max-height: 2.5rem;
               border-left: none;
               border-top: 1px solid #3e3e42;
             }
@@ -310,21 +433,21 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
           <div class="header-left">
             <button class="vibe-btn" id="new-file-btn">📄 New</button>
             <button class="vibe-btn" id="save-file-btn">💾 Save</button>
-            <button class="vibe-btn" id="run-btn" ${networkNativeAttributes('vibecode', 'mcp++:ipfs_kit_py/artifacts/put')}>▶️ Run</button>
+            <button class="vibe-btn" id="run-btn">▶️ Run</button>
           </div>
           
           <div class="header-right">
             <button class="vibe-btn ai" id="ai-toggle-btn" title="Toggle AI Assistant">🤖 AI</button>
-            <button class="vibe-btn" id="settings-btn">⚙️</button>
+            <button class="vibe-btn" id="settings-btn" aria-label="Settings" title="Settings">⚙️</button>
           </div>
         </div>
 
-        <section class="vibecode-workspace" aria-label="Remote workspace" style="padding:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <section class="vibecode-workspace" aria-label="Remote workspace">
           <label>Workspace path <input id="vibecode-workspace-path" aria-label="Virtual workspace path" value="${this.workspacePath}"></label>
-          <button class="vibe-btn" id="vibecode-list-files" data-native-gateway-binding="vibecode.ipfs_kit_py.list_virtual_files" data-native-tool-id="files_ls">List workspace</button>
-          <button class="vibe-btn" id="vibecode-open-file" data-native-gateway-binding="vibecode.ipfs_kit_py.list_virtual_files" data-native-tool-id="files_read">Open remote file</button>
-          <button class="vibe-btn" id="vibecode-write-file" data-native-gateway-binding="vibecode.ipfs_kit_py.list_virtual_files" data-native-tool-id="files_write">Save remote file</button>
-          <output id="vibecode-workspace-result" role="status" aria-live="polite">No remote workspace operation has run.</output>
+          <button type="button" class="vibe-btn" id="vibecode-write-file">Save remote file</button>
+          <button type="button" class="vibe-btn" id="vibecode-list-files">List workspace</button>
+          <button type="button" class="vibe-btn" id="vibecode-open-file">Open remote file</button>
+          <output id="vibecode-workspace-result" role="status" aria-live="polite">${remoteNote}</output>
         </section>
 
         <!-- Main Content -->
@@ -335,6 +458,10 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
               <textarea 
                 id="code-editor" 
                 class="code-editor" 
+                spellcheck="false"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
                 placeholder="Start coding your Streamlit app here..."
               >${currentCode}</textarea>
             </div>
@@ -343,7 +470,6 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
           <!-- Preview Section -->
           <div class="preview-section" id="preview-section">
             <div class="loading-indicator">
-              <div class="spinner"></div>
               <span>Preview will appear here when you run your Streamlit app</span>
             </div>
           </div>
@@ -375,6 +501,8 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
         <div class="status-bar">
           <div class="status-left">
             <span id="status-text">Ready</span>
+            <output id="vibecode-diff" aria-label="Function diff">No function change to describe.</output>
+            <span id="vibecode-save-error" role="alert"></span>
           </div>
           <div class="status-right">
             <span>Python | Streamlit | Line 1, Col 1</span>
@@ -437,7 +565,12 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     
     for (const [id, tool] of [['vibecode-list-files', 'files_ls'], ['vibecode-open-file', 'files_read'], ['vibecode-write-file', 'files_write']]) {
       const button = window.querySelector(`#${id}`);
-      button?.addEventListener('click', () => this.runWorkspaceOperation(window, tool, button));
+      button?.addEventListener('click', (event) => {
+        if (event.target !== button) return;
+        if (button.hasAttribute('data-gateway-confirm') || this.workspaceBusy) return;
+        event.preventDefault();
+        this.runWorkspaceOperation(window, tool, button);
+      });
     }
 
     // Code editor events
@@ -445,51 +578,111 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     if (codeEditor) {
       codeEditor.addEventListener('input', () => {
         this.updateStatus(window, 'Modified');
+        this.updateDiff(window);
       });
     }
+    this.updateDiff(window);
     
     console.log('✅ VibeCode event listeners setup complete');
   }
 
   async runWorkspaceOperation(container, toolId, trigger) {
     const output = container.querySelector('#vibecode-workspace-result');
+    const gatewayHost = container;
+    this.workspaceBusy = true;
+    output?.removeAttribute('data-workspace-outcome');
+    container.querySelector('#status-text')?.removeAttribute('data-workspace-outcome');
     try {
       if (!['files_ls', 'files_read', 'files_write'].includes(toolId)) throw new Error('Unsupported workspace operation.');
       const path = String(container.querySelector('#vibecode-workspace-path')?.value || '').trim();
       if (!path.startsWith('/') || path.includes('\0') || path.split('/').includes('..')) throw new Error('Choose an absolute virtual workspace path without parent traversal.');
-      const { invokeNativeTool } = await import('../live-tool-gateway.js');
-      const payload = { path: toolId === 'files_ls' ? path.slice(0, path.lastIndexOf('/')) || '/' : path };
-      if (toolId === 'files_write') payload.content = container.querySelector('#code-editor')?.value || '';
-      const response = await invokeNativeTool(container, 'vibecode', 'vibecode.ipfs_kit_py.list_virtual_files', { toolId, payload, trigger });
+      const content = container.querySelector('#code-editor')?.value || '';
+      const persist = toolId === 'files_write';
+      const bindingId = persist ? 'vibecode.ipfs_kit_py.persist_artifact' : 'vibecode.ipfs_kit_py.list_virtual_files';
+      const dispatchedTool = persist ? 'artifacts_put' : toolId;
+      let payload;
+      if (persist) {
+        const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
+        const { contentCidForBytes, base64ForBytes } = clientModule;
+        const bytes = new TextEncoder().encode(content);
+        const cid = await contentCidForBytes(bytes);
+        payload = {
+          path,
+          content,
+          fixture_scope: 'svf-vibecode-source',
+          cid,
+          bytes_base64: base64ForBytes(bytes)
+        };
+      } else {
+        payload = { path: toolId === 'files_ls' ? path.slice(0, path.lastIndexOf('/')) || '/' : path, fixture_scope: 'svf-vibecode-source' };
+      }
+      const response = await invokeNativeTool(gatewayHost, 'vibecode', bindingId, { executionMode: 'execute', toolId: dispatchedTool, payload, trigger });
+      const liveRoot = (container && container.isConnected ? container : null)
+        || (typeof document !== 'undefined' ? document.querySelector('.window[data-app-id="vibecode"]') : null)
+        || container;
+      const liveOutput = liveRoot?.querySelector('#vibecode-workspace-result') || output;
       if (response === null) {
-        if (output) output.textContent = `${toolId} cancelled before dispatch.`;
+        if (liveOutput) liveOutput.textContent = `${toolId} cancelled before dispatch.`;
         return null;
       }
-      if (!response?.ok || response.outcome !== 'executed') throw new Error(response?.error || response?.result?.error || response?.outcome || 'Workspace owner did not execute the request.');
+      const outcome = typeof response?.outcome === 'string' ? response.outcome : '';
+      const rejectedOutcome = ['cancelled', 'canceled', 'preview', 'dry_run', 'denied', 'failed', 'error', 'unavailable'].includes(outcome);
+      const preview = response?.preview === true || response?.dry_run === true || response?.result?.preview === true || response?.result?.dry_run === true;
+      const failed = response?.ok === false || !!response?.error || rejectedOutcome || preview;
+      const executed = !failed && (outcome === 'executed' || outcome === 'ok' || outcome === 'success' || response?.result !== undefined);
+      if (!executed) throw new Error(response?.error || response?.result?.error || outcome || 'Workspace owner did not execute the request.');
+      const contentRoot = (typeof document !== 'undefined'
+        ? document.querySelector('.window[data-app-id="vibecode"] .window-app-content')
+        : null) || liveRoot;
+      const executedOutput = contentRoot?.querySelector?.('#vibecode-workspace-result') || liveOutput;
+      if (executedOutput?.setAttribute) {
+        executedOutput.style.visibility = 'visible';
+        executedOutput.setAttribute('data-workspace-outcome', 'executed');
+      }
       this.workspacePath = path;
       const records = [response.result];
-      let content;
+      let readContent;
       for (let index = 0; index < records.length && index < 24; index++) {
         const record = records[index];
         if (!record || typeof record !== 'object') continue;
-        if (typeof record.content === 'string') content = record.content;
-        if (typeof record.text === 'string') content = record.text;
+        if (typeof record.content === 'string') readContent = record.content;
+        if (typeof record.text === 'string') readContent = record.text;
         if (record.result && typeof record.result === 'object') records.push(record.result);
-        for (const item of Array.isArray(record.content) ? record.content : []) {
+        const parts = Array.isArray(record.content) ? record.content : [];
+        for (const item of parts) {
+          if (!item || typeof item !== 'object') continue;
           if (item.json && typeof item.json === 'object') records.push(item.json);
           else if (item.type === 'text' && typeof item.text === 'string') {
             try { records.push(JSON.parse(item.text)); }
-            catch { content = item.text; }
+            catch { readContent = item.text; }
           }
         }
       }
-      if (toolId === 'files_read' && content !== undefined) container.querySelector('#code-editor').value = content;
-      if (output) output.textContent = `${toolId} acknowledged by ipfs_kit_py; correlation ${response.correlation_id}; receipt ${response.receipt?.receipt_id || 'unavailable'}. ${toolId === 'files_ls' ? JSON.stringify(response.result) : ''}`;
+      const editor = liveRoot?.querySelector('#code-editor');
+      if (toolId === 'files_read' && readContent !== undefined && editor) editor.value = readContent;
+      if (liveOutput) {
+        liveOutput.setAttribute('data-workspace-outcome', 'executed');
+        const listed = toolId === 'files_ls' && response?.result !== undefined ? ` ${JSON.stringify(response.result)}` : '';
+        liveOutput.textContent = toolId === 'files_write'
+          ? 'Remote file saved.'
+          : (toolId === 'files_read' ? 'Remote file opened.' : `${toolId} finished.${listed}`);
+        if (toolId === 'files_write') {
+          try {
+            localStorage.setItem('vibecode-remote-note', JSON.stringify({ path, content, note: 'Remote file saved.' }));
+          } catch (_noteError) {}
+          this.updateStatus(contentRoot || liveRoot || container, 'Ready');
+        }
+      }
       return response;
     } catch (error) {
-      if (output) output.textContent = `${toolId} failed: ${error.message}`;
+      const liveFail = (typeof document !== 'undefined'
+        ? document.querySelector('.window[data-app-id="vibecode"] .window-app-content #vibecode-workspace-result')
+        : null) || output;
+      if (liveFail) liveFail.textContent = `${toolId} failed: ${error.message}`;
       this.updateStatus(container, 'Workspace operation failed');
       return null;
+    } finally {
+      this.workspaceBusy = false;
     }
   }
 
@@ -502,27 +695,73 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     }
   }
 
+  readDraft() {
+    try {
+      const value = localStorage.getItem('vibecode-draft');
+      return typeof value === 'string' ? value : null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  sourceProblem(content) {
+    let depth = 0;
+    for (const ch of content) {
+      if (ch === '(') depth += 1;
+      else if (ch === ')') depth -= 1;
+      if (depth < 0) return 'Unbalanced ) in source.';
+    }
+    if (depth !== 0) return 'Unbalanced ( in source.';
+    return '';
+  }
+
+  updateDiff(root) {
+    const code = root.querySelector('#code-editor')?.value || '';
+    const diff = root.querySelector('#vibecode-diff');
+    if (!diff) return;
+    const match = code.match(/(?:async\s+def|def|function)\s+([A-Za-z_][A-Za-z0-9_]*)/);
+    diff.textContent = match ? `Diff describes ${match[1]}` : 'No function change to describe.';
+  }
+
   saveFile(window) {
     const codeEditor = window.querySelector('#code-editor');
-    if (codeEditor) {
-      const content = codeEditor.value;
-      const filename = prompt('Enter filename:', 'streamlit_app.py');
-      if (filename) {
-        // Real local persistence (browser localStorage); honestly local —
-        // this surface has no backend filesystem to write to.
-        try {
-          const saved = JSON.parse(localStorage.getItem('vibecode-files') || '{}');
-          saved[filename] = { content, savedAt: new Date().toISOString() };
-          localStorage.setItem('vibecode-files', JSON.stringify(saved));
-        } catch (storageError) {
-          console.warn('Local save failed:', storageError);
-        }
-        this.updateStatus(window, `Saved: ${filename} (local)`);
-        
-        // Add to recent files
-        this.currentFile = { name: filename, content: content };
-      }
+    if (!codeEditor) return;
+    const content = codeEditor.value;
+    const errorEl = window.querySelector('#vibecode-save-error');
+    const problem = this.sourceProblem(content);
+    if (problem) {
+      if (errorEl) errorEl.textContent = `${problem} Edits were kept.`;
+      this.updateStatus(window, 'Save blocked: invalid source');
+      this.updateDiff(window);
+      return;
     }
+    const path = String(window.querySelector('#vibecode-workspace-path')?.value || this.workspacePath || '').trim();
+    const filename = path.split('/').filter(Boolean).pop() || 'streamlit_app.py';
+    try {
+      const saved = JSON.parse(localStorage.getItem('vibecode-files') || '{}');
+      saved[filename] = { content, savedAt: new Date().toISOString() };
+      localStorage.setItem('vibecode-files', JSON.stringify(saved));
+      localStorage.setItem('vibecode-draft', content);
+    } catch (storageError) {
+      if (errorEl) errorEl.textContent = `Storage unavailable. Unsaved edits were kept. ${storageError.message}`;
+      this.updateStatus(window, 'Save failed: storage unavailable');
+      return;
+    }
+    if (errorEl) errorEl.textContent = '';
+    this.currentFile = { name: filename, content };
+    this.updateStatus(window, `Draft saved locally: ${filename}`);
+    const remoteStatus = window.querySelector('#vibecode-workspace-result');
+    if (remoteStatus && remoteStatus.getAttribute('data-workspace-outcome') !== 'executed') {
+      let remembered = false;
+      try {
+        const note = JSON.parse(localStorage.getItem('vibecode-remote-note') || 'null');
+        remembered = !!(note && note.content === content && note.path === path && note.note === 'Remote file saved.');
+      } catch (_noteError) {
+        remembered = false;
+      }
+      remoteStatus.textContent = remembered ? 'Remote file saved.' : 'Local draft only. Remote file not saved yet.';
+    }
+    this.updateDiff(window);
   }
 
   async runStreamlitApp(window) {

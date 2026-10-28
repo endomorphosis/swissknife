@@ -1,0 +1,38 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "cron",
+  "description": "Create a paused browser-local future schedule, reopen and delete it, then recover from an invalid expression without adding a schedule.",
+  "fixture_scope": "svf-cron-local-schedule",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {"op": "click", "selector": "#create-task"},
+      {"op": "wait_for", "selector": "#task-name", "state": "visible", "timeout_ms": 5000},
+      {"op": "fill", "selector": "#task-name", "value": "Morning local"},
+      {"op": "fill", "selector": "#task-cron", "value": "0 9 * * *"},
+      {"op": "fill", "selector": "#task-timezone", "value": "UTC"},
+      {"op": "uncheck", "selector": "#task-enabled"},
+      {"op": "press", "selector": "#task-cron", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": ".task-card .next-run-text"}, "operator": "contains", "expected": "Paused · Next:"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "wait_for", "selector": ".task-card .task-btn.danger", "state": "visible", "timeout_ms": 5000},
+      {"op": "click", "selector": ".task-card .task-btn.danger"},
+      {"op": "wait_for", "selector": "#confirm-delete-task", "state": "visible", "timeout_ms": 5000},
+      {"op": "click", "selector": "#confirm-delete-task"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#scheduled-tasks-container"}, "operator": "contains", "expected": "No scheduled tasks"}
+    ],
+    "failure_recovery": [
+      {"op": "click", "selector": "#create-task"},
+      {"op": "wait_for", "selector": "#task-cron", "state": "visible", "timeout_ms": 5000},
+      {"op": "fill", "selector": "#task-name", "value": "Broken local"},
+      {"op": "fill", "selector": "#task-cron", "value": "99 99 * * *"},
+      {"op": "fill", "selector": "#task-timezone", "value": "UTC"},
+      {"op": "click", "selector": "#submit-task"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#task-schedule-error"}, "operator": "contains", "expected": "Invalid schedule"},
+      {"op": "click", "selector": "#cancel-task"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#scheduled-tasks-container"}, "operator": "contains", "expected": "No scheduled tasks"}
+    ]
+  }
+}

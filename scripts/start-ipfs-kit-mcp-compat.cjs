@@ -34,6 +34,7 @@ const { PROFILE_G_METHODS, PROFILE_G_REST_PATH, ProfileGAdapterError, createKitP
 const { createKitToolExecutor } = require("./ipfs-kit-artifact-cat.cjs");
 const { createKuboKitToolExecutor } = require("./ipfs-kit-kubo-tools.cjs");
 const { GOVERNED_TOOL_DEFINITIONS, createGovernedKitExecutor } = require("./ipfs-kit-governed-tools.cjs");
+const { createNativeKitForwarder, nativeKitCatalog } = require("./ipfs-kit-native-forwarder.cjs");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 const WORKSPACE_ROOT = path.resolve(REPO_ROOT, "..");
@@ -55,15 +56,36 @@ function argValue(name, fallback) {
 
 const host = argValue("--host", DEFAULT_HOST);
 const port = Number(argValue("--port", DEFAULT_PORT));
-const tools = loadKitTools();
-const profileA = buildProfileAInterface("ipfs_kit_py", tools);
+const nativeForwarder = process.env.SWISSKNIFE_KIT_NATIVE_MCP_URL
+  ? createNativeKitForwarder({ endpoint: process.env.SWISSKNIFE_KIT_NATIVE_MCP_URL }) : null;
+const requireNativeReady = process.env.SWISSKNIFE_KIT_REQUIRE_NATIVE_READY === '1';
+if (requireNativeReady && !nativeForwarder) throw new Error('native_kit_required_upstream_not_configured');
+let tools;
+let profileA;
+let nativeCatalogError;
+const catalogReady = nativeForwarder
+  ? nativeForwarder.listTools().then(nativeTools => {
+    tools = loadKitTools(nativeTools);
+    profileA = buildProfileAInterface("ipfs_kit_py", tools);
+  }).catch(error => {
+    if (requireNativeReady) throw error;
+    nativeCatalogError = error instanceof Error ? error.message : 'native_kit_catalog_unavailable';
+    tools = loadKitTools([]);
+    profileA = buildProfileAInterface("ipfs_kit_py", tools);
+  })
+  : null;
+if (!nativeForwarder) {
+  tools = loadKitTools();
+  profileA = buildProfileAInterface("ipfs_kit_py", tools);
+}
 const artifactStore = createArtifactStore({
   service: "ipfs_kit_py",
   isKitService: true,
 });
 const executeKuboTool = createKuboKitToolExecutor();
-const executeKitTool = createKitToolExecutor({ artifactStore, callKitWorker: async (name, args) =>
-  (await executeKuboTool(name, args)) ?? callKitWorker(name, args) });
+const executeKitTool = nativeForwarder ? nativeForwarder.execute
+  : createKitToolExecutor({ artifactStore, callKitWorker: async (name, args) =>
+    (await executeKuboTool(name, args)) ?? callKitWorker(name, args) });
 const profileCService = getProfileCService("ipfs_kit_py");
 const eventDag = getEventDagService("ipfs_kit_py");
 const executeGovernedKitTool = createGovernedKitExecutor({ persistArtifact: persistArtifactRequest, getArtifact: getArtifactResponse, eventDag });
@@ -80,10 +102,10 @@ const server = http.createServer(async (req, res) => {
       req.method === "GET" &&
       (url.pathname === "/health" || url.pathname === "/mcp/health")
     ) {
-      return sendJson(res, 200, healthPayload());
+      return sendJson(res, 200, await healthPayload());
     }
     if (req.method === "GET" && url.pathname === "/api/mcp/status") {
-      return sendJson(res, 200, { success: true, data: healthPayload() });
+      return sendJson(res, 200, { success: true, data: await healthPayload() });
     }
     if (req.method === "GET" && url.pathname === "/mcp/helia/status") {
       return sendJson(res, 200, await getHeliaNetworkStatus());
@@ -440,7 +462,7 @@ async function getArtifactResponse(cid) {
   };
 }
 
-server.listen(port, host, () => {
+function listen() { server.listen(port, host, () => {
   console.log(
     `ipfs_kit_py compatibility MCP adapter listening on http://${host}:${port}`,
   );
@@ -448,15 +470,22 @@ server.listen(port, host, () => {
   // Warm the Profile G backend dispatch in the background so the first
   // desktop inspection does not pay the cold Python import inline.
   profileG.profile().catch(() => {});
+}); }
+if (catalogReady) catalogReady.then(listen).catch(error => {
+  console.error(`native_kit_required_catalog_unavailable: ${error instanceof Error ? error.message : 'unknown'}`);
+  process.exit(1);
 });
+else listen();
 
-function loadKitTools() {
-  const discovered = discoverPythonKitTools();
-  const fallback = readStaticKitTools();
+function loadKitTools(nativeTools = []) {
+  const discovered = nativeForwarder ? [] : discoverPythonKitTools();
+  const fallback = nativeForwarder ? [] : readStaticKitTools();
   // Runtime discovery is intentionally merged with the maintained manifest.
   // Some ipfs_kit_py installations expose only a partial registry during
   // startup; publishing that subset would silently hide usable capabilities.
-  const all = [...metaTools(), ...GOVERNED_TOOL_DEFINITIONS, ...discovered, ...fallback];
+  const all = nativeForwarder
+    ? nativeKitCatalog(nativeTools, [...metaTools(), ...GOVERNED_TOOL_DEFINITIONS])
+    : [...metaTools(), ...GOVERNED_TOOL_DEFINITIONS, ...discovered, ...fallback];
   const seen = new Set();
   return all
     .filter((tool) => {
@@ -594,6 +623,35 @@ async function callKitTool(payload) {
     payload.arguments ??
     payload.args ??
     {};
+  if (name === "ipfs_pubsub_publish") {
+    if (!nativeForwarder) {
+      return {
+        isError: true,
+        content: [{ type: "json", json: { success: false, error: "native_pubsub_forwarder_required" } }],
+        receipt: receipt(name, { status: "error" }),
+      };
+    }
+    try {
+      const result = await executeKitTool(name, args);
+      if (!result.ok) {
+        return {
+          isError: true,
+          content: kitFailureContent(result, "ipfs_pubsub_publish failed"),
+          receipt: receipt(name, { status: "error" }),
+        };
+      }
+      return {
+        content: [{ type: "json", json: result.result }],
+        receipt: executionReceipt(name, result, { target: name }),
+      };
+    } catch (error) {
+      return {
+        isError: true,
+        content: [{ type: "json", json: { success: false, error: error instanceof Error ? error.message : "ipfs_pubsub_publish failed" } }],
+        receipt: receipt(name, { status: "error" }),
+      };
+    }
+  }
   const governedResult = await executeGovernedKitTool(name, args);
   if (governedResult !== null) {
     return { ...(governedResult.ok ? {} : { isError: true }),
@@ -669,13 +727,13 @@ async function callKitTool(payload) {
       if (!result.ok) {
         return {
           isError: true,
-          content: [{ type: "text", text: result.error || `ipfs_kit_py tool ${target} failed` }],
+          content: kitFailureContent(result, `ipfs_kit_py tool ${target} failed`),
           receipt: receipt(name, { category: found.category, target: found.name, status: "error" }),
         };
       }
       return {
         content: [{ type: "json", json: result.result }],
-        receipt: receipt(name, { category: found.category, target: found.name }),
+        receipt: executionReceipt(name, result, { category: found.category, target: found.name }),
       };
     } catch (error) {
       return {
@@ -701,13 +759,13 @@ async function callKitTool(payload) {
     if (!result.ok) {
       return {
         isError: true,
-        content: [{ type: "text", text: result.error || `ipfs_kit_py tool ${name} failed` }],
+        content: kitFailureContent(result, `ipfs_kit_py tool ${name} failed`),
         receipt: receipt(name, { category: found.category, target: found.name, status: "error" }),
       };
     }
     return {
       content: [{ type: "json", json: result.result }],
-      receipt: receipt(name, { category: found.category, target: found.name }),
+      receipt: executionReceipt(name, result, { category: found.category, target: found.name }),
     };
   } catch (error) {
     return {
@@ -716,6 +774,14 @@ async function callKitTool(payload) {
       receipt: receipt(name, { category: found.category, target: found.name, status: "error" }),
     };
   }
+}
+
+function kitFailureContent(result, fallback) {
+  if (!result.native_error) return [{ type: 'text', text: result.error || fallback }];
+  const details = result.native_error;
+  return [{ type: 'json', json: { success: false, error: details.message,
+    owner_error: details, ...(details.code !== undefined ? { code: details.code } : {}),
+    ...(details.type ? { error_type: details.type } : {}) } }];
 }
 
 // Persistent Python worker that holds the real ipfs_kit_py MCP server and
@@ -957,8 +1023,15 @@ function receipt(tool, extra = {}) {
   };
 }
 
-function healthPayload() {
-  return {
+function executionReceipt(tool, result, extra = {}) {
+  return receipt(tool, { ...extra, ...(nativeForwarder ? {
+    execution_backend: 'native_python', native_provenance: result.native_receipt?.native_provenance,
+    native_receipt: result.native_receipt,
+  } : {}) });
+}
+
+async function healthPayload() {
+  const base = {
     status: "ok",
     server: "swissknife-ipfs-kit-compat",
     adapter_version: ADAPTER_VERSION,
@@ -966,6 +1039,16 @@ function healthPayload() {
     pid: process.pid,
     platform: os.platform(),
   };
+  if (!nativeForwarder) return base;
+  try {
+    if (nativeCatalogError) throw new Error(nativeCatalogError);
+    const upstream = await nativeForwarder.health();
+    return { ...base, backend: 'native_python', upstream_target: nativeForwarder.endpoint,
+      upstream_available: true, native_upstream: upstream };
+  } catch (error) {
+    return { ...base, status: 'degraded', backend: 'native_python', upstream_target: nativeForwarder.endpoint,
+      upstream_available: false, error: error instanceof Error ? error.message : 'native_kit_health_failed' };
+  }
 }
 
 function readRequestJson(req) {

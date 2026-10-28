@@ -1,0 +1,169 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "image-viewer",
+  "description": "Retrieve exact controlled SVG through native SDK after trusted confirmation; reopen the same artifact; observe a genuine missing-CID owner failure, then retrieve the known valid CID again. Policy/help text is not an error case.",
+  "fixture_scope": "svf-image-viewer-cid",
+  "backend_bindings": [
+    {
+      "binding_id": "image-viewer.ipfs_kit_py.retrieve_content",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 262144,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/bytes_base64",
+        "operator": "equals",
+        "expected": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjgiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCAxMjggOTYiPjxyZWN0IHdpZHRoPSIxMjgiIGhlaWdodD0iOTYiIGZpbGw9IiMxNTM2NGQiLz48Y2lyY2xlIGN4PSI2NCIgY3k9IjQ4IiByPSIyOCIgZmlsbD0iI2U5YmQ1OCIvPjwvc3ZnPg=="
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "wait_for",
+        "selector": "#main-image",
+        "state": "visible",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "fill",
+        "selector": "#iv-cid-field",
+        "value": "bafkreiboczqvtm47rm3pz7x27f7isrzi6ogfddyquo5qisw4fthjhiytcm"
+      },
+      {
+        "op": "fill",
+        "selector": "#iv-fixture-scope",
+        "value": "svf-image-viewer-cid"
+      },
+      {
+        "op": "check",
+        "selector": "#iv-retrieve-consent"
+      },
+      {
+        "op": "click",
+        "selector": "#retrieve-cid-btn"
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"image-viewer.ipfs_kit_py.retrieve_content\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#main-image[data-cid=\"bafkreiboczqvtm47rm3pz7x27f7isrzi6ogfddyquo5qisw4fthjhiytcm\"]",
+        "state": "visible",
+        "timeout_ms": 10000
+      },
+      {
+        "op": "press",
+        "selector": "#zoom-in-btn",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "dom_property",
+          "selector": "#main-image",
+          "property": "naturalWidth"
+        },
+        "operator": "equals",
+        "expected": 128
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#main-image",
+        "state": "visible",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "dom_property",
+          "selector": "#main-image",
+          "property": "naturalHeight"
+        },
+        "operator": "equals",
+        "expected": 96
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "fill",
+        "selector": "#iv-cid-field",
+        "value": "bafkreievvhbk2fw6nemdowppvh2qfcd2i7a44w32ykzfbb5cnuue4xrq2m"
+      },
+      {
+        "op": "fill",
+        "selector": "#iv-fixture-scope",
+        "value": "svf-image-viewer-cid"
+      },
+      {
+        "op": "check",
+        "selector": "#iv-retrieve-consent"
+      },
+      {
+        "op": "click",
+        "selector": "#retrieve-cid-btn"
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"image-viewer.ipfs_kit_py.retrieve_content\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#image-workflow-log:has-text(\"retrieval failed for bafkreievvhbk2fw6nemdowppvh2qfcd2i7a44w32ykzfbb5cnuue4xrq2m\")",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#image-workflow-log"
+        },
+        "operator": "contains",
+        "expected": "retrieval failed for bafkreievvhbk2fw6nemdowppvh2qfcd2i7a44w32ykzfbb5cnuue4xrq2m"
+      },
+      {
+        "op": "fill",
+        "selector": "#iv-cid-field",
+        "value": "bafkreiboczqvtm47rm3pz7x27f7isrzi6ogfddyquo5qisw4fthjhiytcm"
+      },
+      {
+        "op": "fill",
+        "selector": "#iv-fixture-scope",
+        "value": "svf-image-viewer-cid"
+      },
+      {
+        "op": "check",
+        "selector": "#iv-retrieve-consent"
+      },
+      {
+        "op": "click",
+        "selector": "#retrieve-cid-btn"
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"image-viewer.ipfs_kit_py.retrieve_content\"]"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "image_state",
+          "selector": "#main-image",
+          "pointer": "/natural_width"
+        },
+        "operator": "equals",
+        "expected": 128
+      }
+    ]
+  }
+}
