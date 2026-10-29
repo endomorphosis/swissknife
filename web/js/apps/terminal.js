@@ -96,13 +96,35 @@ export class TerminalApp {
     return this;
   }
 
+  containTerminalFrame() {
+    const mount = this.contentElement;
+    if (!mount || typeof mount.closest !== 'function') return;
+    // Only this Terminal window owns these pins; no global window styles change.
+    const frame = mount.closest('.window-content');
+    const surface = mount.closest('.window-app-content');
+    for (const node of [frame, surface, mount]) {
+      if (!node) continue;
+      Object.assign(node.style, {
+        display: 'flex', flexDirection: 'column', flex: '1 1 auto',
+        minHeight: '0', minWidth: '0', height: 'auto', overflow: 'hidden',
+        boxSizing: 'border-box', backgroundColor: '#0c0c0c',
+      });
+    }
+    if (frame) Object.assign(frame.style, { paddingBottom: '0', scrollPaddingBottom: '0' });
+    if (surface) {
+      const gateway = [...surface.children].find(node => node.classList.contains('live-tool-gateway-host'));
+      if (gateway) gateway.style.flex = '0 0 auto';
+    }
+  }
+
   async render() {
     if (!this.contentElement) {
       throw new Error('Content element not provided');
     }
 
+    this.containTerminalFrame();
     this.contentElement.innerHTML = `
-      <div class="terminal-container" style="display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden;background:var(--sk-bg, #0e1412);color:var(--sk-ok, #5ee3a1);">
+      <div class="terminal-container" style="display:flex;flex-direction:column;flex:1 1 auto;height:auto;width:100%;min-height:0;min-width:0;overflow:hidden;background:#0c0c0c;color:var(--sk-ok, #5ee3a1);">
         <div class="terminal-header" style="flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <div class="terminal-tabs">
             <div class="terminal-tab active" data-session="main">
@@ -117,7 +139,7 @@ export class TerminalApp {
             <button type="button" class="terminal-btn" id="settings-btn" title="Settings" aria-label="Settings">⚙️</button>
           </div>
         </div>
-        <div class="terminal-body" style="flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;">
+        <div class="terminal-body" style="flex:1 1 auto;height:auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;">
           <div class="terminal-output" id="terminal-output" style="flex:1 1 auto;min-height:0;overflow:auto;"></div>
           <div class="terminal-input-line" style="flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:4px;position:relative;z-index:1;">
             <span class="terminal-prompt" id="terminal-prompt" style="white-space:normal;overflow-wrap:anywhere;">swissknife@desktop:${this.currentDirectory}$ </span>
@@ -126,9 +148,9 @@ export class TerminalApp {
                    style="flex:1 1 8rem;min-width:0;background:transparent;color:inherit;border:0;">
           </div>
         </div>
-        <div class="terminal-status" style="flex:0 0 auto;display:flex;flex-wrap:wrap;gap:4px 12px;position:relative;z-index:1;">
-          <span class="status-left">Ready · browser-local shell</span>
-          <span class="status-right">Session: main | ${this.environment.USER}@${this.environment.TERM}</span>
+        <div class="terminal-status" style="flex:0 0 auto;height:auto;min-height:20px;display:flex;flex-wrap:wrap;gap:4px 12px;position:relative;z-index:1;">
+          <span class="status-left" style="min-width:0;max-width:100%;overflow-wrap:anywhere;">Ready · browser-local shell</span>
+          <span class="status-right" style="min-width:0;max-width:100%;overflow-wrap:anywhere;">Session: main | ${this.environment.USER}@${this.environment.TERM}</span>
         </div>
       </div>
     `;
