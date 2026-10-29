@@ -241,6 +241,8 @@ export class AgentSupervisorApp {
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
+      paddingBottom: '0',
+      scrollPaddingBottom: '0',
     });
     pin(container.closest('.window-app-content'), {
       display: 'flex',
@@ -1010,10 +1012,6 @@ export class AgentSupervisorApp {
         <code style="overflow-wrap:anywhere" data-native-stage-output="${key}" ${stage===key?'data-native-output-sha':''}>${escapeHtml(result?.output_sha256||'not published')}</code>
         <span data-native-readback-stage="${key}" data-readback-state="${matched?.matched?'matched':matched?'pending':'not_read'}" ${stage===key?`data-native-readback="${matched?.matched?'matched':matched?'pending':'not_read'}"`:''}>${matched?.matched?`Task ${label}: owner readback matched this session.`:matched?`Task ${label}: owner returned ${escapeHtml(matched.owner_status)}; validated output is not published.`:`Task ${label}: not read back in this session.`}</span></section>`;
       }).join('')}</div>
-      <div class="as-actions"><button type="button" data-native-create aria-label="Create new bounded native run" ${this.state.dispatch.submitting?'disabled':''}>New run</button>
-      <button type="button" data-native-select-stage="a" aria-label="Select native task A" ${!run?.task_ids?.a?'disabled':''}>Select A</button>
-      <button type="button" data-native-select-stage="b" aria-label="Select native task B" ${!run?.task_ids?.b?'disabled':''}>Select B</button>
-      <button type="button" data-native-read aria-label="Read owner task ${escapeHtml(stage.toUpperCase())}" ${!run?.task_ids?.[stage]?'disabled':''}>Read owner ${escapeHtml(stage.toUpperCase())}</button></div>
       <details><summary>Task and result references</summary><div class="as-section-line">
       <span>Actual isolated supervisor tasks. The cached board is separate from this run.</span>
       <span>${read?.matched?'Owner readback matched the retained run, task and validated output.':'Reopen identity requires explicit owner readback.'}</span>
@@ -1024,6 +1022,14 @@ export class AgentSupervisorApp {
       <span>Producer ${escapeHtml(current?.execution?.producer?.sha256||'not returned')}</span><span>Independent validator ${escapeHtml(current?.execution?.validator?.sha256||'not returned')}</span>
       <span>${escapeHtml((run?.history||[]).map(item=>`${item.action} ${item.stage||''} ${item.outcome||item.status}: ${item.receipt_id}; ${item.event_id}`).join(' | '))}</span>
       </div></details></section>`;
+  }
+
+  renderNativeActions() {
+    const run=this.state.fixtureRun,stage=this.state.nativeStage||'a';
+    return `<nav class="as-actions as-dispatch-toolbar" data-native-action-toolbar aria-label="Native run controls"><button type="button" data-native-create aria-label="Create new bounded native run" ${this.state.dispatch.submitting?'disabled':''}>New run</button>
+      <button type="button" data-native-select-stage="a" aria-label="Select native task A" ${!run?.task_ids?.a?'disabled':''}>Select A</button>
+      <button type="button" data-native-select-stage="b" aria-label="Select native task B" ${!run?.task_ids?.b?'disabled':''}>Select B</button>
+      <button type="button" data-native-read aria-label="Read owner task ${escapeHtml(stage.toUpperCase())}" ${!run?.task_ids?.[stage]?'disabled':''}>Read owner ${escapeHtml(stage.toUpperCase())}</button></nav>`;
   }
 
   renderNativeTaskSummary() {
@@ -1636,6 +1642,7 @@ export class AgentSupervisorApp {
           </div>
         ` : ''}
         </div>
+        ${this.renderNativeActions()}
       </div>
     `;
   }
@@ -1915,10 +1922,13 @@ export class AgentSupervisorApp {
         .as-pane { background: #0e1412; min-width: 0; min-height: 0; overflow: auto; }
         .as-pane.as-detail { order: -1; flex: 1 1 16rem; display: flex; flex-direction: column; overflow: hidden; min-height: 16rem; }
         .as-pane.as-goals, .as-pane.as-queue { flex: 0 0 auto; max-height: 12rem; overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; }
+        .agent-supervisor[data-active-tab="dispatch"] .as-pane.as-goals,
+        .agent-supervisor[data-active-tab="dispatch"] .as-pane.as-queue { display: none; }
+        .agent-supervisor[data-active-tab="dispatch"] .as-pane.as-detail { flex: 1 1 0; min-height: 0; }
         .as-pane-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-bottom: 1px solid #263a34; background: #101b18; }
         .as-tree, .as-queue-list, .as-detail-body, .as-backends { display: grid; gap: 12px; padding: 12px; align-content: start; }
         .as-detail-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding-bottom: 24px; }
-        .as-detail-body.as-dispatch { display: flex; flex-direction: column; gap: 0; padding: 0; }
+        .as-detail-body.as-dispatch { display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden; }
         .as-dispatch-controls { flex: 0 0 auto; display: grid; gap: 6px; padding: 8px 12px; border-bottom: 1px solid #315248; background: #12211d; }
         .as-dispatch-controls .as-confirm-line { padding: 6px 8px; }
         .as-dispatch-controls .as-state { display: block; margin: 0; padding: 6px 8px; font-size: 12px; }
@@ -1926,6 +1936,8 @@ export class AgentSupervisorApp {
         .as-dispatch-controls .as-actions button { padding: 6px 8px; }
         .as-dispatch-controls > summary { cursor: pointer; }
         .as-dispatch-content { flex: 1 1 auto; min-height: 0; overflow: auto; display: grid; gap: 12px; padding: 8px 12px 24px; align-content: start; }
+        .as-dispatch-toolbar { flex: 0 0 auto; padding: 8px 12px; border-top: 1px solid #315248; background: #12211d; }
+        .as-dispatch-toolbar button { padding: 6px 8px; }
         [data-native-run] { gap: 6px; padding-top: 0; border-top: 0; }
         .as-native-identity { gap: 3px; }
         .as-native-identity input { width: 100%; min-width: 0; height: 32px; border: 1px solid #315248; border-radius: 4px; padding: 6px 8px; background: #101b18; color: #edf7f2; font: 12px/1.4 monospace; user-select: all; }

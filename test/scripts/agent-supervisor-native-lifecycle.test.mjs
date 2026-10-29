@@ -205,7 +205,8 @@ test('mobile Dispatch reserves the scrollport while cached panes remain reachabl
  assert.equal(style(f.root.querySelector('.as-pane.as-goals')).display,'none');
  assert.equal(style(f.root.querySelector('.as-pane.as-queue')).display,'none');
  assert.equal(parseFloat(style(f.root.querySelector('.as-pane.as-detail')).flexBasis),0);
- assert.equal(style(f.root.querySelector('[data-testid="dispatch-panel"]')).overflow,'auto');
+ assert.equal(style(f.root.querySelector('[data-testid="dispatch-panel"]')).overflow,'hidden');
+ assert.equal(style(f.root.querySelector('.as-dispatch-content')).overflow,'auto','only content moves while the native action bar stays outside the scrollport');
  for(const selector of ['[data-native-create]','[data-native-read]','[data-native-retry]','[data-testid="dispatch-confirm"]','[data-testid="dispatch-submit"]'])assert.ok(f.root.querySelector(selector),selector);
  f.root.querySelector('[data-tab="active"]').click();
  assert.equal(f.app.state.activeTab,'active');
@@ -215,6 +216,9 @@ test('mobile Dispatch reserves the scrollport while cached panes remain reachabl
  f.root.querySelector('[data-tab="dispatch"]').click();
  assert.equal(style(f.root.querySelector('.as-pane.as-goals')).display,'none');
  f.window.happyDOM.setWindowSize({width:1440,height:900});f.app.update();
+ assert.equal(style(f.root.querySelector('.as-pane.as-goals')).display,'none');
+ assert.equal(style(f.root.querySelector('.as-pane.as-queue')).display,'none');
+ f.root.querySelector('[data-tab="active"]').click();
  assert.notEqual(style(f.root.querySelector('.as-pane.as-goals')).display,'none');
  assert.notEqual(style(f.root.querySelector('.as-pane.as-queue')).display,'none');
 });
@@ -463,4 +467,53 @@ test('native action completion scrolls the selected result card while creation u
  f.app.selectNativeTask('b');await f.act('retryNativeTask');assert.deepEqual(seen.at(-1),{stage:'b',summary:false,options:{block:'nearest'}});
  await f.act('readNativeRun');assert.deepEqual(seen.at(-1),{stage:'b',summary:false,options:{block:'nearest'}});
  assert.equal(f.calls.length,5);assert.deepEqual(f.runs.get(f.app.state.fixtureRun.run_id).spawns,{a:1,b:1});
+});
+
+
+// Authored DOM/flex sizing constraints; actual browser rectangles remain a separate qualification gate.
+test('owned desktop padding is reclaimed without changing a foreign window or leaving document-wide overrides',async t=>{
+ const f=fixture(t),{readFile}=await import('node:fs/promises');
+ const css=await readFile(new URL('../../web/css/desktop.css',import.meta.url),'utf8');
+ const rule=css.match(/\.window-content\s*\{[^}]*padding-bottom:\s*56px[^}]*\}/);assert.ok(rule,'fixture matches the real shared desktop bottom reservation');
+ const style=f.window.document.createElement('style');style.textContent=rule[0];f.window.document.head.append(style);
+ const foreign=document.createElement('section');foreign.className='window';foreign.innerHTML='<div class="window-content"></div>';document.body.append(foreign);
+ const owned=document.createElement('section');owned.className='window';owned.innerHTML='<div class="window-content"><div class="window-app-content"></div></div>';document.body.append(owned);
+ const content=owned.querySelector('.window-content');owned.querySelector('.window-app-content').append(f.root);
+ const computed=node=>f.window.getComputedStyle(node),padding=node=>parseFloat(computed(node).paddingBottom)||0;
+ const originalRule=style.textContent;assert.equal(padding(content),56);assert.equal(padding(foreign.querySelector('.window-content')),56);
+ const authoredFrameHeight=568,beforeUsable=authoredFrameHeight-padding(content);
+ f.app.containSupervisorFrame();assert.equal(padding(content),0);assert.equal(parseFloat(computed(content).scrollPaddingBottom)||0,0);
+ const afterUsable=authoredFrameHeight-padding(content),toolbar=f.root.querySelector('[data-native-action-toolbar]'),button=toolbar.querySelector('button');
+ const fixedToolbarBudget=parseFloat(computed(button).minHeight)+parseFloat(computed(toolbar).paddingTop)+parseFloat(computed(toolbar).paddingBottom);
+ assert.ok(fixedToolbarBudget>0&&afterUsable-beforeUsable>=fixedToolbarBudget,'reclaimed56px funds the fixed toolbar without consuming the existing proof viewport');
+ assert.equal(padding(foreign.querySelector('.window-content')),56);assert.equal(style.textContent,originalRule);
+ owned.remove();assert.equal(padding(foreign.querySelector('.window-content')),56);assert.equal(style.textContent,originalRule);
+});
+
+test('the four native actions are fixed siblings of the scrollport and keep keyboard behavior after history scroll',async t=>{
+ const f=fixture(t);await f.act('createNativeRun');f.app.selectNativeTask('b');await f.act('submitTaskDispatch');await f.act('repairNamedBlocker');await f.act('retryNativeTask');
+ f.app.selectNativeTask('a');await f.act('readNativeRun');f.app.selectNativeTask('b');await f.act('readNativeRun');
+ for(const offset of [0,400,1600]){
+  const panel=f.root.querySelector('[data-testid="dispatch-panel"]'),scroll=f.root.querySelector('.as-dispatch-content'),bar=f.root.querySelector('[data-native-action-toolbar]');scroll.scrollTop=offset;
+  assert.equal(bar.parentElement,panel);assert.equal(scroll.contains(bar),false);assert.equal(bar.contains(scroll),false);assert.equal(scroll.nextElementSibling,bar);
+  assert.equal(f.window.getComputedStyle(bar).flexShrink,'0');assert.equal(f.window.getComputedStyle(panel).overflow,'hidden');
+  assert.equal(bar.querySelectorAll('button').length,4);
+  for(const selector of ['[data-native-create]','[data-native-select-stage="a"]','[data-native-select-stage="b"]','[data-native-read]']){
+   assert.equal(f.root.querySelectorAll(selector).length,1);const button=bar.querySelector(selector);assert.ok(button);button.focus();assert.equal(document.activeElement,button);assert.equal(button.disabled,false);
+  }
+  assert.match(f.root.querySelector('[data-native-run-id]').value,/^[a-f0-9-]{36}$/);
+  for(const key of ['a','b']){assert.match(f.root.querySelector(`[data-native-stage-output="${key}"]`).textContent,/^[a-f0-9]{64}$/);assert.equal(f.root.querySelector(`[data-native-readback-stage="${key}"]`).getAttribute('data-readback-state'),'matched');}
+ }
+ const before=f.calls.length;f.root.querySelector('[data-native-select-stage="a"]').click();assert.equal(f.app.state.nativeStage,'a');assert.equal(f.calls.length,before);assert.equal(f.root.querySelector('[data-native-read]').getAttribute('aria-label'),'Read owner task A');
+});
+
+
+test('desktop Dispatch assigns its full layout to native proof instead of clamping it behind cached panes',t=>{
+ const f=fixture(t);f.window.happyDOM.setWindowSize({width:1440,height:900});f.app.state.activeTab='dispatch';f.app.update();
+ const style=node=>f.window.getComputedStyle(node);
+ for(const selector of ['.as-pane.as-goals','.as-pane.as-queue'])assert.equal(style(f.root.querySelector(selector)).display,'none');
+ const detail=style(f.root.querySelector('.as-pane.as-detail'));assert.equal(parseFloat(detail.minHeight),0);assert.equal(detail.flexGrow,'1');assert.equal(parseFloat(detail.flexBasis),0);
+ f.app.state.activeTab='active';f.app.update();
+ for(const selector of ['.as-pane.as-goals','.as-pane.as-queue'])assert.notEqual(style(f.root.querySelector(selector)).display,'none','cached goals and queue remain available through Active navigation');
+ assert.ok(f.root.querySelector('[data-testid="goals-tree"]'));assert.ok(f.root.querySelector('[data-testid="active-task"]'));
 });
