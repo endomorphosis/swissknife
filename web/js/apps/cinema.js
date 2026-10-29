@@ -10,6 +10,7 @@ let nextCinemaNavigationId = 0;
 const CINEMA_MAX_SOURCE_BYTES = 1048576;
 const CINEMA_MAX_SOURCE_SECONDS = 30;
 const CINEMA_MEDIA_CACHE = 'swissknife.cinema.media.';
+const CINEMA_OUTPUT_CACHE = 'swissknife.cinema.output.';
 
 export class CinemaApp {
   constructor() {
@@ -24,6 +25,7 @@ export class CinemaApp {
     this.verifiedProjectSnapshot = null;
     this.snapshotVerificationGeneration = 0;
     this.sourceMedia = null;
+    this.exportMedia = null; this.exportGeneration = 0; this.exportPending = false;
     this.mediaGeneration = 0;
     this.mediaLoadPending = false;
     this.mediaDecodeCancel = null;
@@ -286,17 +288,23 @@ export class CinemaApp {
     return `
       <section id="${this.projectActionsId}" class="cinema-vda-workflow sk-card cinema-vda-panel" tabindex="-1" aria-label="Cinema project media render workflow">
         <div class="cinema-vda-head"><div><div class="sk-badge">Local project</div><h3 class="cinema-vda-title">Project Render Workflow</h3>
-          <p class="sk-honest-note">Save the source and timeline as a project. Video export is unavailable.</p></div>
-          <output class="sk-badge" data-cinema-workflow-status data-render-queue-state="not_observed" role="status">No owner operation has run.</output>
+          <p class="sk-honest-note">Save the timeline and output reference. Short WebM export uses this browser; other formats remain unavailable.</p></div>
+          <output class="cinema-workflow-status" data-cinema-workflow-status data-render-queue-state="not_observed" role="status">No owner operation has run.</output>
         </div>
         <div class="cinema-workflow-actions cinema-actions">
           <button class="sk-btn" data-cinema-workflow="load-project-media-cids" data-native-gateway-binding="cinema.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" aria-label="Review Cinema project persistence">Persist project</button>
           <button class="sk-btn" data-cinema-workflow="verify-rights-metadata" aria-label="Inspect local rights metadata">Rights</button>
           <button class="sk-btn" data-cinema-workflow="submit-render-queue" aria-label="Check render availability">Render availability</button>
-          <button class="sk-btn" data-cinema-workflow="simulate-failed-export" aria-label="Inspect export availability">Export availability</button>
+          <button class="sk-btn" data-cinema-workflow="simulate-failed-export" aria-label="Export WebM or inspect format availability">Export WebM</button>
           <button class="sk-btn" data-cinema-workflow="activate-playback-fallback" aria-label="Check local playback fallback">Fallback</button>
           <button class="sk-btn" data-cinema-workflow="stabilize-timeline-controls" aria-label="Inspect local timeline controls">Timeline</button>
         </div>
+        <details class="cinema-project-history" data-cinema-project-history hidden><summary>Previous project / export attempt</summary>
+          <label class="cinema-project-reference">Previous project CID (local history)
+            <textarea data-cinema-previous-project-reference readonly rows="2" aria-label="Previous project CID (local history)"></textarea>
+          </label>
+          <p data-cinema-export-history></p>
+        </details>
         <details class="cinema-diagnostics"><summary>Storage and export diagnostics</summary>
         <article class="sk-card cinema-vda-card" data-project-cid-state="${workflow.projectCid ? 'persisted' : 'not_persisted'}" data-media-cid-state="not_observed">
           <strong>Project/media CIDs</strong><p data-cinema-project-cid>${workflow.projectCid || 'No project has been persisted.'}</p><small>No media CID or Event DAG claim has been made.</small>
@@ -365,417 +373,92 @@ export class CinemaApp {
     container.innerHTML = `
       <div class="cinema-app cinema-root" >
         <style>
-          .cinema-app button:focus-visible,
-          .cinema-app input:focus-visible {
-            outline: 2px solid var(--sk-accent, #7dd3fc);
-            outline-offset: 2px;
+          .cinema-app button:focus-visible,.cinema-app input:focus-visible,.cinema-app select:focus-visible,.cinema-app textarea:focus-visible,.cinema-app .cinema-vda-workflow:focus-visible{outline:2px solid var(--sk-accent,#7dd3fc);outline-offset:2px}
+          .cinema-app.cinema-root{position:relative;flex:1 1 auto;width:100%;height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:auto;background:var(--sk-bg-panel,#101b18);color:var(--sk-text,#fff)}
+          .cinema-app .cinema-header{position:sticky;top:0;z-index:6;display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:0 0 auto;padding:8px 12px;background:var(--sk-bg-panel,#101b18);border-bottom:1px solid var(--sk-border,rgba(255,255,255,.1))}
+          .cinema-app .cinema-project-navigation{flex:0 0 auto;padding:6px 10px;border:1px solid #658d81;border-radius:6px;background:#18382c;color:#ecfff7;cursor:pointer;font:inherit;font-size:12px}
+          .cinema-app .cinema-title{font-size:16px;font-weight:600}
+          .cinema-app .cinema-project-cid{flex:1 1 140px;min-width:0;margin-left:8px;font-size:12px;overflow-wrap:anywhere}
+          .cinema-app .cinema-content{position:relative;flex:1 1 auto;display:flex;min-width:0;min-height:0;overflow:hidden}
+          .cinema-app .cinema-toolpanel{width:72px;flex:none;min-height:0;display:flex;flex-direction:column;gap:6px;align-items:center;overflow:auto;padding:8px 4px}
+          .cinema-app .cinema-tool{width:60px;min-height:48px;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);font-size:16px}
+          .cinema-app .cinema-tool.active{border-color:var(--sk-accent,#8bd8bd)}
+          .cinema-app .cinema-tool-name{font-size:9px;text-align:center}
+          .cinema-app .cinema-editing{flex:1 1 auto;min-width:0;min-height:0;overflow:auto;display:flex;flex-direction:column}
+          .cinema-app .cinema-preview-area{flex:0 0 auto;min-height:72px;display:flex;flex-direction:column;align-items:center;overflow:visible}
+          .cinema-app .cinema-video-frame{position:relative;width:min(320px,86%);max-height:144px;overflow:hidden;background:#000;border-radius:8px;display:flex;align-items:center;justify-content:center}
+          .cinema-app .cinema-native-video{display:block;width:100%;max-height:140px;object-fit:contain}
+          .cinema-app .cinema-native-video[hidden],.cinema-app .cinema-playback[hidden]{display:none !important}
+          .cinema-app .cinema-playback{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;max-width:100%;padding:4px 8px}
+          .cinema-app .cinema-timeline{flex:0 0 auto;min-height:0;padding:8px;overflow:auto}
+          .cinema-app .cinema-timeline-head{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+          .cinema-app .cinema-timeline-head>.sk-section-head,.cinema-app .cinema-timeline-controls,.cinema-app [data-cinema-timeline-summary]{grid-column:1 / -1}
+          .cinema-app [data-cinema-action="add-video-track"]{scroll-margin-top:8px}
+          .cinema-app .cinema-tracks{min-height:40px;padding:6px}
+          .cinema-app .cinema-clip{position:relative;width:100%;box-sizing:border-box;min-height:32px;padding:6px 8px;border-radius:6px;overflow-wrap:anywhere}
+          .cinema-app .cinema-props{position:relative;flex:0 0 220px;width:220px;max-width:38%;min-width:0;max-height:100%;box-sizing:border-box;overflow:auto;padding:8px}
+          .cinema-app .cinema-vda-panel{display:grid;grid-template-columns:minmax(0, 1fr);gap:8px;min-width:0;max-width:100%;margin-bottom:12px}
+          .cinema-app .cinema-vda-panel>*{min-width:0;max-width:100%}
+          .cinema-app .cinema-vda-head,[data-cinema-workflow-status],.cinema-app .sk-honest-note{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+          .cinema-app .cinema-actions{display:grid;grid-template-columns:1fr;gap:6px}
+          .cinema-app .cinema-actions .sk-btn{min-width:0;white-space:normal;overflow-wrap:normal;word-break:normal;line-height:1.2}
+          .cinema-app .cinema-workflow-status{display:block;padding:6px;border:1px solid var(--sk-border,rgba(255,255,255,.2));border-radius:6px;font-size:12px;line-height:1.3;text-transform:none}
+          .cinema-app .cinema-project-history{font-size:12px;overflow-wrap:anywhere}
+          .cinema-app .cinema-project-history[hidden]{display:none}
+          .cinema-app [data-cinema-export-history]{margin:6px 0;white-space:normal;overflow-wrap:anywhere}
+          .cinema-app [data-cinema-owner-envelope]{max-width:100%;max-height:128px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+          .cinema-app .cinema-source-controls,.cinema-app .cinema-project-reference{display:flex;flex-wrap:wrap;gap:6px;width:100%;box-sizing:border-box;padding:4px 8px}
+          .cinema-app .cinema-source-controls label,.cinema-app .cinema-trim-label{display:flex;flex:1 1 140px;flex-direction:column;min-width:0;gap:2px;font-size:12px}
+          .cinema-app [data-cinema-source-cid],.cinema-app [data-cinema-output-reference],.cinema-app [data-cinema-project-reference]{width:100%;min-width:0;box-sizing:border-box}
+          .cinema-app [data-cinema-source-status],.cinema-app [data-cinema-selection],.cinema-app [data-cinema-export-outcome]{margin:2px 8px;font-size:12px;overflow-wrap:anywhere}
+          .cinema-app [data-cinema-output-reference]{font:11px monospace;resize:vertical}
+          @media (max-width:700px){
+            .cinema-app.cinema-root{overflow:auto}
+            .cinema-app .cinema-header{padding-right:12px}
+            .cinema-app .cinema-project-cid{flex:1 1 100%;margin-left:0}
+            .cinema-app .cinema-content{flex:0 0 auto;flex-direction:column;overflow:visible}
+            .cinema-app .cinema-toolpanel{order:1;width:100%;max-width:100%;max-height:64px;flex-direction:row;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;border-right:0}
+            .cinema-app .cinema-tool{width:auto;flex:1 1 18%;min-height:48px;font-size:14px}
+            .cinema-app .cinema-editing{order:2;margin-right:0}
+            .cinema-app .cinema-props{order:3;width:100%;max-width:100%;max-height:none;flex:0 0 auto;border-left:0}
+            .cinema-app .cinema-native-video{max-height:110px}
+            .cinema-app .cinema-video-frame{width:min(72%,280px);max-height:114px}
+            .cinema-app .cinema-timeline{padding:6px;overflow:visible}
+            .cinema-app .cinema-playback{margin-top:4px;padding:4px 8px;gap:4px}
           }
-          /* --- Scoped theme: layout + chrome on --sk- tokens --- */
-          .cinema-app.cinema-root {
-            position: relative;
-            flex: 1 1 auto;
-            width: 100%;
-            height: 100%;
-            max-height: 100%;
-            min-height: 0;
-            box-sizing: border-box;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
-            color: var(--sk-text, #ffffff);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-          }
-          .cinema-app .cinema-header {
-            position: sticky;
-            top: 0;
-            z-index: 6;
-            background: rgba(0,0,0,0.3);
-            padding: 8px 12px;
-            border-bottom: 1px solid var(--sk-border, rgba(255,255,255,0.1));
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-            flex: 0 0 auto;
-            padding-right: min(46%, 200px);
-          }
-          .cinema-app .cinema-project-navigation { flex:0 0 auto; padding:6px 10px; border:1px solid #658d81; border-radius:6px; background:#18382c; color:#ecfff7; cursor:pointer; font:inherit; font-size:12px; }
-          .cinema-app .cinema-vda-workflow:focus-visible { outline:2px solid var(--sk-accent,#7dd3fc); outline-offset:2px; }
-          .cinema-app.cinema-root,.cinema-app .cinema-props { scrollbar-gutter:stable; scrollbar-width:thin; }
-          .cinema-app .cinema-icon { font-size: 24px; }
-          .cinema-app .cinema-title { font-size: 18px; font-weight: 600; }
-          .cinema-app .cinema-project-cid {
-            margin-left: 8px;
-            flex: 0 1 46%;
-            font-size: 12px;
-            color: var(--sk-text-dim, rgba(255,255,255,0.7));
-            min-width: 0;
-            overflow-wrap: break-word;
-          }
-          .cinema-app .cinema-content {
-            position: relative;
-            flex: 1 1 0%;
-            display: flex;
-            overflow: hidden;
-            min-height: 0;
-            min-width: 0;
-          }
-          .cinema-app .cinema-toolpanel {
-            width: 80px;
-            flex: none;
-            min-height: 0;
-            background: rgba(0,0,0,0.4);
-            border-right: 1px solid var(--sk-border, rgba(255,255,255,0.1));
-            padding: 15px 5px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            align-items: center;
-            overflow-y: auto;
-          }
-          .cinema-app .cinema-tool {
-            width: 60px;
-            flex: 0 0 60px;
-            height: 60px;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background 0.2s ease, border-color 0.2s ease;
-            font-size: 20px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-          }
-          .cinema-app .cinema-tool:hover { background: rgba(255,255,255,0.18); }
-          .cinema-app .cinema-tool.active {
-            background: rgba(139,216,189,0.25);
-            border-color: var(--sk-accent, #8bd8bd);
-          }
-          .cinema-app .cinema-tool-name {
-            font-size: 9px;
-            margin-top: 2px;
-            color: rgba(255,255,255,0.8);
-          }
-          .cinema-app .cinema-editing {
-            flex: 1 1 auto;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-            min-height: 0;
-            margin-right: 0;
-            overflow: auto;
-          }
-          .cinema-app .cinema-preview-area {
-            flex: 0 0 auto;
-            height: auto;
-            min-height: 72px;
-            max-height: 150px;
-            background: rgba(0,0,0,0.6);
-            border-bottom: 1px solid var(--sk-border, rgba(255,255,255,0.1));
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            z-index: 1;
-            overflow: hidden;
-          }
-          .cinema-app .cinema-video-frame {
-            position: relative !important;
-            inset: auto !important;
-            overflow: hidden;
-            width: min(320px, 86%);
-            max-width: 86%;
-            max-height: 64px;
-            aspect-ratio: 16 / 9;
-            background: #000;
-            border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            align-items: center;
-            justify-content: center;
-            color: rgba(255,255,255,0.6);
-            font-size: 16px;
-            text-align: center;
-            padding: 12px;
-          }
-          .cinema-app .cinema-playback {
-            position: static;
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: center;
-            max-width: 100%;
-            background: rgba(0,0,0,0.8);
-            padding: 8px 12px;
-            border-radius: 25px;
-            gap: 8px;
-            margin-top: 8px;
-          }
-          .cinema-app .cinema-time {
-            color: rgba(255,255,255,0.8);
-            font-size: 12px;
-            font-weight: 500;
-            white-space: nowrap;
-          }
-          .cinema-app .cinema-timeline {
-            flex: 0 0 auto;
-            min-height: 0;
-            position: relative;
-            z-index: 1;
-            background: #141824;
-            padding: 12px;
-            overflow: auto;
-          }
-          .cinema-app .cinema-timeline-head {
-            height: auto;
-            min-height: 0;
-            flex: 0 0 auto;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 6px;
-            margin-bottom: 8px;
-            position: relative;
-            z-index: 5;
-            background: #141824;
-          }
-          .cinema-app .cinema-timeline-controls { display: flex; gap: 10px; flex-wrap: wrap; }
-          .cinema-app [data-cinema-action="add-video-track"] { flex: 0 0 auto; position: relative; z-index: 2; scroll-margin-top: 168px; scroll-margin-bottom: 48px; }
-          .cinema-app .cinema-tracks {
-            flex: 0 0 auto;
-            height: auto;
-            position: relative;
-            border-radius: 6px;
-            padding: 10px;
-            min-height: 72px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            justify-content: center;
-            overflow: visible;
-          }
-          .cinema-app .cinema-clip {
-            position: relative !important;
-            top: auto !important;
-            left: auto !important;
-            width: 100%;
-            box-sizing: border-box;
-            min-height: 48px;
-            border-radius: 6px;
-            background: rgba(139,216,189,0.55);
-            border: 1px solid var(--sk-accent, #8bd8bd);
-            color: #fff;
-            display: flex;
-            align-items: center;
-            padding: 6px 8px;
-            overflow-wrap: anywhere;
-            font-size: 12px;
-          }
-          .cinema-app .cinema-empty-icon { font-size: 24px; margin-bottom: 10px; }
-          .cinema-app .cinema-empty-sub { font-size: 12px; margin-top: 5px; }
-          .cinema-app .cinema-props {
-            position: relative !important;
-            top: auto !important;
-            right: auto !important;
-            bottom: auto !important;
-            left: auto !important;
-            flex: 0 0 220px;
-            width: 220px !important;
-            max-width: 38% !important;
-            max-height: 100%;
-            min-width: 0;
-            box-sizing: border-box;
-            background: rgba(0,0,0,0.4);
-            border-left: 1px solid var(--sk-border, rgba(255,255,255,0.1));
-            padding: 10px;
-            overflow: auto;
-            z-index: auto;
-          }
-          .cinema-app .cinema-prop-card {
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-          }
-          .cinema-app .cinema-prop-row {
-            font-size: 12px;
-            color: var(--sk-text-dim, rgba(255,255,255,0.7));
-            margin-bottom: 8px;
-          }
-          .cinema-app .cinema-cid {
-            font-size: 11px;
-            color: rgba(255,255,255,0.65);
-            word-break: break-word;
-          }
-          .cinema-app .cinema-effects-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 20px;
-          }
-          .cinema-app .cinema-effect {
-            padding: 8px;
-            text-align: center;
-            font-size: 11px;
-            cursor: pointer;
-            transition: background 0.2s ease, border-color 0.2s ease;
-          }
-          .cinema-app .cinema-effect:hover {
-            border-color: var(--sk-accent, #8bd8bd);
-            background: rgba(139,216,189,0.12);
-          }
-          .cinema-app .cinema-ai-tools {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-          }
-          /* --- VDA workflow panel --- */
-          .cinema-app .cinema-vda-panel {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr);
-            gap: 10px;
-            margin-bottom: 18px;
-            min-width: 0;
-            max-width: 100%;
-          }
-          .cinema-app .cinema-vda-panel > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
-          .cinema-app [data-cinema-owner-envelope] {
-            min-width: 0; max-width: 100%; max-height: 8rem; box-sizing: border-box;
-            white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-all; overflow: auto;
-          }
-          .cinema-app .cinema-vda-head {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            gap: 6px;
-            align-items: stretch;
-            min-width: 0;
-          }
-          .cinema-app .cinema-vda-head .sk-honest-note,
-          .cinema-app [data-cinema-workflow-status] {
-            white-space: normal;
-            overflow-wrap: anywhere;
-            max-width: 100%;
-          }
-          .cinema-app [data-cinema-workflow-status] {
-            display: block; text-transform: none; font-size: 12px; line-height: 1.35;
-            border-radius: 6px; padding: 6px; height: auto;
-          }
-          .cinema-app .cinema-vda-title { margin: 2px 0 0; font-size: 14px; }
-          .cinema-app .cinema-actions {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 6px;
-          }
-          .cinema-app .cinema-actions .sk-btn {
-            min-width: 0;
-            white-space: normal;
-            overflow-wrap: break-word;
-            line-height: 1.2;
-          }
-          .cinema-app .cinema-diagnostics summary { cursor: pointer; }
-          .cinema-app .cinema-trim-label { display: flex; flex-direction: column; gap: 2px; font-size: 12px; min-width: 0; }
-          .cinema-app [data-cinema-timeline-summary] { flex: 1 1 100%; margin: 0; overflow-wrap: break-word; }
-          .cinema-app .cinema-vda-card { padding: 8px; }
-          .cinema-app .cinema-vda-card strong { font-size: 12px; }
-          .cinema-app .cinema-vda-card.is-err {
-            border-color: var(--sk-err, #ff6b6b);
-          }
-          .cinema-app .cinema-vda-card .sk-label {
-            display: block;
-            font-size: 10px;
-            margin-top: 4px;
-            color: var(--sk-text-dim, rgba(255,255,255,0.7));
-          }
-          .cinema-app .cinema-vda-desc {
-            margin: 4px 0;
-            font-size: 11px;
-            color: rgba(255,255,255,0.76);
-          }
-          .cinema-app .cinema-vda-card.is-err .cinema-vda-desc { color: rgba(255,255,255,0.78); }
-          @media (max-width: 700px) {
-            .cinema-app.cinema-root { overflow: auto !important; }
-            .cinema-app .cinema-header { padding-right: 12px; }
-            .cinema-app .cinema-project-cid { flex: 1 1 100%; margin-left: 0; }
-            .cinema-app .cinema-content {
-              flex: 0 0 auto;
-              flex-direction: column !important;
-              overflow: visible !important;
-            }
-            .cinema-app .cinema-toolpanel { order: 1; }
-            .cinema-app .cinema-editing { order: 2; }
-            .cinema-app .cinema-props { order: 3; }
-            .cinema-app .cinema-toolpanel {
-              order: 1;
-              width: 100% !important;
-              max-width: 100%;
-              min-height: 0;
-              max-height: 64px;
-              height: auto;
-              flex-direction: row !important;
-              flex-wrap: nowrap !important;
-              justify-content: flex-start;
-              overflow-x: auto;
-              overflow-y: hidden;
-              border-right: 0 !important;
-              border-bottom: 1px solid rgba(255,255,255,0.1);
-            }
-            .cinema-app .cinema-tool {
-              width: auto;
-              flex: 1 1 18%;
-              height: auto;
-              min-height: 48px;
-              font-size: 14px;
-            }
-            .cinema-app .cinema-tool-name { font-size: 8px; text-align: center; white-space: normal; }
-            .cinema-app .cinema-editing {
-              flex: 0 0 auto;
-              min-height: 0;
-              margin-right: 0 !important;
-            }
-            .cinema-app .cinema-preview-area {
-              flex: 0 0 auto;
-              min-height: 72px;
-              max-height: none;
-            }
-            .cinema-app .cinema-video-frame {
-              width: min(72%, 280px) !important;
-              height: 64px !important;
-              max-height: 64px;
-              aspect-ratio: auto;
-            }
-            .cinema-app .cinema-timeline {
-              flex: 0 0 auto;
-              min-height: 0;
-              overflow: visible;
-            }
-            .cinema-app .cinema-props {
-              position: relative !important;
-              inset: auto !important;
-              top: auto !important;
-              flex: 0 0 auto;
-              width: 100% !important;
-              max-width: 100% !important;
-              max-height: none;
-              margin-top: 0 !important;
-              z-index: 0 !important;
-              clear: both;
-              border-left: 0 !important;
-              border-top: 1px solid rgba(255,255,255,0.1);
-            }
-          }
+          .cinema-app .cinema-toolpanel{width:80px;background:rgba(0,0,0,.4);border-right:1px solid var(--sk-border,rgba(255,255,255,.1));padding:15px 5px;gap:10px;overflow-y:auto}
+          .cinema-app .cinema-tool{height:60px;flex-basis:60px;font-size:20px;cursor:pointer}
+          .cinema-app .cinema-tool:hover{background:rgba(255,255,255,.18)}
+          .cinema-app .cinema-tool.active{background:rgba(139,216,189,.25)}
+          .cinema-app .cinema-tool-name{margin-top:2px;color:rgba(255,255,255,.8)}
+          .cinema-app .cinema-preview-area{background:rgba(0,0,0,.6);border-bottom:1px solid var(--sk-border,rgba(255,255,255,.1))}
+          .cinema-app .cinema-video-frame{max-width:86%;border:2px solid rgba(255,255,255,.2);gap:8px;color:rgba(255,255,255,.6);font-size:16px;text-align:center}
+          .cinema-app .cinema-playback{background:rgba(0,0,0,.8);border-radius:25px}
+          .cinema-app .cinema-time{color:rgba(255,255,255,.8);font-size:12px;font-weight:500;white-space:nowrap}
+          .cinema-app .cinema-timeline,.cinema-app .cinema-timeline-head{background:#141824}
+          .cinema-app .cinema-timeline-controls{display:flex;gap:10px;flex-wrap:wrap}
+          .cinema-app .cinema-clip{min-height:48px;background:rgba(139,216,189,.55);border:1px solid var(--sk-accent,#8bd8bd);color:#fff;font-size:12px}
+          .cinema-app .cinema-empty-icon{font-size:24px;margin-bottom:10px}
+          .cinema-app .cinema-empty-sub{font-size:12px;margin-top:5px}
+          .cinema-app .cinema-props{background:rgba(0,0,0,.4);border-left:1px solid var(--sk-border,rgba(255,255,255,.1))}
+          .cinema-app .cinema-prop-card{padding:12px;border-radius:6px;margin-bottom:20px}
+          .cinema-app .cinema-prop-row{font-size:12px;color:var(--sk-text-dim,rgba(255,255,255,.7));margin-bottom:8px}
+          .cinema-app .cinema-cid{font-size:11px;color:rgba(255,255,255,.65);word-break:break-word}
+          .cinema-app .cinema-effects-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+          .cinema-app .cinema-effect{padding:8px;text-align:center;font-size:11px;cursor:pointer}
+          .cinema-app .cinema-effect:hover{border-color:var(--sk-accent,#8bd8bd);background:rgba(139,216,189,.12)}
+          .cinema-app .cinema-ai-tools{display:flex;flex-direction:column;gap:8px}
+          .cinema-app .cinema-vda-card .sk-label{display:block;font-size:10px;margin-top:4px;color:var(--sk-text-dim,rgba(255,255,255,.7))}
+          .cinema-app .cinema-vda-desc{margin:4px 0;font-size:11px;color:rgba(255,255,255,.76)}
           .cinema-app.cinema-root { overflow: auto; }
           .cinema-app .cinema-header { background: var(--sk-bg-panel, #101b18); }
           .cinema-app .cinema-preview-area { max-height: none; overflow: visible; }
           .cinema-app .cinema-video-frame { height:auto !important; max-height:200px; aspect-ratio:auto; padding:0; }
           .cinema-app .cinema-native-video { display:block; width:100%; max-height:180px; object-fit:contain; }
           .cinema-app .cinema-native-video[hidden] { display:none !important; }
+          .cinema-app .cinema-playback[hidden] { display:none !important; }
+          .cinema-app [data-cinema-output-reference] { width:100%; box-sizing:border-box; resize:vertical; font:11px monospace; overflow-wrap:anywhere; color:inherit; background:#101b18; }
+          .cinema-app [data-cinema-output-controls] { gap:6px; flex-wrap:wrap; }
           .cinema-app .cinema-source-controls { display:flex; flex-wrap:wrap; gap:6px; padding:8px; width:100%; box-sizing:border-box; }
           .cinema-app .cinema-source-controls label { display:flex; flex:1 1 200px; flex-direction:column; min-width:0; gap:4px; font-size:12px; }
           .cinema-app [data-cinema-source-cid] { width:100%; min-width:0; box-sizing:border-box; }
@@ -790,6 +473,11 @@ export class CinemaApp {
           .cinema-app [data-cinema-export-outcome] { margin:4px 8px; font-size:12px; line-height:1.3; overflow-wrap:anywhere; }
           .cinema-app .cinema-project-reference { display:flex; flex-direction:column; width:100%; box-sizing:border-box; padding:4px 8px; gap:2px; font-size:11px; }
           .cinema-app [data-cinema-project-reference] { width:100%; min-width:0; box-sizing:border-box; font:inherit; }
+          @media (min-width: 701px) {
+            .cinema-app .cinema-timeline { padding:6px; }
+            .cinema-app .cinema-timeline-head { gap:4px; }
+            .cinema-app .cinema-clip { min-height:32px; }
+          }
           @media (max-width: 700px) {
             .cinema-app .cinema-native-video { max-height:110px; }
             .cinema-app .cinema-video-frame { max-height:114px; }
@@ -806,7 +494,7 @@ export class CinemaApp {
         <div class="cinema-header" >
           <div class="app-icon cinema-icon">🎬</div>
           <div class="app-title cinema-title" >Cinema - Professional Video Editor</div>
-          <div class="project-info cinema-project-cid" >${this.cinemaWorkflow.projectCid ? 'Project saved' : 'Project not saved'}</div>
+          <div class="project-info cinema-project-cid" >${this.cinemaWorkflow.projectCid ? 'Project saved' : restoredProject?.lastSavedProjectCid ? 'Unsaved changes · history in Project actions' : 'Local project changes · not saved'}</div>
           <button type="button" class="cinema-project-navigation" data-cinema-navigation="project-actions" aria-controls="${this.projectActionsId}">Project actions ↓</button>
         </div>
         
@@ -834,7 +522,8 @@ export class CinemaApp {
               </div>
               <p data-cinema-source-status role="status" aria-live="polite">No source clip decoded. Open a clip up to 1 MiB and 30 seconds.</p>
               <div class="video-preview cinema-video-frame"  data-playback-fallback-state="unavailable" data-playback-state="not_loaded">
-                <video class="cinema-native-video" data-cinema-video controls muted playsinline preload="metadata" aria-label="Cinema source preview" hidden></video>
+                <video class="cinema-native-video" data-cinema-video data-cinema-source-video controls muted playsinline preload="metadata" aria-label="Cinema source preview" hidden></video>
+                <video class="cinema-native-video" data-cinema-output-video controls muted playsinline preload="metadata" aria-label="Exported WebM preview" hidden></video>
                 <span data-cinema-media-placeholder>🎬 No media decoded</span>
               </div>
               
@@ -846,9 +535,17 @@ export class CinemaApp {
                 <input type="range" data-cinema-seek aria-label="Source playback position" min="0" max="0" step="0.1" value="0" disabled>
                 <div class="time-display cinema-time" >No decoded media</div>
               </div>
+              <div data-cinema-output-controls hidden class="cinema-playback">
+                <button type="button" class="sk-btn" data-cinema-show-source>Source preview</button>
+                <button type="button" class="sk-btn" data-cinema-show-output>Output preview</button>
+                <output data-cinema-output-time>No decoded output</output>
+              </div>
+              <label class="cinema-project-reference">Exported video CID (WebM)
+                <textarea data-cinema-output-reference data-output-state="not_loaded" readonly rows="2" aria-label="Exported video CID"></textarea>
+              </label>
               <p data-cinema-selection></p>
               <p data-cinema-export-outcome role="status" aria-live="polite">Export has not been attempted.</p>
-              <label class="cinema-project-reference">Saved project CID (not a rendered video)
+              <label class="cinema-project-reference">Current project CID (blank while changes are unsaved)
                 <input data-cinema-project-reference data-reference-state="not_saved" readonly aria-label="Saved project CID" value="">
               </label>
             </div>
@@ -867,7 +564,8 @@ export class CinemaApp {
                 </label>
                 <label class="cinema-trim-label">Export codec
                   <select data-cinema-codec aria-label="Export codec">
-                    <option value="mp4">mp4</option>
+                    <option value="mp4">mp4 (unavailable)</option>
+                    <option value="webm">WebM (up to 3 seconds)</option>
                     <option value="flv">flv</option>
                   </select>
                 </label>
@@ -1040,17 +738,19 @@ export class CinemaApp {
     container.querySelector('[data-cinema-source-cid]')?.addEventListener('keydown', event => {
       if (event.key === 'Enter' && !event.repeat) { event.preventDefault(); container.querySelector('[data-cinema-open-source]')?.click(); }
     });
+    container.querySelector('[data-cinema-show-source]')?.addEventListener('click', () => this.selectPreview(container,false));
+    container.querySelector('[data-cinema-show-output]')?.addEventListener('click', () => this.selectPreview(container,true));
     // Native media events, rather than button text, own playback state.
     const playPauseBtn = container.querySelector('.play-pause');
     if (playPauseBtn) {
       playPauseBtn.addEventListener('click', async () => {
-        const video = this.sourceMedia?.video;
-        if (!this.isDecodedMedia(video)) return;
+        const video = container.querySelector('[data-cinema-video]');
+        if (!(video===this.exportMedia?.video?this.outputReady(video):this.isDecodedMedia(video))) return;
         this.revealMediaPreview(container);
         try {
           if (video.paused) {
-            const bounds = this.mediaTrim();
-            if (video.currentTime >= bounds.out - .02) video.currentTime = bounds.in;
+            const bounds = video===this.exportMedia?.video ? {in:0,out:Number.isFinite(video.duration)?video.duration:Infinity} : this.mediaTrim();
+            if (video.ended || video.currentTime >= bounds.out - .02) video.currentTime = bounds.in;
             await video.play();
           } else video.pause();
           this.syncMediaControls(container);
@@ -1059,7 +759,7 @@ export class CinemaApp {
     }
     container.querySelector('[data-cinema-seek]')?.addEventListener('input', event => this.seekMedia(Number(event.currentTarget.value)));
     container.querySelectorAll('[data-cinema-seek-step]').forEach(button => button.addEventListener('click', () => {
-      if (this.sourceMedia) this.seekMedia(this.sourceMedia.video.currentTime + Number(button.dataset.cinemaSeekStep));
+      const video=container.querySelector('[data-cinema-video]');if(video)this.seekMedia(video.currentTime+Number(button.dataset.cinemaSeekStep));
     }));
 
     const workflowButtons = container.querySelectorAll('[data-cinema-workflow]');
@@ -1122,6 +822,7 @@ export class CinemaApp {
         outcome.dataset.exportState = savedProject.workflowStatus.startsWith('Unsupported codec ') ? 'unsupported_codec' : 'unsupported';
       }
       await this.restoreProjectMedia(container, savedProject);
+      if (container.isConnected) await this.restoreExportMedia(container, savedProject);
     };
     const onProjectUpdated = () => { this.projectRestoration = syncLocalProject(); };
     onProjectUpdated();
@@ -1161,7 +862,7 @@ export class CinemaApp {
   async decodeClip(container, bytes, metadata) {
     const generation = ++this.mediaGeneration;
     const video = document.createElement('video');
-    video.className = 'cinema-native-video'; video.dataset.cinemaVideo = '';
+    video.className = 'cinema-native-video'; video.dataset.cinemaVideo = ''; video.dataset.cinemaSourceVideo = '';
     video.setAttribute('aria-label', 'Cinema source preview');
     video.controls = true; video.muted = true; video.playsInline = true; video.preload = 'auto';
     const url = URL.createObjectURL(new Blob([bytes], { type: metadata.mime }));
@@ -1195,7 +896,7 @@ export class CinemaApp {
       if (generation !== this.mediaGeneration || !container.isConnected) throw new Error('Cinema closed before source decoding completed.');
       const previous = this.sourceMedia;
       previous?.removeListeners?.(); previous?.video.pause();
-      const target = container.querySelector('[data-cinema-video]');
+      const target = container.querySelector('[data-cinema-source-video]');
       if (!target) throw new Error('The native preview element is unavailable.');
       video.dataset.decodedCid = metadata.cid;
       video.hidden = false;
@@ -1207,7 +908,7 @@ export class CinemaApp {
           this.mediaStatus(container, 'The native decoder reported an error; the saved source identity is retained.', 'failed');
         }
         if (event?.type === 'seeked' && event.isTrusted === true) video.dataset.seekState = 'observed';
-        const trim = this.mediaTrim();
+        const trim = this.exportCaptureBounds||this.mediaTrim();
         if (event?.type === 'timeupdate' && !video.paused && video.currentTime >= trim.out) video.pause();
         this.timeline.currentTime = video.currentTime;
         this.syncMediaControls(container);
@@ -1219,11 +920,221 @@ export class CinemaApp {
       container.querySelector('.video-preview').dataset.playbackState = 'ready';
       committed = true;
       if (previous) URL.revokeObjectURL(previous.url);
-      this.syncMediaControls(container);
+      this.selectPreview(container,false);this.syncMediaControls(container);
       return true;
     } finally {
       if (!committed) { video.pause(); URL.revokeObjectURL(url); }
     }
+  }
+
+  outputReady(video = this.exportMedia?.video) {
+    return Boolean(video && !video.error && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0);
+  }
+
+  selectPreview(container, output = false) {
+    const rendered = this.exportMedia?.video;
+    const source=this.sourceMedia?.video;
+    if(source){source.hidden=output&&this.outputReady(rendered);if(output){source.pause();source.removeAttribute('data-cinema-video');}else source.dataset.cinemaVideo='';}
+    if(rendered){rendered.hidden=!output;if(!output){rendered.pause();rendered.removeAttribute('data-cinema-video');}else rendered.dataset.cinemaVideo='';}
+    const sourceControls = container.querySelector('.cinema-playback');
+    const outputControls = container.querySelector('[data-cinema-output-controls]');
+    if (sourceControls) sourceControls.hidden = false;
+    if (outputControls) outputControls.hidden = !this.outputReady(rendered);
+    this.syncMediaControls(container);
+  }
+
+  updateOutputControls(container) {
+    const video = this.exportMedia?.video, ready = this.outputReady(video);
+    const clock = container.querySelector('[data-cinema-output-time]');
+    if (clock) clock.textContent = ready ? `${video.currentTime.toFixed(2)}s / ${Number.isFinite(video.duration) ? video.duration.toFixed(2)+'s' : 'duration unavailable'}` : 'No decoded output';
+    const input = container.querySelector('[data-cinema-output-reference]');
+    if (input) {
+      input.value = ready ? this.exportMedia.cid : '';
+      input.dataset.outputState = ready ? 'decoded' : 'not_loaded';
+      input.dataset.outputIdentity = JSON.stringify(ready ? { cid: this.exportMedia.cid, sha256: this.exportMedia.sha256,
+        size: this.exportMedia.size, mime: this.exportMedia.mime, restored: this.exportMedia.restored === true } : null);
+    }
+  }
+
+  async decodeExportCandidate(container, bytes, metadata, generation, deadline) {
+    const video = document.createElement('video');
+    video.className = 'cinema-native-video'; video.dataset.cinemaOutputVideo = '';
+    video.setAttribute('aria-label', 'Exported WebM preview');
+    video.controls = true; video.muted = true; video.playsInline = true; video.preload = 'auto';
+    const url = URL.createObjectURL(new Blob([bytes], { type: metadata.mime }));
+    try {
+      await new Promise((resolve, reject) => {
+        let done = false;
+        const finish = error => {
+          if (done) return; done = true; clearTimeout(timer);
+          for (const name of ['loadeddata','canplay','loadedmetadata']) video.removeEventListener(name, ready);
+          video.removeEventListener('error', failed);
+          if (this.exportDecodeCancel === cancel) this.exportDecodeCancel = null;
+          error ? reject(error) : resolve();
+        };
+        const ready = () => { if (this.outputReady(video)) finish(); };
+        const failed = () => finish(new Error('Recorded WebM failed native decoding.'));
+        const cancel = () => finish(new Error('Cinema closed before output decoding completed.'));
+        const timer = setTimeout(() => finish(new Error('Output decoding exceeded its bounded deadline.')), Math.max(1, deadline-Date.now()));
+        this.exportDecodeCancel = cancel;
+        for (const name of ['loadeddata','canplay','loadedmetadata']) video.addEventListener(name, ready);
+        video.addEventListener('error', failed); video.src = url; video.load(); ready();
+      });
+      if (generation !== this.exportGeneration || !container.isConnected || Date.now()>deadline) throw new Error('Output decoding was superseded or expired.');
+      video.dataset.decodedCid = metadata.cid;
+      return { ...metadata, video, url };
+    } catch (error) { video.pause(); URL.revokeObjectURL(url); throw error; }
+  }
+
+  async recordSelectedWebM(video, trim, deadline) {
+    const Recorder = globalThis.MediaRecorder;
+    if (typeof video.captureStream !== 'function' || typeof Recorder !== 'function' || typeof Recorder.isTypeSupported !== 'function') throw new Error('WebM export is unsupported by this browser.');
+    const mime = ['video/webm;codecs=vp8,opus','video/webm;codecs=vp8','video/webm'].find(type => Recorder.isTypeSupported(type));
+    if (!mime) throw new Error('WebM export is unsupported by this browser.');
+    if (!(trim.out>trim.in) || trim.out-trim.in>3) throw new Error('Choose a nonempty selection of at most three seconds.');
+    const wasPaused = video.paused, oldTime = video.currentTime;
+    this.exportCaptureBounds={...trim};
+    let stream = null;
+    try {
+      video.pause();
+      await new Promise((resolve, reject) => {
+        let finished=false;
+        const end = error => { if(finished)return;finished=true;clearTimeout(timer);video.removeEventListener('seeked',ready);video.removeEventListener('error',failed);if(this.exportSeekCancel===cancel)this.exportSeekCancel=null;error?reject(error):resolve(); };
+        const ready = () => { if(Math.abs(video.currentTime-trim.in)<.025&&!video.seeking)end(); };
+        const failed = () => end(new Error('The source could not seek to the selected trim.'));
+        const cancel = () => end(new Error('Export was cancelled.'));
+        const timer=setTimeout(()=>end(new Error('Export seek deadline exceeded.')),Math.max(1,deadline-Date.now()));
+        this.exportSeekCancel=cancel;video.addEventListener('seeked',ready);video.addEventListener('error',failed);video.currentTime=trim.in;ready();
+      });
+      stream=video.captureStream();
+      if (!stream || typeof stream.getVideoTracks!=='function') throw new Error('The browser did not expose a native video stream.');
+      if (!stream.getVideoTracks().length) {
+        await new Promise((resolve,reject)=>{
+          let done=false;const end=error=>{if(done)return;done=true;clearTimeout(timer);stream.removeEventListener('addtrack',ready);if(this.exportTrackCancel===cancel)this.exportTrackCancel=null;error?reject(error):resolve();};
+          const ready=()=>{if(stream.getVideoTracks().length)end();};const cancel=()=>end(new Error('Export was cancelled before the native track became available.'));
+          const timer=setTimeout(()=>end(new Error('No captured native video track became available.')),Math.max(1,deadline-Date.now()));this.exportTrackCancel=cancel;stream.addEventListener('addtrack',ready);Promise.resolve(video.play()).catch(end);ready();
+        });
+      }
+      if (!stream.getVideoTracks().some(track=>track.readyState==='live')) throw new Error('The captured source video track is not live.');
+      return await new Promise((resolve,reject)=>{
+        let recorder, stopped=false, settled=false, failure=null, total=0, frame=null;
+        const chunks=[];
+        const cleanup=()=>{clearTimeout(timer);video.removeEventListener('timeupdate',check);video.removeEventListener('ended',ended);video.removeEventListener('error',failed);if(frame!==null&&video.cancelVideoFrameCallback)video.cancelVideoFrameCallback(frame);if(this.exportRecordCancel===cancel)this.exportRecordCancel=null;};
+        const stop=error=>{if(error&&!failure)failure=error;if(stopped){if(error)finish();return;}stopped=true;try{if(recorder?.state!=='inactive')recorder.stop();else finish();}catch(error){failure=error;finish();}if(error)finish();};
+        const finish=()=>{if(settled)return;settled=true;cleanup();if(failure){reject(failure);return;}if(!total){reject(new Error('The native recorder returned no output bytes.'));return;}resolve(new Blob(chunks,{type:recorder.mimeType||mime}));};
+        const check=()=>{if(Date.now()>deadline)stop(new Error('WebM recording exceeded eight seconds.'));else if(video.currentTime>=trim.out)stop();};
+        const ended=()=>stop(video.currentTime>=trim.out-.1?null:new Error('Source ended before the selected trim completed.'));
+        const failed=()=>stop(new Error('The source failed during recording.'));
+        const cancel=()=>stop(new Error('Export was cancelled.'));
+        const timer=setTimeout(()=>stop(new Error('WebM recording exceeded eight seconds.')),Math.max(1,deadline-Date.now()));
+        try {
+          recorder=new Recorder(stream,{mimeType:mime,videoBitsPerSecond:96000,audioBitsPerSecond:32000});
+          recorder.addEventListener('dataavailable',event=>{if(!event.data?.size)return;total+=event.data.size;if(total>65536){stop(new Error('Recorded output exceeded 64 KiB.'));return;}chunks.push(event.data);});
+          recorder.addEventListener('stop',finish,{once:true});recorder.addEventListener('error',()=>stop(new Error('The native recorder failed.')),{once:true});
+          this.exportRecordCancel=cancel;video.addEventListener('timeupdate',check);video.addEventListener('ended',ended);video.addEventListener('error',failed);
+          const presented=()=>{check();if(!stopped)frame=video.requestVideoFrameCallback(presented);};
+          recorder.start(100);if(video.requestVideoFrameCallback)frame=video.requestVideoFrameCallback(presented);
+          video.play().catch(error=>stop(error));check();
+        }catch(error){failure=error;cleanup();reject(error);}
+      });
+    } finally {
+      stream?.getTracks?.().forEach(track=>track.stop());
+      this.exportCaptureBounds=null;
+      video.pause();
+      if(video.isConnected){video.currentTime=oldTime;if(!wasPaused)video.play().catch(()=>{});}
+    }
+  }
+
+  commitExportPreview(container, candidate) {
+    const target=container.querySelector('[data-cinema-output-video]');
+    if(!target)throw new Error('The output preview disappeared.');
+    const previous=this.exportMedia;
+    previous?.removeListeners?.();previous?.video.pause();
+    target.replaceWith(candidate.video);candidate.video.hidden=false;this.exportMedia=candidate;
+    const sync=()=>{if(this.exportMedia===candidate&&container.isConnected){this.updateOutputControls(container);this.syncMediaControls(container);}};
+    const events=['timeupdate','durationchange','loadeddata','play','pause','ended','error'];
+    for(const name of events)candidate.video.addEventListener(name,sync);
+    candidate.removeListeners=()=>{for(const name of events)candidate.video.removeEventListener(name,sync);};
+    if(previous)URL.revokeObjectURL(previous.url);
+    this.selectPreview(container,true);this.updateOutputControls(container);
+    this.revealMediaPreview(container);
+  }
+
+  async exportSelectedWebM(container, trigger) {
+    if(this.exportPending)return false;
+    const source=this.sourceMedia;let project=this.readLocalProject();
+    if(!source||!this.isDecodedMedia(source.video)||!project){this.showExportOutcome(container,'failed','Open a decoded source clip before export.');return false;}
+    const selectedOut=Number(container.querySelector('[data-cinema-trim="out"]')?.value);
+    const track=project.tracks.length===1&&project.tracks[0].kind==='video'?project.tracks[0]:null;
+    const selectedIn=Number(track?.in??0);
+    if(!track||!Number.isFinite(selectedIn)||!Number.isFinite(selectedOut)||selectedIn<0||selectedOut<=selectedIn||selectedOut-selectedIn>3||selectedOut>source.video.duration){this.showExportOutcome(container,'failed','Choose one source clip with a nonempty selection of at most three seconds.');return false;}
+    if(stableStringifyValue(project.source)!==stableStringifyValue({cid:source.cid,sha256:source.sha256,size:source.size,mime:source.mime})){this.showExportOutcome(container,'failed','The decoded source does not match this project.');return false;}
+    const trim={in:selectedIn,out:selectedOut};
+    const before=this.projectEditState(project), generation=++this.exportGeneration, deadline=Date.now()+8000;
+    const sourceGeneration=this.mediaGeneration, selectedCodec=container.querySelector('[data-cinema-codec]')?.value;
+    const originalProjectRaw=sessionStorage.getItem('swissknife.cinema.localProject'), originalCurrentProject=this.currentProject;
+    this.exportPending=true;let candidate=null,committed=false,projectWritten=false;
+    const active=async()=>{
+      const video=source?.video;
+      if(video&&!video.error&&(video.seeking||video.readyState<2)){
+        await new Promise(resolve=>{
+          let settled=false;
+          const finish=()=>{if(settled)return;settled=true;clearTimeout(timer);video.removeEventListener('seeked',onReady);video.removeEventListener('loadeddata',onReady);video.removeEventListener('canplay',onReady);resolve();};
+          const onReady=()=>{if(!video.seeking&&video.readyState>=2)finish();};
+          const timer=setTimeout(finish,Math.max(1,Math.min(2500,deadline-Date.now())));
+          video.addEventListener('seeked',onReady);video.addEventListener('loadeddata',onReady);video.addEventListener('canplay',onReady);onReady();
+        });
+      }
+      if(generation!==this.exportGeneration||!container.isConnected||source!==this.sourceMedia||sourceGeneration!==this.mediaGeneration||!this.isDecodedMedia(source.video)||Number(container.querySelector('[data-cinema-trim="out"]')?.value)!==selectedOut||container.querySelector('[data-cinema-codec]')?.value!==selectedCodec||this.projectEditState(this.readLocalProject())!==before)throw new Error('Cinema or the project changed before export completed.');
+    };
+    try {
+      this.showExportOutcome(container,'recording','Recording the selected WebM frames…');
+      const blob=await this.recordSelectedWebM(source.video,trim,deadline);await active();
+      const bytes=new Uint8Array(await blob.arrayBuffer());if(!bytes.length||bytes.length>65536)throw new Error('Recorded output must contain 1–65536 bytes.');
+      const cid=await contentCidForBytes(bytes);const checked=await this.verifyClipBytes(cid,base64ForBytes(bytes));
+      candidate=await this.decodeExportCandidate(container,bytes,checked.metadata,generation,deadline);await active();
+      this.showExportOutcome(container,'awaiting_consent','WebM decoded. Review persistence of these recorded bytes.');
+      const response=await this.invokeCinemaOwner(container,'artifacts_put',{cid,bytes_base64:base64ForBytes(bytes),profile:'cinema-project',kind:'video-export',service:'ipfs_kit_py',pin:true,fixture_scope:'svf-cinema-project-media'},trigger);await active();
+      if(!response){this.showExportOutcome(container,'cancelled','Export persistence cancelled; the last good media and project remain.');return false;}
+      if(response.preview||response.value.persisted!==true||response.value.verified!==true||response.value.cid!==cid)throw new Error('The owner did not persist and verify the exact recorded video CID.');
+      if(!container.querySelector('[data-cinema-output-video]'))throw new Error('The output preview disappeared before project publication.');
+      const output={...checked.metadata,source_cid:source.cid,trim:{...trim}};
+      sessionStorage.setItem(CINEMA_OUTPUT_CACHE+cid,JSON.stringify({...output,bytes_base64:base64ForBytes(bytes)}));
+      const updated={...project,output,codec:'webm',duration:trim.out,tracks:project.tracks.map(item=>item===track?{...item,in:trim.in,out:trim.out}:item)};
+      if(updated.projectCid){updated.lastSavedProjectCid=updated.projectCid;delete updated.projectCid;delete updated.persistence;}
+      this.writeLocalProject(updated);projectWritten=true;this.renderTimeline(container,updated);
+      this.commitExportPreview(container,candidate);committed=true;
+      this.showExportOutcome(container,'persisted',`WebM output persisted: ${cid}. ${bytes.length} bytes; save the project to retain its output reference.`);
+      return true;
+    } catch(error){
+      if(projectWritten&&!committed){
+        sessionStorage.setItem('swissknife.cinema.localProject',originalProjectRaw);this.currentProject=originalCurrentProject;
+        this.timeline.tracks=project.tracks;this.timeline.duration=project.duration||0;this.cinemaWorkflow.projectCid=project.projectCid||null;
+      }
+      this.showExportOutcome(container,'failed',`WebM export failed: ${error.message}. The last good media and project were retained.`);return false;
+    }
+    finally{if(candidate&&!committed){candidate.video.pause();URL.revokeObjectURL(candidate.url);}this.exportPending=false;}
+  }
+
+  async restoreExportMedia(container, project) {
+    if(!project?.output)return false;
+    const output=project.output;
+    if(this.exportMedia?.cid===output.cid&&this.outputReady())return true;
+    const generation=++this.exportGeneration;
+    let candidate=null,committed=false;
+    try{
+      const cache=JSON.parse(sessionStorage.getItem(CINEMA_OUTPUT_CACHE+output.cid)||'null');
+      if(!cache)throw new Error('Saved output bytes are unavailable.');
+      const identity={cid:output.cid,sha256:output.sha256,size:output.size,mime:output.mime};
+      const checked=await this.verifyClipBytes(output.cid,cache.bytes_base64,identity);
+      const track=project.tracks.find(item=>item.kind==='video');
+      if(!track||checked.bytes.length>65536||output.source_cid!==project.source?.cid||stableStringifyValue(output.trim)!==stableStringifyValue({in:track.in,out:track.out}))throw new Error('Saved output does not belong to this source and trim.');
+      candidate=await this.decodeExportCandidate(container,checked.bytes,identity,generation,Date.now()+8000);candidate.restored=true;
+      if(this.readLocalProject()?.output?.cid!==output.cid)throw new Error('Saved output was superseded.');
+      this.commitExportPreview(container,candidate);committed=true;
+      this.showExportOutcome(container,'restored',`Saved WebM output restored: ${output.cid}. ${output.size} verified bytes.`);return true;
+    }catch(error){this.showExportOutcome(container,'failed',`Saved output could not be decoded: ${error.message}`);return false;}
+    finally{if(candidate&&!committed){candidate.video.pause();URL.revokeObjectURL(candidate.url);}}
   }
 
   mediaTrim() {
@@ -1236,7 +1147,7 @@ export class CinemaApp {
   revealMediaPreview(container = this.container) {
     const root = container?.querySelector('.cinema-root');
     const preview = root?.querySelector('.cinema-preview-area');
-    const video = this.sourceMedia?.video;
+    const video = this.exportMedia?.video && !this.exportMedia.video.hidden ? this.exportMedia.video : this.sourceMedia?.video;
     if (!container?.isConnected || !preview || !video?.isConnected) return false;
     // Native focus can reveal only Play under the sticky header after export.
     // Keep its real media visible using only this editor's owned scroll panes.
@@ -1254,10 +1165,10 @@ export class CinemaApp {
   }
 
   seekMedia(value) {
-    const video = this.sourceMedia?.video;
-    if (!this.isDecodedMedia(video) || !Number.isFinite(value)) return;
+    const video = this.container?.querySelector('[data-cinema-video]');
+    if (!(video===this.exportMedia?.video?this.outputReady(video):this.isDecodedMedia(video)) || !Number.isFinite(value) || !Number.isFinite(video.duration)) return;
     this.revealMediaPreview(this.container);
-    const trim = this.mediaTrim();
+    const trim = video===this.exportMedia?.video?{in:0,out:video.duration}:this.mediaTrim();
     video.currentTime = Math.max(trim.in, Math.min(trim.out, value));
     this.syncMediaControls(this.container);
   }
@@ -1268,18 +1179,19 @@ export class CinemaApp {
   }
 
   syncMediaControls(container) {
-    const media = this.sourceMedia, video = media?.video;
-    const ready = this.isDecodedMedia(video);
-    container.querySelectorAll('[data-cinema-play], [data-cinema-seek], [data-cinema-seek-step]').forEach(control => { control.disabled = !ready; });
+    const video = container.querySelector('[data-cinema-video]');
+    const ready = video===this.exportMedia?.video?this.outputReady(video):this.isDecodedMedia(video);
+    container.querySelectorAll('[data-cinema-play]').forEach(control=>{control.disabled=!ready;});
+    container.querySelectorAll('[data-cinema-seek], [data-cinema-seek-step]').forEach(control=>{control.disabled=!ready||!Number.isFinite(video.duration);});
     const button = container.querySelector('[data-cinema-play]');
     if (button) { button.textContent = ready && !video.paused ? '⏸️' : '▶️'; button.setAttribute('aria-label', ready && !video.paused ? 'Pause' : 'Play'); }
     const time = container.querySelector('.time-display');
-    const fmt = value => `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(Math.floor(value % 60)).padStart(2, '0')}`;
-    if (time) time.textContent = ready ? `${fmt(video.currentTime)} / ${fmt(video.duration)}` : 'No decoded media';
+    const fmt = value => `${value.toFixed(2)}s`;
+    if (time) time.textContent = ready ? `${fmt(video.currentTime)} / ${Number.isFinite(video.duration)?fmt(video.duration):'duration unavailable'}` : 'No decoded media';
     const range = container.querySelector('[data-cinema-seek]');
     if (range) {
-      const trim = this.mediaTrim(); range.min = String(trim.in); range.max = String(trim.out); range.value = String(ready ? video.currentTime : 0);
-      range.setAttribute('aria-valuetext', ready ? `${video.currentTime.toFixed(1)} seconds of ${video.duration.toFixed(1)} seconds` : 'No decoded media');
+      const trim = video===this.exportMedia?.video?{in:0,out:Number.isFinite(video.duration)?video.duration:0}:this.mediaTrim(); range.min=String(trim.in);range.max=String(trim.out);range.value=String(ready?video.currentTime:0);
+      range.setAttribute('aria-valuetext',ready?`${video.currentTime.toFixed(1)} seconds of ${Number.isFinite(video.duration)?video.duration.toFixed(1)+' seconds':'unknown duration'}`:'No decoded media');
     }
     this.renderSelection(container, this.readLocalProject());
   }
@@ -1293,13 +1205,17 @@ export class CinemaApp {
       track_order: (project?.tracks || []).map(item => item.kind), saved: Boolean(project?.projectCid),
       decoded: Boolean(media && stableStringifyValue({ cid: media.cid, sha256: media.sha256, size: media.size, mime: media.mime })
         === stableStringifyValue(project?.source || null) && this.isDecodedMedia(media.video)) };
-    output.dataset.cinemaSelectionState = JSON.stringify({ selection });
+    output.dataset.cinemaSelectionState = JSON.stringify({ selection, selection_serialized: stableStringifyValue(selection) });
     output.textContent = `Trim ${selection.trim.in}–${selection.trim.out}s · ${selection.decoded ? 'source decoded' : 'no source decoded'} · ${selection.saved ? 'project saved' : 'local changes'}`;
     const reference = container.querySelector('[data-cinema-project-reference]');
     if (reference) {
       reference.value = project?.projectCid || '';
       reference.dataset.referenceState = project?.projectCid ? 'saved' : 'not_saved';
     }
+    const previous = container.querySelector('[data-cinema-previous-project-reference]');
+    if (previous) previous.value = project?.lastSavedProjectCid || '';
+    const history = container.querySelector('[data-cinema-project-history]');
+    if (history) history.hidden = !(previous?.value || container.querySelector('[data-cinema-export-history]')?.textContent);
   }
 
   async openNativeClip(container, cid, trigger = null) {
@@ -1361,6 +1277,9 @@ export class CinemaApp {
   }
 
   disposeMedia() {
+    this.exportGeneration++;this.exportSeekCancel?.();this.exportTrackCancel?.();this.exportRecordCancel?.();this.exportDecodeCancel?.();
+    this.container?.querySelector('[data-gateway-cancel="cinema.ipfs_kit_py.persist_artifact"]')?.click();
+    if(this.exportMedia){this.exportMedia.removeListeners?.();this.exportMedia.video.pause();URL.revokeObjectURL(this.exportMedia.url);this.exportMedia=null;}
     this.container?.querySelector('[data-gateway-cancel="cinema.ipfs_kit_py.retrieve_content"]')?.click();
     this.mediaGeneration += 1; this.mediaDecodeCancel?.(); this.mediaDecodeCancel = null;
     this.mediaObserver?.disconnect(); this.mediaObserver = null;
@@ -1387,7 +1306,7 @@ export class CinemaApp {
     const envelope = await invokeNativeTool(container, 'cinema', bindingId, { executionMode: 'execute', toolId: tool, payload, trigger });
     if (!envelope) return null;
     const output = container.querySelector('[data-cinema-owner-envelope]');
-    if (output) output.textContent = JSON.stringify(envelope, null, 2);
+    if (output) output.textContent = String(envelope.outcome || 'executed').slice(0, 64);
     if (envelope.ok !== true || envelope.outcome !== 'executed') throw new Error(envelope.error?.message || envelope.error || envelope.result?.error || 'Owner did not execute the request.');
     let value = envelope.result;
     for (let depth = 0; depth < 8 && value && typeof value === 'object'; depth++) {
@@ -1427,7 +1346,8 @@ export class CinemaApp {
           mediaTitle: this.currentProject?.mediaTitle || this.cinemaWorkflow.mediaTitle,
           rightsLicense: this.currentProject?.rightsLicense || this.cinemaWorkflow.rightsLicense,
           timeline: this.currentProject?.timeline || this.timeline, settings: this.currentProject?.settings || { codec: 'mp4' }, created: this.currentProject?.created || new Date().toISOString(),
-          ...(this.currentProject?.source ? { source: this.currentProject.source } : {}) };
+          ...(this.currentProject?.source ? { source: this.currentProject.source } : {}),
+          ...(this.currentProject?.output ? { output: this.currentProject.output } : {}) };
         const recordBytes = stableStringifyValue(record);
         const bytes = new TextEncoder().encode(recordBytes);
         const expectedCid = await contentCidForBytes(bytes);
@@ -1474,6 +1394,7 @@ export class CinemaApp {
     else if (action === 'submit-render-queue') setText('Rendering unavailable; no renderer job or queue admission was created.');
     else if (action === 'simulate-failed-export') {
       const codec = container.querySelector('[data-cinema-codec]')?.value || 'mp4';
+      if(codec==='webm')return this.exportSelectedWebM(container,trigger);
       if (!this.supportedFormats.export.includes(codec)) {
         if (status) status.dataset.exportState = 'unsupported_codec';
         const message = `Unsupported codec ${codec}. Project and last good media were preserved.`;
@@ -1482,7 +1403,10 @@ export class CinemaApp {
         return;
       }
       if (status) status.dataset.exportState = 'unsupported';
-      const message = 'Export unavailable: no encoder is connected. No output file was created. Project and clip are unchanged.';
+      const project = this.readLocalProject();
+      const sourceCid = project?.source?.cid || this.sourceMedia?.cid || 'unavailable';
+      const retention = project?.projectCid ? 'saved project retained' : 'local project retained';
+      const message = `Export unavailable: no encoder is connected. Supported codec ${codec} retried; No output file was created. Last good media ${sourceCid}; ${retention}.`;
       setText(message);
       this.showExportOutcome(container, 'unsupported', message);
     }
@@ -1493,6 +1417,18 @@ export class CinemaApp {
   showExportOutcome(container, state, message) {
     const outcome = container.querySelector('[data-cinema-export-outcome]');
     if (outcome) { outcome.dataset.exportState = state; outcome.textContent = message; }
+    const status = container.querySelector('[data-cinema-workflow-status]');
+    const history = container.querySelector('[data-cinema-export-history]');
+    if (history) {
+      if (['unsupported_codec', 'unsupported', 'failed'].includes(state)) history.textContent = message;
+      else if (!history.textContent && /^(?:Unsupported codec |Export unavailable:|Export unsupported;)/.test(status?.textContent || '')) history.textContent = status.textContent;
+    }
+    if (status) {
+      status.dataset.exportState = state;
+      status.textContent = state === 'persisted' ? 'WebM output persisted. Current changes need a separate project save.' : message;
+    }
+    const details = container.querySelector('[data-cinema-project-history]');
+    if (details) details.hidden = !(history?.textContent || container.querySelector('[data-cinema-previous-project-reference]')?.value);
     this.revealMediaPreview(container);
   }
 
@@ -1592,6 +1528,7 @@ export class CinemaApp {
     };
     if (project.source) this.currentProject.source = project.source;
     else delete this.currentProject.source;
+    if (project.output) this.currentProject.output = project.output; else delete this.currentProject.output;
     this.timeline.tracks = project.tracks;
     this.timeline.duration = project.duration || 0;
   }
@@ -1611,10 +1548,11 @@ export class CinemaApp {
       settings: { ...snapshot.settings, codec: project?.codec || 'mp4' } };
     if (project?.source) this.currentProject.source = project.source;
     else delete this.currentProject.source;
+    if (project?.output) this.currentProject.output = project.output; else delete this.currentProject.output;
     this.timeline.tracks = project?.tracks || [];
     this.timeline.duration = project?.duration || 0;
     const header = container.querySelector('.cinema-header .project-info');
-    if (header) header.textContent = this.cinemaWorkflow.projectCid ? 'Project saved' : project?.pendingProjectCid ? 'Checking saved project…' : 'Project not saved';
+    if (header) header.textContent = this.cinemaWorkflow.projectCid ? 'Project saved' : project?.pendingProjectCid ? 'Checking saved project…' : project?.lastSavedProjectCid ? 'Unsaved changes · history in Project actions' : 'Local project changes · not saved';
     const proof = container.querySelector('[data-project-cid-state]');
     if (proof) proof.dataset.projectCidState = project?.projectCid ? 'persisted' : 'not_persisted';
     const cid = container.querySelector('[data-cinema-project-cid]');
@@ -1653,13 +1591,14 @@ export class CinemaApp {
       settings: { ...record.settings, codec: project.codec || 'mp4' } };
     if (project.source) current.source = project.source;
     else delete current.source;
+    if (project.output) current.output = project.output; else delete current.output;
     return stableStringifyValue(current) === stableStringifyValue(record);
   }
 
   projectEditState(project) {
     return stableStringifyValue({ name: project.name, mediaTitle: project.mediaTitle,
       codec: project.codec || 'mp4', duration: project.duration || 0, tracks: project.tracks,
-      ...(project.source ? { source: project.source } : {}) });
+      ...(project.source ? { source: project.source } : {}), ...(project.output ? { output: project.output } : {}) });
   }
 
   commitTimeline(container, outSeconds) {
@@ -1674,7 +1613,8 @@ export class CinemaApp {
       codec: container.querySelector('[data-cinema-codec]')?.value || 'mp4',
       duration: out,
       tracks: [{ kind: 'video', label, in: 0, out, order: 0 }],
-      ...(source ? { source } : {})
+      ...(source ? { source } : {}),
+      ...(previous?.output && previous.output.source_cid === source?.cid && previous.output.trim.in === 0 && previous.output.trim.out === out ? { output: previous.output } : {})
     };
     if (previous?.projectCid && previous.persistence?.editState === this.projectEditState(project)) {
       project.projectCid = previous.projectCid;

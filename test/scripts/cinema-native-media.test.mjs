@@ -131,8 +131,12 @@ test('the canonical Cinema scenario requires both original approved native bindi
  const scenario=JSON.parse(fs.readFileSync(new URL('../e2e/functional-workflows/cinema.json',import.meta.url)));
  assert.equal(validateScenario(scenario,app),scenario);assert.equal(scenario.backend_bindings.length,2);
  for(const intent of scenario.backend_bindings){assert.equal(intent.mode,'isolated_mutation');assert.equal(intent.consent,'ui_required');assert.ok(intent.result_assertion);}
- const primary=scenario.phases.primary_result.at(-1),recovery=scenario.phases.failure_recovery.at(-1),persist=scenario.phases.persist_reopen.at(-1);
- for(const step of [primary,recovery]){assert.equal(step.probe.kind,'media_state');assert.equal(step.probe.pointer,'/current_time');assert.equal(step.probe.temporal_ms,250);assert.equal(step.expected,0.05);}
+ const primary=scenario.phases.primary_result.at(-1),recovery=scenario.phases.failure_recovery.at(-1),persistRole=scenario.phases.persist_reopen.at(-1);
+ const persistedSelection=scenario.phases.persist_reopen.find(step=>step.probe?.pointer==='/selection_serialized');
+ assert.ok(persistedSelection);assert.equal(persistedSelection.operator,'equals');assert.equal('requirement_id'in persistedSelection,false);assert.equal('checkpoint_id'in persistedSelection,false);
+ const persist={expected:JSON.parse(persistedSelection.expected)};
+ assert.equal(persistRole.requirement_id,'persist_reopen');assert.equal(persistRole.probe.selector,'[data-cinema-video]');
+ for(const step of [primary,recovery,persistRole]){assert.equal(step.probe.kind,'media_state');assert.equal(step.probe.pointer,'/current_time');assert.equal(step.probe.temporal_ms,250);assert.equal(step.expected,0.05);}
  assert.equal(persist.expected.source.cid,'bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla');assert.deepEqual(persist.expected.trim,{in:0,out:2});assert.equal(persist.expected.saved,true);assert.equal(persist.expected.decoded,true);
  for(const change of [copy=>{copy.backend_bindings[0].consent='not_required';},copy=>{copy.backend_bindings[0].binding_id='cinema.invented.read';},copy=>{copy.phases.persist_reopen=[];}]){const invalid=structuredClone(scenario);change(invalid);assert.throws(()=>validateScenario(invalid,app));}
 });

@@ -1,0 +1,343 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "agent-supervisor",
+  "description": "Actual bounded native runs: create and validate task A, re-read the identical saved run/output, then observe native task B dependency refusal in a fresh run, validate its dependency A and explicitly retry B without duplicate worker dispatch.",
+  "fixture_scope": "svf-agent-supervisor-552",
+  "backend_bindings": [
+    {
+      "binding_id": "agent-supervisor.ipfs_accelerate_py.supervise_agent_work",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 90,
+      "max_output_bytes": 262144,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/output_sha256",
+        "operator": "not_equals",
+        "expected": ""
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "wait_for",
+        "selector": "[data-testid=\"agent-supervisor-app\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-tab=\"dispatch\"]"
+      },
+      {
+        "op": "check",
+        "selector": "[data-testid=\"dispatch-confirm\"]"
+      },
+      {
+        "op": "click",
+        "selector": "[data-native-create]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]"
+      },
+      {
+        "op": "wait_ms",
+        "milliseconds": 5000
+      },
+      {
+        "op": "wait_ms",
+        "milliseconds": 5000
+      },
+      {
+        "op": "wait_ms",
+        "milliseconds": 5000
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-native-run-state=\"created\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "check",
+        "selector": "[data-testid=\"dispatch-confirm\"]"
+      },
+      {
+        "op": "press",
+        "selector": "[data-testid=\"dispatch-submit\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-native-a-complete=\"true\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "value",
+          "selector": "[data-native-run-id]"
+        },
+        "operator": "not_equals",
+        "expected": ""
+      },
+      {
+        "op": "click",
+        "selector": "[data-tab=\"active\"]"
+      },
+      {
+        "op": "click",
+        "selector": "[data-task-id=\"SWR-106-1\"]"
+      },
+      {
+        "op": "press",
+        "selector": "[data-task-id=\"SWR-106-1\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "text",
+          "selector": "[data-testid=\"active-task\"]"
+        },
+        "operator": "contains",
+        "expected": "Heartbeat and progress percent are not completion"
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-testid=\"agent-supervisor-app\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-tab=\"dispatch\"]"
+      },
+      {
+        "op": "check",
+        "selector": "[data-testid=\"dispatch-confirm\"]"
+      },
+      {
+        "op": "press",
+        "selector": "[data-native-read]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-native-readback=\"matched\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "value",
+          "selector": "[data-native-run-id]"
+        },
+        "operator": "not_equals",
+        "expected": ""
+      },
+      {
+        "op": "click",
+        "selector": "[data-tab=\"active\"]"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "text",
+          "selector": "[data-testid=\"active-task\"]"
+        },
+        "operator": "contains",
+        "expected": "Dependency blocker: SWR-105"
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "click",
+        "selector": "[data-tab=\"dispatch\"]"
+      },
+      {
+        "op": "check",
+        "selector": "[data-testid=\"dispatch-confirm\"]"
+      },
+      {
+        "op": "click",
+        "selector": "[data-native-create]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]"
+      },
+      {
+        "op": "wait_ms",
+        "milliseconds": 5000
+      },
+      {
+        "op": "wait_ms",
+        "milliseconds": 5000
+      },
+      {
+        "op": "wait_ms",
+        "milliseconds": 5000
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-native-run-state=\"created\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-native-a-complete=\"false\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-native-select-stage=\"b\"]"
+      },
+      {
+        "op": "check",
+        "selector": "[data-testid=\"dispatch-confirm\"]"
+      },
+      {
+        "op": "click",
+        "selector": "[data-testid=\"dispatch-submit\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-testid=\"dispatch-error\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "[data-testid=\"dispatch-error\"]"
+        },
+        "operator": "contains",
+        "expected": "task is not ready"
+      },
+      {
+        "op": "check",
+        "selector": "[data-testid=\"dispatch-confirm\"]"
+      },
+      {
+        "op": "click",
+        "selector": "[data-testid=\"dispatch-repair\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-native-a-complete=\"true\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "check",
+        "selector": "[data-testid=\"dispatch-confirm\"]"
+      },
+      {
+        "op": "click",
+        "selector": "[data-native-retry]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-native-b-complete=\"true\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "text",
+          "selector": "[data-testid=\"dispatch-recovery-note\"]"
+        },
+        "operator": "contains",
+        "expected": "without a duplicate dispatch"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "[data-testid=\"dispatch-recovery-note\"]"
+        },
+        "operator": "contains",
+        "expected": "Task A executed dispatches: 1"
+      }
+    ]
+  }
+}

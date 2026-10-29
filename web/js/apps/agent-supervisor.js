@@ -1,4 +1,7 @@
+import { invokeNativeTool } from '../live-tool-gateway.js';
+
 const APP_ID = 'agent-supervisor';
+const SUPERVISE_BINDING = 'agent-supervisor.ipfs_accelerate_py.supervise_agent_work';
 const CONTRACT_SCHEMA = 'swissknife.agent_supervisor_console.v1';
 const CONTRACT_SCHEMA_REF = 'contracts/agent-supervisor-console.schema.json';
 
@@ -183,7 +186,13 @@ export class AgentSupervisorApp {
         submitting: false,
         result: null,
         error: null,
+        recoveryNote: null,
       },
+      fixtureRun: null,
+      fixtureHistory: [],
+      nativeStage: 'a',
+      nativeReadback: null,
+      events: [],
       receiptOperation: {
         loading: false,
         operation: null,
@@ -197,6 +206,7 @@ export class AgentSupervisorApp {
       lastUpdated: null,
     };
     this.container = null;
+    this.restoreBoard();
   }
 
   async initialize() {
@@ -210,8 +220,48 @@ export class AgentSupervisorApp {
 
   bind(container) {
     this.container = container;
+    this.containSupervisorFrame();
     this.bindEvents();
     this.update();
+  }
+
+  containSupervisorFrame() {
+    const container = this.container;
+    if (!container || typeof container.closest !== 'function') return;
+    const pin = (node, extra) => {
+      if (!node) return;
+      node.style.minHeight = '0';
+      node.style.maxHeight = '100%';
+      node.style.overflow = 'hidden';
+      node.style.boxSizing = 'border-box';
+      if (extra) Object.assign(node.style, extra);
+    };
+    pin(container.closest('.window-content'), {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+    });
+    pin(container.closest('.window-app-content'), {
+      display: 'flex',
+      flexDirection: 'column',
+      flex: '1 1 auto',
+      height: '100%',
+      position: 'relative',
+    });
+    pin(container, {
+      display: 'flex',
+      flexDirection: 'column',
+      flex: '1 1 auto',
+      height: '100%',
+      position: 'relative',
+    });
+    const frame = container.closest('.window') || container;
+    frame.querySelectorAll('.live-tool-gateway-host, [data-native-operation-details]').forEach(node => {
+      node.style.flex = '0 1 auto';
+      node.style.minHeight = '0';
+      node.style.maxHeight = '18%';
+      node.style.overflow = 'auto';
+    });
   }
 
   async refresh({ silent = false } = {}) {
@@ -426,12 +476,17 @@ export class AgentSupervisorApp {
 
   update() {
     if (!this.container) return;
+    this.containSupervisorFrame();
     const root = this.container.querySelector('[data-agent-supervisor-root]');
     if (!root) return;
     const focusState = this.captureFocusState();
     root.outerHTML = this.renderRoot();
     this.bindEvents();
     this.restoreFocusState(focusState);
+    this.persistBoard();
+    if (this.state.activeTab === 'dispatch') this.scrollWithinApp('[data-testid="dispatch-panel"]');
+    this.revealInPane('.as-pane.as-goals', '.as-pane.as-goals .is-selected');
+    this.revealInPane('.as-pane.as-queue', '.as-pane.as-queue .is-selected');
   }
 
   captureFocusState() {
@@ -610,8 +665,15 @@ export class AgentSupervisorApp {
       this.state.dispatch.error = null;
       this.update();
     });
+    this.container.querySelector('[data-native-create]')?.addEventListener('click', () => this.createNativeRun());
+    this.container.querySelector('[data-native-read]')?.addEventListener('click', () => this.readNativeRun());
+    this.container.querySelector('[data-native-retry]')?.addEventListener('click', () => this.retryNativeTask());
+    this.container.querySelectorAll('[data-native-select-stage]').forEach(button => button.addEventListener('click', () => this.selectNativeTask(button.dataset.nativeSelectStage)));
     this.container.querySelector('[data-action="submit-dispatch"]')?.addEventListener('click', () => {
       this.submitTaskDispatch();
+    });
+    this.container.querySelector('[data-action="repair-blocker"]')?.addEventListener('click', () => {
+      this.repairNamedBlocker();
     });
     this.container.querySelectorAll('[data-supervisor-focusable]').forEach(item => {
       item.addEventListener('keydown', event => this.handleFocusKey(event));
@@ -628,7 +690,7 @@ export class AgentSupervisorApp {
     // evidence each action names; they never fabricate proof data.
     if (action === 'inspect-goal-graph') {
       this.update();
-      this.container?.querySelector('.as-goals')?.scrollIntoView({ block: 'nearest' });
+      this.scrollWithinApp('.as-goals');
       return;
     }
     const tabForAction = {
@@ -644,7 +706,17 @@ export class AgentSupervisorApp {
     if (!tab) return;
     this.state.activeTab = tab;
     this.update();
-    this.container?.querySelector('.as-detail')?.scrollIntoView({ block: 'nearest' });
+    this.scrollWithinApp('.as-detail');
+  }
+
+  scrollWithinApp(selector) {
+    const scroller = this.container?.querySelector('.as-layout');
+    const target = this.container?.querySelector(selector);
+    if (!scroller || !target || typeof target.getBoundingClientRect !== 'function') return;
+    const box = scroller.getBoundingClientRect();
+    const targetBox = target.getBoundingClientRect();
+    if (targetBox.height > box.height || targetBox.top < box.top) scroller.scrollTop -= box.top - targetBox.top;
+    else if (targetBox.bottom > box.bottom) scroller.scrollTop += targetBox.bottom - box.bottom;
   }
 
   handleFocusKey(event) {
@@ -660,7 +732,7 @@ export class AgentSupervisorApp {
     if (event.key === 'ArrowUp') next = Math.max(0, index - 1);
     if (event.key === 'Home') next = 0;
     if (event.key === 'End') next = focusables.length - 1;
-    focusables[next]?.focus();
+    focusables[next]?.focus({ preventScroll: true });
   }
 
   buildSteeringReview() {
@@ -772,61 +844,253 @@ export class AgentSupervisorApp {
     this.update();
   }
 
-  async submitTaskDispatch() {
-    const dispatch = this.state.dispatch;
-    const task = this.state.snapshot.queue.find(item => item.task_id === this.state.selectedTaskId);
-    const reason = dispatch.reason.trim();
-    if (!task) {
-      dispatch.error = { reason: 'invalid_target', message: 'Select a task before dispatching work.' };
-      this.update();
-      this.focusAssociatedInvalidControl('dispatch', dispatch.error.reason);
-      return;
-    }
-    if (!reason) {
-      dispatch.error = { reason: 'scope_not_allowed', message: 'A dispatch reason is required.' };
-      this.update();
-      this.focusAssociatedInvalidControl('dispatch', dispatch.error.reason);
-      return;
-    }
-    if (!dispatch.confirm) {
-      dispatch.error = { reason: 'confirmation_required', message: 'Explicit confirmation is required before dispatch.' };
-      this.update();
-      this.focusAssociatedInvalidControl('dispatch', dispatch.error.reason);
-      return;
-    }
+  nativeTaskId(stage = this.state.nativeStage || 'a') {
+    return this.state.fixtureRun?.task_ids?.[stage] || '';
+  }
 
-    const clientRequestId = `dispatch-${Date.now()}`;
-    dispatch.submitting = true;
-    dispatch.result = null;
-    dispatch.error = null;
-    this.update();
-    const result = await this.invokeCapability('supervisor.task-control.request', {
-      task_id: task.task_id,
-      action: 'claim',
-      reason,
-      dry_run: false,
-      confirmation_token: `confirm-agent-supervisor:task:${task.task_id}:${clientRequestId}`,
-      client_request_id: clientRequestId,
-    });
-    dispatch.submitting = false;
-    if (isAvailableResult(result)) {
-      const review = buildTaskDispatchReview(task, this.contract);
-      dispatch.result = normalizeSteeringAccepted(result.data, review, result.correlation_id);
-      dispatch.confirm = false;
-      task.status = 'running';
-      if (dispatch.result.receipt?.receipt_id) {
-        this.state.snapshot.receipts = upsertReceipt(this.state.snapshot.receipts, dispatch.result.receipt);
-        this.state.selectedReceiptId = dispatch.result.receipt.receipt_id;
-      }
-    } else {
-      dispatch.error = {
-        reason: result.reason || result.state,
-        message: result.message || 'Task dispatch was not accepted.',
-        correlation_id: result.correlation_id,
-      };
-    }
+  selectNativeTask(stage) {
+    if (!['a','b'].includes(stage)) return;
+    this.state.nativeStage = stage;
+    this.state.dispatch.confirm = false;
+    this.state.dispatch.error = null;
     this.state.activeTab = 'dispatch';
     this.update();
+  }
+
+  async createNativeRun() { return this.performNativeAction('create', 'a'); }
+  async readNativeRun() { return this.performNativeAction('read', 'a'); }
+  async retryNativeTask() { return this.performNativeAction('retry', 'b'); }
+
+  async submitTaskDispatch() {
+    if (!this.state.fixtureRun?.task_ids?.a) return this.createNativeRun();
+    return this.performNativeAction('dispatch', this.state.nativeStage || 'a');
+  }
+
+  async repairNamedBlocker() {
+    const run = this.state.fixtureRun;
+    if (!run?.task_ids?.a) return false;
+    if (run.stages?.a?.status === 'completed') {
+      this.state.dispatch.recoveryNote = 'Dependency A has validated output. Explicitly retry task B; no second execution of A is needed.';
+      this.update(); return false;
+    }
+    return this.performNativeAction('dispatch', 'a', '[data-testid="dispatch-repair"]');
+  }
+
+  async performNativeAction(action, stage, triggerSelector) {
+    const dispatch = this.state.dispatch;
+    if (dispatch.submitting) return false;
+    if (!dispatch.confirm) {
+      dispatch.error = {reason:'confirmation_required',message:'Confirm the next bounded native run action before requesting gateway consent.'};
+      this.update(); return false;
+    }
+    const existing = this.state.fixtureRun;
+    if (action !== 'create' && (!nativeUUID(existing?.run_id)||!nativeUUID(existing?.task_ids?.a)||!nativeUUID(existing?.task_ids?.b))) {
+      dispatch.error = {reason:'invalid_target',message:'Create a bounded native run first.'}; this.update(); return false;
+    }
+    if (action !== 'create' && !['a','b'].includes(stage)) return false;
+    if (['dispatch','retry'].includes(action) && existing?.stages?.[stage]?.status === 'completed') {
+      dispatch.recoveryNote = `Native task ${stage.toUpperCase()} already has validated output; refresh its owner state instead of dispatching it again.`;
+      this.update(); return false;
+    }
+    const toolId = action === 'read' ? 'get_task' : 'WorkflowCoordinator.submit_task';
+    const payload = {fixture_mode:'svf-goal-worker-v1',fixture_scope:'svf-agent-supervisor-552'};
+    if (action === 'create') Object.assign(payload,{action:'create',fixture:'dependency-output-v1',dry_run:false});
+    else {
+      Object.assign(payload,{run_id:existing.run_id,task_key:stage});
+      if (action !== 'read') Object.assign(payload,{action,dry_run:false});
+    }
+    const priorRun = existing ? JSON.parse(JSON.stringify(existing)) : null;
+    const container = this.container;
+    const operation = Symbol('native-run-action');this.nativeOperation = operation;
+    dispatch.submitting = true;dispatch.error = null;dispatch.result = null;dispatch.confirm = false;
+    if (action === 'create') this.state.nativeReadback = null;
+    this.update();
+    try {
+      const trigger = container?.querySelector(triggerSelector || (action === 'create' ? '[data-native-create]' : action === 'read' ? '[data-native-read]' : action === 'retry' ? '[data-native-retry]' : stage === 'a' && dispatch.error?.reason === 'dependency_blocked' ? '[data-testid="dispatch-repair"]' : '[data-testid="dispatch-submit"]'));
+      const response = await invokeNativeTool(container,APP_ID,SUPERVISE_BINDING,{executionMode:'execute',toolId,payload,trigger});
+      // A response may finish after native close. It cannot publish into a
+      // detached instance or overwrite a newer reopened browser session.
+      if (this.nativeOperation !== operation || this.container !== container || !container?.isConnected) return false;
+      if (!response) { dispatch.error={reason:'cancelled',message:'Cancelled before native owner dispatch; retained run is unchanged.'};return false; }
+      const reference = nativeGatewayReference(response,toolId);
+      const body = nativeFixtureBody(response);
+      if (!reference || response.ok !== true || response.outcome !== 'executed' || !body || body.fixture_mode !== 'svf-goal-worker-v1' || body.native_provenance?.schema!=='swissknife.native-supervisor-execution.v1' || body.native_provenance.owner!=='ipfs_accelerate_py' || body.native_provenance.simulated!==false || body.native_provenance.cache_fallback!==false) {
+        const message=nativeFailureMessage(response);
+        const blocked=action!=='create' && stage==='b' && /task is not ready/i.test(message);
+        dispatch.error={reason:blocked?'dependency_blocked':'owner_execution_failed',message:blocked?`Blocked by dependency native task A ${existing.task_ids.a}: ${message}`:message};
+        if (reference && existing) {
+          existing.history=[...(existing.history||[]),{action,stage,run_id:existing.run_id,task_id:existing.task_ids[stage],outcome:response.outcome,error:message,...reference}].slice(-12);
+          if(blocked)existing.stages.b={...(existing.stages.b||{}),status:'blocked'};
+          this.persistBoard();
+        }
+        return false;
+      }
+      if (!nativeUUID(body.run_id)) throw new Error('Owner did not return a canonical run identity.');
+      if (action === 'create') {
+        if (!nativeUUID(body.task_ids?.a)||!nativeUUID(body.task_ids?.b)||body.task_ids.a===body.task_ids.b
+            ||!nativeUUID(body.root_goal_cid)||!nativeUUID(body.child_goal_cid)) throw new Error('Owner fixture identities are incomplete.');
+        if (priorRun) this.state.fixtureHistory=[...(this.state.fixtureHistory||[]),priorRun].slice(-2);
+        this.state.fixtureRun={schema:'swissknife.native-supervisor-run.v1',run_id:body.run_id,
+          task_ids:{a:body.task_ids.a,b:body.task_ids.b},root_goal_cid:body.root_goal_cid,child_goal_cid:body.child_goal_cid,
+          stages:{a:{status:'not_run'},b:{status:'not_run'}},history:[{action:'create',run_id:body.run_id,outcome:'executed',...reference}]};
+        this.state.nativeStage='a';dispatch.recoveryNote='Run created. No worker has completed; explicitly run task A.';
+      } else {
+        if(body.run_id!==existing.run_id || body.task_key!==stage || body.task_id!==existing.task_ids[stage]) throw new Error('Owner returned a different run or task.');
+        if(body.status!=='completed'||!nativeDigest(body.output_sha256))throw new Error('Owner has not published validated task output.');
+        const prior=existing.stages?.[stage];
+        if(action==='read' && (!prior?.output_sha256 || prior.output_sha256!==body.output_sha256))throw new Error('Owner readback does not match the retained validated output.');
+        if(action!=='read' && (!nativeArtifact(body.execution?.producer,body.run_id)||!nativeArtifact(body.execution?.validator,body.run_id)
+          ||body.execution.producer.path===body.execution.validator.path))throw new Error('Distinct native producer and independent validator records are missing.');
+        const execution=action==='read'?prior.execution:body.execution;
+        existing.stages[stage]={status:'completed',task_id:body.task_id,output_sha256:body.output_sha256,execution,...reference};
+        this.state.nativeStage=stage;
+        existing.output_sha256=body.output_sha256;existing.last_validated_stage=stage;
+        // The owner returned one task status, never a goal/run completion.
+        delete existing.status;
+        existing.history=[...(existing.history||[]),{action,stage,run_id:body.run_id,task_id:body.task_id,status:body.status,
+          output_sha256:body.output_sha256,outcome:'executed',...reference}].slice(-12);
+        if(action==='read')this.state.nativeReadback={run_id:body.run_id,task_id:body.task_id,output_sha256:body.output_sha256,matched:true};
+        if(stage==='a')dispatch.recoveryNote='Dependency A now has actual validated output. Task B can be explicitly retried.';
+        else {
+          const taskADispatches=(existing.history||[]).filter(item=>item.action==='dispatch'&&item.stage==='a'&&item.outcome==='executed').length;
+          dispatch.recoveryNote=`The named dependency was repaired and task B completed with validated output without a duplicate dispatch of task A. Task A executed dispatches: ${taskADispatches}.`;
+        }
+      }
+      const run=this.state.fixtureRun;const current=run.stages?.[stage];
+      dispatch.result={accepted:current?.status==='completed',native_stage:stage,native_status:current?.status||'created',run_id:run.run_id,output_sha256:current?.output_sha256||'',
+        correlation_id:reference.correlation_id,receipt:{receipt_id:reference.receipt_id,cid:reference.receipt_id},
+        event_dag:{cid:reference.event_id,event_type:action},policy_class:'privileged-control',
+        note:current?.status==='completed'?'Actual native output passed its fixed independent validator. Heartbeat is not completion.':'Created only; no validated worker output yet.'};
+      this.rememberEvent(`${action} ${run.run_id} ${stage}: ${reference.receipt_id}; event ${reference.event_id}.`);
+      if (!this.persistBoard()) throw new Error('The browser could not retain native run identity for reopen.');
+      return true;
+    } catch(error) {
+      dispatch.error={reason:'owner_result_unverified',message:error instanceof Error?error.message:String(error)};
+      this.state.nativeReadback=null;return false;
+    } finally {
+      if(this.nativeOperation===operation){dispatch.submitting=false;dispatch.confirm=false;if(this.container===container && container?.isConnected){this.state.activeTab='dispatch';this.update();container.querySelector('[data-native-summary]')?.scrollIntoView?.({block:'nearest'});}}
+    }
+  }
+
+  renderNativeRun() {
+    const run=this.state.fixtureRun,stage=this.state.nativeStage||'a',current=run?.stages?.[stage],read=this.state.nativeReadback;
+    return `<section class="as-section-line" data-native-run data-native-summary data-native-run-state="${run?.task_ids?.a?'created':'none'}">
+      <h4>Bounded native task run</h4><span>Actual isolated supervisor tasks. The cached board is separate from this run.</span>
+      <span data-native-a-complete="${run?.stages?.a?.status==='completed'}">Task A: ${escapeHtml(run?.stages?.a?.status||'not created')}</span>
+      <span data-native-b-complete="${run?.stages?.b?.status==='completed'}">Task B: ${escapeHtml(run?.stages?.b?.status||'not created')}</span>
+      <span>Validated output <code style="overflow-wrap:anywhere" data-native-output-sha>${escapeHtml(current?.output_sha256||'not published')}</code></span>
+      <span data-native-readback="${read?.matched?'matched':'not_read'}">${read?.matched?'Owner readback matched the retained run, task and validated output.':'Reopen identity requires explicit owner readback.'}</span>
+      <span data-native-completion-caution>Heartbeat and progress percent are not completion.</span>
+      <label class="as-field"><span>Native run ID</span><input readonly data-native-run-id aria-label="Native run ID" value="${escapeHtml(run?.run_id||'')}" style="width:100%;min-width:0;font:inherit"></label>
+      <div class="as-actions"><button type="button" data-native-create ${this.state.dispatch.submitting?'disabled':''}>Create new run</button>
+      <button type="button" data-native-select-stage="a" ${!run?.task_ids?.a?'disabled':''}>Select native task A</button>
+      <button type="button" data-native-select-stage="b" ${!run?.task_ids?.b?'disabled':''}>Select native task B</button>
+      <button type="button" data-native-read ${!run?.stages?.a?.output_sha256?'disabled':''}>Read back saved A</button>
+      <button type="button" data-native-retry ${!run?.task_ids?.b?'disabled':''}>Retry native task B</button></div>
+      <details><summary>Task and result references</summary><div class="as-section-line">
+      <span>Task A ${escapeHtml(run?.task_ids?.a||'uncreated')}</span><span>Task B ${escapeHtml(run?.task_ids?.b||'uncreated')} depends on A</span>
+      <span>Goal ${escapeHtml(run?.root_goal_cid||'not returned')}; child ${escapeHtml(run?.child_goal_cid||'not returned')}</span>
+      <span>Owner receipt ${escapeHtml(current?.receipt_id||'none')}</span><span>Event DAG ${escapeHtml(current?.event_id||'none')}</span>
+      <span>Producer ${escapeHtml(current?.execution?.producer?.sha256||'not returned')}</span><span>Independent validator ${escapeHtml(current?.execution?.validator?.sha256||'not returned')}</span>
+      <span>${escapeHtml((run?.history||[]).map(item=>`${item.action} ${item.stage||''} ${item.outcome||item.status}: ${item.receipt_id}; ${item.event_id}`).join(' | '))}</span>
+      </div></details></section>`;
+  }
+
+  renderNativeTaskSummary() {
+    const run=this.state.fixtureRun;
+    if(!run?.task_ids?.a)return '';
+    const stage=this.state.nativeStage||'a',current=run.stages?.[stage];
+    return `<section class="as-section-line" data-native-active-result>
+      <h4>Native task ${escapeHtml(stage.toUpperCase())}: ${escapeHtml(current?.status||'not_run')}</h4>
+      <span style="overflow-wrap:anywhere">Run ${escapeHtml(run.run_id)}; task ${escapeHtml(run.task_ids[stage]||'not returned')}</span>
+      <span style="overflow-wrap:anywhere">Task B ${escapeHtml(run.task_ids.b)} depends on task A ${escapeHtml(run.task_ids.a)}.</span>
+      <span style="overflow-wrap:anywhere">Validated output SHA-256 ${escapeHtml(current?.output_sha256||'not published')}</span>
+      <span style="overflow-wrap:anywhere">Owner receipt ${escapeHtml(current?.receipt_id||'not returned')}; event ${escapeHtml(current?.event_id||'not returned')}</span>
+      <span>${this.state.nativeReadback?.matched?'Explicit owner readback matched this retained run, task and output.':'Task status and artifacts below are retained results, not a new owner readback.'} Goal completion is not inferred.</span>
+      <details><summary>Goal and independent validation references</summary>
+      <span style="overflow-wrap:anywhere">Goal ${escapeHtml(run.root_goal_cid)}; subgoal ${escapeHtml(run.child_goal_cid)}</span>
+      <span style="overflow-wrap:anywhere">Producer ${escapeHtml(current?.execution?.producer?.path||'not returned')} (${escapeHtml(current?.execution?.producer?.sha256||'none')})</span>
+      <span style="overflow-wrap:anywhere">Independent validator ${escapeHtml(current?.execution?.validator?.path||'not returned')} (${escapeHtml(current?.execution?.validator?.sha256||'none')})</span></details>
+      </section>`;
+  }
+
+  rememberEvent(message) {
+    const entry = { at: new Date().toISOString(), message: String(message || '').slice(0, 500) };
+    this.state.events = [...(this.state.events || []), entry].slice(-12);
+  }
+
+  restoreBoard() {
+    try {
+      if (typeof sessionStorage === 'undefined') return;
+      const raw = sessionStorage.getItem('agent-supervisor-board');
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (!saved || typeof saved !== 'object') return;
+      for (const key of ['selectedGoalId', 'selectedSubgoalId', 'selectedTaskId', 'selectedReceiptId', 'activeTab']) {
+        if (typeof saved[key] === 'string') this.state[key] = saved[key];
+      }
+      if (saved.fixtureRun && nativeUUID(saved.fixtureRun.run_id)) {
+        const value=saved.fixtureRun;
+        this.state.fixtureRun={...value,stages:value.stages&&typeof value.stages==='object'?value.stages:{},history:Array.isArray(value.history)?value.history.slice(-12):[]};
+        this.state.nativeReadback=null;
+      }
+      if(Array.isArray(saved.fixtureHistory))this.state.fixtureHistory=saved.fixtureHistory.slice(-2);
+      if(['a','b'].includes(saved.nativeStage))this.state.nativeStage=saved.nativeStage;
+      if (Array.isArray(saved.events)) {
+        this.state.events = saved.events.filter(item => item && typeof item.message === 'string').slice(-12);
+      }
+      if (typeof saved.recoveryNote === 'string') this.state.dispatch.recoveryNote = saved.recoveryNote;
+    } catch (_err) {
+      // Ignore unreadable board storage and keep the in-memory snapshot.
+    }
+  }
+
+  persistBoard() {
+    try {
+      if (typeof sessionStorage === 'undefined') return;
+      sessionStorage.setItem('agent-supervisor-board', JSON.stringify({
+        selectedGoalId: this.state.selectedGoalId,
+        selectedSubgoalId: this.state.selectedSubgoalId,
+        selectedTaskId: this.state.selectedTaskId,
+        selectedReceiptId: this.state.selectedReceiptId,
+        activeTab: this.state.activeTab,
+        fixtureRun: this.state.fixtureRun,
+        fixtureHistory: this.state.fixtureHistory,
+        nativeStage: this.state.nativeStage,
+        events: this.state.events || [],
+        recoveryNote: this.state.dispatch.recoveryNote || '',
+      }));
+    } catch (_err) {
+      // A native operation must not claim reopen retention on storage failure.
+      return false;
+    }
+    return true;
+  }
+
+  dependencyCopy(task) {
+    const unresolved = unresolvedDependencyIds([task.task_id], this.state.snapshot);
+    if (unresolved.length) {
+      return `Dependency blocker: ${unresolved.join(', ')} is not validated. Heartbeat and progress percent are not completion.`;
+    }
+    return 'No open dependency. Completion still requires validated output. Heartbeat and progress percent are not completion.';
+  }
+
+  fixtureCopy() {
+    const run = this.state.fixtureRun;
+    if (!run?.run_id) return 'No validated fixture output yet.';
+    return `Retained run ${run.run_id}; ${run.output_sha256 ? `last validated task ${(run.last_validated_stage||'a').toUpperCase()} output ${run.output_sha256}` : 'no validated task output yet'}. Goal completion is not inferred from a task result.`;
+  }
+
+  reassignmentCopy() {
+    const stalled = this.state.snapshot.queue.find(item => item.reassignment);
+    if (!stalled) return 'No stalled-task reassignment is recorded.';
+    return `Reassignment ${stalled.task_id}: ${stalled.reassignment}.`;
+  }
+
+  eventCopy() {
+    const events = this.state.events || [];
+    if (!events.length) return 'No retained events.';
+    return events.map(item => item.message).join(' ');
   }
 
   async retrieveSelectedReceiptContent() {
@@ -956,7 +1220,7 @@ export class AgentSupervisorApp {
   renderRoot() {
     const status = this.state.status;
     return `
-      <div class="agent-supervisor" data-agent-supervisor-root data-testid="agent-supervisor-app" data-state="${escapeHtml(status)}" data-transport="${escapeHtml(this.state.transportMode)}">
+      <div class="agent-supervisor" data-agent-supervisor-root data-testid="agent-supervisor-app" data-active-tab="${escapeHtml(this.state.activeTab)}" data-state="${escapeHtml(status)}" data-transport="${escapeHtml(this.state.transportMode)}">
         ${this.renderHeader()}
         ${status === 'loading' ? this.renderLoading() : ''}
         ${status === 'empty' ? this.renderEmpty() : ''}
@@ -984,10 +1248,10 @@ export class AgentSupervisorApp {
         </div>
       </header>
       <section class="as-health-band" aria-label="Supervisor health" data-testid="supervisor-health">
-        ${metric('Status', health.status || 'unavailable')}
-        ${metric('Active goals', String(health.active_goal_count ?? 0))}
-        ${metric('Queued', String(health.queued_task_count ?? 0))}
-        ${metric('Running', String(health.running_task_count ?? 0))}
+        ${metric(this.state.fixtureRun?'Cached status':'Status', health.status || 'unavailable')}
+        ${metric(this.state.fixtureRun?'Cached goals':'Active goals', String(health.active_goal_count ?? 0))}
+        ${metric(this.state.fixtureRun?'Cached queue':'Queued', String(health.queued_task_count ?? 0))}
+        ${metric(this.state.fixtureRun?'Cached running':'Running', String(health.running_task_count ?? 0))}
         ${metric('Mode', this.state.transportMode)}
       </section>
     `;
@@ -1133,10 +1397,11 @@ export class AgentSupervisorApp {
     const runs = runHistory.filter(item => item.task_id === task.task_id);
     return `
       <div class="as-detail-body" data-testid="active-task">
+        ${this.renderNativeTaskSummary()}
         <div class="as-active-heading">
           <span class="as-status ${escapeHtml(task.status)}"></span>
           <div>
-            <h3>${escapeHtml(task.task_id)}</h3>
+            <h3>${this.state.fixtureRun?'Cached board task ':''}${escapeHtml(task.task_id)}</h3>
             <p>${escapeHtml(task.title)}</p>
           </div>
         </div>
@@ -1148,6 +1413,12 @@ export class AgentSupervisorApp {
           ${metric('Progress', `${Number(task.progress ?? 0)}%`)}
           ${metric('Assignee', task.assignee || 'unassigned')}
           ${metric('Timeout/Reassign', task.reassignment || 'within lease')}
+        </div>
+        <div class="as-section-line" data-testid="dependency-blocker">
+          <h4>Dependency and output</h4>
+          <span>${escapeHtml(this.dependencyCopy(task))}</span>
+          <span>${escapeHtml(this.fixtureCopy())}</span>
+          <span>${escapeHtml(this.eventCopy())}</span>
         </div>
         <div class="as-section-line">
           <h4>Taskboard links</h4>
@@ -1250,42 +1521,60 @@ export class AgentSupervisorApp {
     const dispatch = this.state.dispatch;
     const result = dispatch.result;
     const error = dispatch.error;
-    const canSubmit = task && dispatch.reason.trim() && dispatch.confirm && !dispatch.submitting;
+    const unresolved = task ? unresolvedDependencyIds([task.task_id], this.state.snapshot) : [];
+    const showRepair = Boolean(dispatch.recoveryNote) || unresolved.length > 0 || dispatch.error?.reason === 'dependency_blocked';
+    const canSubmit = Boolean(dispatch.confirm && !dispatch.submitting);
     const dispatchErrorId = 'agent-supervisor-dispatch-error';
     const reasonBinding = error ? fieldErrorBinding(dispatchErrorId) : '';
     const confirmBinding = error && error.reason === 'confirmation_required' ? fieldErrorBinding(dispatchErrorId) : '';
     const submitDescribed = error ? ` aria-describedby="${dispatchErrorId}"` : '';
     return `
       <div class="as-detail-body as-dispatch" data-testid="dispatch-panel">
+        ${this.renderNativeRun()}
         <div class="as-active-heading">
           <span class="as-status ${task ? task.status : 'blocked'}"></span>
           <div>
-            <h3>Governed task dispatch</h3>
-            <p>${escapeHtml(task ? `${task.task_id} ${task.title}` : 'No task selected')}</p>
+            <h3>Bounded native task dispatch</h3>
+            <p>${escapeHtml(this.nativeTaskId() ? `Native task ${(this.state.nativeStage||'a').toUpperCase()} ${this.nativeTaskId()}` : 'Create an isolated native run; the cached board remains separate.')}</p>
+            ${unresolved.length ? `<p data-testid="dispatch-named-blocker">Cached board blocker: ${escapeHtml(unresolved.join(', '))}. Heartbeat and progress percent are not completion.</p>` : ''}
           </div>
         </div>
+
+        <label class="as-confirm-line">
+          <input type="checkbox" id="agent-supervisor-dispatch-confirm" data-dispatch-confirm data-testid="dispatch-confirm" ${dispatch.confirm ? 'checked' : ''}${confirmBinding}>
+          <span>Confirm the next bounded native task action; the gateway will request its separate real consent.</span>
+        </label>
+        <div class="as-actions as-steering-actions">
+          ${showRepair ? '<button type="button" data-action="repair-blocker" data-testid="dispatch-repair" data-supervisor-focusable>Repair the named blocker</button>' : ''}
+          <button type="button" data-action="submit-dispatch" data-testid="dispatch-submit" data-supervisor-focusable aria-disabled="${canSubmit ? 'false' : 'true'}"${submitDescribed}>${dispatch.submitting ? 'Dispatching' : `Run native task ${(this.state.nativeStage||'a').toUpperCase()}`}</button>
+        </div>
+        <div class="as-section-line" data-testid="dispatch-outcome">
+          <h4>Validated output and blocker</h4>
+          <span>Cached board: ${escapeHtml(task ? this.dependencyCopy(task) : 'No cached task selected.')}</span>
+          <span>${escapeHtml(this.fixtureCopy())}</span>
+          <span>${escapeHtml(this.eventCopy())}</span>
+          ${dispatch.blockerMessage ? `<span>${escapeHtml(dispatch.blockerMessage)}</span>` : ''}
+          ${dispatch.recoveryNote ? `<span data-testid="dispatch-recovery-note">${escapeHtml(dispatch.recoveryNote)}</span>` : ''}
+        </div>
         <div class="as-inline-grid" data-testid="dispatch-review">
-          ${metric('Action', 'claim')}
+          ${metric('Action', this.state.fixtureRun?.task_ids?.a?'dispatch':'create')}
           ${metric('Policy class', 'privileged-control')}
           ${metric('Owner', 'ipfs_accelerate_py')}
-          ${metric('Target', task ? `task:${task.task_id}` : 'unselected')}
+          ${metric('Target', this.nativeTaskId()||'new isolated native run')}
         </div>
         <div class="as-section-line">
           <h4>Planned MCP action</h4>
-          <code>agent_supervisor.task_control.request</code>
+          <code>WorkflowCoordinator.submit_task / get_task</code>
           <span>Structured browser-safe request; no direct file or process access.</span>
           <span>Checks target authorization, dependencies, confirmation, execution budget, receipt persistence, and event-DAG append.</span>
         </div>
         <label class="as-field">
-          <span>Dispatch reason</span>
+          <span>Local operator note</span>
           <textarea id="agent-supervisor-dispatch-reason" data-dispatch-reason data-testid="dispatch-reason" maxlength="1000" spellcheck="false"${reasonBinding}>${escapeHtml(dispatch.reason)}</textarea>
         </label>
-        <label class="as-confirm-line">
-          <input type="checkbox" id="agent-supervisor-dispatch-confirm" data-dispatch-confirm data-testid="dispatch-confirm" ${dispatch.confirm ? 'checked' : ''}${confirmBinding}>
-          <span>Confirm this governed task dispatch for the reviewed task and policy.</span>
-        </label>
-        <div class="as-actions as-steering-actions">
-          <button type="button" data-action="submit-dispatch" data-testid="dispatch-submit" data-supervisor-focusable aria-disabled="${canSubmit ? 'false' : 'true'}"${submitDescribed}>${dispatch.submitting ? 'Dispatching' : 'Dispatch task'}</button>
+        <div class="as-section-line">
+          <span>${escapeHtml(this.reassignmentCopy())}</span>
+          <span>${escapeHtml(this.eventCopy())}</span>
         </div>
         ${error ? `
           <div class="as-state as-error" id="${dispatchErrorId}" data-testid="dispatch-error" role="alert">
@@ -1298,11 +1587,14 @@ export class AgentSupervisorApp {
             ${metric('Correlation', result.correlation_id)}
             ${metric('Receipt', result.receipt?.receipt_id || 'pending')}
             ${metric('CID', result.receipt?.cid || 'pending')}
-            ${metric('Accepted', String(result.accepted))}
+            ${metric('Validated output', String(result.accepted))}
             ${metric('Policy', result.policy_class || 'privileged-control')}
             ${metric('Event DAG', result.event_dag?.cid || 'pending')}
             ${metric('Event', result.event_dag?.event_type || 'task-dispatched')}
-            ${metric('State', task?.status || 'unknown')}
+            ${metric('Run', result.run_id || 'unpublished')}
+            ${metric('Output', result.output_sha256 || 'unpublished until validated')}
+            ${metric('Completion', result.note || 'Heartbeat is not completion')}
+            ${metric('Native state', result.native_status || 'unknown')}
           </div>
         ` : ''}
       </div>
@@ -1503,7 +1795,8 @@ export class AgentSupervisorApp {
     const progressSummary = snapshot.queue.map(task => `${task.task_id}:${Number(task.progress ?? 0)}%`).join(' ');
     const reassignment = snapshot.queue.find(task => task.reassignment) || selectedTask;
     return `
-      <section class="as-workflow-proof" data-svd-workflow="agent-supervisor.steer-goals-subgoals-dispatch" data-testid="agent-supervisor-vda-g054">
+      <details class="as-workflow-proof" data-svd-workflow="agent-supervisor.steer-goals-subgoals-dispatch" data-testid="agent-supervisor-vda-g054">
+        <summary>Workflow evidence</summary>
         <div class="as-workflow-proof-head">
           <h3>VDA-G054 workflow evidence</h3>
           <span>Bounded goal steering, dispatch, K/D/A receipts, timeout recovery, and taskboard visibility.</span>
@@ -1552,14 +1845,14 @@ export class AgentSupervisorApp {
             <span>${refText(7)}${receiptCount} receipts visible; selected ${escapeHtml(this.state.selectedReceiptId || 'none')}; event-DAG checkpoint and receipt retrieval controls are visible.</span>
           </div>
         </div>
-      </section>
+      </details>
     `;
   }
 
   renderStyles() {
     return `
       <style>
-        .agent-supervisor { height: 100%; min-height: 520px; background: #0e1412; color: #edf7f2; font: 13px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow: auto; }
+        .agent-supervisor { height: 100%; width: 100%; max-height: 100%; min-height: 0; display: flex; flex-direction: column; background: #0e1412; color: #edf7f2; font: 13px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow: hidden; overscroll-behavior: none; container-type: inline-size; container-name: asapp; }
         .agent-supervisor * { box-sizing: border-box; }
         .as-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-bottom: 1px solid #263a34; background: #12211d; }
         .as-header h2, .as-pane-title h3, .as-active-heading h3 { margin: 0; letter-spacing: 0; }
@@ -1572,15 +1865,17 @@ export class AgentSupervisorApp {
         .as-actions button[aria-disabled="true"] { color: #9eb2aa; border-color: #315248; }
         .as-actions button:hover, .as-actions a:hover, .as-tabs button:hover, .as-row:hover, .as-queue-row:hover, .as-receipt-list button:hover, .as-section-line button:hover, .as-state button:hover { border-color: #5fb99d; }
         .as-actions button:focus-visible, .as-actions a:focus-visible, .as-tabs button:focus-visible, .as-row:focus-visible, .as-queue-row:focus-visible, .as-receipt-list button:focus-visible, .as-section-line button:focus-visible, .as-state button:focus-visible, .as-proof-actions button:focus-visible { outline: 2px solid #8bd8bd; outline-offset: 2px; }
-        .as-health-band, .as-inline-grid { display: grid; grid-template-columns: repeat(5, minmax(96px, 1fr)); gap: 1px; background: #263a34; border-bottom: 1px solid #263a34; }
+        .as-health-band, .as-inline-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: 1px; background: #263a34; border-bottom: 1px solid #263a34; }
         .as-metric { background: #101b18; padding: 10px 12px; min-width: 0; }
         .as-metric span { display: block; color: #91a79d; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
-        .as-metric strong { display: block; overflow-wrap: anywhere; font-size: 13px; }
-        .as-layout { display: grid; grid-template-columns: minmax(220px, 0.9fr) minmax(260px, 1.1fr) minmax(320px, 1.4fr); gap: 1px; background: #263a34; min-height: 430px; }
-        .as-pane { background: #0e1412; min-width: 0; overflow: auto; }
-        .as-pane-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-bottom: 1px solid #263a34; background: #101b18; position: sticky; top: 0; z-index: 1; }
+        .as-metric strong { display: block; overflow-wrap: break-word; word-break: normal; font-size: 13px; max-width: 100%; }
+        .as-layout { display: flex; flex-direction: column; gap: 1px; background: #263a34; flex: 1 1 auto; min-height: 0; overflow: hidden; overscroll-behavior: contain; }
+        .as-pane { background: #0e1412; min-width: 0; min-height: 0; overflow: auto; }
+        .as-pane.as-detail { order: -1; flex: 1 1 16rem; display: flex; flex-direction: column; overflow: hidden; min-height: 16rem; }
+        .as-pane.as-goals, .as-pane.as-queue { flex: 0 0 auto; max-height: 12rem; overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; }
+        .as-pane-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-bottom: 1px solid #263a34; background: #101b18; }
         .as-tree, .as-queue-list, .as-detail-body, .as-backends { display: grid; gap: 12px; padding: 12px; align-content: start; }
-        .as-detail-body { padding-bottom: 24px; }
+        .as-detail-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding-bottom: 24px; }
         .as-tree-children { display: grid; gap: 6px; margin: 6px 0 10px 18px; }
         .as-row, .as-queue-row { width: 100%; display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 9px; text-align: left; }
         .as-subgoal { grid-template-columns: 10px minmax(0, 1fr); background: #101b18; }
@@ -1593,19 +1888,23 @@ export class AgentSupervisorApp {
         .as-status.healthy, .as-status.available, .as-status.ready, .as-status.completed { background: #5ee3a1; }
         .as-status.running, .as-status.waiting, .as-status.degraded { background: #ffd166; }
         .as-status.blocked, .as-status.failed, .as-status.unavailable { background: #ff6b6b; }
-        .as-tabs { display: grid; grid-template-columns: repeat(6, minmax(66px, 1fr)); gap: 1px; background: #263a34; border-bottom: 1px solid #263a34; }
-        .as-tabs button { border-radius: 0; border: 0; border-right: 1px solid #263a34; }
-        .as-active-heading { display: flex; align-items: flex-start; gap: 10px; padding: 4px 0 8px; }
+        .as-tabs { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 1px; background: #263a34; border-bottom: 1px solid #263a34; overflow: visible; }
+        .as-tabs button { flex: 0 0 auto; white-space: nowrap; border-radius: 0; border: 0; border-right: 1px solid #263a34; }
+        .as-tabs button.is-selected { box-shadow: inset 0 0 0 2px #8bd8bd; }
+        .as-active-heading { display: flex; align-items: flex-start; gap: 10px; padding: 4px 0 8px; min-width: 0; }
+        .as-active-heading > div { min-width: 0; }
+        .as-active-heading h3, .as-active-heading p { overflow-wrap: break-word; }
         .as-active-heading .as-status { margin-top: 5px; flex: none; }
         .as-active-heading p { margin: 4px 0 0; }
-        .as-detail .as-inline-grid { grid-template-columns: repeat(4, minmax(80px, 1fr)); border: 1px solid #263a34; }
-        .as-section-line { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid #263a34; align-content: start; }
+        .as-detail .as-inline-grid { grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); border: 1px solid #263a34; }
+        .as-section-line { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid #263a34; align-content: start; min-width: 0; max-width: 100%; }
+        .as-section-line > * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
         .as-section-line h4 { margin: 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #a8bbb2; }
         .as-section-line a { color: #8bd8bd; overflow-wrap: anywhere; }
         .as-section-line code { background: #17241f; border: 1px solid #263a34; border-radius: 4px; padding: 4px 6px; overflow-wrap: anywhere; }
         .as-field { display: grid; gap: 6px; }
         .as-field > span { color: #a8bbb2; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
-        .as-field textarea { min-height: 132px; resize: vertical; border: 1px solid #315248; border-radius: 6px; background: #101b18; color: #edf7f2; padding: 10px; font: inherit; width: 100%; }
+        .as-field textarea { min-height: 64px; resize: vertical; border: 1px solid #315248; border-radius: 6px; background: #101b18; color: #edf7f2; padding: 10px; font: inherit; width: 100%; }
         .as-field textarea:focus-visible { outline: 2px solid #8bd8bd; outline-offset: 2px; }
         .as-confirm-line { display: flex; align-items: flex-start; gap: 10px; border: 1px solid #4a3d24; border-left: 3px solid #ffd166; border-radius: 6px; background: rgba(255, 209, 102, 0.07); padding: 10px 12px; }
         .as-confirm-line input { margin-top: 3px; flex: none; accent-color: #ffd166; }
@@ -1627,7 +1926,8 @@ export class AgentSupervisorApp {
         .as-gateway-row strong { color: #edf7f2; font-weight: 600; }
         .as-gateway-head { background: #17241f; }
         .as-gateway-head span, .as-gateway-head strong { color: #91a79d; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
-        .as-workflow-proof { display: grid; gap: 12px; padding: 12px; border-top: 1px solid #263a34; background: #101b18; }
+        .as-workflow-proof { display: grid; gap: 12px; padding: 12px; border-top: 1px solid #263a34; background: #101b18; flex: 0 1 auto; min-height: 0; max-height: 32%; overflow: auto; overscroll-behavior: contain; }
+        .as-workflow-proof > summary { cursor: pointer; color: #edf7f2; }
         .as-workflow-proof-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
         .as-workflow-proof-head h3 { margin: 0; font-size: 14px; font-weight: 650; letter-spacing: 0; }
         .as-workflow-proof-head span { color: #a8bbb2; }
@@ -1649,27 +1949,50 @@ export class AgentSupervisorApp {
         }
         @media (max-width: 1024px) {
           .as-layout { grid-template-columns: 1fr; }
-          .as-health-band { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+          .as-health-band { grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); }
           .as-detail .as-inline-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .as-proof-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .as-steering-result { grid-template-columns: 1fr; }
           .as-receipt-detail { grid-template-columns: 1fr; }
         }
         @media (max-width: 760px) {
-          .agent-supervisor { min-height: 640px; }
+          .agent-supervisor { min-height: 0; }
           .as-header { align-items: flex-start; flex-direction: column; }
-          .as-health-band, .as-inline-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .as-layout { grid-template-columns: 1fr; }
-          .as-pane { max-height: none; }
-          .as-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .as-inline-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .as-layout { display: flex; flex-direction: column; }
+          .as-pane.as-goals, .as-pane.as-queue { max-height: 6.5rem; overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; }
+          .as-pane.as-detail { min-height: 0; flex: 1 1 auto; }
+          .agent-supervisor[data-active-tab="dispatch"] .as-pane.as-goals,
+          .agent-supervisor[data-active-tab="dispatch"] .as-pane.as-queue { display: none; }
+          .agent-supervisor[data-active-tab="dispatch"] .as-pane.as-detail { flex: 1 1 0; min-height: 0; }
+          .as-tabs { flex-wrap: wrap; overflow: visible; }
+          .as-tabs button { flex: 1 1 auto; }
           .as-steering-result { grid-template-columns: 1fr; }
           .as-backend-row { grid-template-columns: 10px minmax(0, 1fr); }
           .as-backend-row span { overflow-wrap: anywhere; }
           .as-gateway-row { min-width: 1080px; }
           .as-proof-grid { grid-template-columns: 1fr; }
         }
+        @container asapp (max-width: 860px) {
+          .as-layout { grid-template-columns: 1fr; }
+          .as-header { align-items: flex-start; flex-direction: column; }
+          .as-inline-grid, .as-detail .as-inline-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .as-tabs { flex-wrap: wrap; overflow: visible; }
+          .as-tabs button { flex: 1 1 auto; }
+          .as-proof-grid, .as-steering-result, .as-receipt-detail { grid-template-columns: 1fr; }
+        }
       </style>
     `;
+  }
+
+  revealInPane(paneSelector, rowSelector) {
+    const pane = this.container?.querySelector(paneSelector);
+    const row = this.container?.querySelector(rowSelector);
+    if (!pane || !row || typeof row.getBoundingClientRect !== 'function') return;
+    const paneBox = pane.getBoundingClientRect();
+    const rowBox = row.getBoundingClientRect();
+    if (rowBox.height > paneBox.height || rowBox.top < paneBox.top) pane.scrollTop -= paneBox.top - rowBox.top;
+    else if (rowBox.bottom > paneBox.bottom) pane.scrollTop += rowBox.bottom - paneBox.bottom;
   }
 }
 
@@ -1736,7 +2059,8 @@ function runRecord(runId, goalId, subgoalId, taskId, status, receiptId) {
 
 function metric(label, value, cls = '') {
   const extra = cls ? ` ${cls}` : '';
-  return `<div class="as-metric${extra}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+  const readable = escapeHtml(value).replace(/([_:-])/g, '$1<wbr>');
+  return `<div class="as-metric${extra}"><span>${escapeHtml(label)}</span><strong>${readable}</strong></div>`;
 }
 
 function workflowActionButton(action, label) {
@@ -2072,6 +2396,46 @@ function upsertReceipt(receipts, receiptRef) {
   const next = receipts.filter(item => item.receipt_id !== receiptRef.receipt_id);
   next.unshift(receiptRef);
   return next;
+}
+
+function nativeUUID(value) { return typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value); }
+function nativeDigest(value) { return typeof value==='string'&&/^[0-9a-f]{64}$/.test(value); }
+function nativeArtifact(value,run) { return value&&typeof value.path==='string'&&value.path.startsWith('/')&&value.path.length<=2048&&!value.path.includes('..')&&new RegExp('/data/agent_supervisor/swissknife_visual_functional/backends/supervisor-fixtures/'+run+'/attempts/([0-9a-f-]{36})/result\\.json$').test(value.path)&&nativeUUID(value.path.split('/attempts/').at(-1).split('/')[0])&&nativeDigest(value.sha256); }
+function nativeGatewayReference(value,tool) {
+  const r=value?.receipt, event=r?.event_dag_refs?.[0], cid=r?.receipt_id;
+  if(value?.owner!=='ipfs_accelerate_py'||value.tool_id!==tool||!['http','libp2p'].includes(value.transport)
+      ||typeof value.correlation_id!=='string'||r?.owner!==value.owner||r.tool_id!==tool||r.transport!==value.transport
+      ||r.correlation_id!==value.correlation_id||r.outcome!==value.outcome||r.policy_outcome!=='require_confirmation'
+      ||!/^b[a-z2-7]{58}$/.test(cid||'')||!/^b[a-z2-7]{58}$/.test(event||'')
+      ||r.persistence?.status!=='persisted'||r.persistence.receipt_cid!==cid||r.persistence.event_cid!==event)return null;
+  return {receipt_id:cid,event_id:event,correlation_id:value.correlation_id};
+}
+
+function nativeFixtureBody(value, depth = 0) {
+  if (!value || typeof value !== 'object' || depth > 6) return null;
+  if (value.isError === true || value.success === false) return null;
+  if (typeof value.run_id === 'string' && value.run_id && value.success === true) return value;
+  if (Array.isArray(value.content)) {
+    for (const item of value.content) {
+      const found = nativeFixtureBody(item?.json || item, depth + 1);
+      if (found) return found;
+    }
+  }
+  for (const key of ['result', 'data', 'json']) {
+    const found = nativeFixtureBody(value[key], depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+function nativeFailureMessage(value,depth=0) {
+  if(!value||typeof value!=='object'||depth>6)return 'Governed dispatch did not return validated output.';
+  for(const key of ['message','error','reason','code'])if(typeof value[key]==='string'&&value[key].trim())return value[key].slice(0,500);
+  for(const key of ['error','result','data','json','content'])if(value[key]&&typeof value[key]==='object'){
+    if(Array.isArray(value[key])){for(const item of value[key].slice(0,8)){const message=nativeFailureMessage(item,depth+1);if(!message.startsWith('Governed dispatch did not'))return message;}continue;}
+    const message=nativeFailureMessage(value[key],depth+1);if(!message.startsWith('Governed dispatch did not'))return message;
+  }
+  return 'Governed dispatch did not return validated output.';
 }
 
 function isAvailableResult(result) {

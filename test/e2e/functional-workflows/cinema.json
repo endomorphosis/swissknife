@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "cinema",
-  "description": "Retrieve and CID-verify an actual controlled clip through the declared native owner, decode/play it, persist and reopen its exact source/trim, then retain playback while unsupported export is reported honestly.",
+  "description": "Retrieve and CID-verify the real controlled source, trim it, record and natively decode a bounded WebM with the browser MediaRecorder, persist actual output bytes through governed consent, save/reopen its project/output reference, retain all prior MP4/FLV unsupported checks, and genuinely record/persist/play a supported WebM retry.",
   "fixture_scope": "svf-cinema-project-media",
   "backend_bindings": [
     {
@@ -60,6 +60,36 @@
         "op": "fill",
         "selector": "[data-cinema-trim=\"out\"]",
         "value": "2"
+      },
+      {
+        "op": "select",
+        "selector": "[data-cinema-codec]",
+        "value": "webm"
+      },
+      {
+        "op": "click",
+        "selector": "[data-cinema-workflow=\"simulate-failed-export\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"cinema.ipfs_kit_py.persist_artifact\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"cinema.ipfs_kit_py.persist_artifact\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-cinema-output-reference][data-output-state=\"decoded\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-cinema-output-reference]",
+        "key": "Tab"
       },
       {
         "op": "click",
@@ -121,8 +151,8 @@
       },
       {
         "op": "wait_for",
-        "selector": "[data-cinema-video][data-decoded-cid=\"bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla\"]",
-        "state": "visible",
+        "selector": "[data-cinema-source-video][data-decoded-cid=\"bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla\"]",
+        "state": "attached",
         "timeout_ms": 15000
       },
       {
@@ -147,32 +177,52 @@
         "key": "Tab"
       },
       {
+        "op": "wait_for",
+        "selector": "[data-cinema-output-reference][data-output-state=\"decoded\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-cinema-output-reference]",
+        "key": "Tab"
+      },
+      {
         "op": "assert",
-        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "value",
+          "selector": "[data-cinema-output-reference]"
+        },
+        "operator": "not_equals",
+        "expected": ""
+      },
+      {
+        "op": "assert",
         "probe": {
           "kind": "json_attribute",
           "selector": "[data-cinema-selection]",
           "attribute": "data-cinema-selection-state",
-          "pointer": "/selection"
+          "pointer": "/selection_serialized"
         },
         "operator": "equals",
-        "expected": {
-          "source": {
-            "cid": "bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla",
-            "sha256": "833fba0fa9f76ac76584f5e1e599430b1e97c31b780938987fe37ea6dc668758",
-            "size": 29035,
-            "mime": "video/webm"
-          },
-          "trim": {
-            "in": 0,
-            "out": 2
-          },
-          "track_order": [
-            "video"
-          ],
-          "saved": true,
-          "decoded": true
-        }
+        "expected": "{\"decoded\":true,\"saved\":true,\"source\":{\"cid\":\"bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla\",\"mime\":\"video/webm\",\"sha256\":\"833fba0fa9f76ac76584f5e1e599430b1e97c31b780938987fe37ea6dc668758\",\"size\":29035},\"track_order\":[\"video\"],\"trim\":{\"in\":0,\"out\":2}}"
+      },
+      {
+        "op": "press",
+        "selector": "[data-cinema-play]",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "media_state",
+          "selector": "[data-cinema-video]",
+          "pointer": "/current_time",
+          "temporal_ms": 250
+        },
+        "operator": "at_least",
+        "expected": 0.05
       }
     ],
     "failure_recovery": [
@@ -215,6 +265,56 @@
         "selector": "[data-cinema-export-outcome][data-export-state=\"unsupported\"]",
         "state": "visible",
         "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "[data-cinema-export-outcome]"
+        },
+        "operator": "contains",
+        "expected": "Supported codec mp4 retried"
+      },
+      {
+        "op": "press",
+        "selector": "[data-cinema-play]",
+        "key": "Enter"
+      },
+      {
+        "op": "select",
+        "selector": "[data-cinema-codec]",
+        "value": "webm"
+      },
+      {
+        "op": "click",
+        "selector": "[data-cinema-workflow=\"simulate-failed-export\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"cinema.ipfs_kit_py.persist_artifact\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"cinema.ipfs_kit_py.persist_artifact\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-cinema-export-outcome][data-export-state=\"persisted\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-cinema-output-reference][data-output-state=\"decoded\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-cinema-output-reference]",
+        "key": "Tab"
       },
       {
         "op": "press",
