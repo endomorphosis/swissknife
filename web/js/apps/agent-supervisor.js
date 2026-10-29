@@ -975,19 +975,20 @@ export class AgentSupervisorApp {
   renderNativeRun() {
     const run=this.state.fixtureRun,stage=this.state.nativeStage||'a',current=run?.stages?.[stage],read=this.state.nativeReadback;
     return `<section class="as-section-line" data-native-run data-native-summary data-native-run-state="${run?.task_ids?.a?'created':'none'}">
-      <h4>Bounded native task run</h4><span>Actual isolated supervisor tasks. The cached board is separate from this run.</span>
-      <span data-native-a-complete="${run?.stages?.a?.status==='completed'}">Task A: ${escapeHtml(run?.stages?.a?.status||'not created')}</span>
-      <span data-native-b-complete="${run?.stages?.b?.status==='completed'}">Task B: ${escapeHtml(run?.stages?.b?.status||'not created')}</span>
+      <h4>Bounded native task run</h4>
+      <label class="as-field as-native-identity"><span>Native run ID</span><input readonly data-native-run-id aria-label="Native run ID" value="${escapeHtml(run?.run_id||'')}" placeholder="Create a run to obtain its ID"></label>
+      <div class="as-native-status"><span data-native-a-complete="${run?.stages?.a?.status==='completed'}">Task A: ${escapeHtml(run?.stages?.a?.status||'not created')}</span>
+      <span data-native-b-complete="${run?.stages?.b?.status==='completed'}">Task B: ${escapeHtml(run?.stages?.b?.status||'not created')}</span></div>
       <span>Validated output <code style="overflow-wrap:anywhere" data-native-output-sha>${escapeHtml(current?.output_sha256||'not published')}</code></span>
-      <span data-native-readback="${read?.matched?'matched':'not_read'}">${read?.matched?'Owner readback matched the retained run, task and validated output.':'Reopen identity requires explicit owner readback.'}</span>
-      <span data-native-completion-caution>Heartbeat and progress percent are not completion.</span>
-      <label class="as-field"><span>Native run ID</span><input readonly data-native-run-id aria-label="Native run ID" value="${escapeHtml(run?.run_id||'')}" style="width:100%;min-width:0;font:inherit"></label>
+      <span data-native-readback="${read?.matched?'matched':'not_read'}">${read?.matched?'Saved A: owner readback matched.':'Saved A: not read back in this session.'}</span>
       <div class="as-actions"><button type="button" data-native-create ${this.state.dispatch.submitting?'disabled':''}>Create new run</button>
       <button type="button" data-native-select-stage="a" ${!run?.task_ids?.a?'disabled':''}>Select native task A</button>
       <button type="button" data-native-select-stage="b" ${!run?.task_ids?.b?'disabled':''}>Select native task B</button>
-      <button type="button" data-native-read ${!run?.stages?.a?.output_sha256?'disabled':''}>Read back saved A</button>
-      <button type="button" data-native-retry ${!run?.task_ids?.b?'disabled':''}>Retry native task B</button></div>
+      <button type="button" data-native-read ${!run?.stages?.a?.output_sha256?'disabled':''}>Read back saved A</button></div>
       <details><summary>Task and result references</summary><div class="as-section-line">
+      <span>Actual isolated supervisor tasks. The cached board is separate from this run.</span>
+      <span>${read?.matched?'Owner readback matched the retained run, task and validated output.':'Reopen identity requires explicit owner readback.'}</span>
+      <span data-native-completion-caution>Heartbeat and progress percent are not completion.</span>
       <span>Task A ${escapeHtml(run?.task_ids?.a||'uncreated')}</span><span>Task B ${escapeHtml(run?.task_ids?.b||'uncreated')} depends on A</span>
       <span>Goal ${escapeHtml(run?.root_goal_cid||'not returned')}; child ${escapeHtml(run?.child_goal_cid||'not returned')}</span>
       <span>Owner receipt ${escapeHtml(current?.receipt_id||'none')}</span><span>Event DAG ${escapeHtml(current?.event_id||'none')}</span>
@@ -1524,12 +1525,32 @@ export class AgentSupervisorApp {
     const unresolved = task ? unresolvedDependencyIds([task.task_id], this.state.snapshot) : [];
     const showRepair = Boolean(dispatch.recoveryNote) || unresolved.length > 0 || dispatch.error?.reason === 'dependency_blocked';
     const canSubmit = Boolean(dispatch.confirm && !dispatch.submitting);
+    const completed = this.state.fixtureRun?.stages?.b?.status === 'completed' && !error;
     const dispatchErrorId = 'agent-supervisor-dispatch-error';
     const reasonBinding = error ? fieldErrorBinding(dispatchErrorId) : '';
     const confirmBinding = error && error.reason === 'confirmation_required' ? fieldErrorBinding(dispatchErrorId) : '';
     const submitDescribed = error ? ` aria-describedby="${dispatchErrorId}"` : '';
     return `
       <div class="as-detail-body as-dispatch" data-testid="dispatch-panel">
+        <${completed?'details':'section'} class="as-dispatch-controls" aria-label="Native task actions" ${completed&&(dispatch.confirm||dispatch.submitting)?'open':''}>
+        ${completed?'<summary>More native task actions</summary>':''}
+        ${error ? `
+          <div class="as-state as-error" id="${dispatchErrorId}" data-testid="dispatch-error" role="alert">
+            <strong>${escapeHtml(error.reason)}</strong>
+            <span>${escapeHtml(error.message)}${error.correlation_id ? ` ${escapeHtml(error.correlation_id)}` : ''}</span>
+          </div>
+        ` : ''}
+        <label class="as-confirm-line">
+          <input type="checkbox" id="agent-supervisor-dispatch-confirm" data-dispatch-confirm data-testid="dispatch-confirm" ${dispatch.confirm ? 'checked' : ''}${confirmBinding}>
+          <span>Confirm the next native action. Gateway consent follows.</span>
+        </label>
+        <div class="as-actions as-steering-actions">
+          ${showRepair ? '<button type="button" data-action="repair-blocker" data-testid="dispatch-repair" data-supervisor-focusable>Repair task A</button>' : ''}
+          <button type="button" data-action="submit-dispatch" data-testid="dispatch-submit" data-supervisor-focusable aria-disabled="${canSubmit ? 'false' : 'true'}"${submitDescribed}>${dispatch.submitting ? 'Dispatching' : `Run task ${(this.state.nativeStage||'a').toUpperCase()}`}</button>
+          <button type="button" data-native-retry ${!this.state.fixtureRun?.task_ids?.b?'disabled':''}>Retry task B</button>
+        </div>
+        </${completed?'details':'section'}>
+        <div class="as-dispatch-content">
         ${this.renderNativeRun()}
         <div class="as-active-heading">
           <span class="as-status ${task ? task.status : 'blocked'}"></span>
@@ -1540,21 +1561,13 @@ export class AgentSupervisorApp {
           </div>
         </div>
 
-        <label class="as-confirm-line">
-          <input type="checkbox" id="agent-supervisor-dispatch-confirm" data-dispatch-confirm data-testid="dispatch-confirm" ${dispatch.confirm ? 'checked' : ''}${confirmBinding}>
-          <span>Confirm the next bounded native task action; the gateway will request its separate real consent.</span>
-        </label>
-        <div class="as-actions as-steering-actions">
-          ${showRepair ? '<button type="button" data-action="repair-blocker" data-testid="dispatch-repair" data-supervisor-focusable>Repair the named blocker</button>' : ''}
-          <button type="button" data-action="submit-dispatch" data-testid="dispatch-submit" data-supervisor-focusable aria-disabled="${canSubmit ? 'false' : 'true'}"${submitDescribed}>${dispatch.submitting ? 'Dispatching' : `Run native task ${(this.state.nativeStage||'a').toUpperCase()}`}</button>
-        </div>
         <div class="as-section-line" data-testid="dispatch-outcome">
           <h4>Validated output and blocker</h4>
           <span>Cached board: ${escapeHtml(task ? this.dependencyCopy(task) : 'No cached task selected.')}</span>
           <span>${escapeHtml(this.fixtureCopy())}</span>
           <span>${escapeHtml(this.eventCopy())}</span>
           ${dispatch.blockerMessage ? `<span>${escapeHtml(dispatch.blockerMessage)}</span>` : ''}
-          ${dispatch.recoveryNote ? `<span data-testid="dispatch-recovery-note">${escapeHtml(dispatch.recoveryNote)}</span>` : ''}
+          ${dispatch.recoveryNote ? `<div><span>Retained UI action history</span><span data-testid="dispatch-recovery-note">${escapeHtml(dispatch.recoveryNote)}</span></div>` : ''}
         </div>
         <div class="as-inline-grid" data-testid="dispatch-review">
           ${metric('Action', this.state.fixtureRun?.task_ids?.a?'dispatch':'create')}
@@ -1576,12 +1589,6 @@ export class AgentSupervisorApp {
           <span>${escapeHtml(this.reassignmentCopy())}</span>
           <span>${escapeHtml(this.eventCopy())}</span>
         </div>
-        ${error ? `
-          <div class="as-state as-error" id="${dispatchErrorId}" data-testid="dispatch-error" role="alert">
-            <strong>${escapeHtml(error.reason)}</strong>
-            <span>${escapeHtml(error.message)}${error.correlation_id ? ` ${escapeHtml(error.correlation_id)}` : ''}</span>
-          </div>
-        ` : ''}
         ${result ? `
           <div class="as-steering-result" data-testid="dispatch-result">
             ${metric('Correlation', result.correlation_id)}
@@ -1597,6 +1604,7 @@ export class AgentSupervisorApp {
             ${metric('Native state', result.native_status || 'unknown')}
           </div>
         ` : ''}
+        </div>
       </div>
     `;
   }
@@ -1876,6 +1884,19 @@ export class AgentSupervisorApp {
         .as-pane-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-bottom: 1px solid #263a34; background: #101b18; }
         .as-tree, .as-queue-list, .as-detail-body, .as-backends { display: grid; gap: 12px; padding: 12px; align-content: start; }
         .as-detail-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding-bottom: 24px; }
+        .as-detail-body.as-dispatch { display: flex; flex-direction: column; gap: 0; padding: 0; }
+        .as-dispatch-controls { flex: 0 0 auto; display: grid; gap: 6px; padding: 8px 12px; border-bottom: 1px solid #315248; background: #12211d; }
+        .as-dispatch-controls .as-confirm-line { padding: 6px 8px; }
+        .as-dispatch-controls .as-state { display: block; margin: 0; padding: 6px 8px; font-size: 12px; }
+        .as-dispatch-controls .as-state span { display: block; overflow-wrap: anywhere; }
+        .as-dispatch-controls .as-actions button { padding: 6px 8px; }
+        .as-dispatch-controls > summary { cursor: pointer; }
+        .as-dispatch-content { flex: 1 1 auto; min-height: 0; overflow: auto; display: grid; gap: 12px; padding: 8px 12px 24px; align-content: start; }
+        [data-native-run] { gap: 6px; padding-top: 0; border-top: 0; }
+        .as-native-identity { gap: 3px; }
+        .as-native-identity input { width: 100%; min-width: 0; height: 32px; border: 1px solid #315248; border-radius: 4px; padding: 6px 8px; background: #101b18; color: #edf7f2; font: 12px/1.4 monospace; user-select: all; }
+        .as-native-identity input:focus-visible { outline: 2px solid #8bd8bd; outline-offset: 2px; }
+        .as-native-status { display: flex; gap: 8px 20px; flex-wrap: wrap; }
         .as-tree-children { display: grid; gap: 6px; margin: 6px 0 10px 18px; }
         .as-row, .as-queue-row { width: 100%; display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 9px; text-align: left; }
         .as-subgoal { grid-template-columns: 10px minmax(0, 1fr); background: #101b18; }
@@ -1965,8 +1986,8 @@ export class AgentSupervisorApp {
           .agent-supervisor[data-active-tab="dispatch"] .as-pane.as-goals,
           .agent-supervisor[data-active-tab="dispatch"] .as-pane.as-queue { display: none; }
           .agent-supervisor[data-active-tab="dispatch"] .as-pane.as-detail { flex: 1 1 0; min-height: 0; }
-          .as-tabs { flex-wrap: wrap; overflow: visible; }
-          .as-tabs button { flex: 1 1 auto; }
+          .as-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; }
+          .as-tabs button { min-width: 0; }
           .as-steering-result { grid-template-columns: 1fr; }
           .as-backend-row { grid-template-columns: 10px minmax(0, 1fr); }
           .as-backend-row span { overflow-wrap: anywhere; }

@@ -301,7 +301,7 @@ export class CinemaApp {
         </div>
         <details class="cinema-project-history" data-cinema-project-history hidden><summary>Previous project / export attempt</summary>
           <label class="cinema-project-reference">Previous project CID (local history)
-            <textarea data-cinema-previous-project-reference readonly rows="2" aria-label="Previous project CID (local history)"></textarea>
+            <textarea data-cinema-previous-project-reference readonly rows="2" wrap="soft" aria-label="Previous project CID (local history)"></textarea>
           </label>
           <p data-cinema-export-history></p>
         </details>
@@ -461,7 +461,7 @@ export class CinemaApp {
           .cinema-app [data-cinema-output-controls] { gap:6px; flex-wrap:wrap; }
           .cinema-app .cinema-source-controls { display:flex; flex-wrap:wrap; gap:6px; padding:8px; width:100%; box-sizing:border-box; }
           .cinema-app .cinema-source-controls label { display:flex; flex:1 1 200px; flex-direction:column; min-width:0; gap:4px; font-size:12px; }
-          .cinema-app [data-cinema-source-cid] { width:100%; min-width:0; box-sizing:border-box; }
+          .cinema-app [data-cinema-source-cid], .cinema-app [data-cinema-output-reference], .cinema-app [data-cinema-project-reference], .cinema-app [data-cinema-previous-project-reference] { width:100%; min-width:0; box-sizing:border-box; font:12px/16px monospace; height:46px; min-height:46px; padding:6px 8px; white-space:pre-wrap; overflow-wrap:anywhere; resize:vertical; }
           .cinema-app [data-cinema-source-status], .cinema-app [data-cinema-selection] { margin:4px 8px; font-size:12px; overflow-wrap:anywhere; }
           .cinema-app [data-cinema-seek] { min-width:80px; max-width:100%; }
           .cinema-app .cinema-native-video { max-height:140px; }
@@ -472,7 +472,7 @@ export class CinemaApp {
           .cinema-app [data-cinema-timeline-summary] { grid-column:1 / -1; }
           .cinema-app [data-cinema-export-outcome] { margin:4px 8px; font-size:12px; line-height:1.3; overflow-wrap:anywhere; }
           .cinema-app .cinema-project-reference { display:flex; flex-direction:column; width:100%; box-sizing:border-box; padding:4px 8px; gap:2px; font-size:11px; }
-          .cinema-app [data-cinema-project-reference] { width:100%; min-width:0; box-sizing:border-box; font:inherit; }
+          .cinema-app [data-cinema-project-reference] { width:100%; min-width:0; box-sizing:border-box; }
           @media (min-width: 701px) {
             .cinema-app .cinema-timeline { padding:6px; }
             .cinema-app .cinema-timeline-head { gap:4px; }
@@ -517,7 +517,7 @@ export class CinemaApp {
             <!-- Preview Area -->
             <div class="preview-area cinema-preview-area" >
               <div class="cinema-source-controls">
-                <label>Source clip CID<input data-cinema-source-cid class="sk-input" aria-label="Source clip CID" spellcheck="false" placeholder="A verified WebM or MP4 CID"></label>
+                <label>Source clip CID<textarea data-cinema-source-cid class="sk-input" rows="2" wrap="soft" aria-label="Source clip CID" spellcheck="false" placeholder="A verified WebM or MP4 CID"></textarea></label>
                 <button type="button" class="sk-btn" data-cinema-open-source aria-label="Open source clip by CID">Open clip</button>
               </div>
               <p data-cinema-source-status role="status" aria-live="polite">No source clip decoded. Open a clip up to 1 MiB and 30 seconds.</p>
@@ -541,12 +541,12 @@ export class CinemaApp {
                 <output data-cinema-output-time>No decoded output</output>
               </div>
               <label class="cinema-project-reference">Exported video CID (WebM)
-                <textarea data-cinema-output-reference data-output-state="not_loaded" readonly rows="2" aria-label="Exported video CID"></textarea>
+                <textarea data-cinema-output-reference data-output-state="not_loaded" readonly rows="2" wrap="soft" aria-label="Exported video CID"></textarea>
               </label>
               <p data-cinema-selection></p>
               <p data-cinema-export-outcome role="status" aria-live="polite">Export has not been attempted.</p>
               <label class="cinema-project-reference">Current project CID (blank while changes are unsaved)
-                <input data-cinema-project-reference data-reference-state="not_saved" readonly aria-label="Saved project CID" value="">
+                <textarea data-cinema-project-reference data-reference-state="not_saved" readonly rows="2" wrap="soft" aria-label="Saved project CID"></textarea>
               </label>
             </div>
             
@@ -736,7 +736,10 @@ export class CinemaApp {
       this.openNativeClip(container, container.querySelector('[data-cinema-source-cid]')?.value || '', event.currentTarget);
     });
     container.querySelector('[data-cinema-source-cid]')?.addEventListener('keydown', event => {
-      if (event.key === 'Enter' && !event.repeat) { event.preventDefault(); container.querySelector('[data-cinema-open-source]')?.click(); }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (!event.repeat) container.querySelector('[data-cinema-open-source]')?.click();
+      }
     });
     container.querySelector('[data-cinema-show-source]')?.addEventListener('click', () => this.selectPreview(container,false));
     container.querySelector('[data-cinema-show-output]')?.addEventListener('click', () => this.selectPreview(container,true));

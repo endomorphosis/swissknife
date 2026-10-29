@@ -228,3 +228,48 @@ test('own desktop controls keep complete button words and a compact timeline whi
  assert.equal(style(f.root.querySelector('.cinema-timeline-head')).gap,'4px');
  f.window.happyDOM.setWindowSize({width:390,height:844});const mobile=f.mount();assert.equal(style(mobile.root.querySelector('[data-cinema-source-video]')).maxHeight,'110px');
 });
+
+// R33: authored textarea value/computed-style checks, not native pixel geometry.
+test('Cinema CID fields retain all 59 characters in selectable two-line controls at mobile and desktop widths',t=>{
+ for(const width of [390,1440]){
+  const f=fixture(t);f.window.happyDOM.setWindowSize({width,height:width===390?844:900});
+  const selectors=['[data-cinema-source-cid]','[data-cinema-output-reference]','[data-cinema-project-reference]','[data-cinema-previous-project-reference]'];
+  assert.equal(cid.length,59);
+  for(const selector of selectors){
+   const field=f.root.querySelector(selector);assert.equal(field.tagName,'TEXTAREA',selector);assert.equal(Number(field.rows),2);assert.equal(field.getAttribute('wrap'),'soft');
+   field.value=cid;field.focus();field.select();assert.equal(field.value,cid);assert.equal(field.selectionStart,0);assert.equal(field.selectionEnd,59);
+   const style=f.window.getComputedStyle(field);assert.equal(style.fontSize,'12px');assert.equal(style.lineHeight,'16px');
+   assert.equal(style.height,'46px');assert.equal(style.minHeight,'46px');assert.equal(style.boxSizing,'border-box');
+   assert.equal(style.paddingTop,'6px');assert.equal(style.paddingRight,'8px');assert.equal(style.whiteSpace,'pre-wrap');
+   assert.equal(style.overflowWrap,'anywhere');assert.equal(style.resize,'vertical');assert.equal(parseFloat(style.minWidth),0);
+  }
+  assert.equal(f.calls.length,0,'rendering/selecting references grants no owner authority');
+ }
+});
+
+test('Enter in the wrapped source CID prevents newline insertion and opens exactly the unchanged CID once',t=>{
+ const f=fixture(t);const field=f.root.querySelector('[data-cinema-source-cid]');
+ assert.equal(field.tagName,'TEXTAREA');field.value=cid;
+ const calls=[];f.app.openNativeClip=(root,value,trigger)=>{calls.push({root,value,trigger});return Promise.resolve(false);};
+ const event=new f.window.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true});
+ assert.equal(field.dispatchEvent(event),false);assert.equal(event.defaultPrevented,true);assert.equal(field.value,cid);assert.equal(field.value.includes('\n'),false);
+ assert.equal(calls.length,1);assert.equal(calls[0].root,f.root);assert.equal(calls[0].value,cid);assert.equal(calls[0].trigger,f.root.querySelector('[data-cinema-open-source]'));
+ const repeated=new f.window.KeyboardEvent('keydown',{key:'Enter',repeat:true,bubbles:true,cancelable:true});field.dispatchEvent(repeated);
+ assert.equal(repeated.defaultPrevented,true,'repeated Enter cannot insert a newline into the CID');assert.equal(field.value,cid);
+ assert.equal(calls.length,1,'holding Enter cannot duplicate the existing open action');assert.equal(f.calls.length,0,'test stubs only the app entry point');
+});
+
+test('decoded output and actual saved-project CID remain readonly full-value textareas with honest markers',async t=>{
+ const f=fixture(t);f.root.querySelector('[data-cinema-source-cid]').value=cid;
+ await f.open();f.app.commitTimeline(f.root,2);recorderFixture(t,f);assert.equal(await runExport(f),true);
+ const output=f.root.querySelector('[data-cinema-output-reference]'),project=f.root.querySelector('[data-cinema-project-reference]');
+ assert.equal(output.tagName,'TEXTAREA');assert.equal(output.readOnly,true);assert.equal(output.value,f.app.exportMedia.cid);assert.equal(output.dataset.outputState,'decoded');
+ assert.equal(f.window.getComputedStyle(output).height,'46px');assert.equal(project.tagName,'TEXTAREA');assert.equal(project.readOnly,true);
+ assert.equal(project.value,'');assert.equal(project.dataset.referenceState,'not_saved','output persistence alone cannot mark the project saved');
+ await f.approve(f.app.handleCinemaWorkflowAction(f.root,'load-project-media-cids',f.root.querySelector('[data-cinema-workflow="load-project-media-cids"]')));
+ const request=f.calls.at(-1),saved=f.app.readLocalProject();assert.equal(request.tool_id,'artifacts_put');assert.equal(project.value,request.input.payload.cid);
+ assert.equal(project.value,saved.projectCid);assert.equal(project.dataset.referenceState,'saved');assert.equal(project.readOnly,true);
+ for(const field of [output,project]){field.select();assert.equal(field.selectionEnd-field.selectionStart,field.value.length);assert.equal(field.value.length,59);}
+ assert.equal(f.root.querySelector('[data-cinema-previous-project-reference]').readOnly,true);
+ assert.equal(f.calls.length,3,'same authored source/export/project calls, no reference-display dispatch');
+});

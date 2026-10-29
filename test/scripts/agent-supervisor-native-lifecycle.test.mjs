@@ -240,3 +240,64 @@ test('canonical cached-task selection navigates through Active while mobile Disp
  assert.equal(f.app.state.activeTab,'active');assert.equal(f.app.state.selectedTaskId,'SWR-106-1');
  assert.equal(f.calls.length,0,'cached navigation introduces no owner dispatch');
 });
+
+// R33: authored DOM/computed-style regressions for the actual clipped run ID and
+// off-scrollport recovery controls. These do not claim real browser geometry.
+test('completed native runs keep a full selectable ID ahead of output and collapse secondary actions',async t=>{
+ for(const width of [1440,390]){
+  const f=fixture(t);f.window.happyDOM.setWindowSize({width,height:width===390?844:900});
+  await f.act('createNativeRun');f.app.selectNativeTask('b');await f.act('submitTaskDispatch');
+  await f.act('repairNamedBlocker');await f.act('retryNativeTask');
+  const run=f.app.state.fixtureRun,id=f.root.querySelector('[data-native-run-id]'),content=f.root.querySelector('.as-dispatch-content');
+  assert.equal(id.value,run.run_id);assert.equal(id.readOnly,true);assert.match(id.value,/^[0-9a-f-]{36}$/);
+  const style=f.window.getComputedStyle(id);assert.equal(style.height,'32px');assert.equal(style.userSelect,'all');
+  assert.notEqual(style.color,style.backgroundColor);assert.equal(parseFloat(style.minWidth),0);
+  assert.ok(id.compareDocumentPosition(f.root.querySelector('[data-native-a-complete]'))&4,'full identity precedes statuses');
+  assert.ok(id.compareDocumentPosition(f.root.querySelector('[data-native-output-sha]'))&4,'full identity precedes output');
+  assert.equal(f.root.querySelector('[data-native-output-sha]').textContent,run.stages.b.output_sha256);
+  const dock=f.root.querySelector('.as-dispatch-controls');assert.equal(dock.tagName,'DETAILS');assert.equal(dock.open,false);
+  assert.equal(dock.querySelector('summary').textContent,'More native task actions');
+  assert.equal(f.window.getComputedStyle(dock).flexShrink,'0');
+  assert.equal(f.window.getComputedStyle(content).overflow,'auto');assert.equal(parseFloat(f.window.getComputedStyle(content).minHeight),0);
+  assert.equal(content.contains(dock),false,'secondary scrolling cannot move the action dock out of view');
+  id.focus();assert.equal(f.window.document.activeElement,id);id.select();assert.equal(id.selectionEnd-id.selectionStart,36);
+  dock.open=true;assert.ok(dock.querySelector('[data-native-retry]'));
+  const confirm=dock.querySelector('[data-dispatch-confirm]');confirm.checked=true;confirm.dispatchEvent(new f.window.Event('change',{bubbles:true}));
+  assert.equal(f.root.querySelector('.as-dispatch-controls').open,true,'confirming a new action cannot collapse its buttons');
+  assert.match(f.root.querySelector('[data-testid="dispatch-recovery-note"]').parentElement.textContent,/Retained UI action history/);
+  assert.deepEqual(f.runs.get(run.run_id).spawns,{a:1,b:1});assert.equal(f.calls.length,4);
+ }
+});
+
+test('real dependency refusal keeps its error and usable recovery controls outside the content scrollport',async t=>{
+ for(const width of [1440,390]){
+  const f=fixture(t);f.window.happyDOM.setWindowSize({width,height:width===390?844:900});
+  await f.act('createNativeRun');f.app.selectNativeTask('b');assert.equal(await f.act('submitTaskDispatch'),false);
+  const dock=f.root.querySelector('.as-dispatch-controls'),content=f.root.querySelector('.as-dispatch-content');
+  assert.ok(dock,'recovery has an owned action region');assert.equal(dock.tagName,'SECTION');
+  assert.equal(content.contains(dock),false);assert.equal(f.window.getComputedStyle(dock).flexShrink,'0');
+  for(const selector of ['[data-testid="dispatch-error"]','[data-testid="dispatch-confirm"]','[data-testid="dispatch-repair"]','[data-testid="dispatch-submit"]','[data-native-retry]']){
+   const node=dock.querySelector(selector);assert.ok(node,selector);assert.equal(content.contains(node),false,selector);
+   assert.equal(node.closest('details'),null,selector+' is not collapsed while blocked');
+  }
+  assert.match(dock.querySelector('[data-testid="dispatch-error"]').textContent,/task is not ready/);
+  const checkbox=dock.querySelector('[data-testid="dispatch-confirm"]');checkbox.focus();assert.equal(document.activeElement,checkbox);
+  dock.querySelector('[data-testid="dispatch-repair"]').focus();assert.equal(document.activeElement,dock.querySelector('[data-testid="dispatch-repair"]'));
+  content.scrollTop=1000;assert.equal(dock.parentElement,content.parentElement);
+  assert.equal(f.calls.length,2);assert.deepEqual(f.runs.get(f.app.state.fixtureRun.run_id).spawns,{a:0,b:0});
+  assert.equal(await f.act('repairNamedBlocker'),true);assert.equal(await f.act('retryNativeTask'),true);
+  assert.equal(f.calls.length,4);assert.deepEqual(f.runs.get(f.app.state.fixtureRun.run_id).spawns,{a:1,b:1});
+ }
+});
+
+test('mobile tabs form two balanced rows and explicit owner readback remains outside a collapsed disclosure',async t=>{
+ const f=fixture(t);f.window.happyDOM.setWindowSize({width:390,height:844});f.app.update();
+ const tabs=f.root.querySelector('.as-tabs');assert.equal(f.window.getComputedStyle(tabs).display,'grid');
+ assert.equal(f.window.getComputedStyle(tabs).gridTemplateColumns,'repeat(3, minmax(0, 1fr))');
+ assert.deepEqual([...tabs.querySelectorAll('button')].map(node=>node.dataset.tab),['active','dispatch','steering','receipts','health','contract']);
+ await f.act('createNativeRun');await f.act('submitTaskDispatch');const run=f.app.state.fixtureRun.run_id;
+ f.reopen();await f.act('readNativeRun');
+ const read=f.root.querySelector('[data-native-readback="matched"]');assert.ok(read);assert.equal(read.closest('details'),null);
+ assert.equal(f.root.querySelector('[data-native-run-id]').value,run);
+ assert.equal(f.calls.length,3,'layout and readback presentation add no owner request');
+});
