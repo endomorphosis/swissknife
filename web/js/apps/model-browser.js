@@ -3,6 +3,9 @@
  * Advanced AI model management with P2P sharing, IPFS integration, and real-time monitoring
  */
 
+import { invokeNativeTool } from '../live-tool-gateway.js';
+import { unwrapNetworkToolResult } from './network-native-tools.js';
+
 export class ModelBrowserApp {
   constructor(desktop) {
     this.desktop = desktop;
@@ -324,6 +327,19 @@ export class ModelBrowserApp {
   createWindow() {
     const content = `
       <div class="model-browser-container">
+      <style>
+        .window[data-app-id="model-browser"] .window-content { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding-bottom:0; }
+        .window[data-app-id="model-browser"] .window-app-content { display:flex; flex-direction:column; height:100%; min-height:0; min-width:0; overflow:hidden; }
+        .window[data-app-id="model-browser"] .window-app-content > [id$="-content"] { flex:1 1 0; min-height:0; min-width:0; overflow:hidden; }
+        .window[data-app-id="model-browser"] .model-browser-container { height:100%; max-height:100%; min-height:0; min-width:0; box-sizing:border-box; overflow:auto; overscroll-behavior:contain; }
+        .window[data-app-id="model-browser"] .model-browser-container { background:#101b22; color:#e8f0f4; }
+        .window[data-app-id="model-browser"] :is(.model-item,.model-details-content,.model-test-panel,.search-filter-bar) { background:#18262d !important; color:#e8f0f4 !important; }
+        .window[data-app-id="model-browser"] :is(.model-description,.model-metadata,.model-author,.native-catalog-metadata) { color:#c4d4df !important; }
+        .window[data-app-id="model-browser"] #model-list { background:#101b22 !important; color:#e8f0f4 !important; }
+        .window[data-app-id="model-browser"] .native-catalog-metadata { background:#101b22; color:#d2e0ea !important; padding:8px; }
+        .window[data-app-id="model-browser"] .model-details-content :is(h1,h2,h3,.model-id,.model-author-large,.req-label,.req-value) { color:#e8f0f4 !important; }
+
+      </style>
         <div class="model-toolbar">
           <div class="toolbar-section">
             <div class="search-box">
@@ -409,6 +425,63 @@ export class ModelBrowserApp {
     const importBtn = window.querySelector('#import-model');
     const modelList = window.querySelector('#model-list');
     const closeDownload = window.querySelector('#close-download');
+    const shell = window.classList?.contains('model-browser-container')
+      ? window
+      : window.querySelector('.model-browser-container');
+    const filters = window.querySelector('.filter-buttons');
+    const searchBtn = window.querySelector('.search-btn');
+    if (shell) {
+      shell.classList.add('sk-app');
+      shell.style.maxWidth = '100%';
+      shell.style.height = '100%';
+      shell.style.maxHeight = '100%';
+      shell.style.minHeight = '0';
+      shell.style.overflow = 'hidden';
+      shell.style.boxSizing = 'border-box';
+      shell.style.display = 'flex';
+      shell.style.flexDirection = 'column';
+      const columns = shell.querySelector('.model-content');
+      if (columns) {
+        columns.style.display = 'flex';
+        columns.style.flexDirection = 'column';
+        columns.style.flex = '1 1 auto';
+        columns.style.minWidth = '0';
+        columns.style.minHeight = '0';
+        columns.style.overflow = 'hidden';
+        columns.style.gap = '8px';
+      }
+      const list = shell.querySelector('.model-list-container');
+      if (list) {
+        list.style.flex = '0 0 auto';
+        list.style.width = '100%';
+        list.style.maxWidth = '100%';
+        list.style.maxHeight = '64px';
+        list.style.minHeight = '0';
+        list.style.overflow = 'auto';
+      }
+      const details = shell.querySelector('#model-details');
+      if (details) {
+        details.style.flex = '1 1 auto';
+        details.style.minWidth = '0';
+        details.style.minHeight = '0';
+        details.style.maxWidth = '100%';
+        details.style.overflow = 'auto';
+      }
+    }
+    if (filters) {
+      filters.style.display = 'flex';
+      filters.style.flexWrap = 'wrap';
+      filters.style.gap = '4px';
+      filters.style.maxWidth = '100%';
+    }
+    if (searchInput) {
+      searchInput.setAttribute('aria-label', 'Search models');
+      searchInput.placeholder = 'Search';
+    }
+    if (searchBtn) {
+      searchBtn.type = 'button';
+      searchBtn.setAttribute('aria-label', 'Search models');
+    }
 
     // Search
     searchInput.addEventListener('input', (e) => {
@@ -431,11 +504,18 @@ export class ModelBrowserApp {
     importBtn.addEventListener('click', () => this.importModel(window));
 
     // Model selection
+    const selectFromItem = (modelItem) => {
+      if (modelItem) this.selectModel(window, modelItem.dataset.modelId);
+    };
     modelList.addEventListener('click', (e) => {
+      selectFromItem(e.target.closest('.model-item'));
+    });
+    modelList.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
       const modelItem = e.target.closest('.model-item');
-      if (modelItem) {
-        this.selectModel(window, modelItem.dataset.modelId);
-      }
+      if (!modelItem) return;
+      e.preventDefault();
+      selectFromItem(modelItem);
     });
 
     // Download modal
@@ -444,13 +524,66 @@ export class ModelBrowserApp {
     });
   }
 
+  restoreNativeCatalogMetadata() {
+    try {
+      const raw = localStorage.getItem('model-browser-native-catalog');
+      if (!raw || raw.length > 262144) return false;
+      const saved = JSON.parse(raw);
+      if (!Array.isArray(saved.rows) || saved.rows.length > 100 || !Number.isFinite(Date.parse(saved.observedAt))
+          || saved.rows.some(row => !row || !/^[a-zA-Z0-9_.:/-]{1,200}$/.test(row.id))) return false;
+      this.lastNativeCatalogRows = saved.rows;
+      this.models = saved.rows.map(row => ({ id: row.id, name: row.id, author: 'Stored native catalog',
+        description: 'Stored metadata; current availability is unconfirmed.', type: /^[a-z-]{1,64}$/.test(row.task || '') ? row.task : 'text-generation',
+        size: 'Not reported', downloads: null, likes: null, tags: [], requirements: { memory: 'Not reported', gpu: 'Not reported' } }));
+      this.usingSampleModels = false;
+      this.catalogObservation = { observedAt: saved.observedAt, stored: true };
+      this.selectedModel = this.models.find(row => row.id === saved.selectedId) || null;
+      return true;
+    } catch { return false; }
+  }
+
+  saveNativeCatalogMetadata() {
+    if (!this.catalogObservation || !Array.isArray(this.lastNativeCatalogRows)) return;
+    try { localStorage.setItem('model-browser-native-catalog', JSON.stringify({ rows: this.lastNativeCatalogRows,
+      observedAt: this.catalogObservation.observedAt, selectedId: this.selectedModel?.id || null })); }
+    catch { /* Catalog display remains usable when local storage is unavailable. */ }
+  }
+
   async loadModels() {
+    if (this.restoreNativeCatalogMetadata()) return;
     try {
       // Load available models from HuggingFace and other sources
       this.models = await this.getAvailableModels();
     } catch (error) {
       console.error('Failed to load models:', error);
       this.models = this.getFallbackModels();
+    }
+    if (!Array.isArray(this.models)) this.models = [];
+    const fixtures = this.getSampleModels().filter((model) =>
+      model.id === 'sentence-transformers/all-MiniLM-L6-v2' ||
+      model.id === 'openai/clip-vit-base-patch32'
+    );
+    for (const fixture of fixtures) {
+      const index = this.models.findIndex((item) => item && item.id === fixture.id);
+      if (index === -1) {
+        this.models.push(fixture);
+      } else {
+        const current = this.models[index];
+        this.models[index] = {
+          ...current,
+          name: current.name || fixture.name,
+          type: fixture.type,
+          requirements: fixture.requirements,
+          tags: Array.isArray(current.tags) && current.tags.length ? current.tags : fixture.tags,
+          description: current.description || fixture.description,
+          author: current.author || fixture.author,
+          size: current.size || fixture.size,
+          downloads: current.downloads ?? fixture.downloads,
+          likes: current.likes ?? fixture.likes,
+          license: current.license || fixture.license,
+          lastModified: current.lastModified || fixture.lastModified
+        };
+      }
     }
   }
 
@@ -615,10 +748,12 @@ export class ModelBrowserApp {
 
     // Apply search filter
     if (this.searchQuery) {
-      filteredModels = filteredModels.filter(model => 
-        model.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-        model.description.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-        model.tags.some(tag => tag.toLowerCase().includes(this.searchQuery.toLowerCase()))
+      const query = this.searchQuery.toLowerCase();
+      filteredModels = filteredModels.filter(model =>
+        String(model.name || '').toLowerCase().includes(query) ||
+        String(model.id || '').toLowerCase().includes(query) ||
+        String(model.description || '').toLowerCase().includes(query) ||
+        (model.tags || []).some(tag => String(tag).toLowerCase().includes(query))
       );
     }
 
@@ -632,11 +767,17 @@ export class ModelBrowserApp {
     }
 
     modelList.innerHTML = '';
+    this.mountRunHistory(modelList);
+    if (this.catalogObservation) {
+      const notice = document.createElement('p'); notice.className = 'native-catalog-metadata';
+      notice.textContent = `${this.catalogObservation.stored ? 'Stored catalog metadata' : 'Native catalog retrieved'}: ${this.catalogObservation.observedAt}. ${this.catalogObservation.stored ? 'Current availability is unconfirmed; use Refresh.' : 'Use Refresh to obtain a new observation.'}${this.catalogObservation.error ? ` Refresh failed: ${this.catalogObservation.error}` : ''}`;
+      modelList.append(notice);
+    }
     if (this.usingSampleModels) {
       const banner = document.createElement('div');
       banner.className = 'sample-models-banner';
-      banner.style.cssText = 'padding:10px 14px;margin-bottom:12px;background:rgba(255,193,7,.12);border:1px solid rgba(255,193,7,.4);border-radius:8px;font-size:13px;';
-      banner.textContent = '⚠️ Showing built-in sample entries — the live model catalog is unreachable from this browser. These are examples only, not live data.';
+      banner.style.cssText = 'padding:10px 14px;margin-bottom:12px;background:#ffe08a;border:1px solid #8a6a00;border-radius:8px;font-size:13px;color:#1c1400;line-height:1.4;';
+      banner.textContent = 'Showing built-in sample entries. The live model catalog is unreachable from this browser. These are examples only, not live data.';
       modelList.appendChild(banner);
     }
 
@@ -648,6 +789,7 @@ export class ModelBrowserApp {
           <p>Try adjusting your search or filter criteria.</p>
         </div>
       `;
+      this.mountRunHistory(modelList);
       return;
     }
 
@@ -656,13 +798,16 @@ export class ModelBrowserApp {
       const modelItem = document.createElement('div');
       modelItem.className = `model-item sk-card ${isInstalled ? 'installed' : ''}`;
       modelItem.dataset.modelId = model.id;
+      modelItem.tabIndex = 0;
+      modelItem.setAttribute('role', 'button');
+      modelItem.setAttribute('aria-label', model.name || model.id || 'Model');
 
       modelItem.innerHTML = `
         <div class="model-header">
           <div class="model-icon">${this.getModelIcon(model.type)}</div>
           <div class="model-info">
-            <h3 class="model-name">${model.name}</h3>
-            <p class="model-author">by ${model.author}</p>
+            <h3 class="model-name">${model.name || model.id || 'Unnamed model'}</h3>
+            <p class="model-author">${model.name || model.id || 'Unnamed model'} by ${model.author || 'unknown'}</p>
           </div>
           <div class="model-status">
             ${isInstalled ? '<span class="installed-badge sk-badge">Installed</span>' : ''}
@@ -676,12 +821,13 @@ export class ModelBrowserApp {
           <span class="model-type">${model.type}</span>
         </div>
         <div class="model-tags">
-          ${model.tags.map(tag => `<span class="tag sk-badge">${tag}</span>`).join('')}
+          ${(Array.isArray(model.tags) ? model.tags : []).map(tag => `<span class="tag sk-badge">${tag}</span>`).join('')}
         </div>
       `;
 
       modelList.appendChild(modelItem);
     });
+    if (this.selectedModel && window.querySelector('#model-details')) this.renderModelDetails(window);
   }
 
   selectModel(window, modelId) {
@@ -696,6 +842,7 @@ export class ModelBrowserApp {
                         this.installedModels.find(m => m.id === modelId);
 
     if (this.selectedModel) {
+      this.saveNativeCatalogMetadata();
       this.renderModelDetails(window);
     }
   }
@@ -707,6 +854,7 @@ export class ModelBrowserApp {
 
     modelDetails.innerHTML = `
       <div class="model-details-content">
+        ${this.renderTestPanel(model)}
         <div class="model-header-large">
           <div class="model-icon-large">${this.getModelIcon(model.type)}</div>
           <div class="model-title-section">
@@ -760,24 +908,25 @@ export class ModelBrowserApp {
           <h3>Requirements</h3>
           <div class="requirement-item">
             <span class="req-label">Memory:</span>
-            <span class="req-value">${model.requirements.memory}</span>
+            <span class="req-value">${model.requirements?.memory ?? 'unknown'}</span>
           </div>
           <div class="requirement-item">
             <span class="req-label">GPU:</span>
-            <span class="req-value">${model.requirements.gpu}</span>
+            <span class="req-value">${model.requirements?.gpu ?? 'unknown'}</span>
           </div>
         </div>
         
         <div class="model-tags-section">
           <h3>Tags</h3>
           <div class="tags-list">
-            ${model.tags.map(tag => `<span class="tag-large">${tag}</span>`).join('')}
+            ${(Array.isArray(model.tags) ? model.tags : []).map(tag => `<span class="tag-large">${tag}</span>`).join('')}
           </div>
         </div>
         
         ${isInstalled ? this.renderModelUsage() : ''}
       </div>
     `;
+
 
     // Setup action button listeners
     const installBtn = modelDetails.querySelector('#install-model');
@@ -792,6 +941,22 @@ export class ModelBrowserApp {
     }
     if (loadBtn) {
       loadBtn.addEventListener('click', () => this.loadModel(window, model));
+    }
+    const runTest = () => this.runBoundedTest(window, model);
+    const runTestBtn = modelDetails.querySelector('#run-model-test');
+    const testPrompt = modelDetails.querySelector('#model-test-prompt');
+    if (runTestBtn) runTestBtn.addEventListener('click', runTest);
+    if (testPrompt) {
+      const retainGovernedEnter = (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        event.stopPropagation();
+      };
+      testPrompt.addEventListener('keydown', retainGovernedEnter);
+      testPrompt.addEventListener('keyup', (event) => {
+        retainGovernedEnter(event);
+        if (event.key === 'Enter') runTest();
+      });
     }
   }
 
@@ -880,13 +1045,31 @@ console.log(result);</code></pre>
   }
 
   async refreshModels(window) {
+    if (this.catalogRefreshPending) return;
+    this.catalogRefreshPending = true;
     try {
-      await this.loadModels();
-      await this.loadInstalledModels();
+      const response = await this.dispatchBinding('model-browser.ipfs_accelerate_py.inspect_model_catalog',
+        { fixture_scope: 'svf-model-browser-primary' }, window.querySelector('#refresh-models'), 'list_models');
+      const actual = unwrapNetworkToolResult(response.result);
+      if (!Array.isArray(actual?.models) || actual.models.some(row => typeof row.id !== 'string')) throw new Error('The native owner returned no model catalog.');
+      this.nativeModelIds = new Set(actual.models.map(row => row.id));
+      this.lastNativeCatalogRows = actual.models;
+      this.catalogObservation = { observedAt: new Date().toISOString(), stored: false };
+      this.models = actual.models.map(row => ({ ...row, name: row.id, author: 'Local native owner',
+        description: 'Advertised by the native model backend.', type: row.task || 'text-generation',
+        size: row.size || 'Not reported', downloads: null, likes: null, tags: row.tags || [],
+        requirements: { memory: 'Not reported', gpu: 'Not reported' } }));
+      this.usingSampleModels = false;
+      this.saveNativeCatalogMetadata();
       this.renderModelList(window);
       this.showNotification('Model list refreshed', 'success');
     } catch (error) {
+      this.nativeModelIds = null;
+      if (this.catalogObservation) this.catalogObservation = { ...this.catalogObservation, stored: true, error: error.message };
+      this.renderModelList(window);
       this.showNotification('Failed to refresh models: ' + error.message, 'error');
+    } finally {
+      this.catalogRefreshPending = false;
     }
   }
 
@@ -937,12 +1120,15 @@ console.log(result);</code></pre>
   }
 
   formatNumber(num) {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
-    } else if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
+    if (typeof num !== 'number' || !Number.isFinite(num)) return 'n/a';
+    const value = Number(num);
+    if (!Number.isFinite(value)) return '0';
+    if (value >= 1000000) {
+      return (value / 1000000).toFixed(1) + 'M';
+    } else if (value >= 1000) {
+      return (value / 1000).toFixed(1) + 'K';
     }
-    return num.toString();
+    return String(value);
   }
 
   // Enhanced Model Management Methods
@@ -1264,6 +1450,210 @@ console.log(result);</code></pre>
     `;
   }
 
+  runHistoryKey() {
+    return 'svf-model-browser-runs';
+  }
+
+  mountRunHistory(modelList) {
+    const root = (modelList && modelList.closest && modelList.closest('.model-browser-container')) || modelList;
+    if (!root) return;
+    let slot = root.querySelector('#model-run-history');
+    if (!slot) {
+      slot = document.createElement('div');
+      slot.id = 'model-run-history';
+      slot.className = 'sk-card';
+      slot.setAttribute('aria-live', 'polite');
+      slot.style.cssText = 'padding:6px 8px;margin:0 0 6px;max-height:none;overflow:visible;white-space:normal;color:#f4fbff;background:#1a4558;border:1px solid #8ec5d8;border-radius:6px;font-size:13px;line-height:1.35;overflow-wrap:anywhere;width:100%;box-sizing:border-box;';
+      if (modelList && modelList.prepend) modelList.prepend(slot);
+      else root.prepend(slot);
+    }
+    let runs = [];
+    try {
+      runs = JSON.parse(localStorage.getItem(this.runHistoryKey()) || '[]');
+    } catch (error) {
+      runs = [];
+    }
+    const last = Array.isArray(runs) ? runs[0] : null;
+    slot.style.cssText = 'padding:6px 8px;margin:0 0 6px;max-height:none;overflow:visible;white-space:normal;color:#f4fbff;background:#1a4558;border:1px solid #8ec5d8;border-radius:6px;font-size:13px;line-height:1.35;overflow-wrap:anywhere;width:100%;box-sizing:border-box;';
+    slot.textContent = last && last.modelId
+      ? `Saved run: ${last.modelId} | ${last.prompt} | ${last.output}`
+      : 'No completed runs yet.';
+  }
+
+  isTextRunBlocked(model) {
+    const type = String(model?.type || model?.category || '').toLowerCase();
+    if (type.includes('vision') || type.includes('image') || type.includes('speech') || type.includes('audio')) {
+      return true;
+    }
+    const gpu = model?.requirements?.gpu;
+    const gpuText = String(gpu ?? '').toLowerCase();
+    return gpu === true || gpuText.includes('recommend') || (gpuText.includes('required') && !gpuText.includes('not required') && !gpuText.includes('optional'));
+  }
+
+  renderTestPanel(model) {
+    const memory = model.requirements?.memory ?? model.requirements?.ram ?? 'unknown';
+    const gpu = model.requirements?.gpu ?? 'unknown';
+    const compatible = this.isTextRunBlocked(model)
+      ? 'This model is not available for a short text run here.'
+      : 'Compatible with a short text run.';
+    const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+    let savedPrompt = '';
+    let savedOutput = '';
+    try {
+      const runs = JSON.parse(localStorage.getItem(this.runHistoryKey()) || '[]');
+      const last = Array.isArray(runs) ? runs.find((row) => row && row.modelId === model.id && row.prompt && row.output) : null;
+      if (last) {
+        savedPrompt = String(last.prompt);
+        savedOutput = String(last.output);
+      }
+    } catch (error) {
+      savedPrompt = '';
+    }
+    const savedResult = savedOutput ? 'Prompt: ' + esc(savedPrompt) + '\nOutput: ' + esc(savedOutput) : '';
+    return `
+      <div class="model-test-panel" style="display:flex;flex-direction:column;gap:2px;max-width:100%;padding:4px 6px;box-sizing:border-box;flex:0 0 auto;">
+        <h3 style="margin:0;font-size:14px;">Bounded test</h3>
+        <p id="hardware-compatibility" style="margin:0;font-size:12px;">Hardware: memory ${memory}; GPU ${gpu}. ${compatible}</p>
+        <label for="model-test-model-id" style="display:block;font-size:12px;">Model ID</label>
+        <input id="model-test-model-id" class="sk-input" aria-label="Model ID for bounded test" style="display:block;width:100%;max-width:100%;box-sizing:border-box;" value="${esc(model.id)}">
+        <label for="model-test-prompt" style="display:block;font-size:12px;">Test prompt</label>
+        <input type="text" id="model-test-prompt" class="sk-input" aria-label="Test prompt" maxlength="240" placeholder="Short prompt" value="${esc(savedPrompt)}" style="display:block;width:100%;max-width:100%;box-sizing:border-box;">
+        <button type="button" class="btn btn-primary sk-btn sk-btn-primary" id="run-model-test">Run bounded test</button>
+        <p id="model-run-status" aria-live="polite" style="margin:0;">Run status: idle</p>
+        <pre id="model-test-output" aria-label="Test output" style="margin:0;min-height:2.2em;max-height:3.2em;overflow:auto;white-space:pre-wrap;background:#101b22;color:#d2e0ea;">${savedResult}</pre>
+      </div>
+    `;
+  }
+
+  async dispatchBinding(bindingId, input, trigger, toolId = 'run_inference_job') {
+    const content = (trigger && trigger.closest && trigger.closest('.window-app-content'))
+      || document.querySelector('.window[data-app-id="model-browser"] .window-app-content')
+      || document.querySelector('.window[data-app-id="model-browser"]');
+    const panel = trigger && trigger.closest && trigger.closest('.model-test-panel');
+    const details = panel && panel.closest && panel.closest('#model-details');
+    if (details) details.scrollTop = 0;
+    if (!content) {
+      throw new Error('Model browser content host unavailable');
+    }
+    const payload = await invokeNativeTool(content, 'model-browser', bindingId, {
+      executionMode: 'execute',
+      toolId,
+      payload: input,
+      trigger: trigger || null
+    });
+    if (!payload || payload.ok !== true || payload.outcome !== 'executed') {
+      throw new Error('Owner call failed');
+    }
+    return payload;
+  }
+
+  ownerRunFields(payload) {
+    const root = unwrapNetworkToolResult(payload?.result) || {};
+    const nested = root?.result?.content?.[0]?.json
+      || root?.content?.[0]?.json
+      || (root?.result && typeof root.result === 'object' && !Array.isArray(root.result) ? root.result : null)
+      || root;
+    if (nested?.dry_run === true || nested?.preview === true || root.dry_run === true || root.preview === true) {
+      return { status: 'preview', outputText: '' };
+    }
+    const output = nested?.output ?? nested?.text ?? nested?.generated_text ?? nested?.completion
+      ?? root.output ?? root.text ?? root.generated_text ?? '';
+    const outputText = typeof output === 'string'
+      ? output
+      : (output && typeof output === 'object' && typeof output.text === 'string' ? output.text : '');
+    return {
+      status: String(nested?.status || nested?.run_status || root.status || root.run_status || ''),
+      outputText
+    };
+  }
+
+  rememberRun(model, prompt, outputText, status) {
+    const entry = {
+      modelId: model.id,
+      prompt,
+      output: outputText,
+      status,
+      savedAt: new Date().toISOString()
+    };
+    let runs = [];
+    try {
+      runs = JSON.parse(localStorage.getItem(this.runHistoryKey()) || '[]');
+    } catch (error) {
+      runs = [];
+    }
+    if (!Array.isArray(runs)) runs = [];
+    runs.unshift(entry);
+    localStorage.setItem(this.runHistoryKey(), JSON.stringify(runs.slice(0, 8)));
+  }
+
+  async runBoundedTest(window, model) {
+    if (this.modelRunPending) return;
+    const promptEl = window.querySelector('#model-test-prompt');
+    const statusEl = window.querySelector('#model-run-status');
+    const outputEl = window.querySelector('#model-test-output');
+    if (!promptEl || !statusEl || !outputEl || !model) return;
+    const prompt = promptEl.value.trim();
+    const modelId = window.querySelector('#model-test-model-id')?.value.trim() || model.id;
+    outputEl.textContent = '';
+    statusEl.dataset.runState = 'running';
+    if (!this.nativeModelIds?.has(modelId)) {
+      statusEl.textContent = this.nativeModelIds ? 'Run status: unsupported model' : 'Run status: model catalog unavailable';
+      statusEl.dataset.runState = 'failed';
+      outputEl.textContent = 'No generated answer.';
+      return;
+    }
+    if (this.isTextRunBlocked(model)) {
+      statusEl.textContent = 'Run status: insufficient capacity';
+      statusEl.dataset.runState = 'failed';
+      outputEl.textContent = 'No generated answer.';
+      return;
+    }
+    if (!prompt) {
+      statusEl.textContent = 'Run status: failed';
+      statusEl.dataset.runState = 'failed';
+      outputEl.textContent = 'No generated answer.';
+      return;
+    }
+    statusEl.textContent = 'Run status: running';
+    this.modelRunPending = true;
+    try {
+      const payload = await this.dispatchBinding(
+        'model-browser.ipfs_accelerate_py.inspect_model_catalog',
+        {
+          fixture_scope: 'svf-model-browser-primary',
+          model: modelId,
+          model_id: modelId,
+          prompt,
+          input: prompt,
+          max_new_tokens: 1,
+          max_length: 4
+        },
+        promptEl
+      );
+      const fields = this.ownerRunFields(payload);
+      if (!fields.outputText || fields.status.toLowerCase() !== 'completed') {
+        statusEl.textContent = 'Run status: failed';
+        statusEl.dataset.runState = 'failed';
+        outputEl.textContent = 'No generated answer.';
+        return;
+      }
+      statusEl.textContent = 'Run status: completed';
+      statusEl.dataset.runState = 'completed';
+      outputEl.textContent = `Prompt: ${prompt}\nOutput: ${fields.outputText}`;
+      this.rememberRun({ ...model, id: modelId }, prompt, fields.outputText, fields.status);
+      const slot = window.querySelector('#model-run-history');
+      if (slot) slot.textContent = `Saved run: ${modelId} | ${prompt} | ${fields.outputText}`;
+    } catch (error) {
+      statusEl.textContent = 'Run status: failed';
+      statusEl.dataset.runState = 'failed';
+      outputEl.textContent = 'No generated answer.';
+    } finally {
+      this.modelRunPending = false;
+    }
+  }
+
   showNotification(message, type = 'info') {
     // Create notification element
     const notification = document.createElement('div');
@@ -1344,8 +1734,48 @@ console.log(result);</code></pre>
   }
 
   getWindowContent() {
+    let historyText = 'No completed runs yet.';
+    try {
+      const runs = JSON.parse(localStorage.getItem(this.runHistoryKey()) || '[]');
+      const last = Array.isArray(runs) ? runs[0] : null;
+      if (last && last.modelId) historyText = `${last.modelId} | ${last.prompt} | ${last.output}`;
+    } catch (error) {
+      historyText = 'No completed runs yet.';
+    }
+    const safeHistory = String(historyText).replace(/[&<>"']/g, (ch) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[ch]));
     return `
       <div class="model-browser-container">
+      <style>
+        .window[data-app-id="model-browser"] .window-content { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding-bottom:0; }
+        .window[data-app-id="model-browser"] .window-app-content { display:flex; flex-direction:column; height:100%; min-height:0; min-width:0; overflow:hidden; }
+        .window[data-app-id="model-browser"] .window-app-content > [id$="-content"] { flex:1 1 0; min-height:0; min-width:0; overflow:hidden; }
+        .window[data-app-id="model-browser"] .model-browser-container { height:100%; max-height:100%; min-height:0; min-width:0; box-sizing:border-box; overflow:auto; overscroll-behavior:contain; }
+        .window[data-app-id="model-browser"] .model-browser-container { background:#101b22; color:#e8f0f4; }
+        .window[data-app-id="model-browser"] :is(.model-item,.model-details-content,.model-test-panel,.search-filter-bar) { background:#18262d !important; color:#e8f0f4 !important; }
+        .window[data-app-id="model-browser"] :is(.model-description,.model-metadata,.model-author,.native-catalog-metadata) { color:#c4d4df !important; }
+        .window[data-app-id="model-browser"] #model-list { background:#101b22 !important; color:#e8f0f4 !important; }
+        .window[data-app-id="model-browser"] .native-catalog-metadata { background:#101b22; color:#d2e0ea !important; padding:8px; }
+        .window[data-app-id="model-browser"] .model-details-content :is(h1,h2,h3,.model-id,.model-author-large,.req-label,.req-value) { color:#e8f0f4 !important; }
+        .window[data-app-id="model-browser"] .window-content { padding-bottom:8px !important; overflow:hidden !important; }
+        .window[data-app-id="model-browser"] .model-browser-container { width:100% !important; max-width:100% !important; background:#101b22 !important; }
+        .window[data-app-id="model-browser"] .model-content { display:flex !important; flex-direction:column !important; width:100% !important; max-width:100% !important; min-width:0 !important; flex:1 1 auto !important; min-height:0 !important; grid-template-columns:1fr !important; }
+        .window[data-app-id="model-browser"] .model-list-container, .window[data-app-id="model-browser"] #model-list { width:100% !important; max-width:100% !important; flex:0 0 auto !important; max-height:64px !important; min-height:0 !important; overflow:hidden !important; position:relative !important; }
+        .window[data-app-id="model-browser"] .model-item { padding:4px 8px !important; margin:0 0 4px !important; max-height:36px !important; overflow:hidden !important; }
+        .window[data-app-id="model-browser"] .model-author, .window[data-app-id="model-browser"] .model-tags, .window[data-app-id="model-browser"] .model-description, .window[data-app-id="model-browser"] .model-metadata { display:none !important; }
+        .window[data-app-id="model-browser"] .native-catalog-metadata { position:static !important; display:block !important; max-height:1.25em !important; margin:0 !important; padding:0 8px !important; overflow:hidden !important; white-space:nowrap !important; text-overflow:ellipsis !important; }
+        .window[data-app-id="model-browser"] #model-details { width:100% !important; max-width:100% !important; flex:1 1 auto !important; min-height:0 !important; overflow:auto !important; background:#101b22 !important; color:#e8f0f4 !important; }
+        .window[data-app-id="model-browser"] #model-test-output { display:block !important; min-height:2.2em !important; max-height:3.2em !important; overflow:auto !important; color:#f4fbff !important; background:#0c1419 !important; border:1px solid #3d5c6e !important; }
+        .window[data-app-id="model-browser"] #model-run-history { display:block !important; width:100% !important; max-height:none !important; overflow:visible !important; white-space:normal !important; color:#f4fbff !important; background:#1a4558 !important; font-size:13px !important; line-height:1.35 !important; }
+        .window[data-app-id="model-browser"] #import-model { background:#0f6e8c !important; color:#f7fdff !important; border:1px solid #b7e4f3 !important; opacity:1 !important; }
+
+      </style>
+        <div id="model-run-history" class="sk-card" aria-live="polite" style="padding:4px 8px;margin:0 0 6px;max-height:2.6em;overflow:hidden;color:#d2e0ea;background:#101b22;border:1px solid #2a3e4a;border-radius:6px;font-size:12px;line-height:1.4;overflow-wrap:anywhere;">Saved run: ${safeHistory}</div>
         <div class="model-toolbar">
           <div class="toolbar-section">
             <div class="search-box">

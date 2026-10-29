@@ -1,0 +1,39 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "system-monitor",
+  "description": "Refresh measured telemetry, reopen retained chart history, then recover an unavailable owner observation through the declared inspect_telemetry binding.",
+  "fixture_scope": "svf-system-monitor-live",
+  "backend_bindings": [
+    {
+      "binding_id": "system-monitor.ipfs_accelerate_py.inspect_telemetry",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/utilization",
+        "operator": "not_equals",
+        "expected": null
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {"op": "wait_for", "selector": "#refresh-btn", "state": "visible", "timeout_ms": 5000},
+      {"op": "press", "selector": "#refresh-btn", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#gpu-metric"}, "operator": "equals", "expected": "n/a"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#vda-history-origin"}, "operator": "contains", "expected": "retained"}
+    ],
+    "failure_recovery": [
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#accel-telemetry-state"}, "operator": "contains", "expected": "unavailable"},
+      {"op": "click", "selector": "#refresh-backend-telemetry"},
+      {"op": "wait_for", "selector": "[data-gateway-confirm=\"system-monitor.ipfs_accelerate_py.inspect_telemetry\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "[data-gateway-confirm=\"system-monitor.ipfs_accelerate_py.inspect_telemetry\"]"},
+      {"op": "wait_ms", "milliseconds": 3000},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#observation-stamp"}, "operator": "contains", "expected": "measured"}
+    ]
+  }
+}

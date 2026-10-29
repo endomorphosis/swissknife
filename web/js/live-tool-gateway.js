@@ -127,8 +127,15 @@ async function invokeControl(button, output, control) {
   return invokeGateway(button.closest('.live-tool-gateway-panel'), button, output, control, {}, 'gateway-button');
 }
 
-/** Invoke an approved binding from the native app action that owns it. */
+/**
+ * Invoke an approved binding from its native app action. Governed actions stay
+ * previews unless executionMode is 'execute'; real actions require the native
+ * confirmation dialog's trusted user click. The global preview override wins.
+ */
 export async function invokeNativeTool(container, appId, bindingId, options = {}) {
+  if (options.executionMode !== undefined && options.executionMode !== 'execute') {
+    throw new Error(`Unknown native tool execution mode: ${options.executionMode}.`);
+  }
   const control = (await controlsFor(appId)).find(item => item.binding_id === bindingId && item.app_id === appId);
   if (!control) throw new Error(`No declared application binding ${bindingId}.`);
   const toolId = options.toolId || control.selected_tool_id;
@@ -147,7 +154,7 @@ export async function invokeNativeTool(container, appId, bindingId, options = {}
   return invokeGateway(container, trigger, output, { ...control, selected_tool_id: toolId }, options, 'native-control');
 }
 
-function requestConfirmation(container, control, correlationId, origin) {
+function requestConfirmation(container, control, correlationId, origin, dryRun) {
   return new Promise(resolve => {
     const overlay = document.createElement('div');
     overlay.dataset.gatewayConfirmation = control.binding_id;
@@ -160,11 +167,13 @@ function requestConfirmation(container, control, correlationId, origin) {
     const title = document.createElement('h3');
     title.textContent = `Confirm ${control.label || control.selected_tool_id}`;
     const message = document.createElement('p');
-    message.textContent = `${control.selected_tool_id} will run as a dry run. Review this action before continuing.`;
+    message.textContent = dryRun
+      ? `${control.selected_tool_id} will run as a dry run. Review this action before continuing.`
+      : `${control.selected_tool_id} will execute against ${control.owner}. This is a real backend action. Review this action before continuing.`;
     const confirm = document.createElement('button');
     confirm.type = 'button';
     confirm.dataset.gatewayConfirm = control.binding_id;
-    confirm.textContent = 'Confirm dry run';
+    confirm.textContent = dryRun ? 'Confirm dry run' : 'Confirm execution';
     const cancel = document.createElement('button');
     cancel.type = 'button';
     cancel.dataset.gatewayCancel = control.binding_id;
@@ -172,13 +181,25 @@ function requestConfirmation(container, control, correlationId, origin) {
     const announce = (phase, trusted = false) => container.dispatchEvent(new CustomEvent('swissknife:gateway-confirmation', {
       bubbles: true, detail: { phase, trusted, binding_id: control.binding_id, tool_id: control.selected_tool_id, correlation_id: correlationId, origin },
     }));
+    let settled = false;
     const finish = (accepted, event) => {
+      if (settled) return;
+      settled = true;
+      confirm.removeEventListener('click', confirmAction);
+      cancel.removeEventListener('click', cancelAction);
       announce(accepted ? 'confirmed' : 'cancelled', event.isTrusted);
       overlay.remove();
       resolve(accepted);
     };
-    confirm.addEventListener('click', event => finish(true, event), { once: true });
-    cancel.addEventListener('click', event => finish(false, event), { once: true });
+    const confirmAction = event => {
+      // Synthetic clicks must neither grant real execution nor consume the
+      // listener: the user can still confirm this exact pending correlation.
+      if (!dryRun && event.isTrusted !== true) return;
+      finish(true, event);
+    };
+    const cancelAction = event => finish(false, event);
+    confirm.addEventListener('click', confirmAction);
+    cancel.addEventListener('click', cancelAction);
     dialog.append(title, message, confirm, cancel);
     overlay.append(dialog);
     container.append(overlay);
@@ -190,8 +211,8 @@ function requestConfirmation(container, control, correlationId, origin) {
 async function invokeGateway(container, button, output, control, options, origin) {
   const governed = control.mutates_remote_state === true || control.confirmation_required === true;
   const forcedDryRun = globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true;
-  const dryRun = governed || forcedDryRun;
-  const correlationId = `desktop:${control.binding_id}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+  let dryRun = forcedDryRun || (governed && options.executionMode !== 'execute');
+  const correlationId = `desktop:${crypto.randomUUID()}`;
   const payload =
     options.payload ?? control.safe_payload ??
     (dryRun
@@ -209,12 +230,14 @@ async function invokeGateway(container, button, output, control, options, origin
   if (button) button.disabled = true;
   if (governed) {
     output.textContent = `Confirmation required for ${control.selected_tool_id}.`;
-    if (!await requestConfirmation(container, control, correlationId, origin)) {
+    if (!await requestConfirmation(container, control, correlationId, origin, dryRun)) {
       output.textContent = 'Cancelled before tool dispatch.';
       if (button) button.disabled = false;
       return null;
     }
   }
+  // Enabling the preview override while a dialog is open must also win.
+  if (globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true) dryRun = true;
   const call = {
     protocol: "swissknife.all-app-tool-gateway.v1",
     route: CALL_ROUTE,
@@ -231,7 +254,9 @@ async function invokeGateway(container, button, output, control, options, origin
       policy: {
         decision_id: `desktop-policy:${control.binding_id}`,
         outcome: governed ? "require_confirmation" : "allow",
-        reason: governed
+        reason: governed && !dryRun
+          ? "The governed native application request is explicitly confirmed for real backend execution."
+          : governed
           ? "The governed desktop request is explicitly confirmed and executes only as a no-side-effect dry run."
           : dryRun
             ? "The desktop read executes through the owner adapter as a no-side-effect dry run."

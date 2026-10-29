@@ -156,6 +156,33 @@ node swissknife/scripts/swissknife-checkout-lease.mjs \
   --no-worktree-reconciliation
 ```
 
+### Visual and functional repair campaign
+
+The `swissknife-visual-functional` inventory entry binds the separate `SVF`
+board, profile, state directory, and foreground entrypoint. Run its exact
+inventory command through the same outer lease. The entrypoint invokes the
+deterministic rescue lane in its own foreground process, with direct bounded
+Grok implementation disabled. Its task worker uses the profile's explicit
+`llm_router` route and independently verifies the live inherited lease before
+model calls or source edits.
+
+Preflight checks the task and goal graphs, executable command bindings,
+operator holds, registered writer processes, interrupted Git operations, and
+ready-task output ownership without starting a worker:
+
+```bash
+python3 scripts/swissknife_visual_functional_supervisor.py --preflight-only
+python3 scripts/swissknife_visual_functional_supervisor.py --print-systemd-unit
+```
+
+The generated service retains the lease around the foreground lane and uses
+`KillMode=control-group` so detached command sessions remain contained during
+shutdown. Its restart policy returns through the outer lease every time. The
+campaign's optional observer manifest contains no raw restart command or
+executable taskboard binding; a detached watchdog cannot replace its writer.
+Deterministic child workers may have separate process groups for cleanup, but
+must prove stable process ancestry to the exact foreground lease owner.
+
 The inventory provides the same outer wrapper for every inactive or legacy
 writer. Those lanes are not exempt: implementation through an old direct
 wrapper is denied until it is routed through this lease. Each inventory command

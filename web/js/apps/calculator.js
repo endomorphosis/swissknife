@@ -10,7 +10,7 @@ export class CalculatorApp {
     this.previousValue = null;
     this.operation = null;
     this.waitingForOperand = false;
-    this.history = [];
+    this.history = this.loadStoredHistory();
     this.memory = 0;
     this.mode = 'standard'; // 'standard', 'scientific', 'programmer', 'converter'
     this.angleUnit = 'deg'; // 'deg', 'rad', 'grad'
@@ -18,6 +18,7 @@ export class CalculatorApp {
     this.conversionCategory = 'length'; // 'length', 'weight', 'temperature', etc.
     this.lastCalculation = null;
     this.lastError = null;
+    this.restoredExpression = '';
     this.explanationVerified = false;
     this.keyboardHandler = null;
     this.keyboardHandlerAttached = false;
@@ -76,9 +77,41 @@ export class CalculatorApp {
     const errorText = this.lastError?.message || 'Division by zero and invalid results remain visible until Clear or Escape.';
 
     return `
-      <section class="calculator-workflow-panel"
+      <style>
+        .calculator-diagnostics {
+          margin: 0 12px 4px;
+          color: #eef6f6;
+        }
+        .calculator-diagnostics summary {
+          cursor: pointer;
+          min-height: 28px;
+          font-size: 12px;
+          color: var(--sk-warn, #ffd166);
+        }
+        .calculator-diagnostics:not([open]) > :not(summary) {
+          display: none;
+        }
+        .calculator-diagnostics[open] {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 6px;
+        }
+        .calculator-diagnostics summary {
+          grid-column: 1 / -1;
+        }
+        .calc-btn:focus-visible,
+        .mode-tab:focus-visible,
+        .history-btn:focus-visible,
+        .category-btn:focus-visible,
+        .workflow-action-btn:focus-visible {
+          outline: 2px solid var(--sk-accent, #8bd8bd);
+          outline-offset: 2px;
+        }
+      </style>
+      <details class="calculator-diagnostics"
                data-svd-workflow="calculator.calculation-history"
                aria-label="Calculator workflow evidence">
+        <summary>Calculation notes</summary>
         <div class="workflow-chip" data-svd-vda-marker="calculation-history">
           <span>Local history ref</span>
           <code id="calculator-history-cid">${this.escapeHtml(ref)}</code>
@@ -93,7 +126,7 @@ export class CalculatorApp {
         </div>
         <div class="workflow-chip" data-svd-vda-marker="keypad-focus">
           <span>Keypad focus</span>
-          <small>Pointer, Tab, Enter, Escape, Backspace, and hardware number keys are scoped to this calculator.</small>
+          <small>Tab, Enter, Escape, Backspace, and number keys stay on this keypad.</small>
         </div>
         <div class="workflow-chip" data-svd-vda-marker="error-handling">
           <span>Error recovery</span>
@@ -107,7 +140,7 @@ export class CalculatorApp {
           <span>Backend</span>
           <code id="calculator-receipt">none — local only</code>
         </div>
-      </section>
+      </details>
     `;
   }
 
@@ -895,8 +928,40 @@ export class CalculatorApp {
     }
   }
 
+  containCalculatorInWindow(container) {
+    if (!container || typeof document === 'undefined') return;
+    const contentRoot = container.closest?.('.window-app-content');
+    const windowEl = container.closest?.('.window');
+    if (contentRoot && windowEl) {
+      const windowRect = windowEl.getBoundingClientRect();
+      const topOffset = contentRoot.getBoundingClientRect().top - windowRect.top;
+      if (windowRect.height > 200 && topOffset >= 0 && topOffset < windowRect.height) {
+        const available = Math.max(280, Math.floor(windowRect.height - topOffset - 4));
+        contentRoot.style.boxSizing = 'border-box';
+        contentRoot.style.height = `${available}px`;
+        contentRoot.style.maxHeight = `${available}px`;
+        contentRoot.style.overflow = 'hidden';
+        contentRoot.style.display = 'flex';
+        contentRoot.style.flexDirection = 'column';
+      }
+    }
+    container.style.position = 'relative';
+    container.style.flex = '1 1 auto';
+    container.style.minHeight = '0';
+    container.style.height = '100%';
+    container.style.maxHeight = '100%';
+    container.style.overflow = 'hidden';
+    if (!document.getElementById('calculator-contained-layout')) {
+      const style = document.createElement('style');
+      style.id = 'calculator-contained-layout';
+      style.textContent = '.calculator-container .calculator-header{padding:6px 8px}.calculator-container .calculator-display{padding:8px 12px}.calculator-container .display-primary{font-size:26px;min-height:28px}.calculator-container .calculator-body{flex:1 1 auto;min-height:0;padding:8px;overflow:hidden}.calculator-container .button-grid{min-height:0;gap:6px}.calculator-container .standard-grid{grid-template-rows:repeat(6,minmax(0,1fr))}.calculator-container .calc-btn{min-height:28px}.calculator-container .history-panel{max-height:calc(100% - 80px);overflow:auto}';
+      container.appendChild(style);
+    }
+  }
+
   setupEventHandlers(container) {
     if (!container) return;
+    this.containCalculatorInWindow(container);
 
     // Mode switching
     container.querySelectorAll('.mode-tab').forEach(tab => {
@@ -917,6 +982,7 @@ export class CalculatorApp {
     if (clearHistory) {
       clearHistory.addEventListener('click', () => {
         this.history = [];
+        this.persistHistory();
         this.updateHistoryDisplay();
         this.updateWorkflowEvidence();
       });
@@ -965,7 +1031,6 @@ export class CalculatorApp {
     container.querySelectorAll('.calc-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         this.clearError();
-        container.focus({ preventScroll: true });
         btn.classList.add('pressed');
         setTimeout(() => btn.classList.remove('pressed'), 100);
         
@@ -1008,27 +1073,37 @@ export class CalculatorApp {
       if (!this.isCalculatorFocused()) return;
 
       const key = e.key;
-      e.preventDefault();
+      let handled = false;
 
       if ('0123456789'.includes(key)) {
         this.inputNumber(key);
+        handled = true;
       } else if (key === '.') {
         this.performAction('decimal');
+        handled = true;
       } else if (key === '+') {
         this.performAction('add');
+        handled = true;
       } else if (key === '-') {
         this.performAction('subtract');
+        handled = true;
       } else if (key === '*') {
         this.performAction('multiply');
+        handled = true;
       } else if (key === '/') {
         this.performAction('divide');
+        handled = true;
       } else if (key === 'Enter' || key === '=') {
         this.performAction('equals');
+        handled = true;
       } else if (key === 'Escape' || key === 'c' || key === 'C') {
         this.performAction('clear');
+        handled = true;
       } else if (key === 'Backspace') {
         this.performAction('backspace');
+        handled = true;
       }
+      if (handled) e.preventDefault();
     };
 
     document.addEventListener('keydown', this.keyboardHandler);
@@ -1071,6 +1146,7 @@ export class CalculatorApp {
 
   inputNumber(digit) {
     this.clearError();
+    this.restoredExpression = '';
 
     if (this.waitingForOperand) {
       this.currentDisplay = digit;
@@ -1445,7 +1521,7 @@ export class CalculatorApp {
     if (secondary) {
       secondary.textContent = this.operation && this.previousValue !== null
         ? `${this.formatNumber(String(this.previousValue))} ${this.getOperatorSymbol(this.operation)}`
-        : '';
+        : (this.restoredExpression || '');
     }
 
     const error = document.querySelector('#display-error');
@@ -1489,6 +1565,28 @@ export class CalculatorApp {
     return String(number);
   }
 
+  loadStoredHistory() {
+    try {
+      const raw = globalThis.localStorage?.getItem('swissknife.calculator.history.v1');
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.slice(0, 50).map((item) => this.normalizeHistoryItem(item));
+    } catch {
+      return [];
+    }
+  }
+
+  persistHistory() {
+    try {
+      globalThis.localStorage?.setItem(
+        'swissknife.calculator.history.v1',
+        JSON.stringify(this.history.slice(0, 50))
+      );
+    } catch {
+      /* storage unavailable; in-memory history still works */
+    }
+  }
+
   addToHistory(calculation, metadata = {}) {
     const expression = metadata.expression || calculation.split(' = ')[0] || calculation;
     const result = metadata.result ?? calculation.split(' = ')[1] ?? this.currentDisplay;
@@ -1512,7 +1610,8 @@ export class CalculatorApp {
     if (this.history.length > 50) {
       this.history = this.history.slice(0, 50);
     }
-    
+
+    this.persistHistory();
     this.updateHistoryDisplay();
     this.updateWorkflowEvidence();
   }
@@ -1529,7 +1628,7 @@ export class CalculatorApp {
     historyList.innerHTML = this.history.map(rawItem => {
       const item = this.normalizeHistoryItem(rawItem);
       return `
-      <div class="history-item" data-calculation="${this.escapeHtml(item.calculation)}" data-local-ref="${this.escapeHtml(item.localRef)}">
+      <div class="history-item" data-calculation="${this.escapeHtml(item.calculation)}" data-expression="${this.escapeHtml(item.expression)}" data-result="${this.escapeHtml(item.result)}" data-local-ref="${this.escapeHtml(item.localRef)}">
         <div>${this.escapeHtml(item.calculation)}</div>
         <div class="history-meta">
           <span>${new Date(item.timestamp).toLocaleTimeString()}</span>
@@ -1542,13 +1641,17 @@ export class CalculatorApp {
     // Add click handlers for history items
     historyList.querySelectorAll('.history-item').forEach(item => {
       item.addEventListener('click', () => {
-        const calculation = item.dataset.calculation;
-        const result = calculation.split(' = ')[1];
-        if (result) {
-          this.currentDisplay = result;
-          this.updateDisplay();
-          this.toggleHistory(); // Close history panel
-        }
+        const expression = item.dataset.expression || '';
+        const result = item.dataset.result || '';
+        if (!expression || result === '') return;
+        this.currentDisplay = result;
+        this.previousValue = null;
+        this.operation = null;
+        this.waitingForOperand = true;
+        this.restoredExpression = expression;
+        this.clearError();
+        this.updateDisplay();
+        this.toggleHistory();
       });
     });
   }
@@ -1721,7 +1824,7 @@ export class CalculatorApp {
           },
           {
             capability_id: 'local.calculator.history',
-            description: 'Store calculation history with deterministic local CID receipts.',
+            description: 'Store calculation history with deterministic local references.',
           },
         ],
         remote_capabilities: {},

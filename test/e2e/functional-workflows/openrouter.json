@@ -1,0 +1,36 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "openrouter",
+  "fixture_scope": "svf-openrouter-hub",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {"op": "wait_for", "selector": ".or-catalog-status", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": ".tab-item[data-tab=\"chat\"]"},
+      {"op": "wait_for", "selector": "#openrouter-new-chat", "state": "visible", "timeout_ms": 5000},
+      {"op": "click", "selector": "#openrouter-new-chat"},
+      {"op": "wait_for", "selector": "#message-input", "state": "visible", "timeout_ms": 5000},
+      {"op": "fill", "selector": "#message-input", "value": "Say hi"},
+      {"op": "press", "selector": "#message-input", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": ".or-message-assistant .or-message-content"}, "operator": "contains", "expected": "No request was sent"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "click", "selector": ".tab-item[data-tab=\"chat\"]"},
+      {"op": "wait_for", "selector": ".conversations-list .or-conversation", "state": "visible", "timeout_ms": 5000},
+      {"op": "click", "selector": ".conversations-list .or-conversation"},
+      {"op": "wait_for", "selector": ".or-message-assistant .or-message-content", "state": "visible", "timeout_ms": 5000},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": ".or-message-assistant .or-message-content"}, "operator": "contains", "expected": "No request was sent"}
+    ],
+    "failure_recovery": [
+      {"op": "click", "selector": ".tab-item[data-tab=\"playground\"]"},
+      {"op": "wait_for", "selector": "#playground-input", "state": "visible", "timeout_ms": 5000},
+      {"op": "fill", "selector": "#playground-input", "value": "ping"},
+      {"op": "click", "selector": "#generate-btn"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#playground-output"}, "operator": "contains", "expected": "No request was sent"},
+      {"op": "click", "selector": "#openrouter-connect"},
+      {"op": "wait_for", "selector": ".or-modal h3", "state": "visible", "timeout_ms": 5000},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": ".or-modal h3"}, "operator": "equals", "expected": "OpenRouter API Configuration"}
+    ]
+  }
+}

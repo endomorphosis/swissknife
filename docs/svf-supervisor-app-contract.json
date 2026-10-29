@@ -1,0 +1,46 @@
+{
+  "schema": "swissknife.native-foundation-app-context.v1",
+  "capability": "supervisor",
+  "app_ids": [
+    "agent-supervisor"
+  ],
+  "tools": {
+    "owner": "ipfs_accelerate_py",
+    "write_tool": "WorkflowCoordinator.submit_task",
+    "read_tool": "get_task",
+    "implementation": "literal compatibility alias routes actual IntentRepository/DatabaseTaskSource/VerificationProcessRunner; NEVER instantiate quarantined WorkflowCoordinator",
+    "policy": "writes require actual gateway confirmation; get_task uses canonical read policy"
+  },
+  "request_contract": {
+    "fixture_mode": "svf-goal-worker-v1",
+    "create": {
+      "action": "create",
+      "fixture": "dependency-output-v1 | timeout-recovery-v1 | cancel-recovery-v1",
+      "dry_run": false,
+      "correlation_id": "bounded optional string"
+    },
+    "dispatch_retry_cancel": {
+      "action": "dispatch | retry | cancel",
+      "run_id": "actual server-returned canonical UUID",
+      "task_key": "a | b",
+      "dry_run": false
+    },
+    "read": {
+      "fixture_mode": "svf-goal-worker-v1",
+      "run_id": "actual server-returned UUID",
+      "task_key": "a | b"
+    },
+    "forbidden": "caller argv/code/path/SQL/URL/DB/validator/evidence/output; never guess IDs or fall back to CPU inference for fixture actions"
+  },
+  "response_contract": {
+    "unwrap": "Use actual nested MCP content JSON, reject error/isError/false success; authenticated outer receipt/event still required",
+    "create": "Actual run_id/challenge/objective_id/root_goal_cid/child_goal_cid/task_ids{a,b}; retain graph identity and selected bounded worker",
+    "dependency": "B must remain blocked until A has actual output independently validated and evidence-fenced CAS completion; show named blocker",
+    "dispatch": "Actual task_id/status plus execution producer/validator artifact refs and output_sha256; heartbeat or local button text is not completion",
+    "get_task": "Server-read actual task_id/status/output_sha256; reopening saved UI requires real readback, not cached completed state",
+    "recovery": "Actual timeout/cancel leaves output unpublished and task incomplete, typed supervisor_timeout/supervisor_cancelled; governed retry runs one bounded fresh worker. Re-dispatch of successful task returns same actual record without duplicate worker.",
+    "cpu": "Ordinary submit_task/get_task without fixture_mode retain separate original GPT-2 CPU behavior. Fixture mode never selects arbitrary browser-supplied programs.",
+    "ui": "Inspect real hierarchy/dependencies, preview planned bounded action locally, confirm real governed dispatch, show actual validated output and retained event history; explain unsupported operations honestly. Never label an arbitrary goal as generally executed by this controlled fixture."
+  },
+  "scope": "Readonly API context; edit only this task's declared app/scenario files. Canonical gateway consent, actual native results, independent receipt+DAG, original semantic workflow, final Grok review and validator remain mandatory. Foundation qualification is not app completion. No caller endpoint/argv/code/path or forged success."
+}

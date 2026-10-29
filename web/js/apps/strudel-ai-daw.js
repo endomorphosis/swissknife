@@ -59,16 +59,16 @@ export class StrudelAIDAW {
         this.renderState = {
             status: 'idle',
             progress: 0,
-            checkpoint: 'bafystrudelaidawg045renderstatequeued',
-            receipt: 'receipt:strudel-ai-daw:g045:render-state:idle'
+            checkpoint: null,
+            receipt: null
         };
         this.assetProvenance = {
-            projectCid: 'bafystrudelaidawg045projectcidv1',
-            mediaCid: 'bafystrudelaidawg045mediacidv1',
-            sampleCid: 'bafystrudelaidawg045samplelibraryv1',
-            libraryCid: 'bafystrudelaidawg045librarycontextv1',
-            eventDagCid: 'bafystrudelaidawg045eventdagv1',
-            receipt: 'receipt:strudel-ai-daw:g045:asset-provenance:verified'
+            projectCid: null,
+            mediaCid: null,
+            sampleCid: null,
+            libraryCid: null,
+            eventDagCid: null,
+            receipt: null
         };
         
         // AI integration
@@ -167,7 +167,36 @@ export class StrudelAIDAW {
 
     getContentHTML() {
         return `
-            <div class="strudel-ai-daw">
+            <style>
+                .window[data-app-id="strudel-ai-daw"]{overflow:hidden!important}
+                .window[data-app-id="strudel-ai-daw"] .window-content,.window[data-app-id="strudel-ai-daw"] .window-app-content{position:relative!important;flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:100%!important;overflow:auto!important}
+                .strudel-ai-daw{box-sizing:border-box!important;width:100%!important;max-width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;display:flex!important;flex-direction:column!important}
+                .strudel-ai-daw .daw-chrome{position:sticky!important;top:0!important;z-index:4!important;background:#1b1b1b!important;flex:0 0 auto!important;max-width:100%!important}
+                .strudel-ai-daw .daw-main{display:flex!important;flex-direction:column!important;width:100%!important;min-width:0!important;min-height:0!important;flex:1 1 auto!important;overflow:visible!important}
+                .strudel-ai-daw .pattern-sidebar,.strudel-ai-daw .code-section{display:block!important;position:static!important;width:100%!important;max-width:100%!important;min-width:0!important;flex:0 0 auto!important}
+                .strudel-ai-daw .daw-menubar,.strudel-ai-daw .menu-section,.strudel-ai-daw .transport-bar{display:flex!important;flex:0 0 auto!important;flex-wrap:wrap!important;align-items:center!important;gap:6px!important;max-width:100%!important;overflow:visible!important}
+                .strudel-ai-daw .daw-menubar{min-height:32px!important;background:#1b1b1b!important}
+                .strudel-ai-daw .menu-btn{flex:0 0 auto!important;white-space:nowrap!important}
+                .strudel-ai-daw .transport-controls{display:flex!important;flex-wrap:wrap!important;gap:8px!important;max-width:100%!important}
+                .strudel-ai-daw .sk-transport-btn{flex:0 0 auto!important}
+                .strudel-ai-daw .code-editor-container{display:flex!important;width:100%!important;min-height:150px!important}
+                .strudel-ai-daw #strudel-code-editor{width:100%!important;min-height:130px!important;flex:1 1 auto!important}
+                .strudel-ai-daw button:focus,.strudel-ai-daw textarea:focus,.strudel-ai-daw input:focus{outline:none;box-shadow:none}
+                .strudel-ai-daw :focus-visible{outline:2px solid #7dffb3!important;outline-offset:2px!important;box-shadow:none!important}
+                @media (max-width:800px){
+                    .window[data-app-id="strudel-ai-daw"]{max-height:calc(100dvh - 56px)!important;height:calc(100dvh - 56px)!important;overflow:hidden!important}
+                    .strudel-ai-daw .pattern-sidebar{max-height:44px!important;overflow:auto!important}
+                    .strudel-ai-daw .controls-sidebar,.strudel-ai-daw .bottom-panel{display:none!important}
+                    .strudel-ai-daw .daw-menubar,.strudel-ai-daw .transport-bar,.strudel-ai-daw .menu-section,.strudel-ai-daw .transport-controls{flex-wrap:wrap!important;max-width:100%!important;overflow:visible!important}
+                    .strudel-ai-daw .logo{display:none!important}
+                    .strudel-ai-daw .menu-btn,.strudel-ai-daw .sk-transport-btn{padding:2px 6px!important;font-size:12px!important}
+                    .strudel-ai-daw .status-section{flex:0 0 auto!important;max-height:3.2em!important;overflow:auto!important;font-size:12px!important;line-height:1.3!important}
+                    .strudel-ai-daw .code-editor-container{min-height:120px!important}
+                    .strudel-ai-daw #strudel-code-editor{min-height:100px!important}
+                }
+            </style>
+            <div class="strudel-ai-daw" style="box-sizing:border-box;width:100%;min-height:0;max-height:none;overflow:visible;display:flex;flex-direction:column">
+                <div class="daw-chrome">
                 <!-- Top Menu Bar -->
                 <div class="daw-menubar">
                     <div class="menu-section">
@@ -191,11 +220,11 @@ export class StrudelAIDAW {
                 <!-- Transport Controls -->
                 <div class="transport-bar">
                     <div class="transport-controls sk-transport">
-                        <button class="sk-transport-btn is-main" id="play-btn" aria-label="Play">▶️</button>
-                        <button class="sk-transport-btn" id="pause-btn" disabled aria-label="Pause">⏸️</button>
-                        <button class="sk-transport-btn" id="stop-btn" disabled aria-label="Stop">⏹️</button>
-                        <button class="sk-transport-btn" id="record-btn" aria-label="Record">🔴</button>
-                        <button class="sk-transport-btn" id="undo-btn" aria-label="Undo last DAW edit">↩</button>
+                        <button class="sk-transport-btn is-main" id="play-btn" aria-label="Play">Play</button>
+                        <button class="sk-transport-btn" id="pause-btn" disabled aria-label="Pause">Pause</button>
+                        <button class="sk-transport-btn" id="stop-btn" disabled aria-label="Stop">Stop</button>
+                        <button class="sk-transport-btn" id="record-btn" aria-label="Record">Record</button>
+                        <button class="sk-transport-btn" id="undo-btn" aria-label="Undo last DAW edit">Undo</button>
                     </div>
                     
                     <div class="tempo-section">
@@ -212,6 +241,7 @@ export class StrudelAIDAW {
                     
                     <div class="status-section">
                         <span id="audio-playback-status" role="status">Audio initializing</span>
+                        <span id="assistance-status" role="status">Assistance idle. Local edits stay in the editor.</span>
                         <div class="cpu-meter">
                             <span>CPU:</span>
                             <div class="meter"><div class="meter-fill" id="cpu-meter"></div></div>
@@ -221,7 +251,10 @@ export class StrudelAIDAW {
                         </div>
                     </div>
                 </div>
+                </div>
 
+                <details class="strudel-session-details">
+                    <summary>Local session details</summary>
                 <div class="svd-g045-workflow" data-svd-workflow="strudel-ai-daw.assisted-composition-render-recovery">
                     <div class="svd-g045-header">
                         <div>
@@ -261,6 +294,7 @@ export class StrudelAIDAW {
                         </div>
                     </div>
                 </div>
+                </details>
 
                 <!-- Main Content Area -->
                 <div class="daw-main">
@@ -614,7 +648,7 @@ Examples:
         window.querySelector('#tap-tempo').addEventListener('click', () => this.tapTempo(window));
 
         // AI functions
-        window.querySelector('#ai-generate').addEventListener('click', () => this.showAIDialog(window));
+        window.querySelector('#ai-generate').addEventListener('click', () => this.requestAssistedComposition(window));
         window.querySelector('#ai-enhance').addEventListener('click', () => this.enhanceWithAI(window));
         window.querySelector('#ai-fix').addEventListener('click', () => this.fixWithAI(window));
         window.querySelector('#ai-send').addEventListener('click', () => this.sendAIMessage(window));
@@ -663,9 +697,13 @@ Examples:
 
     async initializeEditor(window) {
         const editor = window.querySelector('#strudel-code-editor');
-        
-        // Load default Strudel pattern
-        editor.value = `// 🎵 AI-Generated Minimal Techno
+        let restored = null;
+        try {
+            restored = JSON.parse(localStorage.getItem('swissknife:strudel-ai-daw:last-pattern') || 'null');
+        } catch {
+            restored = null;
+        }
+        const fallback = `// 🎵 AI-Generated Minimal Techno
 // Let AI help you create amazing music!
 
 stack(
@@ -681,6 +719,13 @@ stack(
   // Lead arp
   note("c4 eb4 g4 bb4").sound("sine").lpf(800).room(0.2).slow(2)
 ).cpm(120)`;
+        editor.value = typeof restored?.code === 'string' ? restored.code : fallback;
+        if (Number.isFinite(restored?.bpm)) {
+            this.bpm = Math.max(60, Math.min(200, restored.bpm));
+            const bpmInput = window.querySelector('#bpm-input');
+            if (bpmInput) bpmInput.value = String(this.bpm);
+        }
+        if (typeof restored?.id === 'string' && restored.id) this.activePattern = restored.id;
         this.currentCode = editor.value;
 
         this.updateLineNumbers(window);
@@ -1452,26 +1497,10 @@ stack(
         this.addAIMessage(window, message, 'user');
         aiInput.value = '';
         
-        try {
-            const response = await this.swissknife.chat({
-                message: `You are an expert Strudel live coding assistant. Current code context:
-${this.currentCode}
-
-User request: ${message}
-
-Please provide Strudel.js code that addresses the user's request. Focus on:
-- Using proper Strudel syntax and functions
-- Creating musical and rhythmic patterns
-- Explaining your choices briefly
-- Providing complete, runnable code snippets`,
-                model: 'gpt-4'
-            });
-            
-            this.addAIMessage(window, response.message, 'assistant');
-            
-        } catch (error) {
-            this.addAIMessage(window, `Error: ${error.message}`, 'error');
-        }
+        const notice = 'Assistance unavailable: request not executed. Local edits kept.';
+        this.addAIMessage(window, notice, 'error');
+        const status = window.querySelector('#assistance-status');
+        if (status) status.textContent = notice;
     }
 
     addAIMessage(window, message, role) {
@@ -1718,77 +1747,37 @@ note("c2 ~ eb2 ~").sound("sawtooth").lpf(300).gain(0.6)`;
     }
 
     async loadAssetProvenance(window) {
-        // Real persistence: the live composition (code, BPM, pattern) goes to
-        // the ipfs_kit_py artifact store with a canonical CID over the exact
-        // bytes, after the user's explicit confirmation. The fixture CIDs in
-        // the constructor are replaced by the real one; backend failures
-        // surface verbatim.
-        this.updateG045Marker(window, 'asset-provenance', 'Persisting composition artifact…', { assetProvenanceState: 'persisting' });
-        try {
-            const helper = await import('./real-artifact.js');
-            if (!helper.userConfirmsBackendWrite('Persist the current Strudel composition to the ipfs_kit_py artifact store?')) {
-                this.updateG045Marker(window, 'asset-provenance', 'Asset persist cancelled; fixture references remain design-verification only.', { assetProvenanceState: 'cancelled' });
-                return;
-            }
-            const editor = window.querySelector('#strudel-code-editor');
-            const record = {
-                schema: 'swissknife.strudel-ai-daw.composition.v1',
-                code: editor?.value ?? this.currentCode,
-                activePattern: this.activePattern,
-                bpm: this.bpm,
-                savedAt: new Date().toISOString()
-            };
-            const persisted = await helper.persistArtifactRecord({
-                record,
-                profile: 'strudel-ai-daw-composition',
-                kind: 'composition'
-            });
-            this.assetProvenance.projectCid = persisted.cid;
-            this.updateG045Marker(
-                window,
-                'asset-provenance',
-                `Composition persisted: project CID ${persisted.cid} (verified=${persisted.verified}). Rights: creator-release CC-BY-4.0 samples and local project stem manifest.`,
-                { assetProvenanceState: 'verified', projectCidState: 'loaded', mediaCidState: 'loaded' }
-            );
-            this.setG045Status(window, 'asset-provenance-verified');
-            this.addConsoleMessage(window, `Composition artifact persisted: ${persisted.cid}`, 'info');
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            this.updateG045Marker(window, 'asset-provenance', `Asset persist failed: ${message}`, { assetProvenanceState: 'failed' });
-            this.addConsoleMessage(window, `Asset persist failed: ${message}`, 'error');
-        }
+        this.assetProvenance = {
+            projectCid: null,
+            mediaCid: null,
+            sampleCid: null,
+            libraryCid: null,
+            eventDagCid: null,
+            receipt: null
+        };
+        this.savePattern(window);
+        this.updateG045Marker(
+            window,
+            'asset-provenance',
+            'Composition saved in this browser. No remote artifact store is connected, so no CID is claimed.',
+            { assetProvenanceState: 'local', projectCidState: 'local', mediaCidState: 'local' }
+        );
+        this.setG045Status(window, 'saved-local');
+        this.addConsoleMessage(window, 'Composition saved locally; remote asset store is not used', 'info');
     }
 
     requestAssistedComposition(window) {
-        const editor = window.querySelector('#strudel-code-editor');
-        if (!editor) return;
-        this.recordUndoSnapshot(window, 'assisted-composition');
-        const assistedCode = `// VDA-G045 assisted composition - editable local Strudel code
-stack(
-  note("c2 ~ c2 eb2").sound("bd").gain(0.86),
-  note("~ g3 bb3 c4").sound("sawtooth").lpf(720).room(0.24).slow(2),
-  note("c4 eb4 g4 bb4").sound("sine").gain(0.42).delay(0.125).slow(4),
-  note("~ c5 ~ bb4").sound("hh").gain(0.22).fast(2)
-).cpm(126)`;
-        editor.value = assistedCode;
-        this.currentCode = assistedCode;
-        this.codeContext = 'assisted composition: library context D minor, 126 BPM, local edit preserved';
-        this.updateLineNumbers(window);
-        this.scanCodeVariables(window);
+        const notice = 'Assistance unavailable: request not executed. Local edits kept.';
+        const status = window.querySelector('#assistance-status');
+        if (status) status.textContent = notice;
         this.updateG045Marker(
             window,
             'assisted-composition',
-            'Assisted composition accepted as an editable local change (local template, D minor, 126 BPM). Undo history preserved before replacing the editor pattern; no backend call was made.',
-            { assistedCompositionState: 'accepted', assistantEditState: 'editable' }
+            notice,
+            { assistedCompositionState: 'unavailable', assistantEditState: 'not-executed' }
         );
-        this.updateG045Marker(
-            window,
-            'undo',
-            `Undo history armed: ${this.undoStack.length} snapshot(s) available before the assistant edit (local history stack).`,
-            { undoState: 'ready', undoProof: 'local-history' }
-        );
-        this.setG045Status(window, 'assistant-edit-ready');
-        this.addConsoleMessage(window, 'Assistant composition inserted with undo snapshot', 'info');
+        this.setG045Status(window, 'assistance-unavailable');
+        this.addConsoleMessage(window, notice, 'error');
     }
 
     startRenderJob(window) {
@@ -1893,53 +1882,11 @@ stack(
             fx: window.querySelector('#include-fx').checked
         };
         
-        try {
-            const response = await this.swissknife.chat({
-                message: `Generate Strudel.js code for this musical description:
-
-"${description}"
-
-Options:
-- Include melody: ${options.melody}
-- Include bass: ${options.bass}  
-- Include drums: ${options.drums}
-- Include effects: ${options.fx}
-
-Please create complete, runnable Strudel code using proper syntax like:
-- note() for melodies
-- sound() for timbres
-- stack() for layering
-- Proper timing functions like slow(), fast()
-- Effects like lpf(), room(), delay()
-
-Make it musical and interesting!`,
-                model: 'gpt-4'
-            });
-            
-            let generatedCode = response.message;
-            
-            // Extract code from response
-            if (generatedCode.includes('```')) {
-                generatedCode = generatedCode.split('```')[1];
-                if (generatedCode.startsWith('javascript') || generatedCode.startsWith('js')) {
-                    generatedCode = generatedCode.substring(generatedCode.indexOf('\n') + 1);
-                }
-                generatedCode = generatedCode.split('```')[0];
-            }
-            
-            const editor = window.querySelector('#strudel-code-editor');
-            editor.value = generatedCode.trim();
-            this.currentCode = generatedCode.trim();
-            
-            this.updateLineNumbers(window);
-            this.scanCodeVariables(window);
-            
-            window.querySelector('#ai-generation-dialog').style.display = 'none';
-            this.desktop.showNotification('🎵 Music generated successfully!', 'success');
-            
-        } catch (error) {
-            this.desktop.showNotification('Failed to generate music: ' + error.message, 'error');
-        }
+        const notice = 'Assistance unavailable: request not executed. Local edits kept.';
+        const status = window.querySelector('#assistance-status');
+        if (status) status.textContent = notice;
+        this.addConsoleMessage(window, notice, 'error');
+        this.desktop.showNotification(notice, 'warning');
     }
 
     selectGenre(window, genre) {
@@ -2098,24 +2045,7 @@ stack(
         } catch (error) {
             this.addConsoleMessage(window, `Local manifest save skipped: ${error.message}`, 'error');
         }
-        // Real backend persist of the export manifest (user-confirmed), so a
-        // shareable composition gets a real artifact CID.
-        try {
-            const helper = await import('./real-artifact.js');
-            if (!helper.userConfirmsBackendWrite('Persist this composition export manifest to the ipfs_kit_py artifact store?')) {
-                this.addConsoleMessage(window, 'Export manifest kept local only (persist cancelled).', 'info');
-                return;
-            }
-            const persisted = await helper.persistArtifactRecord({
-                record: manifest,
-                profile: 'strudel-ai-daw-export',
-                kind: 'composition'
-            });
-            this.addConsoleMessage(window, `Export manifest persisted: ${persisted.cid}`, 'info');
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            this.addConsoleMessage(window, `Export manifest could not be persisted: ${message}`, 'error');
-        }
+        this.addConsoleMessage(window, 'Export manifest kept in this browser. No remote artifact store is connected.', 'info');
     }
 
     autoSavePattern(window) {

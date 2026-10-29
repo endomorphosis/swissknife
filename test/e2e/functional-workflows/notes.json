@@ -1,0 +1,163 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "notes",
+  "description": "Edit and locally save the known note, search the separately prepared existing dataset collection, open its actual matching document, and reopen exact text. After a bad conflict reference, clear it, repeat the native search, open the newly returned document and save it locally before observing recovery. Local edits do not create or update the dataset index.",
+  "fixture_scope": "svf-notes-cedar-ledger",
+  "backend_bindings": [
+    {
+      "binding_id": "notes.ipfs_datasets_py.search_notes",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/results/0/document/metadata/title",
+        "operator": "contains",
+        "expected": "SVF cedar-ledger note"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "fill",
+        "selector": "#note-title",
+        "value": "SVF cedar-ledger note"
+      },
+      {
+        "op": "fill",
+        "selector": "#note-content",
+        "value": "cedar-ledger semantic phrase for notebook search"
+      },
+      {
+        "op": "press",
+        "selector": "#note-content",
+        "key": "Control+s"
+      },
+      {
+        "op": "fill",
+        "selector": "#search-input",
+        "value": "cedar-ledger semantic phrase for notebook search"
+      },
+      {
+        "op": "click",
+        "selector": "#notes-run-semantic-search"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#notes-open-semantic-result-0",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "#notes-open-semantic-result-0"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#note-title[value=\"SVF cedar-ledger note\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "#note-content",
+        "key": "Control+s"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": { "kind": "value", "selector": "#note-content" },
+        "operator": "equals",
+        "expected": "cedar-ledger semantic phrase for notebook search"
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "value",
+          "selector": "#note-content"
+        },
+        "operator": "equals",
+        "expected": "cedar-ledger semantic phrase for notebook search"
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "fill",
+        "selector": "#notes-base-cid",
+        "value": "unavailable-note-version"
+      },
+      {
+        "op": "click",
+        "selector": "#notes-recover-conflict"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#vda-g039-status"
+        },
+        "operator": "contains",
+        "expected": "failed"
+      },
+      {
+        "op": "fill",
+        "selector": "#notes-base-cid",
+        "value": ""
+      },
+      {
+        "op": "fill",
+        "selector": "#search-input",
+        "value": "cedar-ledger semantic phrase for notebook search"
+      },
+      {
+        "op": "click",
+        "selector": "#notes-run-semantic-search"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#notes-open-semantic-result-0",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "#notes-open-semantic-result-0"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#note-title[value=\"SVF cedar-ledger note\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "#note-content",
+        "key": "Control+s"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#vda-g039-status[data-notes-editor-recovery=\"saved-local\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "value",
+          "selector": "#note-content"
+        },
+        "operator": "equals",
+        "expected": "cedar-ledger semantic phrase for notebook search"
+      }
+    ]
+  }
+}

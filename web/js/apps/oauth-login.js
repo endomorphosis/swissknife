@@ -15,6 +15,7 @@ class OAuthLoginSystem {
         
         // Setup OAuth callback handler
         this.setupCallbackHandler();
+        this.initializeEventHandlers();
     }
 
     initializeProviders() {
@@ -24,7 +25,7 @@ class OAuthLoginSystem {
             name: 'Google',
             icon: '🔴',
             color: '#db4437',
-            clientId: '1234567890-example.apps.googleusercontent.com', // Demo client ID
+            clientId: '',
             redirectUri: window.location.origin + '/oauth/callback',
             scope: 'openid profile email',
             authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
@@ -40,7 +41,7 @@ class OAuthLoginSystem {
             name: 'Facebook',
             icon: '🔵',
             color: '#4267b2',
-            clientId: '1234567890123456', // Demo client ID
+            clientId: '',
             redirectUri: window.location.origin + '/oauth/callback',
             scope: 'email,public_profile',
             authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
@@ -56,7 +57,7 @@ class OAuthLoginSystem {
             name: 'GitHub',
             icon: '🐙',
             color: '#333333',
-            clientId: 'Iv1.1234567890abcdef', // Demo client ID
+            clientId: '',
             redirectUri: window.location.origin + '/oauth/callback',
             scope: 'user:email,read:user,repo',
             authUrl: 'https://github.com/login/oauth/authorize',
@@ -72,7 +73,7 @@ class OAuthLoginSystem {
             name: 'Microsoft',
             icon: '🟦',
             color: '#0078d4',
-            clientId: '12345678-1234-1234-1234-123456789012', // Demo client ID
+            clientId: '',
             redirectUri: window.location.origin + '/oauth/callback',
             scope: 'openid profile email User.Read',
             authUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
@@ -88,7 +89,7 @@ class OAuthLoginSystem {
             name: 'Discord',
             icon: '🟣',
             color: '#7289da',
-            clientId: '123456789012345678', // Demo client ID
+            clientId: '',
             redirectUri: window.location.origin + '/oauth/callback',
             scope: 'identify email',
             authUrl: 'https://discord.com/api/oauth2/authorize',
@@ -98,45 +99,44 @@ class OAuthLoginSystem {
             configured: false
         });
 
-        // GitHub OAuth
-        this.providers.set('github', {
-            id: 'github',
-            name: 'GitHub',
-            icon: '🐙',
-            color: '#333',
-            clientId: '', // To be configured
-            redirectUri: window.location.origin + '/oauth/callback',
-            scope: 'user:email,repo,issues,pull_requests',
-            authUrl: 'https://github.com/login/oauth/authorize',
-            tokenUrl: 'https://github.com/login/oauth/access_token',
-            userInfoUrl: 'https://api.github.com/user',
-            enabled: false,
-            configured: false
-        });
-
-        console.log('🔐 OAuth providers initialized:', this.providers.size);
+        console.log('OAuth providers initialized:', this.providers.size);
     }
 
     async render() {
         return `
-            <div class="oauth-login-system">
-                <div class="oauth-header">
-                    <div class="header-left">
-                        <h2>🔐 OAuth Login System</h2>
-                        <div class="login-status">
-                            <span class="status-indicator">
-                                <span class="sk-status-dot ${this.activeTokens.size > 0 ? 'is-ok' : 'is-idle'}"></span>🔑 ${this.activeTokens.size} active sessions
-                            </span>
-                        </div>
+            <div class="oauth-login-system" style="display:flex;flex-direction:column;gap:8px;padding:8px;box-sizing:border-box;height:100%;max-height:100%;min-height:0;overflow:hidden;flex:1 1 auto;">
+                <style>
+                  .oauth-login-system .hidden{display:none !important}
+                  .window[data-app-id="oauth-login"]{overflow:hidden;height:min(720px,calc(100dvh - 96px));max-height:calc(100dvh - 96px);min-height:320px;display:flex;flex-direction:column;box-sizing:border-box}
+                  .window[data-app-id="oauth-login"] .window-app-content{position:relative !important;top:auto !important;bottom:auto !important;height:auto !important;max-height:none !important;min-height:0 !important;overflow:hidden !important;box-sizing:border-box;display:flex !important;flex-direction:column;flex:1 1 auto}
+                  .oauth-login-system .oauth-content{overflow-x:hidden !important;overflow-y:scroll !important;flex:1 1 auto;min-height:0;max-height:100%;scroll-padding-top:8px;scroll-padding-bottom:24px;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:#3d3358 #efeaf8;padding-bottom:24px}
+                  .oauth-login-system .oauth-scope-btn{background:transparent !important;color:#1c1433 !important;border:1px solid rgba(28,20,51,.45) !important;box-shadow:none !important;font-weight:650}
+                  .oauth-login-system .modern-providers{display:block}
+                  .oauth-login-system .oauth-provider-row,.oauth-login-system .oauth-provider-row .sk-btn,.oauth-login-system .provider-subtitle{flex-shrink:0}
+                  .oauth-login-system .oauth-provider-row .sk-btn{min-height:36px}
+                  .oauth-login-system .oauth-content::-webkit-scrollbar{width:10px}
+                  .oauth-login-system .oauth-content::-webkit-scrollbar-track{background:#efeaf8}
+                  .oauth-login-system .oauth-content::-webkit-scrollbar-thumb{background:#3d3358;border-radius:8px}
+                  .oauth-login-system .provider-subtitle{color:#1c1433;font-size:0.95rem;font-weight:650;line-height:1.35}
+                  .oauth-login-system .login-welcome{margin:0 0 6px}
+                  .oauth-login-system .login-welcome h1{font-size:1.05rem;margin:0}
+                  .oauth-login-system .login-welcome p{margin:2px 0 0;font-size:.9rem}
+                  .oauth-login-system .welcome-icon{display:none}
+                </style>
+                <div class="oauth-header" style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;flex:0 0 auto;position:static;z-index:auto;">
+                    <div style="flex:1 1 200px;min-width:0;">
+                        <h2 style="margin:0;font-size:1.05rem;line-height:1.25;white-space:nowrap;">OAuth Login</h2>
+                        <p id="oauth-session-status" style="margin:4px 0 0;">${this.activeTokens.size > 0 ? 'Opaque session' : 'No active session'}</p>
+                        <p id="oauth-lifecycle-note" style="margin:4px 0 0;"></p>
                     </div>
-                    <div class="oauth-actions">
-                        <button onclick="oauthSystem.refreshTokens()" class="btn-primary sk-btn sk-btn-primary">🔄 Refresh</button>
-                        <button onclick="oauthSystem.showProviderConfig()" class="btn-secondary sk-btn">⚙️ Configure</button>
-                        <button onclick="oauthSystem.logoutAll()" class="btn-danger sk-btn sk-btn-danger">🚪 Logout All</button>
+                    <div class="oauth-actions" style="display:flex;flex-wrap:wrap;gap:6px;flex:1 1 200px;">
+                        <button type="button" id="oauth-refresh" class="sk-btn sk-btn-primary" onclick="oauthSystem.refreshTokens()">Refresh</button>
+                        <button type="button" id="oauth-configure" class="sk-btn" onclick="oauthSystem.showProviderConfig()">Configure</button>
+                        <button type="button" id="oauth-logout-all" class="sk-btn${this.activeTokens.size > 0 ? ' sk-btn-danger' : ''}" onclick="oauthSystem.logoutAll()" ${this.activeTokens.size === 0 ? 'disabled style="opacity:0.45"' : ''}>Logout all</button>
                     </div>
                 </div>
-                
-                <div class="oauth-content">
+                <div id="oauth-banner" role="status" style="flex:0 0 auto;min-height:0;"></div>
+                <div class="oauth-content" style="overflow-x:hidden;overflow-y:scroll;flex:1 1 auto;min-height:0;max-height:100%;scroll-padding-top:8px;scroll-padding-bottom:24px;scrollbar-gutter:stable;">
                     <div class="modern-login-container">
                         <div class="login-welcome">
                             <div class="welcome-icon">🔐</div>
@@ -223,7 +223,7 @@ class OAuthLoginSystem {
                         <span class="session-icon" style="color: ${provider.color}">${provider.icon}</span>
                         <div class="session-details">
                             <div class="session-provider">${provider.name}</div>
-                            <div class="session-user">${tokenData.user?.email || tokenData.user?.login || 'Unknown'}</div>
+                            <div class="session-user">Opaque session</div>
                             <div class="session-expires">Expires: ${this.formatExpiry(tokenData.expiresAt)}</div>
                         </div>
                     </div>
@@ -237,57 +237,17 @@ class OAuthLoginSystem {
     }
 
     renderModernProviders() {
-        return Array.from(this.providers.values()).map(provider => {
-            const hasActiveToken = this.activeTokens.has(provider.id);
-            
-            if (!provider.enabled) {
-                return `
-                    <button class="modern-provider-btn disabled" onclick="oauthSystem.configureProvider('${provider.id}')">
-                        <div class="provider-logo">
-                            <span class="provider-icon" style="color: ${provider.color}">${provider.icon}</span>
-                        </div>
-                        <div class="provider-info">
-                            <span class="provider-name">Continue with ${provider.name}</span>
-                            <span class="provider-subtitle">Configuration required</span>
-                        </div>
-                        <div class="provider-action">
-                            <span class="setup-badge">Setup</span>
-                        </div>
-                    </button>
-                `;
-            }
-            
-            if (hasActiveToken) {
-                const tokenData = this.activeTokens.get(provider.id);
-                return `
-                    <button class="modern-provider-btn connected" onclick="oauthSystem.showUserProfile('${provider.id}')">
-                        <div class="provider-logo">
-                            <span class="provider-icon" style="color: ${provider.color}">${provider.icon}</span>
-                        </div>
-                        <div class="provider-info">
-                            <span class="provider-name">Signed in as ${tokenData.user?.email || tokenData.user?.login || 'User'}</span>
-                            <span class="provider-subtitle">Connected to ${provider.name}</span>
-                        </div>
-                        <div class="provider-action">
-                            <span class="connected-badge">✓</span>
-                        </div>
-                    </button>
-                `;
-            }
-            
+        const primaryIds = ['google', 'facebook', 'github'];
+        return primaryIds.map((id) => this.providers.get(id)).filter(Boolean).map(provider => {
+            const configured = Boolean(provider.configured && provider.clientId);
+            const signedIn = this.isLoggedIn(provider.id);
+            const status = signedIn ? 'Opaque session' : (configured ? 'Ready for external sign-in' : 'Not configured');
             return `
-                <button class="modern-provider-btn" onclick="oauthSystem.login('${provider.id}')">
-                    <div class="provider-logo">
-                        <span class="provider-icon" style="color: ${provider.color}">${provider.icon}</span>
-                    </div>
-                    <div class="provider-info">
-                        <span class="provider-name">Continue with ${provider.name}</span>
-                        <span class="provider-subtitle">Sign in to your ${provider.name} account</span>
-                    </div>
-                    <div class="provider-action">
-                        <span class="arrow">→</span>
-                    </div>
-                </button>
+                <div class="oauth-provider-row" style="display:flex;flex-direction:column;align-items:stretch;gap:6px;margin:0 0 8px;padding:8px;border:1px solid var(--border-color, rgba(128,128,128,.45));border-radius:8px;">
+                    <button type="button" id="oauth-inspect-${provider.id}" class="sk-btn oauth-scope-btn" style="scroll-margin:8px;min-height:32px;flex-shrink:0" aria-label="${provider.name} scope" onclick="oauthSystem.toggleScope('${provider.id}', this.closest('.oauth-login-system'))" onkeydown="if(event.key==='Enter'){event.preventDefault();oauthSystem.toggleScope('${provider.id}', this.closest('.oauth-login-system'))}">${provider.name} scope</button>
+                    <button type="button" id="oauth-handoff-${provider.id}" class="sk-btn sk-btn-primary" style="scroll-margin:8px;min-height:36px;flex-shrink:0" aria-label="Continue with ${provider.name}" onclick="oauthSystem.login('${provider.id}', this.closest('.oauth-login-system'))">Continue with ${provider.name}</button>
+                    <span class="provider-subtitle">${status}</span>
+                </div>
             `;
         }).join('');
     }
@@ -426,10 +386,17 @@ class OAuthLoginSystem {
     }
 
     // Core OAuth functionality
-    async login(providerId) {
+    async login(providerId, root) {
         const provider = this.providers.get(providerId);
-        if (!provider || !provider.enabled) {
-            this.showNotification(`Provider ${providerId} is not configured`, 'error');
+        if (!provider || !provider.configured || !provider.clientId) {
+            const name = provider ? provider.name : 'Provider';
+            this._oauthRoot = root || this._oauthRoot || null;
+            const banner = this.findInApp(this._oauthRoot, 'oauth-banner');
+            const retryId = provider ? provider.id : '';
+            const failure = '<p id="oauth-error">External auth failure: ' + name + ' is unavailable. No authorization provider is configured.</p>'
+                + '<button type="button" id="oauth-retry-handoff" class="sk-btn sk-btn-primary" onclick="oauthSystem.login(\'' + retryId + '\', this.closest(\'.oauth-login-system\'))">Retry handoff</button>'
+                + '<button type="button" id="oauth-cancel-handoff" class="sk-btn" onclick="oauthSystem.cancelHandoff()">Cancel</button>';
+            if (banner) banner.innerHTML = failure;
             return;
         }
 
@@ -459,7 +426,17 @@ class OAuthLoginSystem {
                 'width=500,height=600,scrollbars=yes,resizable=yes'
             );
 
-            // Monitor the auth window
+            if (!authWindow) {
+                this.loginSessions.delete(state);
+                const banner = this.findInApp(root, 'oauth-banner');
+                if (banner) {
+                    banner.innerHTML = '<p id="oauth-error">External auth failure: the sign-in popup was blocked, so ' + provider.name + ' is unavailable.</p>'
+                        + '<button type="button" id="oauth-retry-handoff" class="sk-btn sk-btn-primary" onclick="oauthSystem.login(\'' + provider.id + '\', this.closest(\'.oauth-login-system\'))">Retry handoff</button>'
+                        + '<button type="button" id="oauth-cancel-handoff" class="sk-btn" onclick="oauthSystem.cancelHandoff()">Cancel</button>';
+                }
+                return;
+            }
+
             this.monitorAuthWindow(authWindow, state);
 
         } catch (error) {
@@ -470,6 +447,16 @@ class OAuthLoginSystem {
     }
 
     async handleOAuthCallback(code, state, providerId) {
+        this.loginSessions.delete(state);
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('code');
+            url.searchParams.delete('state');
+            window.history.replaceState({}, document.title, url.pathname + url.search);
+        } catch (error) {
+            console.warn('Failed to clear OAuth redirect parameters');
+        }
+        return;
         const session = this.loginSessions.get(state);
         if (!session || session.providerId !== providerId) {
             throw new Error('Invalid OAuth state');
@@ -914,27 +901,17 @@ class OAuthLoginSystem {
     // Data persistence
     saveTokens() {
         try {
-            const tokensData = {};
-            this.activeTokens.forEach((tokenData, providerId) => {
-                tokensData[providerId] = tokenData;
-            });
-            localStorage.setItem('oauth-tokens', JSON.stringify(tokensData));
+            localStorage.removeItem('oauth-tokens');
         } catch (error) {
-            console.warn('Failed to save OAuth tokens:', error);
+            console.warn('Failed to clear OAuth tokens:', error);
         }
     }
 
     loadSavedTokens() {
         try {
-            const tokensData = JSON.parse(localStorage.getItem('oauth-tokens') || '{}');
-            Object.entries(tokensData).forEach(([providerId, tokenData]) => {
-                // Check if token is still valid
-                if (tokenData.expiresAt > Date.now()) {
-                    this.activeTokens.set(providerId, tokenData);
-                }
-            });
+            localStorage.removeItem('oauth-tokens');
         } catch (error) {
-            console.warn('Failed to load OAuth tokens:', error);
+            console.warn('Failed to clear stored OAuth tokens:', error);
         }
     }
 
@@ -963,6 +940,7 @@ class OAuthLoginSystem {
                 const provider = this.providers.get(id);
                 if (provider) {
                     Object.assign(provider, config);
+                    provider.configured = false;
                 }
             });
         } catch (error) {
@@ -1186,6 +1164,90 @@ class OAuthLoginSystem {
         this.configureProvider('google');
     }
 
+    findInApp(root, id) {
+        const selector = '[id="' + id + '"]';
+        let node = root && root.nodeType === 1 ? root : (root && root.parentElement) || null;
+        const seen = [];
+        while (node && seen.indexOf(node) === -1) {
+            seen.push(node);
+            if (node.querySelector) {
+                const found = node.querySelector(selector);
+                if (found) return found;
+            }
+            if (node.parentElement) node = node.parentElement;
+            else if (node.parentNode && node.parentNode.nodeType === 11 && node.parentNode.host) node = node.parentNode.host;
+            else node = null;
+        }
+        return this.domById(id);
+    }
+
+    domById(id) {
+        const candidates = [];
+        if (typeof document !== 'undefined') {
+            const live = document.querySelector('.window[data-app-id="oauth-login"] .window-app-content');
+            if (live) candidates.push(live);
+        }
+        if (this._appRoot && this._appRoot.querySelector && candidates.indexOf(this._appRoot) === -1) {
+            candidates.push(this._appRoot);
+        }
+        let fallback = null;
+        for (let i = 0; i < candidates.length; i++) {
+            const found = candidates[i].querySelector('[id="' + id + '"]');
+            if (!found) continue;
+            if (found.isConnected) return found;
+            if (!fallback) fallback = found;
+        }
+        if (fallback) return fallback;
+        return typeof document !== 'undefined' ? document.getElementById(id) : null;
+    }
+
+    toggleScope(providerId, root) {
+        const provider = this.providers.get(providerId);
+        const note = this.findInApp(root, 'oauth-lifecycle-note');
+        if (!provider || !note) return;
+        note.textContent = provider.name + ' scope is ' + provider.scope + '. No authorization code is stored.';
+    }
+
+    cancelHandoff() {
+        const banner = this.findInApp(this._oauthRoot || null, 'oauth-banner');
+        if (banner) banner.innerHTML = '';
+    }
+
+    initializeEventHandlers() {
+        if (this._oauthBound || typeof document === 'undefined') return;
+        this._oauthBound = true;
+        const matchInEvent = (event, selector) => {
+            const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+            for (let i = 0; i < path.length; i++) {
+                const node = path[i];
+                if (node && node.matches && node.matches(selector)) return node;
+            }
+            const target = event.target && event.target.nodeType === 1 ? event.target : (event.target && event.target.parentElement);
+            return target && target.closest ? target.closest(selector) : null;
+        };
+        const onActivate = (event) => {
+            const inspect = matchInEvent(event, '[id^="oauth-inspect-"]');
+            if (inspect) {
+                if (event.type === 'keydown') event.preventDefault();
+                this.toggleScope(inspect.id.slice('oauth-inspect-'.length), inspect);
+                return;
+            }
+            if (event.type === 'keydown') return;
+            const handoff = matchInEvent(event, '[id^="oauth-handoff-"]');
+            if (handoff) {
+                this.login(handoff.id.slice('oauth-handoff-'.length), handoff);
+                return;
+            }
+            if (matchInEvent(event, '#oauth-cancel-handoff')) this.cancelHandoff();
+        };
+        document.addEventListener('click', onActivate);
+        const keyTarget = typeof window !== 'undefined' ? window : document;
+        keyTarget.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            onActivate(event);
+        }, true);
+    }
+
     showAdvancedView() {
         const advancedView = document.querySelector('.advanced-view');
         const modernContainer = document.querySelector('.modern-login-container');
@@ -1208,7 +1270,7 @@ class OAuthLoginSystem {
             const user = tokenData.user;
             const expiresAt = new Date(tokenData.expiresAt).toLocaleString();
             
-            alert(`Connected to ${provider.name}\n\nUser: ${user.email || user.login || 'Unknown'}\nExpires: ${expiresAt}\n\nClick OK to continue or use advanced view to manage this session.`);
+            alert(`Connected to ${provider.name}\n\nOpaque session\nExpires: ${expiresAt}`);
         }
     }
 }
@@ -1231,8 +1293,58 @@ window.createOAuthLoginApp = function() {
         init: async function(container) {
             const html = await oauthSystem.render();
             container.innerHTML = html;
-            
-            // Initialize event handlers
+            oauthSystem._appRoot = container;
+            const win = container.closest ? container.closest('.window') : null;
+            if (win && container && container.style) {
+                let winRect = win.getBoundingClientRect();
+                const view = window.visualViewport;
+                const viewTop = view ? view.offsetTop : 0;
+                const viewBottom = view ? (view.offsetTop + view.height) : window.innerHeight;
+                let top = Math.max(winRect.top, viewTop);
+                const header = win.querySelector('.window-header, .title-bar, .window-titlebar, .window-title');
+                if (header && !container.contains(header)) {
+                    top = Math.max(top, header.getBoundingClientRect().bottom);
+                }
+                const dockReserve = 128;
+                const fitBottom = viewBottom - dockReserve;
+                if (winRect.top < viewTop) {
+                    win.style.setProperty('top', Math.floor(viewTop) + 'px', 'important');
+                    winRect = win.getBoundingClientRect();
+                    top = Math.max(winRect.top, viewTop);
+                }
+                const fitted = Math.floor(fitBottom - Math.max(winRect.top, viewTop));
+                if (fitted >= 220) {
+                    win.style.setProperty('height', fitted + 'px', 'important');
+                    win.style.setProperty('max-height', fitted + 'px', 'important');
+                    win.style.setProperty('overflow', 'hidden', 'important');
+                    win.style.setProperty('box-sizing', 'border-box', 'important');
+                    winRect = win.getBoundingClientRect();
+                    top = Math.max(winRect.top, viewTop);
+                    if (header && !container.contains(header)) {
+                        top = Math.max(top, header.getBoundingClientRect().bottom);
+                    }
+                }
+                const visibleBottom = Math.min(winRect.bottom, fitBottom);
+                const limit = Math.floor(visibleBottom - top - 2);
+                if (limit >= 180) {
+                    container.style.setProperty('height', limit + 'px', 'important');
+                    container.style.setProperty('max-height', limit + 'px', 'important');
+                    container.style.setProperty('min-height', '0', 'important');
+                    container.style.setProperty('overflow', 'hidden', 'important');
+                    container.style.setProperty('box-sizing', 'border-box', 'important');
+                    container.style.setProperty('display', 'flex', 'important');
+                    container.style.setProperty('flex-direction', 'column', 'important');
+                    container.style.setProperty('position', 'relative', 'important');
+                    container.style.setProperty('top', 'auto', 'important');
+                    const box = container.getBoundingClientRect();
+                    const overlap = Math.max(0, Math.ceil(top - box.top));
+                    if (overlap > 0 && limit - overlap >= 180) {
+                        container.style.setProperty('padding-top', overlap + 'px', 'important');
+                        container.style.setProperty('height', (limit - overlap) + 'px', 'important');
+                        container.style.setProperty('max-height', (limit - overlap) + 'px', 'important');
+                    }
+                }
+            }
             oauthSystem.initializeEventHandlers(container);
         },
         destroy: function() {

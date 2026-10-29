@@ -1,0 +1,181 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "peertube",
+  "description": "Retrieve verified native WebM bytes, decode, seek and advance real playback; retain library CID on reopen and recover from an unavailable source.",
+  "fixture_scope": "svf-peertube-cid-playback",
+  "backend_bindings": [
+    {
+      "binding_id": "peertube.ipfs_kit_py.retrieve_content",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 60,
+      "max_output_bytes": 1048576,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/cid",
+        "operator": "equals",
+        "expected": "bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "fill",
+        "selector": "#cid-open-input",
+        "value": "bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla"
+      },
+      {
+        "op": "click",
+        "selector": "#cid-open-btn"
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"peertube.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#video-element[data-decoded-cid=\"bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-cid-seek]",
+        "key": "Home"
+      },
+      {
+        "op": "press",
+        "selector": "[data-cid-seek]",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "[data-cid-seek]",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "[data-cid-seek]",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "[data-cid-seek]",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "press",
+        "selector": "[data-cid-seek]",
+        "key": "ArrowRight"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#video-element[data-seek-state=\"observed\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-cid-play]",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "media_state",
+          "selector": "#video-element",
+          "pointer": "/current_time",
+          "temporal_ms": 250
+        },
+        "operator": "at_least",
+        "expected": 0.05
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "text",
+          "selector": "#videos-container"
+        },
+        "operator": "contains",
+        "expected": "bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla"
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "fill",
+        "selector": "#cid-open-input",
+        "value": "unavailable-source"
+      },
+      {
+        "op": "click",
+        "selector": "#cid-open-btn"
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"peertube.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#cid-open-status[data-retrieval-state=\"failed\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#cid-open-status"
+        },
+        "operator": "contains",
+        "expected": "Open failed"
+      },
+      {
+        "op": "fill",
+        "selector": "#cid-open-input",
+        "value": "bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla"
+      },
+      {
+        "op": "click",
+        "selector": "#cid-open-btn"
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"peertube.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#video-element[data-decoded-cid=\"bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-cid-play]",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "media_state",
+          "selector": "#video-element",
+          "pointer": "/current_time",
+          "temporal_ms": 250
+        },
+        "operator": "at_least",
+        "expected": 0.05
+      }
+    ]
+  }
+}

@@ -41,24 +41,16 @@
     }
   };
 
-  const classicWorkflow = {
-    workflowId: 'music-studio.classic-artifact-save-render-fallback',
-    vdaId: 'VDA-G046',
+  const classicProject = {
+    storageKey: 'swissknife.music-studio.classic-project',
     projectName: 'Classic Studio - Midnight Sketch',
-    projectAssetCid: 'bafymusicstudiog046projectassetcid',
-    stemAudioCid: 'bafymusicstudiog046stemaudiocid',
-    mixArtifactCid: 'bafymusicstudiog046mixartifactcid',
-    catalogRightsCid: 'bafymusicstudiog046catalogrights',
-    optionalRenderCid: 'bafymusicstudiog046optionalrender',
-    saveBundleCid: 'bafymusicstudiog046savebundle',
-    responsiveFallbackCid: 'bafymusicstudiog046responsivefallback',
-    eventDagCid: 'bafymusicstudiog046eventdag',
-    receiptPrefix: 'receipt:music-studio:g046',
-    renderState: 'optional',
-    saveState: 'ready',
-    fallbackState: 'mobile-ready',
-    status: 'Classic workflow ready'
+    trackName: 'Sketch',
+    tempo: 96,
+    instrument: 'lead',
+    status: 'Local classic project ready. No remote render.'
   };
+  const classicInstruments = ['lead', 'bass', 'pad'];
+  let classicVoices = [];
 
   // Initialize Audio System
   async function initializeAudioSystem() {
@@ -72,7 +64,8 @@
       return true;
     } catch (error) {
       console.error('❌ Failed to initialize audio system:', error);
-      updateStatus('audio_system', 'Error');
+      updateStatus('audio_system', 'Unavailable');
+      showRecovery('Audio unavailable. Project kept. Enable audio and retry.');
       return false;
     }
   }
@@ -325,19 +318,21 @@
     if (!tracksList) return;
     const totalTracks = document.getElementById('total-tracks');
     if (totalTracks) totalTracks.textContent = String(tracks.length);
+    const tracksLabel = document.getElementById('tracks-count-label');
+    if (tracksLabel) tracksLabel.textContent = tracks.length === 1 ? 'Track' : 'Tracks';
     
     tracksList.innerHTML = tracks.map(track => `
       <div class="track-item" data-track-id="${track.id}">
         <div class="track-header">
-          <span class="track-name">${track.name}</span>
+          <span class="track-name">${escapeHtml(track.name)}</span>
           <div class="track-controls">
-            <button class="btn btn-sm btn-primary play-track" data-track-id="${track.id}">▶️</button>
-            <button class="btn btn-sm btn-secondary mute-track" data-track-id="${track.id}">${track.muted ? '🔇' : '🔊'}</button>
-            <button class="btn btn-sm btn-danger delete-track" data-track-id="${track.id}">🗑️</button>
+            <button type="button" class="btn btn-sm btn-primary play-track" data-track-id="${track.id}" aria-label="Play ${escapeHtml(track.name)}">Play</button>
+            <button type="button" class="btn btn-sm btn-secondary mute-track" data-track-id="${track.id}" aria-label="${track.muted ? 'Unmute' : 'Mute'} ${escapeHtml(track.name)}">${track.muted ? 'Unmute' : 'Mute'}</button>
+            <button type="button" class="btn btn-sm btn-danger delete-track" data-track-id="${track.id}" aria-label="Delete ${escapeHtml(track.name)}">Delete</button>
           </div>
         </div>
         <div class="track-controls-extended">
-          <label>Volume: <input type="range" class="volume-slider" data-track-id="${track.id}" min="0" max="1" step="0.1" value="${track.volume}"></label>
+          <label class="track-volume-label">Volume <input type="range" class="volume-slider" data-track-id="${track.id}" min="0" max="1" step="0.1" value="${track.volume}" aria-label="Volume"></label>
         </div>
       </div>
     `).join('');
@@ -424,6 +419,7 @@
   }
 
   function renderApp(container) {
+    loadClassicProjectIntoSession();
     container.innerHTML = `
       <div class="music-studio-container">
         <!-- Header Toolbar -->
@@ -434,19 +430,38 @@
             <button class="btn btn-danger" id="stop-record-btn" style="display: none;">⏹️ Stop</button>
             <button class="btn btn-secondary" id="import-audio">📁 Import</button>
           </div>
-          <div class="toolbar-section">
+          <div class="toolbar-section studio-status-section">
             <div class="status-indicator">
               <span class="status-text">Audio: <span id="audio_system-status">Initializing...</span></span>
             </div>
             <div class="status-indicator">
               <span class="status-text">P2P: <span id="p2p_collab-status">Initializing...</span></span>
             </div>
+            <p id="music-studio-recovery" class="studio-recovery" hidden>Audio unavailable. Project kept. Enable audio and retry.</p>
           </div>
           <div class="toolbar-section">
             <button class="btn btn-success" id="start-collaboration">🤝 Collaborate</button>
             <button class="btn btn-warning" id="export-project">💾 Export</button>
           </div>
         </div>
+
+        <div class="classic-transport" aria-label="Classic project transport">
+          <label for="classic-track-name">Track</label>
+          <input id="classic-track-name" type="text" maxlength="80" aria-label="Track name" value="${escapeHtml(classicProject.trackName)}">
+          <label for="classic-tempo">Tempo</label>
+          <input id="classic-tempo" type="number" min="40" max="240" step="1" aria-label="Tempo" value="${classicProject.tempo}">
+          <label for="classic-instrument">Instrument</label>
+          <select id="classic-instrument" aria-label="Selected instrument">
+            <option value="lead" ${classicProject.instrument === 'lead' ? 'selected' : ''}>Lead</option>
+            <option value="bass" ${classicProject.instrument === 'bass' ? 'selected' : ''}>Bass</option>
+            <option value="pad" ${classicProject.instrument === 'pad' ? 'selected' : ''}>Pad</option>
+          </select>
+          <button type="button" class="btn btn-primary" id="classic-play" aria-label="Play">Play</button>
+          <button type="button" class="btn btn-secondary" id="classic-stop" aria-label="Stop">Stop</button>
+          <button type="button" class="btn btn-warning" id="classic-save" aria-label="Save classic project">Save</button>
+        </div>
+        <p id="classic-reopen-summary">${escapeHtml(classicProject.trackName)} | ${classicProject.tempo} | ${escapeHtml(classicProject.instrument)}</p>
+        <p id="music-studio-workflow-status">${escapeHtml(classicProject.status)}</p>
 
         <!-- Main Studio Interface -->
         <div class="studio-content">
@@ -457,11 +472,10 @@
               <div class="track-stats">
                 <span class="stat-item">
                   <span class="stat-value" id="total-tracks">${tracks.length}</span>
-                  <span class="stat-label">Tracks</span>
+                  <span class="stat-label" id="tracks-count-label">Track</span>
                 </span>
               </div>
             </div>
-            
             <div class="tracks-list" id="tracks-list">
               <!-- Tracks will be populated here -->
             </div>
@@ -476,9 +490,9 @@
             <div class="instruments-grid">
               <div class="instrument-group">
                 <h4>Synthesizers</h4>
-                <button class="btn btn-instrument" data-synth="lead">🎵 Lead</button>
-                <button class="btn btn-instrument" data-synth="bass">🎸 Bass</button>
-                <button class="btn btn-instrument" data-synth="pad">🎹 Pad</button>
+                <button type="button" class="btn btn-instrument${classicProject.instrument === 'lead' ? ' is-selected' : ''}" data-synth="lead" aria-pressed="${classicProject.instrument === 'lead' ? 'true' : 'false'}">Lead</button>
+                <button type="button" class="btn btn-instrument${classicProject.instrument === 'bass' ? ' is-selected' : ''}" data-synth="bass" aria-pressed="${classicProject.instrument === 'bass' ? 'true' : 'false'}">Bass</button>
+                <button type="button" class="btn btn-instrument${classicProject.instrument === 'pad' ? ' is-selected' : ''}" data-synth="pad" aria-pressed="${classicProject.instrument === 'pad' ? 'true' : 'false'}">Pad</button>
               </div>
               
               <div class="instrument-group">
@@ -512,43 +526,145 @@
       </div>
       
       <style>
+        .window[data-app-id="music-studio"] .window-app-content {
+          position: absolute;
+          inset: 0;
+          height: auto;
+          max-height: 100%;
+          min-height: 0;
+          overflow: hidden;
+          box-sizing: border-box;
+        }
+
         .music-studio-container {
+          position: absolute;
+          inset: 0;
           display: flex;
           flex-direction: column;
           height: 100%;
+          max-height: 100%;
+          min-height: 0;
+          box-sizing: border-box;
+          padding-top: 44px;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           overflow: hidden;
         }
         
         .studio-toolbar {
-          display: flex;
-          justify-content: space-between;
+          display: flex !important;
+          flex-wrap: wrap !important;
+          justify-content: flex-start;
           align-items: center;
           gap: 8px;
           padding: 8px 16px;
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
           border-bottom: 1px solid #ddd;
+          overflow: visible !important;
+          height: auto !important;
+          max-height: none !important;
+          white-space: normal !important;
+        }
+
+        .studio-toolbar .btn {
+          flex: 0 0 auto;
+          position: static !important;
         }
         
         .toolbar-section {
           display: flex;
+          flex-wrap: wrap;
           align-items: center;
           gap: 8px;
+          min-width: 0;
+          max-width: 100%;
+          position: static;
+          overflow: visible;
+        }
+
+        .studio-status-section {
+          flex: 1 1 100%;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px;
+          overflow: visible !important;
+          min-width: 0;
+          height: auto !important;
+        }
+
+        #import-audio.btn-secondary {
+          background: #f8fafc;
+          color: #312e81;
+          border: 1px solid rgba(255,255,255,0.9);
+          font-weight: 700;
+        }
+
+        .window[data-app-id="music-studio"] .status-indicator {
+          position: static !important;
+          display: inline-flex !important;
+          flex: 0 0 auto;
+          align-items: center;
+          gap: 4px;
+          width: auto !important;
+          max-width: 100%;
+          height: auto !important;
+          margin: 0 !important;
+          padding: 2px 8px;
+          inset: auto !important;
+          transform: none !important;
+          float: none !important;
+          overflow: visible !important;
+          clip: auto !important;
+          clip-path: none !important;
+          white-space: nowrap !important;
+          background: rgba(15, 23, 42, 0.28);
+          border-radius: 999px;
+        }
+
+        .status-indicator::before,
+        .status-indicator::after,
+        .status-text::before,
+        .status-text::after {
+          content: none !important;
+          display: none !important;
+        }
+
+        .window[data-app-id="music-studio"] .status-text,
+        .window[data-app-id="music-studio"] .status-indicator .status {
+          position: static !important;
+          display: inline !important;
+          width: auto !important;
+          max-width: none !important;
+          height: auto !important;
+          overflow: visible !important;
+          text-overflow: clip !important;
+          white-space: nowrap !important;
+          clip: auto !important;
+          clip-path: none !important;
+          color: #fff;
         }
         
         .studio-content {
-          display: flex;
-          flex: 1;
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 1 auto;
+          width: 100% !important;
           min-height: 0;
-          overflow: hidden;
+          overflow-x: hidden;
+          overflow-y: auto;
         }
         
         .tracks-panel, .instruments-panel, .collaboration-panel {
-          flex: 1;
-          border-right: 1px solid #ddd;
+          flex: 0 0 auto;
+          min-width: 0;
+          min-height: auto;
+          overflow: visible;
+          border-right: none;
+          border-bottom: 1px solid #ddd;
           display: flex;
           flex-direction: column;
+          justify-content: flex-start !important;
         }
         
         .collaboration-panel {
@@ -557,16 +673,128 @@
         
         .panel-header {
           display: flex;
+          flex-wrap: wrap;
           justify-content: space-between;
           align-items: center;
+          gap: 8px;
+          min-width: 0;
+          overflow: visible;
           padding: 12px 16px;
           background: #f8f9fa;
           border-bottom: 1px solid #ddd;
         }
+
+        .panel-header h3 {
+          margin: 0;
+          min-width: 0;
+        }
+
+        .window[data-app-id="music-studio"] .track-stats,
+        .window[data-app-id="music-studio"] .stat-item {
+          position: static !important;
+          display: inline-flex !important;
+          align-items: baseline;
+          gap: 4px;
+          flex: 0 0 auto;
+          margin: 0 !important;
+          inset: auto !important;
+          transform: none !important;
+          overflow: visible !important;
+          opacity: 1 !important;
+          white-space: nowrap;
+        }
+
+        .classic-transport {
+          display: flex !important;
+          flex: 0 0 auto;
+          flex-wrap: wrap;
+          gap: 6px;
+          align-items: center;
+          position: relative;
+          z-index: 3;
+          width: 100%;
+          box-sizing: border-box;
+          padding: 8px;
+          background: #ffffff;
+          color: #0f172a;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .classic-transport input,
+        .classic-transport select,
+        .classic-transport button,
+        .studio-diagnostics textarea {
+          max-width: 100%;
+        }
+
+        .instruments-panel {
+          overflow: visible;
+        }
+
+        .studio-diagnostics {
+          margin: 0 16px 16px;
+          max-height: none;
+          overflow: visible;
+          flex: 0 0 auto;
+          min-height: 0;
+          min-width: 0;
+        }
+
+        .studio-diagnostics textarea {
+          width: 100%;
+          height: 6.5rem;
+          min-height: 4.5rem;
+          max-height: 8rem;
+          box-sizing: border-box;
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          overflow: auto;
+          text-overflow: clip;
+          resize: vertical;
+        }
+
+        .studio-recovery {
+          margin: 0 8px 8px;
+          padding: 6px 8px;
+          background: #fff7ed;
+          color: #9a3412;
+          border-radius: 4px;
+          font-size: 13px;
+        }
+
+        .studio-status-section .studio-recovery {
+          flex: 1 0 100%;
+          margin: 0;
+          max-width: 100%;
+        }
+
+        .window[data-app-id="music-studio"] .stat-label,
+        .window[data-app-id="music-studio"] .stat-value {
+          text-transform: none;
+          color: #0f172a !important;
+          opacity: 1 !important;
+        }
+
+        #classic-open-project {
+          background: #1d4ed8 !important;
+          color: #ffffff !important;
+          opacity: 1 !important;
+        }
+
+        #classic-reopen-summary,
+        #music-studio-workflow-status {
+          margin: 0 8px 6px;
+          font-size: 13px;
+          word-break: break-word;
+        }
         
         .tracks-list, .collaborators-list {
-          flex: 1;
+          flex: 1 1 0;
+          min-height: 0;
           overflow-y: auto;
+          position: relative;
+          z-index: 0;
           padding: 8px;
         }
         
@@ -580,14 +808,47 @@
         
         .track-header {
           display: flex;
+          flex-wrap: wrap;
           justify-content: space-between;
           align-items: center;
+          gap: 6px;
           margin-bottom: 8px;
+          position: relative;
+          top: auto;
+          z-index: 0;
+          max-width: 100%;
+        }
+
+        .window[data-app-id="music-studio"] .track-name {
+          flex: 1 1 auto;
+          min-width: 0;
+          max-width: 100%;
+          overflow: visible !important;
+          text-overflow: clip !important;
+          white-space: normal !important;
+          word-break: break-word;
+          color: #0f172a;
         }
         
         .track-controls {
           display: flex;
           gap: 4px;
+          flex-wrap: wrap;
+        }
+
+        .track-volume-label {
+          color: #1e293b;
+          font-size: 13px;
+          font-weight: 650;
+        }
+
+        .window[data-app-id="music-studio"] button:focus-visible,
+        .window[data-app-id="music-studio"] input:focus-visible,
+        .window[data-app-id="music-studio"] select:focus-visible,
+        .window[data-app-id="music-studio"] textarea:focus-visible,
+        .window[data-app-id="music-studio"] summary:focus-visible {
+          outline: 2px solid #facc15 !important;
+          outline-offset: 2px !important;
         }
         
         .instruments-grid {
@@ -672,8 +933,10 @@
           word-break: break-word;
         }
         
-        .instrument-group {
+        .window[data-app-id="music-studio"] .instrument-group {
+          display: block !important;
           margin-bottom: 16px;
+          overflow: visible !important;
         }
         
         .instrument-group h4 {
@@ -681,9 +944,11 @@
           color: #666;
         }
         
-        .btn-instrument, .btn-drum {
-          display: block;
-          width: 100%;
+        .window[data-app-id="music-studio"] .btn-instrument,
+        .window[data-app-id="music-studio"] .btn-drum {
+          display: block !important;
+          width: 100% !important;
+          position: static !important;
           margin: 4px 0;
           padding: 8px;
           background: #007bff;
@@ -691,10 +956,22 @@
           border: none;
           border-radius: 4px;
           cursor: pointer;
+          overflow: visible !important;
         }
         
         .btn-instrument:hover, .btn-drum:hover {
           background: #0056b3;
+        }
+
+        .btn-instrument::before,
+        .btn-instrument::after,
+        .btn-drum::before,
+        .btn-drum::after {
+          content: none;
+        }
+
+        .btn-instrument.is-selected {
+          box-shadow: inset 3px 0 0 #fde68a;
         }
         
         .collaborator-item {
@@ -708,10 +985,25 @@
         }
         
         .status {
+          position: static !important;
+          display: inline !important;
+          margin: 0 !important;
+          inset: auto !important;
+          transform: none !important;
+          float: none !important;
           padding: 2px 6px;
           border-radius: 3px;
           font-size: 11px;
           font-weight: bold;
+          overflow: visible !important;
+          text-overflow: clip !important;
+          white-space: nowrap !important;
+        }
+
+        .status::before,
+        .status::after {
+          content: none !important;
+          display: none !important;
         }
         
         .status.ready { background: #d4edda; color: #155724; }
@@ -730,13 +1022,39 @@
 
           .studio-content {
             flex-direction: column;
+            overflow-x: hidden;
             overflow-y: auto;
           }
 
           .tracks-panel, .instruments-panel, .collaboration-panel {
-            min-height: 220px;
+            flex: 0 0 auto;
+            overflow: visible;
+            min-height: auto;
             border-right: none;
             border-bottom: 1px solid #ddd;
+          }
+
+          .tracks-list, .collaborators-list, .instruments-grid {
+            flex: 0 0 auto;
+            overflow: visible;
+            max-height: none;
+            min-height: min-content;
+          }
+
+          .instrument-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+          }
+
+          .instrument-group h4 {
+            flex: 1 0 100%;
+          }
+
+          .btn-instrument, .btn-drum {
+            width: auto;
+            flex: 1 1 30%;
+            min-width: 0;
           }
 
           .classic-vda-actions {
@@ -758,11 +1076,182 @@
     updateCollaboratorsList();
   }
 
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (ch) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[ch]));
+  }
+
+  function showRecovery(message) {
+    const recovery = document.getElementById('music-studio-recovery');
+    if (!recovery) return;
+    recovery.hidden = false;
+    recovery.textContent = message;
+  }
+
+  function readClassicProject() {
+    try {
+      const raw = localStorage.getItem(classicProject.storageKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || parsed.schema !== 'swissknife.music-studio.classic-project.v1') return null;
+      if (typeof parsed.track_name !== 'string' || !parsed.track_name.trim()) return null;
+      if (!Number.isFinite(Number(parsed.tempo))) return null;
+      return parsed;
+    } catch (error) {
+      console.warn('Classic project storage was not readable:', error);
+      return null;
+    }
+  }
+
+  function loadClassicProjectIntoSession() {
+    const saved = readClassicProject();
+    if (saved) {
+      classicProject.trackName = saved.track_name.trim();
+      classicProject.tempo = Math.max(40, Math.min(240, Math.round(Number(saved.tempo))));
+      if (classicInstruments.includes(saved.instrument)) classicProject.instrument = saved.instrument;
+      if (typeof saved.project_name === 'string' && saved.project_name.trim()) {
+        classicProject.projectName = saved.project_name.trim();
+      }
+    }
+    tracks = tracks.filter(track => track.id !== 'track-sketch');
+    tracks.unshift({
+      id: 'track-sketch',
+      name: classicProject.trackName,
+      type: 'midi',
+      volume: 1,
+      muted: false
+    });
+  }
+
+  function syncClassicSummary() {
+    const summary = document.getElementById('classic-reopen-summary');
+    if (!summary) return;
+    summary.textContent = `${classicProject.trackName} | ${classicProject.tempo} | ${classicProject.instrument}`;
+  }
+
+  function commitClassicForm() {
+    const name = document.getElementById('classic-track-name');
+    const tempo = document.getElementById('classic-tempo');
+    const instrument = document.getElementById('classic-instrument');
+    if (name && name.value.trim()) classicProject.trackName = name.value.trim();
+    if (tempo && Number.isFinite(Number(tempo.value))) {
+      classicProject.tempo = Math.max(40, Math.min(240, Math.round(Number(tempo.value))));
+    }
+    if (instrument && classicInstruments.includes(instrument.value)) {
+      classicProject.instrument = instrument.value;
+    }
+    const sketch = tracks.find(track => track.id === 'track-sketch');
+    if (sketch) sketch.name = classicProject.trackName;
+    syncClassicSummary();
+    syncInstrumentSelection();
+  }
+
+  function applyFormFromState() {
+    const name = document.getElementById('classic-track-name');
+    const tempo = document.getElementById('classic-tempo');
+    const instrument = document.getElementById('classic-instrument');
+    if (name) name.value = classicProject.trackName;
+    if (tempo) tempo.value = String(classicProject.tempo);
+    if (instrument) instrument.value = classicProject.instrument;
+    const sketch = tracks.find(track => track.id === 'track-sketch');
+    if (sketch) sketch.name = classicProject.trackName;
+    syncClassicSummary();
+    syncInstrumentSelection();
+    updateTracksList();
+  }
+
+  function syncInstrumentSelection() {
+    document.querySelectorAll('.btn-instrument').forEach((btn) => {
+      const on = btn.getAttribute('data-synth') === classicProject.instrument;
+      btn.classList.toggle('is-selected', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function playClassic() {
+    commitClassicForm();
+    if (!audioContext || !masterGain) {
+      showRecovery('Audio unavailable. Project kept. Enable audio and retry.');
+      return;
+    }
+    try {
+      const synth = createSynthesizer(classicProject.instrument);
+      const voice = synth.play(440, 0.4);
+      if (voice && voice.oscillator) classicVoices.push(voice.oscillator);
+    } catch (error) {
+      showRecovery('Audio unavailable. Project kept. Enable audio and retry.');
+    }
+  }
+
+  function stopClassic() {
+    classicVoices.forEach((voice) => {
+      try {
+        voice.stop();
+      } catch (error) {
+        console.warn('Classic voice was already stopped:', error);
+      }
+    });
+    classicVoices = [];
+    const status = document.getElementById('music-studio-workflow-status');
+    if (status) status.textContent = 'Stopped. Local project kept. No remote render.';
+  }
+
+  function confirmClassicTrack(event) {
+    if (event && typeof event.preventDefault === 'function') event.preventDefault();
+    commitClassicForm();
+    const status = document.getElementById('music-studio-workflow-status');
+    if (status) status.textContent = classicProject.status;
+  }
+
+  function openClassicProjectText(text) {
+    let parsed = null;
+    try {
+      parsed = JSON.parse(text);
+    } catch (error) {
+      parsed = null;
+    }
+    const valid = Boolean(parsed)
+      && parsed.schema === 'swissknife.music-studio.classic-project.v1'
+      && typeof parsed.track_name === 'string'
+      && parsed.track_name.trim()
+      && Number.isFinite(Number(parsed.tempo));
+    if (!valid) {
+      showRecovery('Invalid project. This project was not deleted. Open a valid classic project or enable audio and retry.');
+      const status = document.getElementById('music-studio-workflow-status');
+      if (status) status.textContent = 'Invalid project. Saved classic project kept.';
+      return;
+    }
+    classicProject.trackName = parsed.track_name.trim();
+    classicProject.tempo = Math.max(40, Math.min(240, Math.round(Number(parsed.tempo))));
+    if (classicInstruments.includes(parsed.instrument)) classicProject.instrument = parsed.instrument;
+    applyFormFromState();
+    const recovery = document.getElementById('music-studio-recovery');
+    if (recovery) recovery.hidden = true;
+    const status = document.getElementById('music-studio-workflow-status');
+    if (status) status.textContent = 'Opened a valid classic project locally. No remote render.';
+  }
+
   function renderClassicWorkflowPanel() {
     return `
+      <details class="studio-diagnostics">
+        <summary>Open a project file</summary>
+        <label for="classic-project-json">Classic project JSON</label>
+        <textarea id="classic-project-json" rows="4" spellcheck="false" aria-label="Classic project JSON"></textarea>
+        <button type="button" class="btn btn-secondary" id="classic-open-project">Open project</button>
+        <p>Browser-local classic studio. No remote render.</p>
+      </details>
+    `;
+  }
+
+  function renderClassicWorkflowPanelRemovedMarker() {
+    return `
       <section class="classic-vda-workflow"
-               data-svd-workflow="${classicWorkflow.workflowId}"
-               aria-label="Classic Music Studio artifact save render fallback workflow">
+               aria-label="Classic Music Studio local notes">
         <div class="classic-vda-header">
           <div>
             <div class="classic-vda-kicker">${classicWorkflow.vdaId}</div>
@@ -862,9 +1351,15 @@
     container.querySelectorAll('.btn-instrument').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const synthType = e.target.getAttribute('data-synth');
+        if (classicInstruments.includes(synthType)) {
+          classicProject.instrument = synthType;
+          const instrument = document.getElementById('classic-instrument');
+          if (instrument) instrument.value = synthType;
+          syncInstrumentSelection();
+          syncClassicSummary();
+        }
         const synth = createSynthesizer(synthType);
-        // Play a test note
-        synth.play(440, 0.5); // A4 for 0.5 seconds
+        synth.play(440, 0.5);
       });
     });
     
@@ -891,61 +1386,38 @@
     });
 
     container.querySelector('#export-project')?.addEventListener('click', () => {
-      updateClassicWorkflowStatus('save-classic-project');
-      console.log(`💾 Classic project export prepared: ${classicWorkflow.saveBundleCid}`);
+      saveClassicProjectBundle();
     });
 
-    container.querySelectorAll('[data-svd-workflow-action]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const action = e.currentTarget.getAttribute('data-svd-workflow-action');
-        updateClassicWorkflowStatus(action);
-      });
+    container.querySelector('#classic-play')?.addEventListener('click', playClassic);
+    container.querySelector('#classic-stop')?.addEventListener('click', stopClassic);
+    container.querySelector('#classic-save')?.addEventListener('click', saveClassicProjectBundle);
+    container.querySelector('#classic-track-name')?.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') confirmClassicTrack(event);
+    });
+    container.querySelector('#classic-open-project')?.addEventListener('click', () => {
+      const field = document.getElementById('classic-project-json');
+      openClassicProjectText(field ? field.value : '');
     });
   }
 
   function updateClassicWorkflowStatus(action) {
-    const status = document.getElementById('music-studio-workflow-status');
-    if (!status) return;
-    const section = status.closest('[data-svd-workflow]');
-    const renderCards = section ? section.querySelectorAll('[data-render-state]') : [];
-    const saveCards = section ? section.querySelectorAll('[data-save-state]') : [];
-    const fallbackCards = section ? section.querySelectorAll('[data-responsive-fallback-state]') : [];
-    const messageByAction = {
-      'preserve-legacy-flow': 'Legacy WebAudio controls present (local; no migration performed).',
-      'load-artifact-cids': `Design fixture references shown for ${classicWorkflow.projectName}; use Save for a real bundle CID.`,
-      'inspect-catalog-rights': 'Catalog rights metadata is a local project field; no rights backend is connected.',
-      'start-optional-render': 'Optional preview render queued locally; no render backend connected.',
-      'save-classic-project': 'Classic project saved with local restore bundle.',
-      'prove-responsive-fallback': 'Responsive fallback layout active (local UI state).'
-    };
-    if (action === 'start-optional-render') {
-      renderCards.forEach(node => {
-        node.setAttribute('data-render-state', 'optional');
-        node.setAttribute('data-render-job-state', 'queued');
-      });
-    }
     if (action === 'save-classic-project') {
       saveClassicProjectBundle();
-      saveCards.forEach(node => node.setAttribute('data-save-state', 'saved'));
+      return;
     }
-    if (action === 'prove-responsive-fallback') {
-      fallbackCards.forEach(node => node.setAttribute('data-responsive-fallback-state', 'active'));
-    }
-    status.textContent = messageByAction[action] || classicWorkflow.status;
-    status.setAttribute('data-workflow-status', action || 'ready');
+    const status = document.getElementById('music-studio-workflow-status');
+    if (status) status.textContent = classicProject.status;
   }
 
-  async function saveClassicProjectBundle() {
-    // The track list, instruments and rights below are REAL local project
-    // state. The bundle is cached in localStorage and, with the user's
-    // explicit confirmation, persisted to the ipfs_kit_py artifact store
-    // with a canonical CID over the exact bytes. Fixture CIDs are not
-    // embedded as real references.
+  function saveClassicProjectBundle() {
+    commitClassicForm();
     const bundle = {
       schema: 'swissknife.music-studio.classic-project.v1',
-      workflow_id: classicWorkflow.workflowId,
-      vda_id: classicWorkflow.vdaId,
-      project_name: classicWorkflow.projectName,
+      project_name: classicProject.projectName,
+      track_name: classicProject.trackName,
+      tempo: classicProject.tempo,
+      instrument: classicProject.instrument,
       tracks: tracks.map(track => ({
         id: track.id,
         name: track.name,
@@ -954,39 +1426,17 @@
         muted: track.muted,
         shared: Boolean(track.shared)
       })),
-      selected_instruments: ['lead', 'bass', 'pad', 'kick', 'snare', 'hihat'],
-      rights: {
-        sample: 'Analog Kit 04',
-        license: 'CC-BY-4.0',
-        attribution_required: true,
-        commercial_sync_allowed: true
-      },
       saved_at: new Date().toISOString()
     };
     try {
-      localStorage.setItem('swissknife.music-studio.classic-project', JSON.stringify(bundle));
+      localStorage.setItem(classicProject.storageKey, JSON.stringify(bundle));
     } catch (error) {
-      console.warn('Classic Music Studio local save fallback was unavailable:', error);
+      console.warn('Classic Music Studio local save was unavailable:', error);
+      showRecovery('Could not save in this browser. The open project was not deleted.');
+      return null;
     }
-    try {
-      const helper = await import('./real-artifact.js');
-      if (helper.userConfirmsBackendWrite('Persist this Music Studio project bundle to the ipfs_kit_py artifact store?')) {
-        const persisted = await helper.persistArtifactRecord({
-          record: bundle,
-          profile: 'music-studio-project',
-          kind: 'composition'
-        });
-        classicWorkflow.saveBundleCid = persisted.cid;
-        const status = document.getElementById('music-studio-workflow-status');
-        if (status) status.textContent = `Project bundle persisted: ${persisted.cid}`;
-        console.log(`🎵 Music Studio bundle persisted: ${persisted.cid}`);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.warn('Music Studio bundle persist failed:', message);
-      const status = document.getElementById('music-studio-workflow-status');
-      if (status) status.textContent = `Project saved locally; backend persist failed: ${message}`;
-    }
+    const status = document.getElementById('music-studio-workflow-status');
+    if (status) status.textContent = 'Saved in this browser. No remote render.';
     return bundle;
   }
 

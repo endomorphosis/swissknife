@@ -50,3 +50,41 @@ test('successful JSON-RPC responses preserve the existing unwrapped result', asy
   const mediator = createAllAppToolMediator({ adapters: { [binding.owner]: { invoke: async () => ({ jsonrpc: '2.0', result: output }) } } });
   assert.deepEqual((await mediator.dispatch(call)).result, output);
 });
+
+for (const [message, type] of [
+  ['RuntimeError: FAISS index not found: default', 'RuntimeError'],
+  ["TypeError: missing a required argument: 'model'", 'TypeError'],
+]) test(`structured native error remains actionable: ${type}`, async () => {
+  const output = { jsonrpc: '2.0', result: { isError: true,
+    content: [{ type: 'json', json: { error: message, error_type: type } }],
+    receipt: { traceback: 'PRIVATE BACKEND TRACE', backend_credentials: 'PRIVATE VALUE' } } };
+  const mediator = createAllAppToolMediator({ adapters: { [binding.owner]: { invoke: async () => output } } });
+  const result = await mediator.dispatch(call);
+  assert.equal(result.outcome, 'failed');
+  assert.equal(result.receipt.outcome, 'failed');
+  assert.deepEqual(result.result, { error: message, owner_error: { message, type } });
+  assert.ok(!JSON.stringify(result).includes('PRIVATE'));
+});
+
+test('nested structured failures redact sensitive values and keep the typed code', async () => {
+  const output = { result: { isError: true, content: [{ type: 'json', json: { error: {
+    code: 'index_missing', message: 'index missing; api_key=PRIVATEKEY password=PRIVATEPASS Bearer PRIVATETOKEN at /home/private/config',
+    traceback: 'PRIVATE TRACE', credentials: { key: 'PRIVATE KEY' },
+  } } }] } };
+  const mediator = createAllAppToolMediator({ adapters: { [binding.owner]: { invoke: async () => output } } });
+  const result = await mediator.dispatch(call);
+  assert.equal(result.outcome, 'failed');
+  assert.equal((result.result as any).owner_error.code, 'index_missing');
+  assert.match((result.result as any).error, /index missing/);
+  assert.ok(!JSON.stringify(result).includes('PRIVATE'));
+  assert.ok(!JSON.stringify(result).includes('/home/'));
+});
+
+test('error extraction is bounded and does not inspect ordinary application data', async () => {
+  const output = { jsonrpc: '2.0', result: { isError: true,
+    content: [{ type: 'json', json: { error: 'x'.repeat(20000), error_type: 'Error' } }] } };
+  const mediator = createAllAppToolMediator({ adapters: { [binding.owner]: { invoke: async () => output } } });
+  const result = await mediator.dispatch(call);
+  assert.equal((result.result as any).error.length, 2048);
+  assert.equal(result.receipt.outcome, 'failed');
+});

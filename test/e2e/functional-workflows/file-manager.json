@@ -1,0 +1,129 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "file-manager",
+  "description": "Open the isolated folder, preview the UTF-8 file, save a renamed copy, reopen it, then recover from a filename conflict.",
+  "fixture_scope": "svf-file-manager",
+  "backend_bindings": [
+    {
+      "binding_id": "file-manager.ipfs_kit_py.retrieve_content",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/bytes_base64",
+        "operator": "equals",
+        "expected": "c3ZmLWZpeHR1cmUtdXRmOC1vaw=="
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "click",
+        "selector": "#svf-folder"
+      },
+      {
+        "op": "click",
+        "selector": "#svf-notes"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"file-manager.ipfs_kit_py.retrieve_content\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"file-manager.ipfs_kit_py.retrieve_content\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#workflow-status:has-text(\"svf-fixture-utf8-ok\")",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "check",
+        "selector": "#storage-consent"
+      },
+      {
+        "op": "fill",
+        "selector": "#copy-name",
+        "value": "notes-copy.txt"
+      },
+      {
+        "op": "press",
+        "selector": "#copy-name",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "text",
+          "selector": "#workflow-status"
+        },
+        "operator": "contains",
+        "expected": "svf-fixture-utf8-ok"
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "text",
+          "selector": "#workflow-status"
+        },
+        "operator": "contains",
+        "expected": "notes-copy.txt"
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "fill",
+        "selector": "#copy-name",
+        "value": "notes-copy.txt"
+      },
+      {
+        "op": "press",
+        "selector": "#copy-name",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#file-error"
+        },
+        "operator": "contains",
+        "expected": "filename conflict"
+      },
+      {
+        "op": "fill",
+        "selector": "#copy-name",
+        "value": "notes-retry.txt"
+      },
+      {
+        "op": "press",
+        "selector": "#copy-name",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "text",
+          "selector": "#workflow-status"
+        },
+        "operator": "contains",
+        "expected": "notes-retry.txt"
+      }
+    ]
+  }
+}

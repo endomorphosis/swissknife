@@ -73,34 +73,55 @@ export class SettingsApp {
   }
 
   async render() {
+    this.ensureSettings();
     const content = `
       <div class="settings-container enhanced">
+        <style>
+          .settings-container.enhanced { display: flex; align-items: stretch; max-width: 100%; max-height: 100%; height: 100%; min-height: 0; overflow: hidden; }
+          .settings-container .settings-sidebar { flex: 0 0 auto; max-width: 100%; min-height: 0; overflow: auto; }
+          .settings-container .settings-main { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+          .settings-container .settings-header { position: static; display: flex; flex-direction: column; align-items: stretch; gap: 0.35rem; flex: 0 0 auto; }
+          .settings-container .settings-header h2, .settings-container #applied-appearance, .settings-container #settings-feedback { position: static !important; display: block !important; clear: both; inset: auto !important; top: auto !important; transform: none !important; height: auto !important; margin: 0 0 0.25rem; line-height: 1.4; white-space: normal; overflow: visible; opacity: 1 !important; color: #1c2430 !important; background: transparent; text-shadow: none; }
+          .settings-container #settings-feedback:empty { min-height: 0; margin: 0; }
+          .settings-container .settings-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+          .settings-container .settings-actions .btn-secondary { color: #1c2430 !important; background: #e8eef5 !important; border: 1px solid #64748b !important; }
+          .settings-container .settings-content { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; padding-bottom: 5.5rem; }
+          .settings-container .settings-nav { display: flex; flex-wrap: wrap; gap: 4px; max-width: 100%; overflow-x: auto; }
+          .settings-container .nav-item, .settings-container .nav-label, .settings-container .checkbox-label { white-space: nowrap; word-break: normal; overflow-wrap: normal; }
+          .settings-container .nav-item { color: var(--sk-text-primary, var(--text-primary, #1c2430)); background: transparent; border: 0; text-align: left; }
+          .settings-container .section-header { position: static !important; display: flex !important; flex-direction: column; gap: 0.25rem; height: auto; }
+          .settings-container .section-header h3, .settings-container .section-header p { position: static !important; display: block !important; inset: auto !important; top: auto !important; transform: none !important; height: auto !important; margin: 0; opacity: 1 !important; line-height: 1.35; color: #1c2430 !important; text-shadow: none; }
+          .settings-container .setting-description { display: block; clear: both; max-width: 100%; color: #334155; word-break: normal; overflow-wrap: normal; }
+          .settings-container .sk-input, .settings-container .sk-select, .settings-container #accent-color { color: #1c2430 !important; background: #ffffff !important; border: 1px solid #94a3b8 !important; min-height: 2.25rem; max-width: 100%; }
+          .settings-container .monitoring-panel, .settings-container .monitoring-panel h4, .settings-container .metric-row { color: #1c2430 !important; opacity: 1; }
+          .settings-container button:focus-visible, .settings-container input:focus-visible, .settings-container select:focus-visible { outline: 2px solid var(--sk-focus-ring, #4a90e2); outline-offset: 2px; }
+        </style>
         <div class="settings-sidebar">
           <div class="settings-nav">
-            <div class="nav-item active" data-section="general">
-              <span class="nav-icon">⚙️</span>
+            <button type="button" class="nav-item active" data-section="general" aria-label="General">
+              <span class="nav-icon" aria-hidden="true">⚙️</span>
               <span class="nav-label">General</span>
-            </div>
-            <div class="nav-item" data-section="ai">
-              <span class="nav-icon">🤖</span>
+            </button>
+            <button type="button" class="nav-item" data-section="ai" aria-label="AI and models">
+              <span class="nav-icon" aria-hidden="true">🤖</span>
               <span class="nav-label">AI & Models</span>
-            </div>
-            <div class="nav-item" data-section="p2p">
-              <span class="nav-icon">🌐</span>
+            </button>
+            <button type="button" class="nav-item" data-section="p2p" aria-label="P2P network">
+              <span class="nav-icon" aria-hidden="true">🌐</span>
               <span class="nav-label">P2P Network</span>
-            </div>
-            <div class="nav-item" data-section="appearance">
-              <span class="nav-icon">🎨</span>
+            </button>
+            <button type="button" class="nav-item" data-section="appearance" aria-label="Appearance">
+              <span class="nav-icon" aria-hidden="true">🎨</span>
               <span class="nav-label">Appearance</span>
-            </div>
-            <div class="nav-item" data-section="security">
-              <span class="nav-icon">🔒</span>
+            </button>
+            <button type="button" class="nav-item" data-section="security" aria-label="Security">
+              <span class="nav-icon" aria-hidden="true">🔒</span>
               <span class="nav-label">Security</span>
-            </div>
-            <div class="nav-item" data-section="about">
-              <span class="nav-icon">ℹ️</span>
+            </button>
+            <button type="button" class="nav-item" data-section="about" aria-label="About">
+              <span class="nav-icon" aria-hidden="true">ℹ️</span>
               <span class="nav-label">About</span>
-            </div>
+            </button>
           </div>
           
           <div class="monitoring-panel">
@@ -123,9 +144,12 @@ export class SettingsApp {
         <div class="settings-main">
           <div class="settings-header">
             <h2 id="section-title">General Settings</h2>
+            <p id="applied-appearance" aria-live="polite">Theme ${this.settings.appearance.theme}</p>
+            <p id="settings-feedback" role="status"></p>
             <div class="settings-actions">
-              <button class="btn btn-secondary sk-btn" id="reset-btn">Reset to Defaults</button>
-              <button class="btn btn-primary sk-btn sk-btn-primary" id="save-btn" disabled>Save Changes</button>
+              <button type="button" class="btn btn-secondary sk-btn" id="discard-btn">Discard unsaved changes</button>
+              <button type="button" class="btn btn-secondary sk-btn" id="reset-btn">Reset to Defaults</button>
+              <button type="button" class="btn btn-primary sk-btn sk-btn-primary" id="save-btn" disabled>Save Changes</button>
             </div>
           </div>
           
@@ -145,9 +169,11 @@ export class SettingsApp {
   }
 
   setupEventListeners() {
-    const navItems = document.querySelectorAll('.nav-item');
-    const saveBtn = document.querySelector('#save-btn');
-    const resetBtn = document.querySelector('#reset-btn');
+    const root = this.root() || document;
+    const navItems = root.querySelectorAll('.nav-item');
+    const saveBtn = root.querySelector('#save-btn');
+    const resetBtn = root.querySelector('#reset-btn');
+    const discardBtn = root.querySelector('#discard-btn');
 
     navItems.forEach(item => {
       item.addEventListener('click', () => {
@@ -165,12 +191,25 @@ export class SettingsApp {
       });
     }
 
+    if (discardBtn) {
+      discardBtn.addEventListener('click', () => {
+        this.discardUnsaved();
+      });
+    }
+
     if (resetBtn) {
       resetBtn.addEventListener('click', () => {
         if (confirm('Are you sure you want to reset all settings to defaults?')) {
           this.resetToDefaults();
         }
       });
+    }
+
+    const content = root.querySelector('#settings-content');
+    if (content && !content.dataset.dirtyBound) {
+      content.dataset.dirtyBound = '1';
+      content.addEventListener('input', () => this.markDirty());
+      content.addEventListener('change', () => this.markDirty());
     }
 
     this.startSystemMonitoring();
@@ -218,15 +257,11 @@ export class SettingsApp {
   }
 
   setupSectionEventListeners() {
-    const inputs = document.querySelectorAll('input, select, textarea');
+    const root = this.root() || document;
+    const inputs = root.querySelectorAll('#settings-content input, #settings-content select, #settings-content textarea');
     inputs.forEach(input => {
-      input.addEventListener('change', () => {
-        this.unsavedChanges = true;
-        const saveBtn = document.getElementById('save-btn');
-        if (saveBtn) {
-          saveBtn.disabled = false;
-        }
-      });
+      input.addEventListener('input', () => this.markDirty());
+      input.addEventListener('change', () => this.markDirty());
     });
   }
 
@@ -262,13 +297,13 @@ export class SettingsApp {
         <div class="settings-grid">
           <div class="setting-group">
             <label for="username">Username</label>
-            <input type="text" id="username" class="sk-input" value="${this.settings.general.username}" />
+            <input type="text" id="username" class="sk-input" aria-label="Username" value="${this.settings.general.username}" />
             <span class="setting-description">Your display name in the application</span>
           </div>
           
           <div class="setting-group">
             <label for="language">Language</label>
-            <select id="language" class="sk-select">
+            <select id="language" class="sk-select" aria-label="Language">
               <option value="en" ${this.settings.general.language === 'en' ? 'selected' : ''}>English</option>
               <option value="es" ${this.settings.general.language === 'es' ? 'selected' : ''}>Español</option>
               <option value="fr" ${this.settings.general.language === 'fr' ? 'selected' : ''}>Français</option>
@@ -399,7 +434,7 @@ export class SettingsApp {
         <div class="settings-grid">
           <div class="setting-group">
             <label for="theme">Theme</label>
-            <select id="theme" class="sk-select">
+            <select id="theme" class="sk-select" aria-label="Theme">
               <option value="system" ${this.settings.appearance.theme === 'system' ? 'selected' : ''}>System Default</option>
               <option value="light" ${this.settings.appearance.theme === 'light' ? 'selected' : ''}>Light</option>
               <option value="dark" ${this.settings.appearance.theme === 'dark' ? 'selected' : ''}>Dark</option>
@@ -409,13 +444,13 @@ export class SettingsApp {
           
           <div class="setting-group">
             <label for="accent-color">Accent Color</label>
-            <input type="color" id="accent-color" value="${this.settings.appearance.accentColor}" />
-            <span class="setting-description">Primary accent color</span>
+            <input type="text" id="accent-color" class="sk-input" aria-label="Accent color" maxlength="7" value="${this.settings.appearance.accentColor}" />
+            <span class="setting-description">Six-digit color such as #4a90e2</span>
           </div>
           
           <div class="setting-group">
             <label for="font-size">Font Size</label>
-            <select id="font-size" class="sk-select">
+            <select id="font-size" class="sk-select" aria-label="Font size">
               <option value="12" ${this.settings.appearance.fontSize === 12 ? 'selected' : ''}>Small (12px)</option>
               <option value="14" ${this.settings.appearance.fontSize === 14 ? 'selected' : ''}>Medium (14px)</option>
               <option value="16" ${this.settings.appearance.fontSize === 16 ? 'selected' : ''}>Large (16px)</option>
@@ -549,50 +584,193 @@ export class SettingsApp {
     `;
   }
 
+  root() {
+    return document.querySelector('.window[data-app-id="settings"]');
+  }
+
+  readControl(id) {
+    const root = this.root();
+    const scoped = root ? root.querySelector('#' + CSS.escape(id)) : null;
+    return scoped || document.getElementById(id);
+  }
+
+  ensureSettings() {
+    if (!this._loaded) this.loadSettings();
+  }
+
+  markDirty() {
+    this.unsavedChanges = true;
+    const saveBtn = this.readControl('save-btn');
+    if (saveBtn) saveBtn.disabled = false;
+  }
+
+  showFeedback(message) {
+    const el = this.readControl('settings-feedback');
+    if (el) el.textContent = message;
+  }
+
+  mergeSettings(base, extra) {
+    const out = JSON.parse(JSON.stringify(base));
+    if (!extra || typeof extra !== 'object') return out;
+    for (const section of Object.keys(out)) {
+      const incoming = extra[section];
+      if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) continue;
+      for (const key of Object.keys(out[section])) {
+        if (Object.prototype.hasOwnProperty.call(incoming, key)) out[section][key] = incoming[key];
+      }
+    }
+    return out;
+  }
+
+  sanitizeSettings(settings) {
+    if (!['system', 'light', 'dark'].includes(settings.appearance.theme)) settings.appearance.theme = 'dark';
+    if (typeof settings.appearance.accentColor !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(settings.appearance.accentColor)) {
+      settings.appearance.accentColor = '#4a90e2';
+    }
+    const fontSize = Number(settings.appearance.fontSize);
+    settings.appearance.fontSize = [12, 14, 16].includes(fontSize) ? fontSize : 14;
+    const tasks = Number(settings.ai.maxConcurrentTasks);
+    settings.ai.maxConcurrentTasks = [2, 4, 8].includes(tasks) ? tasks : 4;
+    const peers = Number(settings.p2p.maxPeers);
+    settings.p2p.maxPeers = [10, 25, 50, 100].includes(peers) ? peers : 50;
+    const lock = Number(settings.security.autoLockTimeout);
+    settings.security.autoLockTimeout = [5, 15, 30, 60].includes(lock) ? lock : 15;
+    if (!['en', 'es', 'fr', 'de'].includes(settings.general.language)) settings.general.language = 'en';
+    if (!['openai', 'anthropic', 'google', 'local'].includes(settings.ai.defaultProvider)) settings.ai.defaultProvider = 'openai';
+    if (!['standard', 'high', 'maximum'].includes(settings.security.securityLevel)) settings.security.securityLevel = 'standard';
+  }
+
   async loadSettings() {
+    this.settings = JSON.parse(JSON.stringify(this.defaultSettings));
     try {
       const stored = localStorage.getItem('swissknife_settings');
       if (stored) {
-        this.settings = { ...this.defaultSettings, ...JSON.parse(stored) };
+        this.settings = this.mergeSettings(this.defaultSettings, JSON.parse(stored));
+        this.sanitizeSettings(this.settings);
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
-      this.settings = this.defaultSettings;
+      this.settings = JSON.parse(JSON.stringify(this.defaultSettings));
     }
+    this.lastSaved = JSON.parse(JSON.stringify(this.settings));
+    this._loaded = true;
+  }
+
+  rejectDraft(message) {
+    this.showFeedback(message + ' Last saved settings were kept.');
+  }
+
+  readChoice(draft, id, section, key, allowed, label, asNumber) {
+    const el = this.readControl(id);
+    if (!el) return true;
+    const value = asNumber ? Number(el.value) : el.value;
+    if (!allowed.includes(value)) {
+      this.rejectDraft('Invalid ' + label + '.');
+      return false;
+    }
+    draft[section][key] = value;
+    return true;
+  }
+
+  readChecked(draft, id, section, key) {
+    const el = this.readControl(id);
+    if (el) draft[section][key] = el.checked;
   }
 
   async saveSettings() {
+    const draft = JSON.parse(JSON.stringify(this.settings));
+    const themeEl = this.readControl('theme');
+    const accentEl = this.readControl('accent-color');
+    const fontEl = this.readControl('font-size');
+    if (themeEl || accentEl || fontEl || this.readControl('enable-animations')) {
+      if (themeEl && !['system', 'light', 'dark'].includes(themeEl.value)) {
+        this.rejectDraft('Invalid theme.');
+        return;
+      }
+      const accent = accentEl ? accentEl.value.trim() : draft.appearance.accentColor;
+      if (!/^#[0-9a-fA-F]{6}$/.test(accent)) {
+        this.rejectDraft('Invalid accent color.');
+        return;
+      }
+      const fontSize = fontEl ? Number(fontEl.value) : Number(draft.appearance.fontSize);
+      if (![12, 14, 16].includes(fontSize)) {
+        this.rejectDraft('Invalid font size.');
+        return;
+      }
+      if (themeEl) draft.appearance.theme = themeEl.value;
+      draft.appearance.accentColor = accent;
+      draft.appearance.fontSize = fontSize;
+      this.readChecked(draft, 'enable-animations', 'appearance', 'enableAnimations');
+    }
+    const userEl = this.readControl('username');
+    if (userEl) {
+      const username = userEl.value.trim();
+      if (!username || username.length > 80) {
+        this.rejectDraft('Invalid username.');
+        return;
+      }
+      draft.general.username = username;
+    }
+    if (!this.readChoice(draft, 'language', 'general', 'language', ['en', 'es', 'fr', 'de'], 'language', false)) return;
+    this.readChecked(draft, 'auto-save', 'general', 'autoSave');
+    this.readChecked(draft, 'notifications', 'general', 'notifications');
+    if (!this.readChoice(draft, 'default-provider', 'ai', 'defaultProvider', ['openai', 'anthropic', 'google', 'local'], 'AI provider', false)) return;
+    if (!this.readChoice(draft, 'max-tasks', 'ai', 'maxConcurrentTasks', [2, 4, 8], 'task limit', true)) return;
+    this.readChecked(draft, 'enable-gpu', 'ai', 'enableGPU');
+    this.readChecked(draft, 'enable-p2p', 'p2p', 'enableP2P');
+    if (!this.readChoice(draft, 'max-peers', 'p2p', 'maxPeers', [10, 25, 50, 100], 'peer limit', true)) return;
+    this.readChecked(draft, 'enable-model-sharing', 'p2p', 'enableModelSharing');
+    this.readChecked(draft, 'enable-encryption', 'security', 'enableEncryption');
+    if (!this.readChoice(draft, 'auto-lock', 'security', 'autoLockTimeout', [5, 15, 30, 60], 'auto-lock timeout', true)) return;
+    if (!this.readChoice(draft, 'security-level', 'security', 'securityLevel', ['standard', 'high', 'maximum'], 'security level', false)) return;
     try {
-      const inputs = document.querySelectorAll('input, select');
-      inputs.forEach(input => {
-        const path = input.id.replace(/-/g, '.');
-        this.setNestedProperty(this.settings, path, input.type === 'checkbox' ? input.checked : input.value);
-      });
-
-      localStorage.setItem('swissknife_settings', JSON.stringify(this.settings));
-      this.unsavedChanges = false;
-      
-      const saveBtn = document.getElementById('save-btn');
-      if (saveBtn) {
-        saveBtn.disabled = true;
-      }
-      
-      if (this.desktop && this.desktop.showNotification) {
-        this.desktop.showNotification('Settings saved successfully', 'success');
-      }
+      localStorage.setItem('swissknife_settings', JSON.stringify(draft));
     } catch (error) {
       console.error('Failed to save settings:', error);
+      this.rejectDraft('Could not save settings.');
       if (this.desktop && this.desktop.showNotification) {
         this.desktop.showNotification('Failed to save settings', 'error');
       }
+      return;
+    }
+    this.settings = draft;
+    this.lastSaved = JSON.parse(JSON.stringify(draft));
+    this.unsavedChanges = false;
+    this.applySettings();
+    const saveBtn = this.readControl('save-btn');
+    if (saveBtn) saveBtn.disabled = true;
+    this.showFeedback('Settings saved.');
+    if (this.desktop && this.desktop.showNotification) {
+      this.desktop.showNotification('Settings saved successfully', 'success');
     }
   }
 
-  resetToDefaults() {
-    this.settings = JSON.parse(JSON.stringify(this.defaultSettings));
-    localStorage.removeItem('swissknife_settings');
+  discardUnsaved() {
+    this.settings = JSON.parse(JSON.stringify(this.lastSaved || this.defaultSettings));
+    this.unsavedChanges = false;
     this.renderCurrentSection();
-    
+    this.applySettings();
+    const saveBtn = this.readControl('save-btn');
+    if (saveBtn) saveBtn.disabled = true;
+    this.showFeedback('Unsaved changes discarded. Last saved settings restored.');
+  }
+
+  resetToDefaults() {
+    const next = JSON.parse(JSON.stringify(this.defaultSettings));
+    try {
+      localStorage.removeItem('swissknife_settings');
+    } catch (error) {
+      this.rejectDraft('Could not reset settings.');
+      return;
+    }
+    this.settings = next;
+    this.lastSaved = JSON.parse(JSON.stringify(next));
+    this.unsavedChanges = false;
+    this.renderCurrentSection();
+    this.applySettings();
+    const saveBtn = this.readControl('save-btn');
+    if (saveBtn) saveBtn.disabled = true;
+    this.showFeedback('Settings reset to defaults.');
     if (this.desktop && this.desktop.showNotification) {
       this.desktop.showNotification('Settings reset to defaults', 'success');
     }
@@ -606,12 +784,19 @@ export class SettingsApp {
   }
 
   applySettings() {
-    if (this.settings.appearance.theme) {
-      document.documentElement.setAttribute('data-theme', this.settings.appearance.theme);
+    const appearance = this.settings.appearance || {};
+    if (['system', 'light', 'dark'].includes(appearance.theme)) {
+      document.documentElement.setAttribute('data-theme', appearance.theme);
+      const root = this.root();
+      if (root) root.setAttribute('data-theme', appearance.theme);
     }
-    
-    if (this.settings.appearance.accentColor) {
-      document.documentElement.style.setProperty('--accent-color', this.settings.appearance.accentColor);
+    if (typeof appearance.accentColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(appearance.accentColor)) {
+      document.documentElement.style.setProperty('--accent-color', appearance.accentColor);
     }
+    if ([12, 14, 16].includes(Number(appearance.fontSize))) {
+      document.documentElement.style.setProperty('--settings-font-size', Number(appearance.fontSize) + 'px');
+    }
+    const applied = this.readControl('applied-appearance');
+    if (applied) applied.textContent = 'Theme ' + appearance.theme;
   }
 }

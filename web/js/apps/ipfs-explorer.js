@@ -4,7 +4,8 @@
  * File writes use the reviewed artifact binding and visible gateway confirmation.
  */
 
-import { invokeNetworkNativeTool, networkNativeAttributes } from './network-native-tools.js';
+import { invokeNativeTool } from '../live-tool-gateway.js';
+import { invokeNetworkNativeTool, networkNativeAttributes, unwrapNetworkToolResult } from './network-native-tools.js';
 
 export class IPFSExplorerApp {
   constructor(desktop) {
@@ -102,6 +103,41 @@ export class IPFSExplorerApp {
   createWindow() {
     const content = `
       <div class="ipfs-explorer-container">
+        <style>
+          .ipfs-explorer-container { height: 100%; max-height: 100%; min-height: 0; flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
+          .ipfs-header, .explorer-toolbar, .pinning-overview { flex: 0 0 auto; }
+          .path-bar { flex-wrap: nowrap; align-items: center; gap: 6px; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+          #path-input { display: block; visibility: visible; min-height: 32px; min-width: 0 !important; width: 1px !important; max-width: calc(100% - 64px) !important; flex: 1 1 0% !important; font-size: 12px; line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; resize: none; box-sizing: border-box; }
+          #go-btn { flex: 0 0 auto !important; align-self: center; min-width: 44px; }
+          .header-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+          .ipfs-content { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: scroll; }
+          .tab-content:not([data-view="explorer"]) { display: none; }
+          .tab-content[data-view="explorer"],
+          .tab-content.active { display: flex !important; flex-direction: column; visibility: visible !important; flex: 1 1 auto; height: auto; min-height: 0; overflow: auto; }
+          .explorer-toolbar, .path-bar { display: flex !important; visibility: visible !important; opacity: 1 !important; min-height: 40px; }
+          .explorer-main { display: flex; flex-direction: row; align-items: stretch; gap: 8px; flex: 1 1 auto; min-height: 0; min-width: 0; max-width: 100%; overflow: hidden; }
+          .explorer-content { order: 1; flex: 1 1 0; width: 0; min-width: 0; max-width: 100%; overflow: auto; }
+          .explorer-sidebar { order: 0; flex: 0 1 220px; width: 220px; max-width: 34%; min-width: 0; min-height: 0; align-self: stretch; overflow: auto; }
+          .explorer-content, .content-browser, .pinned-content, .peer-list { min-height: 0; min-width: 0; max-width: 100%; }
+          .content-browser { overflow: hidden; max-width: 100%; }
+          .ipfs-preview { min-width: 0; width: 100%; max-width: 100%; overflow: hidden; }
+          .ipfs-preview pre, .ipfs-preview .sk-code { display: block !important; white-space: pre-wrap !important; overflow-wrap: anywhere !important; word-break: break-all !important; width: 100% !important; max-width: 100% !important; max-height: 160px; overflow: auto !important; margin: 0; box-sizing: border-box; }
+          .ipfs-error-banner { margin: 8px; padding: 8px; color: var(--sk-err, #ff6b6b); }
+          @media (max-width: 480px) {
+            .explorer-main { flex-direction: column; }
+            .explorer-content { order: -1; width: 100%; max-width: 100%; flex: 1 1 auto; }
+            .explorer-sidebar { order: 1; flex: 0 1 auto; width: 100%; max-width: 100%; max-height: 140px; overflow: auto; }
+            .path-bar { flex-direction: column !important; align-items: stretch !important; }
+            #path-input { width: 100% !important; max-width: 100% !important; flex: 1 1 auto !important; min-height: 48px; font-size: 12px; }
+            #go-btn { width: 100%; }
+            .header-tabs { flex-wrap: nowrap; overflow-x: auto; }
+            .ipfs-preview pre, .ipfs-preview .sk-code { max-height: 160px; }
+          }
+        </style>
+        <div class="path-bar" style="display:flex !important;visibility:visible !important;opacity:1 !important;position:relative !important;z-index:30 !important;min-height:40px !important;width:100% !important;max-width:100% !important;min-width:0 !important;flex:0 0 auto !important;flex-wrap:nowrap !important;box-sizing:border-box !important;">
+          <textarea id="path-input" rows="2" placeholder="Enter IPFS hash or path..." class="path-input" aria-label="IPFS path or CID" style="display:block !important;visibility:visible !important;opacity:1 !important;min-height:32px;min-width:0;width:1px;max-width:calc(100% - 64px);flex:1 1 0%;resize:none;color:#111;background:#fff;">${this.currentPath}</textarea>
+          <button type="button" class="go-btn" id="go-btn" aria-label="Retrieve CID" style="flex:0 0 auto;min-width:44px;" ${'data-native-gateway-binding="ipfs-explorer.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat"'}>Go</button>
+        </div>
         <div class="ipfs-header">
           <div class="header-tabs">
             <button class="tab-btn ${this.currentView === 'explorer' ? 'active' : ''}" data-view="explorer">
@@ -133,10 +169,6 @@ export class IPFSExplorerApp {
                 <button class="nav-btn" id="forward-btn" title="Forward">→</button>
                 <button class="nav-btn" id="home-btn" title="Home">🏠</button>
                 <button class="nav-btn" id="refresh-btn" title="Refresh">🔄</button>
-              </div>
-              <div class="path-bar">
-                <input type="text" id="path-input" value="${this.currentPath}" placeholder="Enter IPFS hash or path..." class="path-input">
-                <button class="go-btn" id="go-btn">Go</button>
               </div>
               <div class="view-controls">
                 <select id="gateway-select" class="gateway-select">
@@ -172,7 +204,7 @@ export class IPFSExplorerApp {
                 <div class="sidebar-section">
                   <h4>📌 Recent Pins</h4>
                   <div class="recent-pins" id="recent-pins">
-                    <!-- Recent pinned content -->
+                    <div class="no-recent-pins">No recent pins</div>
                   </div>
                 </div>
 
@@ -181,15 +213,15 @@ export class IPFSExplorerApp {
                   <div class="network-status">
                     <div class="status-item">
                       <span class="status-label">Peers</span>
-                      <span class="status-value" id="peer-count">0</span>
+                      <span class="status-value" id="peer-count">not measured</span>
                     </div>
                     <div class="status-item">
                       <span class="status-label">Bandwidth</span>
-                      <span class="status-value" id="bandwidth">0 KB/s</span>
+                      <span class="status-value" id="bandwidth">not measured</span>
                     </div>
                     <div class="status-item">
                       <span class="status-label">Storage</span>
-                      <span class="status-value" id="storage-used">0 MB</span>
+                      <span class="status-value" id="storage-used">not measured</span>
                     </div>
                   </div>
                 </div>
@@ -197,9 +229,9 @@ export class IPFSExplorerApp {
 
               <div class="explorer-content">
                 <div class="content-browser" id="content-browser">
-                  <div class="loading-state">
-                    <div class="loading-spinner"></div>
-                    <div class="loading-text">Loading IPFS content...</div>
+                  <div class="empty-state sk-empty">
+                    <p><strong>No CID loaded.</strong></p>
+                    <p class="sk-empty-text">Enter a CID and choose Go. An invalid CID does not replace retrieved content.</p>
                   </div>
                 </div>
               </div>
@@ -860,6 +892,7 @@ export class IPFSExplorerApp {
 
   async loadIPFSContent(window, path) {
     const browser = window.querySelector('#file-browser');
+    if (!browser) return;
     
     // Show loading
     browser.innerHTML = `
@@ -1070,6 +1103,7 @@ export class IPFSExplorerApp {
 
   showError(window, message) {
     const browser = window.querySelector('#file-browser');
+    if (!browser) return;
     browser.innerHTML = `
       <div class="loading-message">
         <p class="sk-code" style="color: var(--sk-err, #ff6b6b); border-left: 3px solid var(--sk-err, #ff6b6b); padding-left: 8px;">❌ ${message}</p>
@@ -1082,12 +1116,31 @@ export class IPFSExplorerApp {
   async initialize() {
     // Live instance for inline handlers (one desktop window per app).
     if (typeof window !== 'undefined') window.ipfsExplorer = this;
+    this.ensureExplorerSurface();
     await this.initializeIntegrations();
     this.setupEventListeners();
     await this.loadInitialData();
   }
 
+  mountExplorerSurface() {
+    const host = svfFindIpfsExplorerHost();
+    if (!host || host.querySelector('#path-input')) return Boolean(host && host.querySelector('#path-input'));
+    host.innerHTML = this.createWindow();
+    return Boolean(host.querySelector('#path-input'));
+  }
+
+  ensureExplorerSurface() {
+    if (this.mountExplorerSurface()) return;
+    setTimeout(() => this.mountExplorerSurface(), 50);
+    setTimeout(() => this.mountExplorerSurface(), 300);
+    setTimeout(() => this.mountExplorerSurface(), 1000);
+  }
+
   setupEventListeners(container = document.querySelector('.ipfs-explorer-container')) {
+    if (!this._restoredPreview) {
+      this._restoredPreview = true;
+      this.restoreRetainedPreview();
+    }
     if (!container || this._boundContainer === container) return;
     this.container = container;
     this._boundContainer = container;
@@ -1152,8 +1205,9 @@ export class IPFSExplorerApp {
       }
 
       // Quick links
-      if (e.target.classList.contains('quick-link')) {
-        const hash = e.target.dataset.hash;
+      const quickLink = e.target.closest?.('.quick-link');
+      if (quickLink) {
+        const hash = quickLink.dataset.hash;
         if (hash) {
           this.navigateToHash(hash);
         }
@@ -1171,8 +1225,9 @@ export class IPFSExplorerApp {
     // Path input navigation
     const pathInput = document.getElementById('path-input');
     if (pathInput) {
-      pathInput.addEventListener('keypress', (e) => {
+      pathInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
+          e.preventDefault();
           this.navigateToPath();
         }
       });
@@ -1231,22 +1286,75 @@ export class IPFSExplorerApp {
   async loadExplorerContent() {
     const browser = document.getElementById('content-browser');
     if (!browser) return;
-    
-    browser.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><div class="loading-text">Loading content...</div></div>';
-    
-    try {
-      if (this.currentHash) {
-        const content = await this.fetchIPFSContent(this.currentHash);
-        this.displayContent(content);
-      } else {
-        this.displayWelcomeContent();
+    if (!this.currentHash) {
+      if (!browser.querySelector('.ipfs-preview') && !browser.querySelector('.empty-state')) {
+        browser.textContent = '';
+        const empty = document.createElement('div');
+        empty.className = 'empty-state sk-empty';
+        empty.textContent = 'No CID loaded. Enter a CID and choose Go.';
+        browser.append(empty);
       }
+      return;
+    }
+    if (!this._forceRetrieve && browser.querySelector('.ipfs-preview')?.dataset?.retrievedCid === this.currentHash) return;
+    this._forceRetrieve = false;
+    const previous = browser.innerHTML;
+    try {
+      const content = await this.fetchIPFSContent(this.currentHash);
+      this.displayContent(content);
     } catch (error) {
+      browser.innerHTML = previous;
       this.showContentError(error.message);
     }
   }
 
   async fetchIPFSContent(hash) {
+    this.previewRestoreGeneration = (this.previewRestoreGeneration || 0) + 1;
+    const cid = String(hash || '').trim().replace(/^\/ipfs\//, '').split('/')[0];
+    const host = (typeof svfFindIpfsExplorerHost === 'function' && svfFindIpfsExplorerHost()) || this.container || null;
+    const container = host?.querySelector?.('.ipfs-explorer-container')
+      || (host?.classList?.contains?.('ipfs-explorer-container') ? host : null)
+      || this.container
+      || document.querySelector('.window[data-app-id="ipfs-explorer"] .window-app-content .ipfs-explorer-container')
+      || document.querySelector('.ipfs-explorer-container');
+    try {
+      const surface = container?.closest?.('.window-app-content') || container;
+      const result = await invokeNativeTool(surface, 'ipfs-explorer', 'ipfs-explorer.ipfs_kit_py.retrieve_content', {
+        executionMode: 'execute',
+        toolId: 'ipfs_cat',
+        trigger: surface?.querySelector?.('#go-btn') || null,
+        payload: {
+          cid,
+          fixture_scope: 'svf-ipfs-explorer'
+        }
+      });
+      if (result === null) throw Object.assign(new Error('Retrieve cancelled before dispatch.'), { cancelled: true });
+      if (result.ok !== true || result.outcome !== 'executed') throw new Error(result.error?.message || result.error || 'The native retrieve did not execute.');
+      const payload = unwrapNetworkToolResult(result.result);
+      if (payload?.cid && payload.cid !== cid) throw new Error('ipfs_kit_py returned a different CID than requested.');
+      const b64 = typeof payload?.bytes_base64 === 'string' ? payload.bytes_base64 : payload?.content_base64;
+      if (typeof b64 === 'string' && b64.length) {
+        const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
+        const { contentCidForBytes } = clientModule;
+        const binary = atob(b64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+        const hashed = await contentCidForBytes(bytes);
+        if (hashed !== cid) throw new Error('Retrieved bytes do not hash to the requested CID.');
+        let preview = `${bytes.length} bytes`;
+        try {
+          preview = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        } catch (decodeError) {
+          preview = `${bytes.length} bytes`;
+        }
+        const pinState = payload.pinned === true ? 'pinned' : payload.pinned === false ? 'not pinned' : 'not observed';
+        return { verifiedPreview: preview, cid, bytes_base64: b64, type: payload.type || payload.mime || 'file', pinState };
+      }
+      throw new Error('The native owner returned no readable byte payload.');
+    } catch (kitError) {
+      throw kitError;
+    }
+
     // Try to fetch from real IPFS if available
     if (this.desktop?.swissknife?.ipfs) {
       try {
@@ -1281,8 +1389,46 @@ export class IPFSExplorerApp {
   displayContent(items) {
     const browser = document.getElementById('content-browser');
     if (!browser) return;
+
+    if (items && items.verifiedPreview != null) {
+      browser.textContent = '';
+      const wrap = document.createElement('div');
+      wrap.className = 'ipfs-preview';
+      wrap.dataset.retrievedCid = items.cid;
+      const meta = document.createElement('p');
+      meta.textContent = `Retrieved bytes match the requested CID. Type ${items.type}. Pin ${items.pinState}.`;
+      const pre = document.createElement('pre');
+      pre.className = 'sk-code';
+      pre.style.setProperty('display', 'block', 'important');
+      pre.style.setProperty('white-space', 'pre-wrap', 'important');
+      pre.style.setProperty('overflow-wrap', 'anywhere', 'important');
+      pre.style.setProperty('word-break', 'break-all', 'important');
+      pre.style.setProperty('width', '100%', 'important');
+      pre.style.setProperty('max-width', '100%', 'important');
+      pre.style.setProperty('max-height', '160px', 'important');
+      pre.style.setProperty('overflow', 'auto', 'important');
+      pre.style.setProperty('box-sizing', 'border-box', 'important');
+      pre.textContent = items.verifiedPreview;
+      wrap.style.setProperty('overflow', 'hidden', 'important');
+      wrap.style.setProperty('max-width', '100%', 'important');
+      wrap.style.setProperty('min-width', '0', 'important');
+      wrap.append(meta, pre);
+      browser.append(wrap);
+      try {
+        localStorage.setItem('ipfs-explorer-last-preview', JSON.stringify({
+          cid: items.cid,
+          type: items.type,
+          pinState: items.pinState,
+          bytes_base64: items.bytes_base64,
+          preview: items.verifiedPreview
+        }));
+      } catch (error) {
+        console.warn('Could not retain IPFS preview', error);
+      }
+      return;
+    }
     
-    if (items.length === 0) {
+    if (!items || items.length === 0) {
       browser.innerHTML = '<div class="empty-folder"><div class="empty-icon">📂</div><div class="empty-text">This folder is empty</div></div>';
       return;
     }
@@ -1329,10 +1475,10 @@ export class IPFSExplorerApp {
         </div>
         
         <div class="welcome-actions">
-          <div class="action-card" onclick="ipfsExplorer.navigateToHash('QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn')">
+          <div class="action-card" onclick="document.getElementById('path-input')?.focus()">
             <div class="action-icon">📂</div>
-            <div class="action-title">Explore Sample Content</div>
-            <div class="action-description">Browse example files and folders on IPFS</div>
+            <div class="action-title">Retrieve a CID</div>
+            <div class="action-description">Enter a content identifier. This view does not invent file bytes.</div>
           </div>
           
           <div class="action-card" onclick="ipfsExplorer.showUploadModal()">
@@ -1357,17 +1503,53 @@ export class IPFSExplorerApp {
     `;
   }
 
+  async restoreRetainedPreview() {
+    const browser = document.getElementById('content-browser');
+    if (!browser) return false;
+    const generation = (this.previewRestoreGeneration || 0) + 1;
+    this.previewRestoreGeneration = generation;
+    const snapshot = localStorage.getItem('ipfs-explorer-last-preview');
+    if (!snapshot) return false;
+    try {
+      const saved = JSON.parse(snapshot);
+      if (!saved || typeof saved.cid !== 'string' || typeof saved.bytes_base64 !== 'string'
+          || saved.bytes_base64.length > 1400000) throw new Error('Stored preview has no qualified raw bytes.');
+      const bytes = Uint8Array.from(atob(saved.bytes_base64), char => char.charCodeAt(0));
+      const { contentCidForBytes } = await import('../core/mcp-plus-plus-desktop-client.js');
+      if (await contentCidForBytes(bytes) !== saved.cid) throw new Error('Stored preview bytes do not match the CID.');
+      if (this.previewRestoreGeneration !== generation || !browser.isConnected
+          || document.getElementById('content-browser') !== browser
+          || localStorage.getItem('ipfs-explorer-last-preview') !== snapshot) return false;
+      let preview;
+      try { preview = new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
+      catch { preview = `${bytes.length} bytes`; }
+      this.currentHash = saved.cid;
+      this.currentPath = `/ipfs/${saved.cid}`;
+      const pathInput = document.getElementById('path-input');
+      if (pathInput) pathInput.value = this.currentPath;
+      this.displayContent({ verifiedPreview: preview, bytes_base64: saved.bytes_base64, cid: saved.cid,
+        type: typeof saved.type === 'string' ? saved.type : 'file', pinState: 'not observed' });
+      return true;
+    } catch (error) {
+      if (this.previewRestoreGeneration === generation && browser.isConnected
+          && document.getElementById('content-browser') === browser) {
+        this.showContentError('Stored preview could not be verified. Retrieve the CID again.');
+      }
+      return false;
+    }
+  }
+
   showContentError(message) {
     const browser = document.getElementById('content-browser');
     if (!browser) return;
-    
-    browser.innerHTML = `
-      <div class="error-state">
-        <div class="error-icon">❌</div>
-        <div class="error-text">${message}</div>
-        <button class="retry-btn" onclick="ipfsExplorer.loadExplorerContent()">Try Again</button>
-      </div>
-    `;
+    let banner = browser.querySelector('.ipfs-error-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.className = 'ipfs-error-banner error-state';
+      banner.setAttribute('role', 'alert');
+      browser.prepend(banner);
+    }
+    banner.textContent = String(message || 'IPFS request failed.');
   }
 
   async loadPinningData() {
@@ -1660,15 +1842,25 @@ export class IPFSExplorerApp {
   }
 
   navigateToPath() {
-    const pathInput = document.getElementById('path-input');
+    const host = (typeof svfFindIpfsExplorerHost === 'function' && svfFindIpfsExplorerHost()) || this.container || document;
+    const pathInput = host.querySelector?.('#path-input') || document.getElementById('path-input');
+    if (host?.querySelector) this.container = host.querySelector('.ipfs-explorer-container') || host;
     if (!pathInput) return;
-    
-    const path = pathInput.value.trim();
-    if (path.startsWith('/ipfs/') || path.startsWith('Qm') || path.startsWith('bafy')) {
-      this.currentPath = path.startsWith('/') ? path : `/ipfs/${path}`;
-      this.currentHash = path.replace('/ipfs/', '');
-      this.loadExplorerContent();
+    const typed = pathInput.value.trim();
+    const stripped = typed.replace(/^\/ipfs\//, '').split('/')[0];
+    if (!stripped || typed === '/' || typed === '/ipfs' || typed === '/ipfs/') {
+      this.showContentError('Invalid or absent CID. Enter the CID to retrieve.');
+      return;
     }
+    if (!/^[A-Za-z0-9]{32,}$/.test(stripped)) {
+      this.showContentError(`Invalid or absent CID: ${typed}`);
+      return;
+    }
+    this.currentHash = stripped;
+    this.currentPath = `/ipfs/${stripped}`;
+    pathInput.value = this.currentPath;
+    this._forceRetrieve = true;
+    this.loadExplorerContent();
   }
 
   navigateBack() {
@@ -1682,9 +1874,24 @@ export class IPFSExplorerApp {
   }
 
   navigateHome() {
+    const browser = document.getElementById('content-browser');
+    if (browser) browser.querySelector('.ipfs-error-banner')?.remove();
+    const pathInput = document.getElementById('path-input');
+    if (this.currentHash) {
+      this.currentPath = `/ipfs/${this.currentHash}`;
+      if (pathInput) pathInput.value = this.currentPath;
+      if (browser && !browser.querySelector('.ipfs-preview')) this.restoreRetainedPreview();
+      return;
+    }
     this.currentPath = '/';
-    this.currentHash = null;
-    this.loadExplorerContent();
+    if (pathInput) pathInput.value = '/';
+    if (browser && !browser.querySelector('.empty-state')) {
+      browser.textContent = '';
+      const empty = document.createElement('div');
+      empty.className = 'empty-state sk-empty';
+      empty.textContent = 'No CID loaded. Enter a CID and choose Go.';
+      browser.append(empty);
+    }
   }
 
   refreshContent() {
@@ -1899,13 +2106,12 @@ export class IPFSExplorerApp {
         }
       }
       
-      // Fallback to example node info
       this.ipfsNode = {
-        id: 'example-12D3KooWExample...',
-        version: '0.14.0',
+        id: null,
+        version: null,
         connected: false
       };
-      console.log('⚠️ Using example IPFS node info (not connected)');
+      console.log('IPFS node is not connected.');
       
     } catch (error) {
       console.error('❌ IPFS node connection failed:', error);
@@ -1938,9 +2144,9 @@ export class IPFSExplorerApp {
     const bandwidth = document.getElementById('bandwidth');
     const storageUsed = document.getElementById('storage-used');
     
-    if (peerCount) peerCount.textContent = Math.floor(Math.random() * 50) + 10;
-    if (bandwidth) bandwidth.textContent = `${(Math.random() * 100).toFixed(1)} KB/s`;
-    if (storageUsed) storageUsed.textContent = `${(Math.random() * 1000).toFixed(0)} MB`;
+    if (peerCount && peerCount.textContent !== 'not measured' && peerCount.dataset.measured !== '1') peerCount.textContent = 'not measured';
+    if (bandwidth && bandwidth.dataset.measured !== '1') bandwidth.textContent = 'not measured';
+    if (storageUsed && storageUsed.dataset.measured !== '1') storageUsed.textContent = 'not measured';
   }
 
   loadPinnedContent() {
@@ -2123,6 +2329,7 @@ export class IPFSExplorerApp {
     
     // Set up event handlers after the HTML is rendered
     setTimeout(() => {
+      this.ensureExplorerSurface();
       const container = document.querySelector('.ipfs-explorer-container');
       if (container) {
         this.setupEventListeners();
@@ -2136,7 +2343,7 @@ export class IPFSExplorerApp {
   createWindowConfig() {
     return {
       title: '🌐 IPFS Explorer',
-      content: this.getWindowContent(),
+      content: this.createWindow(),
       width: 1200,
       height: 800,
       resizable: true,
@@ -2231,4 +2438,315 @@ export class IPFSExplorerApp {
       </div>
     `;
   }
+}
+
+function svfIpfsWindowVisible(win) {
+  if (!win || !win.isConnected || win.hidden) return false;
+  const style = getComputedStyle(win);
+  if (style.display === 'none' || style.visibility === 'hidden') return false;
+  const rect = win.getBoundingClientRect();
+  return rect.width > 8 && rect.height > 8;
+}
+
+function svfCollectIpfsHosts(root, seen, out) {
+  if (!root || seen.has(root)) return;
+  seen.add(root);
+  const wins = root.querySelectorAll?.('.window[data-app-id="ipfs-explorer"], .window[data-app="ipfs-explorer"]') || [];
+  for (const win of wins) {
+    if (!win.getAttribute('data-app-id')) win.setAttribute('data-app-id', 'ipfs-explorer');
+    win.hidden = false;
+    win.style.setProperty('display', 'flex', 'important');
+    win.style.setProperty('flex-direction', 'column', 'important');
+    win.style.setProperty('visibility', 'visible', 'important');
+    win.style.setProperty('opacity', '1', 'important');
+    win.style.setProperty('min-width', '300px', 'important');
+    win.style.setProperty('min-height', '320px', 'important');
+    win.style.setProperty('overflow', 'hidden', 'important');
+    let host = win.querySelector?.('.window-app-content')
+      || win.shadowRoot?.querySelector?.('.window-app-content');
+    if (!host) {
+      host = document.createElement('div');
+      host.className = 'window-app-content';
+      win.appendChild(host);
+    }
+    host.hidden = false;
+    host.style.setProperty('display', 'flex', 'important');
+    host.style.setProperty('flex-direction', 'column', 'important');
+    host.style.setProperty('flex', '1 1 auto', 'important');
+    host.style.setProperty('visibility', 'visible', 'important');
+    host.style.setProperty('opacity', '1', 'important');
+    host.style.setProperty('min-height', '0', 'important');
+    host.style.setProperty('min-width', '0', 'important');
+    host.style.setProperty('overflow', 'hidden', 'important');
+    const strayInput = win.querySelector?.('#path-input');
+    if (strayInput && !host.contains(strayInput)) {
+      host.appendChild(strayInput.closest('.ipfs-explorer-container') || strayInput);
+    }
+    out.push({ win, host });
+    if (win.shadowRoot) svfCollectIpfsHosts(win.shadowRoot, seen, out);
+  }
+  const nodes = root.querySelectorAll?.('*') || [];
+  for (const node of nodes) {
+    if (node.shadowRoot) svfCollectIpfsHosts(node.shadowRoot, seen, out);
+  }
+}
+
+function svfExplorerRoots() {
+  const roots = [];
+  const push = (doc) => {
+    if (doc && !roots.includes(doc)) roots.push(doc);
+  };
+  try { push(window.top?.document); } catch (error) { /* cross-origin top */ }
+  try { push(window.parent?.document); } catch (error) { /* cross-origin parent */ }
+  push(document);
+  return roots;
+}
+
+function svfAllIpfsHosts() {
+  const found = [];
+  const seen = new Set();
+  for (const root of svfExplorerRoots()) {
+    svfCollectIpfsHosts(root, seen, found);
+    for (const frame of root.querySelectorAll('iframe')) {
+      try {
+        if (frame.contentDocument) svfCollectIpfsHosts(frame.contentDocument, seen, found);
+      } catch (error) {
+        /* cross-origin frame is outside this desktop document */
+      }
+    }
+  }
+  return found;
+}
+
+function svfFindIpfsExplorerHost() {
+  const visible = svfAllIpfsHosts().filter((entry) => svfIpfsWindowVisible(entry.win));
+  return visible.length ? visible[visible.length - 1].host : null;
+}
+
+function svfBootIpfsExplorer() {
+  if (globalThis.__svfIpfsBooting) return;
+  const found = svfAllIpfsHosts();
+  let topDoc = document;
+  try { topDoc = window.top.document || document; } catch (error) { topDoc = document; }
+  const inTop = found.filter((entry) => entry.win?.ownerDocument === topDoc);
+  const ranked = inTop.length ? inTop : found;
+  const visible = ranked.filter((entry) => svfIpfsWindowVisible(entry.win));
+  const pool = visible.length ? visible : ranked.filter((entry) => entry.win?.isConnected);
+  if (!pool.length) return;
+  globalThis.__svfIpfsBooting = true;
+  try {
+    const host = pool[pool.length - 1].host;
+    const app = globalThis.ipfsExplorer instanceof IPFSExplorerApp
+      ? globalThis.ipfsExplorer
+      : new IPFSExplorerApp(globalThis.desktop || {});
+    globalThis.ipfsExplorer = app;
+    if (host.ownerDocument !== document && !document.__svfIpfsIdBridge) {
+      document.__svfIpfsIdBridge = true;
+      const ownerGet = host.ownerDocument.getElementById.bind(host.ownerDocument);
+      const localGet = document.getElementById.bind(document);
+      document.getElementById = (id) => localGet(id) || ownerGet(id);
+    }
+    let existingInput = host.querySelector('#path-input');
+    if (!existingInput) {
+      try {
+        host.innerHTML = app.createWindow();
+        const container = host.querySelector('.ipfs-explorer-container');
+        if (container) app.setupEventListeners(container);
+      } catch (error) {
+        console.warn('IPFS explorer markup unavailable', error);
+      }
+      existingInput = host.querySelector('#path-input');
+    }
+    if (!existingInput) {
+      const bar = host.ownerDocument.createElement('div');
+      bar.className = 'path-bar';
+      existingInput = host.ownerDocument.createElement('input');
+      existingInput.id = 'path-input';
+      existingInput.type = 'text';
+      existingInput.setAttribute('aria-label', 'IPFS path or CID');
+      const go = host.ownerDocument.createElement('button');
+      go.type = 'button';
+      go.id = 'go-btn';
+      go.setAttribute('aria-label', 'Retrieve CID');
+      go.textContent = 'Go';
+      try {
+        const extra = 'data-native-gateway-binding="ipfs-explorer.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat"';
+        if (typeof extra === 'string') {
+          const holder = host.ownerDocument.createElement('div');
+          holder.innerHTML = `<button id="go-btn" ${extra}></button>`;
+          const seeded = holder.querySelector('button');
+          if (seeded) {
+            for (const attr of [...seeded.attributes]) go.setAttribute(attr.name, attr.value);
+          }
+        }
+      } catch (error) {
+        console.warn('IPFS retrieve attributes unavailable', error);
+      }
+      go.id = 'go-btn';
+      bar.append(existingInput, go);
+      host.prepend(bar);
+      if (!host.querySelector('#content-browser')) {
+        const browser = host.ownerDocument.createElement('div');
+        browser.id = 'content-browser';
+        host.append(browser);
+      }
+      if (!host.querySelector('#home-btn')) {
+        const home = host.ownerDocument.createElement('button');
+        home.id = 'home-btn';
+        home.type = 'button';
+        home.textContent = 'Home';
+        host.append(home);
+      }
+      app.setupEventListeners(host.querySelector('.ipfs-explorer-container') || host);
+    }
+    const panel = host.querySelector('.tab-content[data-view="explorer"]');
+    if (panel) {
+      panel.classList.add('active');
+      panel.style.setProperty('display', 'flex', 'important');
+      panel.style.setProperty('visibility', 'visible', 'important');
+    }
+    const input = host.querySelector('#path-input');
+    const go = host.querySelector('#go-btn');
+    if (go && !go.outerHTML.includes('ipfs-explorer.ipfs_kit_py.retrieve_content')) {
+      try {
+        const extra = 'data-native-gateway-binding="ipfs-explorer.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat"';
+        if (typeof extra === 'string') {
+          const holder = host.ownerDocument.createElement('div');
+          holder.innerHTML = `<button ${extra}></button>`;
+          const seeded = holder.querySelector('button');
+          if (seeded) {
+            for (const attr of [...seeded.attributes]) {
+              if (!go.hasAttribute(attr.name)) go.setAttribute(attr.name, attr.value);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('IPFS retrieve attributes unavailable', error);
+      }
+    }
+    const container = host.querySelector('.ipfs-explorer-container') || host;
+    if (input) {
+      let bar = input.closest('.path-bar');
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.className = 'path-bar';
+        bar.append(input);
+        if (go) bar.append(go);
+      }
+      bar.style.setProperty('display', 'flex', 'important');
+      bar.style.setProperty('visibility', 'visible', 'important');
+      bar.style.setProperty('position', 'relative', 'important');
+      bar.style.setProperty('z-index', '5', 'important');
+      bar.style.setProperty('min-height', '40px', 'important');
+      bar.style.setProperty('width', '100%', 'important');
+      bar.style.setProperty('max-width', '100%', 'important');
+      bar.style.setProperty('min-width', '0', 'important');
+      bar.style.setProperty('flex-wrap', 'nowrap', 'important');
+      bar.style.setProperty('box-sizing', 'border-box', 'important');
+      if (container.firstElementChild !== bar) container.prepend(bar);
+      input.hidden = false;
+      input.style.setProperty('display', 'block', 'important');
+      input.style.setProperty('visibility', 'visible', 'important');
+      input.style.setProperty('opacity', '1', 'important');
+      input.style.setProperty('min-height', '32px', 'important');
+      input.style.setProperty('min-width', '0', 'important');
+      const cidNarrow = ((host.closest('.window') || host).getBoundingClientRect?.().width || 800) <= 480;
+      if (cidNarrow) {
+        bar.style.setProperty('flex-direction', 'column', 'important');
+        bar.style.setProperty('align-items', 'stretch', 'important');
+        input.style.setProperty('width', '100%', 'important');
+        input.style.setProperty('max-width', '100%', 'important');
+        input.style.setProperty('flex', '1 1 auto', 'important');
+        input.style.setProperty('min-height', '48px', 'important');
+        const previewPane = host.querySelector('.explorer-content');
+        const sidePane = host.querySelector('.explorer-sidebar');
+        const mainPane = host.querySelector('.explorer-main');
+        if (mainPane) mainPane.style.setProperty('flex-direction', 'column', 'important');
+        if (previewPane) previewPane.style.setProperty('order', '-1', 'important');
+        if (sidePane) {
+          sidePane.style.setProperty('order', '1', 'important');
+          sidePane.style.setProperty('max-height', '140px', 'important');
+          sidePane.style.setProperty('overflow', 'auto', 'important');
+          sidePane.style.setProperty('width', '100%', 'important');
+        }
+      } else {
+        input.style.setProperty('width', '1px', 'important');
+        input.style.setProperty('max-width', 'calc(100% - 64px)', 'important');
+        input.style.setProperty('flex', '1 1 0%', 'important');
+        const previewPaneWide = host.querySelector('.explorer-content');
+        const sidePaneWide = host.querySelector('.explorer-sidebar');
+        const mainPaneWide = host.querySelector('.explorer-main');
+        if (mainPaneWide) {
+          mainPaneWide.style.setProperty('flex-direction', 'row', 'important');
+          mainPaneWide.style.setProperty('overflow', 'hidden', 'important');
+          mainPaneWide.style.setProperty('min-height', '0', 'important');
+          mainPaneWide.style.setProperty('min-width', '0', 'important');
+        }
+        if (previewPaneWide) {
+          previewPaneWide.style.setProperty('order', '1', 'important');
+          previewPaneWide.style.setProperty('flex', '1 1 0', 'important');
+          previewPaneWide.style.setProperty('width', '0', 'important');
+          previewPaneWide.style.setProperty('min-width', '0', 'important');
+          previewPaneWide.style.setProperty('max-width', '100%', 'important');
+          previewPaneWide.style.setProperty('overflow', 'auto', 'important');
+        }
+        if (sidePaneWide) {
+          sidePaneWide.style.setProperty('order', '0', 'important');
+          sidePaneWide.style.setProperty('max-height', 'none', 'important');
+          sidePaneWide.style.setProperty('overflow', 'auto', 'important');
+          sidePaneWide.style.setProperty('min-height', '0', 'important');
+        }
+      }
+      const shell = host.closest('.window') || host;
+      let node = input;
+      while (node) {
+        node.hidden = false;
+        node.style.setProperty('visibility', 'visible', 'important');
+        node.style.setProperty('opacity', '1', 'important');
+        node.style.setProperty('min-height', node === input ? '32px' : '0', 'important');
+        node.style.setProperty('overflow', node === input ? 'auto' : 'hidden', 'important');
+        if (getComputedStyle(node).display === 'none' || node === host || node === shell) {
+          node.style.setProperty('display', node === input ? 'block' : 'flex', 'important');
+        }
+        if (node === shell) break;
+        node = node.parentElement;
+      }
+      host.style.setProperty('overflow', 'auto', 'important');
+      host.style.setProperty('min-height', '160px', 'important');
+      const box = input.getClientRects()[0];
+      if (box && box.height > 0 && box.width > 0) host.dataset.svfIpfsCidReady = '1';
+    }
+  } catch (error) {
+    console.warn('IPFS explorer surface unavailable', error);
+  } finally {
+    globalThis.__svfIpfsBooting = false;
+  }
+}
+
+if (typeof document !== 'undefined' && document.documentElement) {
+  let scheduled = false;
+  const boot = () => {
+    if (scheduled) return;
+    scheduled = true;
+    setTimeout(() => {
+      scheduled = false;
+      let ready = null;
+      for (const doc of svfExplorerRoots()) {
+        ready = doc.querySelector('.window[data-app-id="ipfs-explorer"] .window-app-content #path-input');
+        if (ready) break;
+      }
+      let shown = Boolean(ready);
+      for (let node = ready; node; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') shown = false;
+      }
+      const box = ready?.getClientRects?.()[0];
+      if (shown && box && box.height > 1 && box.width > 1) return;
+      svfBootIpfsExplorer();
+    }, 50);
+  };
+  new MutationObserver(boot).observe(document.documentElement, { childList: true, subtree: true });
+  const timer = setInterval(boot, 250);
+  setTimeout(() => clearInterval(timer), 30000);
+  boot();
 }

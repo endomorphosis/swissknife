@@ -1,0 +1,50 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "mcp-plus-plus",
+  "description": "Read the kit owner descriptor on the declared HTTP binding, reopen the retained receipt line, then reject an invalid identity and retry.",
+  "fixture_scope": "svf-mcp-plus-plus-owner-read",
+  "backend_bindings": [
+    {
+      "binding_id": "mcp-plus-plus.ipfs_kit_py.inspect_tool_registry",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/native_provenance/transport",
+        "operator": "equals",
+        "expected": "http"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {"op": "wait_for", "selector": "[data-action=\"inspect-owner-descriptor\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "select", "selector": "#mcppp-owner-transport", "value": "http"},
+      {"op": "press", "selector": "[data-action=\"inspect-owner-descriptor\"]", "key": "Enter"},
+      {"op": "wait_for", "selector": "[data-owner-observation]", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "[data-owner-observation]"}, "operator": "contains", "expected": "Transport http"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "[data-owner-observation]"}, "operator": "contains", "expected": "tool node_id"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "[data-owner-observation]"}, "operator": "contains", "expected": "owner "},
+      {"op": "assert", "probe": {"kind": "text", "selector": "[data-owner-observation]"}, "operator": "contains", "expected": "correlation "}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "wait_for", "selector": "[data-owner-receipt]", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "[data-owner-receipt]"}, "operator": "contains", "expected": "retained proof tool node_id"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "[data-owner-receipt]"}, "operator": "contains", "expected": "correlation "}
+    ],
+    "failure_recovery": [
+      {"op": "fill", "selector": "#mcppp-owner-identity", "value": "invalid-identity"},
+      {"op": "click", "selector": "[data-action=\"inspect-owner-descriptor\"]"},
+      {"op": "wait_for", "selector": "[data-owner-error]", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "[data-owner-error]"}, "operator": "contains", "expected": "Invalid identity"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#mcppp-owner-identity"}, "operator": "equals", "expected": "invalid-identity"},
+      {"op": "click", "selector": "[data-action=\"refresh-owner-descriptor\"]"},
+      {"op": "wait_for", "selector": "[data-owner-observation]", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "[data-owner-observation]"}, "operator": "contains", "expected": "Transport http"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "[data-owner-observation]"}, "operator": "contains", "expected": "identity refreshed"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#mcppp-owner-identity"}, "operator": "not_equals", "expected": "invalid-identity"}
+    ]
+  }
+}

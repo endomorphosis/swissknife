@@ -28,6 +28,19 @@ import { ipfsAccelerateBackendBindings } from '../../src/services/ipfs/mcp-ipfs-
 import { MCPPP_META_TOOL_NAMES } from '../../src/services/mcp/mcp-plus-plus-connector';
 
 describe('SVD-103 all-app executable backend disposition contract', () => {
+  it('lets the model manager inspect a real catalog and run its bounded test under its original governed policy', () => {
+    const binding = getExecutableAppBackendDisposition('model-browser')!.backend_bindings
+      .find(item => item.owner === 'ipfs_accelerate_py')!;
+    expect(binding.binding_id).toBe('model-browser.ipfs_accelerate_py.inspect_model_catalog');
+    expect(binding.tool_selection.preferred_tool_ids).toEqual([
+      'list_models', 'run_inference_job', 'job_status', 'get_task', 'detect_hardware',
+    ]);
+    expect(binding.mediated_intent.mutates_remote_state).toBe(true);
+    expect(binding.mediated_intent.policy_class).toBe('heavy_compute');
+    expect(binding.ui_control.confirmation).toBe('policy');
+    expect(binding.receipt_requirement.required).toBe(true);
+  });
+
   it('is versioned and conforms to its checked-in JSON Schema', () => {
     const schema = JSON.parse(readFileSync(join(
       process.cwd(),

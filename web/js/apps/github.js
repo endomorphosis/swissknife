@@ -1,3 +1,7 @@
+import { invokeNativeTool } from '../live-tool-gateway.js';
+import { unwrapNetworkToolResult } from './network-native-tools.js';
+import { contentCidForBytes } from '../core/mcp-plus-plus-desktop-client.js';
+
 // GitHub Integration App - Full GitHub management via MCP
 class GitHubApp {
     constructor() {
@@ -127,19 +131,61 @@ class GitHubApp {
     renderAuthenticationScreen() {
         return `
             <div class="github-auth">
-                <div class="auth-container">
+                <style>
+                    .window[data-app-id="github"] .window-content { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding-bottom:56px; scroll-padding-bottom:64px; box-sizing:border-box; }
+                    .window[data-app-id="github"] .window-app-content { display:flex; flex-direction:column; height:100%; min-height:0; min-width:0; overflow:hidden; }
+                    .window[data-app-id="github"] .window-app-content > [id$="-content"] { flex:1 1 0; min-height:0; min-width:0; overflow:hidden; }
+                    .window[data-app-id="github"] .github-auth { flex:1 1 auto; width:100%; align-self:stretch; height:100%; max-height:100%; min-height:0; box-sizing:border-box; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; display:flex !important; flex-direction:column; align-items:stretch; justify-content:flex-start; padding-bottom:128px; scroll-padding-bottom:128px; background:#0f172a; }
+                    .window[data-app-id="github"] .github-auth .auth-container { flex:0 0 auto; min-height:0; height:auto !important; max-height:none !important; overflow:visible !important; box-sizing:border-box; width:100%; max-width:none; margin:0; display:flex; flex-direction:column; align-items:stretch; }
+                    .window[data-app-id="github"] .auth-header, .window[data-app-id="github"] .auth-header h2, .window[data-app-id="github"] .auth-header p { position:static !important; display:block !important; height:auto !important; max-height:none !important; overflow:visible !important; transform:none !important; clip:auto !important; clip-path:none !important; text-align:left !important; white-space:normal !important; line-height:1.35 !important; color:#e2e8f0 !important; margin:0 0 8px 0; }
+                    .window[data-app-id="github"] #github-review-panel { flex:0 0 auto; height:auto; min-height:0; width:100%; min-width:0; display:flex; flex-direction:column; align-items:stretch; position:relative; z-index:1; overflow:visible; background:transparent; }
+                    .window[data-app-id="github"] #github-review-panel .form-group { position:static !important; display:block; width:100%; margin:0 0 8px 0; }
+                    .window[data-app-id="github"] #github-repo-context,
+                    .window[data-app-id="github"] #github-file-path { width:100%; max-width:100%; box-sizing:border-box; color:CanvasText; background:Field; border:1px solid GrayText; position:static !important; }
+                    .window[data-app-id="github"] #github-repo-context:focus-visible,
+                    .window[data-app-id="github"] #github-file-path:focus-visible,
+                    .window[data-app-id="github"] #github-retrieve-content:focus-visible { outline:2px solid #58a6ff; outline-offset:2px; }
+                    .window[data-app-id="github"] #github-retrieve-content { color:#fff; background:#0969da; border:1px solid #0550ae; opacity:1; cursor:pointer; align-self:flex-start; }
+                    .window[data-app-id="github"] #github-review-identity { display:block !important; position:static !important; height:auto !important; min-height:1.4em; max-height:none !important; overflow:visible !important; color:#e2e8f0 !important; margin:8px 0; line-height:1.4; white-space:normal !important; }
+                    .window[data-app-id="github"] #github-retrieved-content { display:block !important; position:static !important; flex:0 0 auto !important; width:100%; max-width:100%; min-width:0; height:auto !important; min-height:0 !important; max-height:none !important; margin:8px 0 16px; overflow:visible !important; white-space:pre-wrap !important; overflow-wrap:anywhere !important; word-break:break-word !important; line-height:1.45 !important; color:#e2e8f0 !important; background:rgba(15,23,42,0.95); border:1px solid #334155; border-radius:6px; padding:10px 12px 20px; box-sizing:border-box; }
+                    .window[data-app-id="github"] details.github-account-setup { position:static !important; display:block !important; clear:both; width:100%; margin:12px 0 0 0 !important; transform:none !important; background:transparent !important; z-index:0; }
+                    .window[data-app-id="github"] details.github-account-setup > summary { position:static !important; display:list-item !important; cursor:pointer; color:#e2e8f0 !important; background:transparent !important; }
+                    .window[data-app-id="github"] details.github-account-setup:not([open]) > :not(summary) { display:none !important; }
+                    .window[data-app-id="github"] #github-tool-confirm-host:empty { display:none !important; height:0 !important; margin:0 !important; padding:0 !important; background:transparent !important; }
+                </style>
+                <div class="auth-container" style="min-height:0">
                     <div class="auth-header">
                         <h2>🐙 GitHub Integration</h2>
-                        <p>Connect your GitHub account to manage repositories, issues, and pull requests.</p>
+                        <p role="status">GitHub account not connected. Repository review can use the stored file below; sign-in setup is optional.</p>
+                    </div>
+
+                    <div class="auth-method" id="github-review-panel">
+                        <h3>Repository review</h3>
+                        <p>Select a repository and a known file. The identity below is that selection. Retrieve stays confirmation-bound.</p>
+                        <div class="form-group">
+                            <label for="github-repo-context">Repository</label>
+                            <input type="text" id="github-repo-context" class="sk-input" aria-label="Repository" placeholder="owner/repository" value="${this.escapeReviewText(this.reviewArtifact && this.reviewArtifact.repository)}">
+                        </div>
+                        <div class="form-group">
+                            <label for="github-file-path">File</label>
+                            <input type="text" id="github-file-path" class="sk-input" aria-label="Repository file" placeholder="README.md" value="${this.escapeReviewText(this.reviewArtifact && this.reviewArtifact.file)}" onkeydown="if(event.key==='Enter'){event.preventDefault();githubApp.inspectRepositoryContext();}">
+                        </div>
+                        <button type="button" id="github-retrieve-content" class="btn-primary sk-btn sk-btn-primary" onclick="githubApp.retrieveSelectedContent(event)">Retrieve selected file</button>
+                        <div id="github-tool-confirm-host"></div>
+                        <p id="github-review-identity" role="status">${this.escapeReviewText(this.reviewIdentityText())}</p>
+                        ${typeof this.reviewArtifact?.content === 'string' ? `<p>Stored README preview; retrieve again to verify current content.</p><pre id="github-retrieved-content">${this.escapeReviewText(this.reviewArtifact.content)}</pre>` : ''}
+                        <p id="github-review-error" role="alert"></p>
                     </div>
                     
+                    <details class="github-account-setup">
+                        <summary>Connect GitHub account (not connected)</summary>
                     <div class="auth-methods">
                         <div class="auth-method">
                             <h3>🔑 Personal Access Token</h3>
                             <p>Use a GitHub Personal Access Token for authentication.</p>
                             <div class="form-group">
                                 <label for="github-token">GitHub Token:</label>
-                                <input type="password" id="github-token" class="sk-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+                                <input type="password" id="github-token" name="github-token" class="sk-input" aria-label="GitHub token" autocomplete="off" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="color:CanvasText;background-color:Field;caret-color:CanvasText;border:1px solid GrayText">
                                 <small>Generate a token at <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings → Developer settings → Personal access tokens</a></small>
                             </div>
                             <button onclick="githubApp.authenticateWithToken()" class="btn-primary sk-btn sk-btn-primary">Connect with Token</button>
@@ -150,12 +196,12 @@ class GitHubApp {
                         <div class="auth-method">
                             <h3>🔐 OAuth</h3>
                             <p>Sign in with your GitHub account using OAuth (requires OAuth Login app configuration).</p>
-                            <button onclick="githubApp.authenticateWithOAuth()" class="btn-secondary sk-btn">
+                            <button type="button" id="github-oauth" onclick="githubApp.authenticateWithOAuth()" class="btn-primary sk-btn sk-btn-primary" aria-label="Sign in with GitHub">
                                 🔐 Sign in with GitHub
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="auth-help">
                         <h4>Required Permissions</h4>
                         <ul>
@@ -166,6 +212,7 @@ class GitHubApp {
                             <li>✅ <code>workflow</code> - Access GitHub Actions</li>
                         </ul>
                     </div>
+                    </details>
                 </div>
             </div>
         `;
@@ -548,6 +595,105 @@ class GitHubApp {
                 </div>
             </div>
         `;
+    }
+
+    escapeReviewText(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[ch]);
+    }
+
+    reviewIdentityText() {
+        const artifact = this.reviewArtifact;
+        if (!artifact || !artifact.repository || !artifact.file) return '';
+        return `${artifact.repository} · ${artifact.file}`;
+    }
+
+    setReviewMessage(errorText) {
+        const error = document.getElementById('github-review-error');
+        const identity = document.getElementById('github-review-identity');
+        if (error) error.textContent = errorText || '';
+        if (errorText && identity) identity.textContent = '';
+    }
+
+    inspectRepositoryContext() {
+        const repository = (document.getElementById('github-repo-context')?.value || '').trim();
+        const file = (document.getElementById('github-file-path')?.value || '').trim();
+        const ownerRepo = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository);
+        if (!ownerRepo || !file) {
+            this.reviewArtifact = null;
+            this.saveSettings();
+            this.setReviewMessage('Repository not found. Select an accessible repository and retry.');
+            return;
+        }
+        this.reviewArtifact = { repository, file };
+        this.saveSettings();
+        const error = document.getElementById('github-review-error');
+        const identity = document.getElementById('github-review-identity');
+        if (error) error.textContent = '';
+        if (identity) identity.textContent = this.reviewIdentityText();
+    }
+
+    nativeInvoke(surface) {
+        return invokeNativeTool;
+    }
+
+    async retrieveSelectedContent(event) {
+        if (!this.reviewArtifact?.repository || !this.reviewArtifact?.file) {
+            this.setReviewMessage('Repository not found. Select an accessible repository and retry.');
+            return;
+        }
+        const trigger = event?.currentTarget || event?.target || null;
+        const surface = trigger?.closest?.('.window-app-content')
+            || document.querySelector('.window[data-app-id="github"] .window-app-content');
+        if (!surface) { this.setReviewMessage('The originating GitHub window is unavailable.'); return; }
+        const identity = surface.querySelector('#github-review-identity');
+        if (identity) identity.textContent = 'Retrieving selected file…';
+        try {
+            const catalogResponse = await fetch('/mcp/tools/bindings?app_id=github', { cache: 'no-store' });
+            const catalog = await catalogResponse.json();
+            const bindingId = 'github.ipfs_kit_py.retrieve_content';
+            const control = catalog.controls?.find(item => item.binding_id === bindingId);
+            const cid = control?.safe_payloads?.ipfs_cat?.cid;
+            if (!catalogResponse.ok || control?.status !== 'available' || typeof cid !== 'string') throw new Error('No reviewed repository artifact CID is available.');
+            const result = await invokeNativeTool(surface, 'github', bindingId, {
+                executionMode: 'execute', toolId: 'ipfs_cat', payload: { cid, fixture_scope: 'svf-github-review' }, trigger
+            });
+            if (result === null) throw new Error('Retrieve cancelled before dispatch.');
+            if (result.ok !== true || result.outcome !== 'executed') throw new Error('The native repository retrieve failed.');
+            const actual = unwrapNetworkToolResult(result.result);
+            if (actual?.cid !== cid || typeof actual.bytes_base64 !== 'string') throw new Error('The owner returned no matching repository bytes.');
+            const bytes = Uint8Array.from(atob(actual.bytes_base64), char => char.charCodeAt(0));
+            if (await contentCidForBytes(bytes) !== cid) throw new Error('Repository artifact bytes do not match their CID.');
+            const record = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+            if (record.repository !== this.reviewArtifact.repository || record.file !== this.reviewArtifact.file || typeof record.content !== 'string') {
+                throw new Error('The stored repository artifact does not match the selected repository and file.');
+            }
+            this.reviewArtifact = { ...this.reviewArtifact, cid, content: record.content };
+            let preview = surface.querySelector('#github-retrieved-content');
+            if (!preview) {
+                preview = document.createElement('pre');
+                preview.id = 'github-retrieved-content';
+                const anchor = identity || surface.querySelector('#github-retrieve-content');
+                if (anchor) anchor.after(preview);
+                else surface.querySelector('#github-review-panel')?.append(preview);
+            }
+            preview.style.cssText = 'display:block;position:static;flex:0 0 auto;width:100%;height:auto;min-height:0;max-height:none;overflow:visible;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;line-height:1.45;color:#e2e8f0;background:rgba(15,23,42,0.95);border:1px solid #334155;border-radius:6px;padding:10px 12px 20px;margin:8px 0 16px;box-sizing:border-box';
+            preview.textContent = record.content;
+            this.setReviewMessage('');
+            if (identity) identity.textContent = this.reviewIdentityText();
+            this.saveSettings();
+        } catch (error) {
+            if (identity) identity.textContent = 'Selected file has not been verified.';
+            this.setReviewMessage(`Content retrieve failed: ${error.message}`);
+        }
+    }
+
+    initializeEventHandlers() {
     }
 
     // Authentication methods
@@ -956,11 +1102,20 @@ class GitHubApp {
     }
 
     loadSettings() {
+        this.reviewArtifact = null;
         try {
             if (typeof localStorage !== 'undefined') {
                 const settings = JSON.parse(localStorage.getItem('github-app-settings') || '{}');
                 this.accessToken = settings.accessToken;
                 this.user = settings.user;
+                const artifact = settings.reviewArtifact;
+                if (artifact && artifact.repository && artifact.file) {
+                    this.reviewArtifact = {
+                        repository: String(artifact.repository),
+                        file: String(artifact.file),
+                        ...(typeof artifact.content === 'string' && artifact.content.length <= 65536 ? { content: artifact.content } : {})
+                    };
+                }
             }
         } catch (error) {
             console.warn('Failed to load GitHub settings:', error);
@@ -972,7 +1127,8 @@ class GitHubApp {
             if (typeof localStorage !== 'undefined') {
                 const settings = {
                     accessToken: this.accessToken,
-                    user: this.user
+                    user: this.user,
+                    reviewArtifact: this.reviewArtifact || null
                 };
                 localStorage.setItem('github-app-settings', JSON.stringify(settings));
             }

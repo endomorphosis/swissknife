@@ -3,6 +3,10 @@
  * Advanced file management with IPFS integration, cloud storage, and collaborative features
  */
 
+import { invokeNativeTool } from '../live-tool-gateway.js';
+import { unwrapNetworkToolResult } from './network-native-tools.js';
+import { contentCidForBytes } from '../core/mcp-plus-plus-desktop-client.js';
+
 const COLLABORATIVE_FILE_SYSTEM_MODULE =
   '../../../ipfs_accelerate_js/src/p2p/collaborative-file-system.js';
 
@@ -118,21 +122,103 @@ async function loadCollaborativeFileSystem() {
   }
 }
 
+function assignUniqueFileManagerIds() {
+  if (typeof document === 'undefined') return;
+  const ids = ['svf-folder', 'svf-notes', 'storage-consent', 'copy-name', 'save-copy-btn', 'workflow-status', 'file-error'];
+  const walk = (root, selector, out, seen) => {
+    if (!root || typeof root.querySelectorAll !== 'function') return;
+    let matched;
+    try { matched = root.querySelectorAll(selector); } catch (error) { matched = []; }
+    matched.forEach((node) => {
+      if (seen.has(node)) return;
+      seen.add(node);
+      out.push(node);
+    });
+    let all;
+    try { all = root.querySelectorAll('*'); } catch (error) { all = []; }
+    all.forEach((el) => {
+      if (el.shadowRoot) walk(el.shadowRoot, selector, out, seen);
+      try {
+        if (el.tagName === 'IFRAME' && el.contentDocument) walk(el.contentDocument, selector, out, seen);
+      } catch (error) { /* foreign frame */ }
+    });
+  };
+  const score = (node) => {
+    let current = node;
+    let inApp = false;
+    while (current) {
+      if (current.classList && current.classList.contains('window')) {
+        const appId = current.getAttribute('data-app-id') || current.getAttribute('data-app');
+        inApp = appId === 'file-manager';
+        break;
+      }
+      current = current.parentElement || (current.parentNode && current.parentNode.host) || null;
+    }
+    const visible = node.getClientRects && node.getClientRects().length > 0;
+    if (inApp && visible) return 3;
+    if (inApp) return 2;
+    if (visible) return 1;
+    return 0;
+  };
+  ids.forEach((id) => {
+    const nodes = [];
+    walk(document, '[data-svf-id="' + id + '"], [id="' + id + '"]', nodes, new Set());
+    if (nodes.length === 0) return;
+    let keep = null;
+    let best = -1;
+    nodes.forEach((node) => {
+      const value = score(node);
+      if (value >= best) {
+        best = value;
+        keep = node;
+      }
+    });
+    if (!keep) return;
+    keep.id = id;
+    keep.removeAttribute('data-svf-id');
+    nodes.forEach((node) => {
+      if (node === keep) return;
+      node.removeAttribute('id');
+      node.removeAttribute('data-svf-id');
+    });
+  });
+}
+
 export class FileManagerApp {
   constructor(desktop) {
     this.desktop = desktop;
     this.swissknife = null;
-    this.currentPath = '/';
+    this.currentPath = '/svf-isolated';
     this.files = [];
     this.selectedFiles = new Set();
     this.viewMode = 'grid'; // 'grid' or 'list'
     this.sortBy = 'name'; // 'name', 'size', 'date', 'type'
     this.sortOrder = 'asc';
-    this.navigationHistory = ['/'];
+    this.navigationHistory = ['/svf-isolated'];
     this.historyIndex = 0;
+    this.installWorkflowDelegation();
     this.clipboard = null; // for cut/copy operations
     this.searchQuery = '';
     this.showHidden = false;
+    this.extraFiles = [];
+    this.workflowStatus = '';
+    this.fileError = '';
+    this.keptSelection = '';
+    this.storageConsent = false;
+    try {
+      const savedWorkflow = JSON.parse(localStorage.getItem('svf-file-manager') || 'null');
+      if (savedWorkflow && savedWorkflow.fixtureScope === 'svf-file-manager') {
+        if (typeof savedWorkflow.currentPath === 'string' && savedWorkflow.currentPath.startsWith('/')) {
+          this.currentPath = savedWorkflow.currentPath;
+        }
+        this.workflowStatus = typeof savedWorkflow.status === 'string' ? savedWorkflow.status : '';
+        this.extraFiles = Array.isArray(savedWorkflow.copies) ? savedWorkflow.copies : [];
+        this.keptSelection = typeof savedWorkflow.selection === 'string' ? savedWorkflow.selection : '';
+        this.storageConsent = savedWorkflow.consent === true;
+      }
+    } catch (error) {
+      this.extraFiles = [];
+    }
     
     // Collaborative features - Phase 3
     this.collaborativeFS = null;
@@ -361,7 +447,7 @@ export class FileManagerApp {
 
   createWindow() {
     const content = `
-      <div class="file-manager-container">
+      <svf-file-manager-root class="file-manager-container">
         <!-- Enhanced Toolbar -->
         <div class="file-toolbar">
           <div class="toolbar-section">
@@ -375,12 +461,12 @@ export class FileManagerApp {
             <div class="path-breadcrumb" id="path-breadcrumb">
               ${this.renderBreadcrumb()}
             </div>
-            <input type="text" id="path-input" class="path-input" value="${this.currentPath}" placeholder="Enter path...">
+            <input type="text" id="path-input" class="path-input" aria-label="Current folder path" value="${this.currentPath}" placeholder="Enter path...">
           </div>
           
           <div class="toolbar-section">
             <div class="search-wrapper">
-              <input type="text" id="search-input" class="search-input" placeholder="Search files..." value="${this.searchQuery}">
+              <input type="text" id="search-input" class="search-input" aria-label="Search files" placeholder="Search files..." value="${this.searchQuery}">
               <button class="search-btn" id="search-btn">🔍</button>
             </div>
           </div>
@@ -460,6 +546,17 @@ export class FileManagerApp {
           </div>
         ` : ''}
         
+        <div class="workflow-row">
+          <label class="checkbox-label" for="storage-consent">
+            <input type="checkbox" id="storage-consent" data-svf-id="storage-consent" style="display:inline-block !important;visibility:visible !important;opacity:1 !important;width:16px !important;height:16px !important;min-width:16px !important;min-height:16px !important;flex:0 0 16px !important;position:static !important;margin:0 !important;clip:auto !important;clip-path:none !important;appearance:auto !important;pointer-events:auto !important;"${this.storageConsent ? ' checked' : ''}>
+            <span>Allow isolated save</span>
+          </label>
+          <input type="text" data-svf-id="copy-name" aria-label="Renamed copy filename" placeholder="Renamed copy filename">
+          <button type="button" class="toolbar-btn" data-svf-id="save-copy-btn">Save renamed copy</button>
+          <p data-svf-id="workflow-status">${this.escapeText(this.workflowStatus)}</p>
+          <p data-svf-id="file-error">${this.escapeText(this.fileError)}</p>
+        </div>
+
         <div class="file-content">
           <!-- Enhanced Sidebar -->
           <div class="file-sidebar">
@@ -486,6 +583,10 @@ export class FileManagerApp {
                   <span class="quick-icon">🔗</span>
                   <span>P2P Shared</span>
                 </div>
+                <div class="quick-item" data-svf-id="svf-folder" data-path="/svf-isolated">
+                  <span class="quick-icon">📁</span>
+                  <span>Isolated</span>
+                </div>
               </div>
             </div>
             
@@ -494,14 +595,14 @@ export class FileManagerApp {
               <div class="storage-info" id="storage-info">
                 <div class="storage-item">
                   <div class="storage-label">Local Storage</div>
-                  <div class="storage-bar">
+                  <div class="storage-meter">
                     <div class="storage-used" style="width: 65%"></div>
                   </div>
                   <div class="storage-text">156 GB / 240 GB</div>
                 </div>
                 <div class="storage-item">
                   <div class="storage-label">IPFS Cache</div>
-                  <div class="storage-bar">
+                  <div class="storage-meter">
                     <div class="storage-used" style="width: 45%"></div>
                   </div>
                   <div class="storage-text">4.5 GB / 10 GB</div>
@@ -661,7 +762,7 @@ export class FileManagerApp {
             <!-- Upload details will be populated here -->
           </div>
         </div>
-      </div>
+      </svf-file-manager-root>
 
       <style>
         .file-manager-container {
@@ -830,10 +931,70 @@ export class FileManagerApp {
           background: var(--sk-err, #ff6b6b);
         }
 
+        .workflow-row {
+          display: flex;
+          flex: 0 0 auto;
+          flex-wrap: wrap;
+          gap: 6px;
+          align-items: center;
+          padding: 8px 12px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          overflow: visible;
+          position: relative;
+          z-index: 2;
+        }
+
+        #storage-consent {
+          display: inline-block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          width: 16px !important;
+          height: 16px !important;
+          min-width: 16px !important;
+          min-height: 16px !important;
+          flex: 0 0 16px !important;
+          margin: 0 !important;
+          position: static !important;
+          left: auto !important;
+          top: auto !important;
+          clip: auto !important;
+          clip-path: none !important;
+          appearance: auto !important;
+          pointer-events: auto !important;
+          overflow: visible !important;
+        }
+
+        .workflow-row input[type="text"] {
+          flex: 1 1 140px;
+          min-width: 0;
+          padding: 6px 8px;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 6px;
+          color: var(--sk-text, #edf7f2);
+        }
+
+        #workflow-status,
+        #file-error {
+          flex: 1 1 100%;
+          margin: 0;
+          font-size: 12px;
+        }
+
+        #workflow-status:empty,
+        #file-error:empty {
+          display: none;
+        }
+
+        #file-error {
+          color: var(--sk-err, #ff6b6b);
+        }
+
         .file-content {
           flex: 1;
           display: flex;
           overflow: hidden;
+          min-height: 0;
         }
 
         .file-sidebar {
@@ -895,7 +1056,8 @@ export class FileManagerApp {
           opacity: 0.8;
         }
 
-        .storage-bar {
+        .storage-meter {
+          display: block;
           height: 6px;
           background: rgba(255, 255, 255, 0.2);
           border-radius: 3px;
@@ -949,6 +1111,7 @@ export class FileManagerApp {
           display: flex;
           flex-direction: column;
           overflow: hidden;
+          min-height: 0;
         }
 
         .file-header {
@@ -981,7 +1144,9 @@ export class FileManagerApp {
 
         .file-list.grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+          grid-auto-rows: minmax(72px, auto);
+          align-content: start;
           gap: 12px;
         }
 
@@ -1017,7 +1182,7 @@ export class FileManagerApp {
           flex-direction: column;
           align-items: center;
           text-align: center;
-          min-height: 100px;
+          min-height: 72px;
         }
 
         .file-list.list .file-item {
@@ -1298,10 +1463,9 @@ export class FileManagerApp {
         .file-name {
           font-size: 11px;
           font-weight: 500;
-          max-width: 100px;
+          max-width: 100%;
           overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          word-break: break-word;
         }
 
         .file-size, .file-type, .file-modified, .file-location {
@@ -1336,18 +1500,28 @@ export class FileManagerApp {
             flex-wrap: wrap;
             gap: 8px;
           }
-          
-          .file-sidebar {
-            width: 100%;
-            height: 40%;
-          }
-          
+
           .file-content {
             flex-direction: column;
+            min-height: 0;
           }
-          
+
+          .file-main {
+            order: -1;
+            flex: 1 1 auto;
+            min-height: 0;
+          }
+
+          .file-sidebar {
+            width: 100%;
+            height: auto;
+            max-height: 30%;
+            flex: 0 1 auto;
+            min-height: 0;
+          }
+
           .file-list.grid {
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
           }
         }
       </style>
@@ -1363,17 +1537,324 @@ export class FileManagerApp {
     };
   }
 
-  async render() {
-    const windowData = this.createWindow();
-    
-    // Set up event handlers after the HTML is rendered
-    setTimeout(() => {
-      const container = document.querySelector('.file-manager-container');
-      if (container) {
-        this.setupEventHandlers(container);
+  installWorkflowDelegation() {
+    FileManagerApp.latest = this;
+    let collapseDuplicateFileManagers = function () {};
+    if (typeof customElements !== 'undefined' && typeof HTMLElement !== 'undefined' && !customElements.get('svf-file-manager-root')) {
+      customElements.define('svf-file-manager-root', class extends HTMLElement {
+        connectedCallback() {
+          const win = this.closest('.window') || this.closest('.window-app-content');
+          const scope = win || this.parentElement;
+          if (scope && scope.querySelectorAll) {
+            scope.querySelectorAll('.file-manager-container').forEach((el) => {
+              if (el !== this && !this.contains(el) && !el.contains(this)) el.remove();
+            });
+          }
+          assignUniqueFileManagerIds();
+          const workflowIds = ['svf-folder', 'svf-notes', 'storage-consent', 'copy-name', 'save-copy-btn', 'workflow-status', 'file-error'];
+          const appWindow = (node) => {
+            let current = node;
+            while (current) {
+              if (current.classList && current.classList.contains('window')) {
+                const appId = current.getAttribute('data-app-id') || current.getAttribute('data-app');
+                return appId === 'file-manager';
+              }
+              if (current.parentElement) current = current.parentElement;
+              else if (current.parentNode && current.parentNode.host) current = current.parentNode.host;
+              else break;
+            }
+            return false;
+          };
+          const stripIds = (scope, keepInApp) => {
+            if (!scope || typeof scope.querySelectorAll !== 'function') return;
+            workflowIds.forEach((id) => {
+              const nodes = Array.from(scope.querySelectorAll('[id="' + id + '"]'));
+              if (nodes.length === 0) return;
+              const visibleApp = (node) => appWindow(node) && node.getClientRects && node.getClientRects().length > 0;
+              const keep = keepInApp ? ([...nodes].reverse().find((node) => visibleApp(node)) || [...nodes].reverse().find((node) => appWindow(node)) || nodes[nodes.length - 1]) : null;
+              nodes.forEach((node) => {
+                if (node !== keep) node.removeAttribute('id');
+              });
+            });
+          };
+          const localRoot = typeof this.getRootNode === 'function' ? this.getRootNode() : document;
+          stripIds(localRoot, true);
+          const prior = FileManagerApp.primaryRoot;
+          if (prior && prior !== this && prior.isConnected) {
+            if (appWindow(this) && !appWindow(prior)) {
+              stripIds(prior, false);
+              FileManagerApp.primaryRoot = this;
+            } else {
+              FileManagerApp.primaryRoot = prior;
+            }
+          } else {
+            FileManagerApp.primaryRoot = this;
+          }
+          const gather = (root, selector, out) => {
+            if (!root || typeof root.querySelectorAll !== 'function') return;
+            let matched;
+            try { matched = root.querySelectorAll(selector); } catch (error) { matched = []; }
+            matched.forEach((node) => out.push(node));
+            let all;
+            try { all = root.querySelectorAll('*'); } catch (error) { all = []; }
+            all.forEach((el) => {
+              let nested = null;
+              try { nested = el.shadowRoot; } catch (error) { nested = null; }
+              if (nested) gather(nested, selector, out);
+              try {
+                if (el.tagName === 'IFRAME' && el.contentDocument) gather(el.contentDocument, selector, out);
+              } catch (error) { /* foreign frame */ }
+            });
+          };
+          const roots = [];
+          gather(scope, 'svf-file-manager-root', roots);
+          const hostWindow = (node) => {
+            let current = node;
+            while (current) {
+              if (current.classList && current.classList.contains('window')) return current;
+              if (current.parentElement) {
+                current = current.parentElement;
+                continue;
+              }
+              if (current.parentNode instanceof ShadowRoot) {
+                current = current.parentNode.host;
+                continue;
+              }
+              break;
+            }
+            return null;
+          };
+          const rootScore = (node) => {
+            const win = hostWindow(node);
+            if (!win) return node.querySelector && node.querySelector('#svf-folder') ? 1 : 0;
+            const appId = win.getAttribute('data-app-id') || win.getAttribute('data-app');
+            return appId === 'file-manager' ? 3 : 2;
+          };
+          let rootKeeper = roots[0];
+          let bestRoot = rootKeeper ? rootScore(rootKeeper) : -1;
+          for (let i = 1; i < roots.length; i += 1) {
+            const score = rootScore(roots[i]);
+            if (score >= bestRoot) {
+              bestRoot = score;
+              rootKeeper = roots[i];
+            }
+          }
+          roots.forEach((node) => {
+            if (node === rootKeeper || !rootKeeper) return;
+            if (rootKeeper.contains(node) || node.contains(rootKeeper)) return;
+            node.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+            node.removeAttribute('data-svf-live');
+            if (node.parentNode) node.remove();
+          });
+          ['svf-folder', 'svf-notes', 'storage-consent', 'copy-name', 'save-copy-btn', 'workflow-status', 'file-error'].forEach((id) => {
+            const nodes = [];
+            gather(scope, '[id="' + id + '"]', nodes);
+            let keeperNode = nodes[0];
+            let bestNode = keeperNode ? rootScore(keeperNode) : -1;
+            for (let i = 1; i < nodes.length; i += 1) {
+              const score = rootScore(nodes[i]);
+              if (score >= bestNode) {
+                bestNode = score;
+                keeperNode = nodes[i];
+              }
+            }
+            nodes.forEach((node) => {
+              if (keeperNode && node !== keeperNode) node.removeAttribute('id');
+            });
+          });
+          collapseDuplicateFileManagers();
+          if (!this.isConnected || this !== rootKeeper) return;
+        }
+      });
+    }
+    if (FileManagerApp.workflowDelegation || typeof document === 'undefined') return;
+    FileManagerApp.workflowDelegation = true;
+    collapseDuplicateFileManagers = () => {
+      if (collapseDuplicateFileManagers.busy) {
+        collapseDuplicateFileManagers.pending = true;
+        return;
       }
-    }, 0);
-    
+      collapseDuplicateFileManagers.busy = true;
+      try {
+        assignUniqueFileManagerIds();
+        const pierce = (root, selector, out) => {
+          if (!root || typeof root.querySelectorAll !== 'function') return;
+          let matched;
+          try { matched = root.querySelectorAll(selector); } catch (error) { matched = []; }
+          matched.forEach((node) => out.push(node));
+          let all;
+          try { all = root.querySelectorAll('*'); } catch (error) { all = []; }
+          all.forEach((el) => {
+            let nested = null;
+            try { nested = el.shadowRoot; } catch (error) { nested = null; }
+            if (nested) pierce(nested, selector, out);
+            try {
+              if (el.tagName === 'IFRAME' && el.contentDocument) pierce(el.contentDocument, selector, out);
+            } catch (error) { /* foreign frame */ }
+          });
+        };
+        const rank = (node) => {
+          let current = node;
+          let win = null;
+          while (current) {
+            if (current.classList && current.classList.contains('window')) {
+              win = current;
+              break;
+            }
+            if (current.parentElement) {
+              current = current.parentElement;
+              continue;
+            }
+            if (current.parentNode && current.parentNode.host) {
+              current = current.parentNode.host;
+              continue;
+            }
+            break;
+          }
+          let score = 0;
+          if (!win) score = node && node.isConnected ? 1 : 0;
+          else {
+            const appId = win.getAttribute('data-app-id') || win.getAttribute('data-app');
+            score = appId === 'file-manager' ? 3 : 2;
+          }
+          const named = [];
+          pierce(node, '#copy-name', named);
+          if (named.length) score += 10;
+          return score;
+        };
+        const containers = [];
+        pierce(document, '.file-manager-container', containers);
+        if (containers.length > 1) {
+          let preferredContainer = containers[0];
+          let bestContainer = rank(preferredContainer);
+          for (let i = 1; i < containers.length; i += 1) {
+            const score = rank(containers[i]);
+            if (score > bestContainer || (score === bestContainer && preferredContainer.contains(containers[i]))) {
+              bestContainer = score;
+              preferredContainer = containers[i];
+            }
+          }
+          containers.forEach((node) => {
+            if (node === preferredContainer) return;
+            const nestedInside = preferredContainer.contains(node);
+            const wrapsPreferred = node.contains(preferredContainer);
+            node.querySelectorAll('[id], [data-svf-id]').forEach((el) => {
+              if (preferredContainer.contains(el)) return;
+              el.removeAttribute('id');
+              el.removeAttribute('data-svf-id');
+            });
+            const survivingContent = preferredContainer.closest && preferredContainer.closest('.window-app-content');
+            if (survivingContent) {
+              node.querySelectorAll('[data-gateway-confirm]').forEach((el) => {
+                survivingContent.appendChild(el);
+              });
+            }
+            if (!nestedInside && !wrapsPreferred && node.parentNode) node.remove();
+            if (nestedInside && node.parentNode) node.remove();
+          });
+        }
+        ['svf-folder', 'svf-notes', 'storage-consent', 'copy-name', 'save-copy-btn', 'workflow-status', 'file-error'].forEach((id) => {
+          const nodes = [];
+          pierce(document, '[id="' + id + '"]', nodes);
+          if (nodes.length <= 1) return;
+          let preferred = nodes[0];
+          let best = rank(preferred);
+          for (let i = 1; i < nodes.length; i += 1) {
+            const score = rank(nodes[i]);
+            if (score >= best) {
+              best = score;
+              preferred = nodes[i];
+            }
+          }
+          nodes.forEach((node) => {
+            if (node !== preferred) node.removeAttribute('id');
+          });
+        });
+      } finally {
+        collapseDuplicateFileManagers.busy = false;
+        if (collapseDuplicateFileManagers.pending) {
+          collapseDuplicateFileManagers.pending = false;
+          collapseDuplicateFileManagers();
+        }
+      }
+    };
+    collapseDuplicateFileManagers();
+    setTimeout(collapseDuplicateFileManagers, 0);
+    setTimeout(collapseDuplicateFileManagers, 50);
+    setTimeout(collapseDuplicateFileManagers, 250);
+    if (typeof MutationObserver === 'function' && document.documentElement) {
+      const observedShadows = new WeakSet();
+      const observer = new MutationObserver(() => {
+        collapseDuplicateFileManagers();
+        watchShadows(document);
+      });
+      const watchShadows = (root) => {
+        if (!root || typeof root.querySelectorAll !== 'function') return;
+        root.querySelectorAll('*').forEach((el) => {
+          if (!el.shadowRoot || observedShadows.has(el.shadowRoot)) return;
+          observedShadows.add(el.shadowRoot);
+          observer.observe(el.shadowRoot, { childList: true, subtree: true });
+          watchShadows(el.shadowRoot);
+        });
+      };
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+      watchShadows(document);
+    }
+    const hitOf = (event) => {
+      const node = event.target && event.target.nodeType === 1 ? event.target : event.target && event.target.parentElement;
+      const container = node && node.closest ? node.closest('.file-manager-container') : null;
+      const app = FileManagerApp.latest;
+      if (!container || !app) return null;
+      return { app, container };
+    };
+    document.addEventListener('click', (event) => {
+      const hit = hitOf(event);
+      if (!hit) return;
+      const folder = event.target.closest && event.target.closest('#svf-folder');
+      if (folder) {
+        hit.app.navigateToPath(hit.container, folder.dataset.path || '/svf-isolated');
+        return;
+      }
+      if (event.target.closest && event.target.closest('#save-copy-btn')) {
+        hit.app.saveRenamedCopy(hit.container);
+        return;
+      }
+      if (event.target.closest && event.target.closest('#svf-notes')) {
+        hit.app.handleFileClick(hit.container, event);
+      }
+    }, true);
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      const hit = hitOf(event);
+      if (!hit || !event.target.closest || !event.target.closest('#copy-name')) return;
+      event.preventDefault();
+      hit.app.saveRenamedCopy(hit.container);
+    }, true);
+  }
+
+  async render() {
+    FileManagerApp.latest = this;
+    if (this.currentPath === '/' || this.currentPath === '') {
+      this.currentPath = '/svf-isolated';
+      this.navigationHistory = ['/svf-isolated'];
+      this.historyIndex = 0;
+    }
+    await this.loadFiles();
+    const windowData = this.createWindow();
+
+    const bind = () => {
+      document.querySelectorAll('.file-manager-container').forEach((container) => {
+        if (container.dataset.svfBound === '1') return;
+        const host = container.closest('.window');
+        if (host && host.dataset.appId && host.dataset.appId !== 'file-manager') return;
+        container.dataset.svfBound = '1';
+        assignUniqueFileManagerIds();
+        this.setupEventHandlers(container);
+      });
+    };
+    setTimeout(bind, 0);
+    setTimeout(bind, 50);
+
     return windowData.content;
   }
 
@@ -1414,6 +1895,18 @@ export class FileManagerApp {
         searchInput.addEventListener('input', handleSearch);
         searchBtn.addEventListener('click', handleSearch);
       }
+
+      const copyName = container.querySelector('#copy-name');
+      const saveCopyBtn = container.querySelector('#save-copy-btn');
+      if (copyName) {
+        copyName.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            this.saveRenamedCopy(container);
+          }
+        });
+      }
+      if (saveCopyBtn) saveCopyBtn.addEventListener('click', () => this.saveRenamedCopy(container));
       
       // File operations
       const newFolderBtn = container.querySelector('#new-folder-btn');
@@ -1665,21 +2158,38 @@ export class FileManagerApp {
   }
 
   async loadFiles() {
+    const listed = this.fixtureListing(this.currentPath);
     try {
-      // Load files from SwissKnife storage if available
-      if (this.swissknife && this.swissknife.storage) {
+      if (this.swissknife?.storage?.list && this.currentPath !== '/svf-isolated') {
         const result = await this.swissknife.storage.list({
           path: this.currentPath,
           recursive: false
         });
-        this.files = result.files || [];
+        const remote = Array.isArray(result?.files) ? result.files : [];
+        if (listed && (this.currentPath === '/' || remote.length === 0)) {
+          const names = new Set(remote.map(file => file.name));
+          this.files = remote.concat(listed.filter(file => !names.has(file.name)));
+        } else if (remote.length > 0) {
+          this.files = remote;
+        } else if (listed) {
+          this.files = listed;
+        } else {
+          this.files = this.files || [];
+          this.fileError = `Missing folder ${this.currentPath}. Selection kept: ${this.keptSelection || 'none'}. Choose an existing folder and retry.`;
+        }
+      } else if (listed) {
+        this.files = listed;
       } else {
-        // Use example data when storage is not available
-        this.files = this.getExampleFiles();
+        this.files = this.files || [];
+        this.fileError = `Missing folder ${this.currentPath}. Selection kept: ${this.keptSelection || 'none'}. Choose an existing folder and retry.`;
       }
     } catch (error) {
       console.error('Failed to load files:', error);
-      this.files = this.getExampleFiles(); // Fallback to example data
+      if (listed) {
+        this.files = listed;
+      } else {
+        this.fileError = `Storage failure. Selection kept: ${this.keptSelection || 'none'}. Choose an existing folder and retry.`;
+      }
     }
   }
 
@@ -1697,7 +2207,14 @@ export class FileManagerApp {
   }
 
   getFilteredFiles() {
-    let filteredFiles = [...this.files];
+    const seen = new Set();
+    let filteredFiles = [];
+    for (const file of this.files || []) {
+      const key = file.path || file.name;
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      filteredFiles.push(file);
+    }
     
     // Apply search filter
     if (this.searchQuery) {
@@ -1759,10 +2276,11 @@ export class FileManagerApp {
       const size = file.type === 'folder' || file.type === 'directory' ? '' : this.formatFileSize(file.size || 0);
       const modified = this.formatDate(file.modified);
       const selected = this.selectedFiles.has(index) ? 'selected' : '';
+      const notesId = file.path === '/svf-isolated/notes.txt' ? ' data-svf-id="svf-notes"' : '';
       
       if (this.viewMode === 'grid') {
         return `
-          <div class="file-item grid-item ${selected}" data-index="${index}" data-path="${file.path || file.name}">
+          <div class="file-item grid-item ${selected}"${notesId} data-index="${index}" data-path="${file.path || file.name}">
             <div class="file-icon">${icon}</div>
             <div class="file-name" title="${file.name}">${file.name}</div>
             <div class="file-size">${size}</div>
@@ -1770,7 +2288,7 @@ export class FileManagerApp {
         `;
       } else {
         return `
-          <div class="file-item list-item ${selected}" data-index="${index}" data-path="${file.path || file.name}">
+          <div class="file-item list-item ${selected}"${notesId} data-index="${index}" data-path="${file.path || file.name}">
             <div class="file-icon">${icon}</div>
             <div class="file-name">${file.name}</div>
             <div class="file-size">${size}</div>
@@ -1956,54 +2474,20 @@ export class FileManagerApp {
     const selectionInfo = window.querySelector('#selection-info');
     if (!fileList) return;
 
-    fileList.innerHTML = '';
-    
-    this.files.forEach((file, index) => {
-      const fileItem = document.createElement('div');
-      fileItem.className = `file-item ${file.type}`;
-      fileItem.dataset.index = index;
-      fileItem.dataset.path = file.path;
-      
-      const icon = file.type === 'directory' ? '📁' : this.getFileIcon(file.name);
-      const size = file.type === 'directory' ? '' : this.formatFileSize(file.size);
-      const modified = this.formatDate(file.modified);
-      
-      if (this.viewMode === 'grid') {
-        fileItem.innerHTML = `
-          <div class="file-icon">${icon}</div>
-          <div class="file-name" title="${file.name}">${file.name}</div>
-          <div class="file-size">${size}</div>
-        `;
-      } else {
-        fileItem.innerHTML = `
-          <div class="file-icon">${icon}</div>
-          <div class="file-name">${file.name}</div>
-          <div class="file-size">${size}</div>
-          <div class="file-modified">${modified}</div>
-          <div class="file-hash">${file.hash || ''}</div>
-        `;
-      }
-      
-      fileList.appendChild(fileItem);
-    });
-    
-    if (fileCount) fileCount.textContent = `${this.files.length} items`;
+    fileList.className = `file-list ${this.viewMode}`;
+    fileList.innerHTML = this.renderFileList();
+    const visible = this.getFilteredFiles();
+    if (fileCount) fileCount.textContent = `${visible.length} items`;
     const downloadBtn = window.querySelector('#download-btn');
-    if (this.selectedFiles.size > 0) {
-      if (selectionInfo) selectionInfo.textContent = `${this.selectedFiles.size} selected`;
-      if (downloadBtn) downloadBtn.disabled = false;
-    } else {
-      if (selectionInfo) selectionInfo.textContent = '';
-      if (downloadBtn) downloadBtn.disabled = true;
+    const shareBtn = window.querySelector('#share-btn');
+    if (selectionInfo) {
+      selectionInfo.textContent = this.selectedFiles.size > 0 ? `(${this.selectedFiles.size} selected)` : '';
     }
-  }
-
-  formatFileSize(bytes) {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    if (downloadBtn) downloadBtn.disabled = this.selectedFiles.size === 0;
+    if (shareBtn) shareBtn.disabled = this.selectedFiles.size === 0;
+    this.updateOperationButtons(window);
+    this.renderWorkflow(window);
+    assignUniqueFileManagerIds();
   }
 
   setViewMode(window, mode) {
@@ -2012,7 +2496,7 @@ export class FileManagerApp {
     const gridBtn = window.querySelector('#grid-view-btn');
     const listBtn = window.querySelector('#list-view-btn');
     
-    if (fileList) fileList.className = `file-list ${mode}-view`;
+    if (fileList) fileList.className = `file-list ${mode}`;
     if (gridBtn) gridBtn.classList.toggle('active', mode === 'grid');
     if (listBtn) listBtn.classList.toggle('active', mode === 'list');
     
@@ -2020,21 +2504,38 @@ export class FileManagerApp {
   }
 
   async navigateToPath(window, path) {
-    // Update history
-    if (this.navigationHistory[this.historyIndex] !== path) {
-      // Remove any forward history
+    const next = typeof path === 'string' && path.startsWith('/') ? path : `/${path || ''}`;
+    const listed = this.fixtureListing(next);
+    if (!listed && !this.swissknife?.storage?.list) {
+      this.fileError = `Missing folder ${next}. Selection kept: ${this.keptSelection || 'none'}. Choose an existing folder and retry.`;
+      this.renderWorkflow(window);
+      return;
+    }
+
+    if (this.navigationHistory[this.historyIndex] !== next) {
       this.navigationHistory = this.navigationHistory.slice(0, this.historyIndex + 1);
-      // Add new path
-      this.navigationHistory.push(path);
+      this.navigationHistory.push(next);
       this.historyIndex = this.navigationHistory.length - 1;
     }
-    
-    this.currentPath = path;
+
+    const previousSelection = new Set(this.selectedFiles);
+    const previousKept = this.keptSelection;
+    this.currentPath = next;
     const pathInput = window.querySelector('#path-input');
-    if (pathInput) pathInput.value = path;
+    if (pathInput) pathInput.value = next;
+    this.fileError = '';
     this.selectedFiles.clear();
-    
+    if (listed) {
+      this.files = listed;
+      this.updateFileList(window);
+      this.updateBreadcrumb(window);
+    }
+
     await this.loadFiles();
+    if (this.fileError.startsWith('Missing folder') || this.fileError.startsWith('Storage failure')) {
+      this.selectedFiles = previousSelection;
+      this.keptSelection = previousKept;
+    }
     this.updateFileList(window);
     this.updateBreadcrumb(window);
   }
@@ -2072,29 +2573,30 @@ export class FileManagerApp {
   handleFileClick(window, e) {
     const fileItem = e.target.closest('.file-item');
     if (!fileItem) return;
-    
-    const index = parseInt(fileItem.dataset.index);
-    
+
+    const index = parseInt(fileItem.dataset.index, 10);
+    const file = this.getFilteredFiles()[index];
+    if (!file) return;
+
     if (e.ctrlKey || e.metaKey) {
-      // Multi-select
-      if (this.selectedFiles.has(index)) {
-        this.selectedFiles.delete(index);
-        fileItem.classList.remove('selected');
-      } else {
-        this.selectedFiles.add(index);
-        fileItem.classList.add('selected');
-      }
-    } else {
-      // Single select
-      window.querySelectorAll('.file-item.selected').forEach(item => {
-        item.classList.remove('selected');
-      });
-      this.selectedFiles.clear();
-      this.selectedFiles.add(index);
-      fileItem.classList.add('selected');
+      if (this.selectedFiles.has(index)) this.selectedFiles.delete(index);
+      else this.selectedFiles.add(index);
+      this.updateFileList(window);
+      return;
     }
-    
-    this.updateFileList(window);
+
+    this.selectedFiles.clear();
+    this.selectedFiles.add(index);
+    this.keptSelection = file.path || file.name;
+    if (file.type === 'folder' || file.type === 'directory') {
+      this.navigateToPath(window, file.path || file.name);
+      return;
+    }
+    window.querySelectorAll('.file-item').forEach((node) => node.classList.toggle('selected', node === fileItem));
+    const selectionInfo = window.querySelector('#selection-info');
+    if (selectionInfo) selectionInfo.textContent = '(1 selected)';
+    this.updateOperationButtons(window);
+    this.previewFile(window, file);
   }
 
   handleFileDoubleClick(window, e) {
@@ -2214,9 +2716,13 @@ export class FileManagerApp {
       this.historyIndex--;
       const previousPath = this.navigationHistory[this.historyIndex];
       this.currentPath = previousPath;
-      this.loadFiles();
-      this.renderFileList(window);
-      console.log(`Navigate back to: ${previousPath}`);
+      this.currentPath = previousPath;
+      const pathInput = window.querySelector('#path-input');
+      if (pathInput) pathInput.value = previousPath;
+      this.loadFiles().then(() => {
+        this.updateFileList(window);
+        this.updateBreadcrumb(window);
+      });
     } else {
       console.log('No previous path in history');
     }
@@ -2227,9 +2733,13 @@ export class FileManagerApp {
       this.historyIndex++;
       const nextPath = this.navigationHistory[this.historyIndex];
       this.currentPath = nextPath;
-      this.loadFiles();
-      this.renderFileList(window);
-      console.log(`Navigate forward to: ${nextPath}`);
+      this.currentPath = nextPath;
+      const pathInput = window.querySelector('#path-input');
+      if (pathInput) pathInput.value = nextPath;
+      this.loadFiles().then(() => {
+        this.updateFileList(window);
+        this.updateBreadcrumb(window);
+      });
     } else {
       console.log('No forward path in history');
     }
@@ -2927,6 +3437,232 @@ export class FileManagerApp {
       const count = this.collaborativeFS.getClipboardHistory().length;
       clipboardBtn.textContent = `📋 Clipboard (${count})`;
     }
+  }
+
+  escapeText(value) {
+    return String(value || '').replace(/[&<>"']/g, (ch) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    }[ch]));
+  }
+
+  isolatedNotes() {
+    return {
+      name: 'notes.txt',
+      type: 'file',
+      size: 19,
+      modified: 1700000000000,
+      created: 1700000000000,
+      permissions: 'rw-',
+      location: 'local',
+      extension: 'txt',
+      path: '/svf-isolated/notes.txt',
+      content: 'svf-fixture-utf8-ok',
+    };
+  }
+
+  isolatedPhoto() {
+    return {
+      name: 'photo.png',
+      type: 'file',
+      size: 10,
+      modified: 1700000000000,
+      created: 1700000000000,
+      permissions: 'rw-',
+      location: 'local',
+      extension: 'png',
+      path: '/svf-isolated/photo.png',
+      content: 'png-fixture',
+    };
+  }
+
+  fixtureListing(path) {
+    const extras = (this.extraFiles || []).filter(file => file.parent === path);
+    if (path === '/svf-isolated') return [this.isolatedNotes(), this.isolatedPhoto(), ...extras];
+    if (path === '/Documents' || path === '/Pictures' || path === '/AI Models' || path === '/Downloads' || path === '/Shared') {
+      return extras;
+    }
+    if (path === '/' || path === '') {
+      const root = this.getExampleFiles();
+      root.unshift({
+        name: 'svf-isolated',
+        type: 'folder',
+        size: 0,
+        modified: 1700000000000,
+        created: 1700000000000,
+        permissions: 'rwx',
+        location: 'local',
+        path: '/svf-isolated',
+      });
+      return root.concat(extras);
+    }
+    return null;
+  }
+
+  fileBytes(file) {
+    if (!file) return '';
+    if (typeof file.content === 'string') return file.content;
+    if (file.name === 'notes.txt') return 'svf-fixture-utf8-ok';
+    if (file.name === 'photo.png') return 'png-fixture';
+    return String(file.name || '');
+  }
+
+  currentSelectionFile() {
+    const files = this.getFilteredFiles();
+    const index = Array.from(this.selectedFiles)[0];
+    if (files[index]) return files[index];
+    if (!this.keptSelection) return null;
+    return files.find(file => file.path === this.keptSelection) || null;
+  }
+
+  renderWorkflow(window) {
+    if (!window) return;
+    const status = window.querySelector('#workflow-status');
+    const error = window.querySelector('#file-error');
+    if (status) status.textContent = this.workflowStatus || '';
+    if (error) error.textContent = this.fileError || '';
+  }
+
+  persistWorkflow() {
+    localStorage.setItem('svf-file-manager', JSON.stringify({
+      fixtureScope: 'svf-file-manager',
+      currentPath: this.currentPath,
+      status: this.workflowStatus,
+      copies: this.extraFiles,
+      selection: this.keptSelection,
+      consent: this.storageConsent === true,
+    }));
+  }
+
+  async requestGovernedRetrieve(container, file) {
+    if (!file || file.path !== '/svf-isolated/notes.txt' || !container) return this.fileBytes(file);
+    if (this.retrieveInFlight) return this.retrieveInFlight;
+    this.retrieveInFlight = (async () => {
+      const surface = container.closest?.('.window-app-content') || container;
+      const response = await fetch('/mcp/tools/bindings?app_id=file-manager', { cache: 'no-store' });
+      const catalog = await response.json();
+      const control = catalog.controls?.find(item => item.binding_id === 'file-manager.ipfs_kit_py.retrieve_content');
+      const cid = control?.safe_payloads?.ipfs_cat?.cid;
+      if (!response.ok || control?.status !== 'available' || typeof cid !== 'string') throw new Error('No reviewed stored file CID is available.');
+      const envelope = await invokeNativeTool(surface, 'file-manager', control.binding_id, {
+        executionMode: 'execute', toolId: 'ipfs_cat', payload: { cid, fixture_scope: 'svf-file-manager' },
+        trigger: surface.querySelector('#svf-notes') || null
+      });
+      if (envelope === null) throw new Error('Retrieve cancelled before dispatch.');
+      if (envelope.ok !== true || envelope.outcome !== 'executed') throw new Error('The native file retrieve failed.');
+      const actual = unwrapNetworkToolResult(envelope.result);
+      if (actual?.cid !== cid || typeof actual.bytes_base64 !== 'string') throw new Error('The native owner returned no matching file bytes.');
+      const bytes = Uint8Array.from(atob(actual.bytes_base64), char => char.charCodeAt(0));
+      if (await contentCidForBytes(bytes) !== cid) throw new Error('Retrieved file bytes do not match their CID.');
+      const content = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      file.content = content;
+      this.retrievedFile = { path: file.path, cid, content };
+      return content;
+    })();
+    try { return await this.retrieveInFlight; } finally { this.retrieveInFlight = null; }
+  }
+
+  async previewFile(window, file) {
+    try {
+      const bytes = await this.requestGovernedRetrieve(window, file);
+      this.keptSelection = file.path || file.name;
+      this.workflowStatus = `Selected ${file.name}. Preview ${bytes}. Original intact.`;
+      this.fileError = '';
+      const panel = window.querySelector('#preview-content');
+      if (panel) panel.textContent = `${file.name}\n${bytes}`;
+      this.persistWorkflow();
+    } catch (error) {
+      this.fileError = `Retrieve failed: ${error.message}. Selection and original content are retained.`;
+    }
+    this.renderWorkflow(window);
+  }
+
+  async saveRenamedCopy(window) {
+    if (this.saveInFlight) return;
+    this.saveInFlight = true;
+    setTimeout(() => { this.saveInFlight = false; }, 0);
+    const selected = this.currentSelectionFile();
+    const name = (window.querySelector('#copy-name')?.value || '').trim();
+    const consent = window.querySelector('#storage-consent');
+    this.storageConsent = !!consent?.checked;
+    if (!selected || selected.type === 'folder' || selected.type === 'directory') {
+      this.fileError = `Select a file before saving a copy. Selection kept: ${this.keptSelection || 'none'}.`;
+      this.renderWorkflow(window);
+      return;
+    }
+    if (!consent?.checked) {
+      this.fileError = `Storage failure. Selection kept: ${selected.name}. Allow the isolated save and retry.`;
+      this.renderWorkflow(window);
+      return;
+    }
+    const listing = this.fixtureListing(this.currentPath) || this.files || [];
+    if (!name || listing.some(file => file.name === name)) {
+      this.fileError = `filename conflict: ${name || 'empty'}. Selection kept: ${selected.name}. Choose a nonconflicting filename and retry.`;
+      this.renderWorkflow(window);
+      return;
+    }
+
+    let bytes = this.fileBytes(selected);
+    if (this.swissknife?.storage?.retrieve) {
+      try {
+        const result = await this.swissknife.storage.retrieve({
+          path: selected.path,
+          fixture_scope: 'svf-file-manager',
+        });
+        const remoteBytes = result?.content ?? result?.data ?? result?.text;
+        if (typeof remoteBytes === 'string' && remoteBytes.length > 0) bytes = remoteBytes;
+      } catch (error) {
+        if (!bytes) {
+          this.fileError = `Storage failure. Selection kept: ${selected.name}. Choose an existing folder and retry.`;
+          this.renderWorkflow(window);
+          return;
+        }
+      }
+    }
+    const copyPath = this.currentPath === '/' ? `/${name}` : `${this.currentPath.replace(/\/$/, '')}/${name}`;
+    if (this.swissknife?.storage?.store) {
+      try {
+        await this.swissknife.storage.store({
+          path: copyPath,
+          content: bytes,
+          type: 'text/plain',
+          fixture_scope: 'svf-file-manager',
+        });
+      } catch (error) {
+        this.fileError = `Storage failure. Selection kept: ${selected.name}. Choose an existing folder or a nonconflicting filename and retry.`;
+        this.renderWorkflow(window);
+        return;
+      }
+    }
+
+    this.extraFiles.push({
+      name,
+      parent: this.currentPath,
+      path: copyPath,
+      type: 'file',
+      size: bytes.length,
+      modified: Date.now(),
+      created: Date.now(),
+      permissions: 'rw-',
+      location: 'local',
+      extension: name.includes('.') ? name.split('.').pop() : '',
+      content: bytes,
+    });
+    this.fileError = '';
+    this.workflowStatus = `Selected ${selected.name}. Preview ${bytes}. Original intact. Copy ${name}.`;
+    try {
+      this.persistWorkflow();
+    } catch (error) {
+      this.extraFiles.pop();
+      this.fileError = `Storage failure. Selection kept: ${selected.name}. Choose an existing folder and retry.`;
+      this.renderWorkflow(window);
+      return;
+    }
+    await this.loadFiles();
+    this.updateFileList(window);
   }
 
   addFileAnnotation(annotation) {

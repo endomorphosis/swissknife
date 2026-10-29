@@ -224,3 +224,30 @@ test('desktop resolves strudel-grandma to its actual canonical music-studio owne
   assert.equal(resolve('strudel', apps), 'strudel');
   assert.equal(resolve('unknown-alias', apps), null);
 });
+
+test('panel layout keeps full native evidence in collapsed diagnostics and primary statuses compact', async t => {
+  const large = 'authored-diagnostic-only-'.repeat(1000);
+  const f = await panel(t, { list_models: { models: [{ id: 'gpt2' }], native_provenance: { detail: large } } });
+  f.button('inspect-model-artifacts').click(); await until(f.settled);
+  const diagnostic = f.root.querySelector('details.accelerate-diagnostics');
+  assert.ok(diagnostic); assert.equal(diagnostic.open, false);
+  assert.ok(diagnostic.querySelector('#accelerate-envelope-result').textContent.includes(large));
+  assert.ok(f.root.querySelector('#accelerate-model-status').textContent.length < 180);
+  assert.equal(f.root.querySelector('#accelerate-model-status').textContent.includes(large), false);
+  for (const action of ['launch-primary-execution', 'inspect-model-artifacts', 'refresh-hardware-fit', 'read-job-status', 'cancel-queued-job', 'recover-no-capacity']) assert.ok(f.button(action));
+});
+
+test('panel layout contains its native primary surface while preserving scrollable app and gateway controls', async t => {
+  dom(t);
+  const frame = document.createElement('div'); frame.className = 'window';
+  frame.innerHTML = '<div class="window-content"><div class="window-app-content"><div id="mount"></div><div class="live-tool-gateway-host"></div></div></div>';
+  document.body.append(frame); const mount = frame.querySelector('#mount');
+  await createPanel.call({ setupEventListeners() {} }, mount);
+  assert.equal(frame.querySelector('.window-content').style.overflow, 'hidden');
+  assert.equal(frame.querySelector('.window-app-content').style.minHeight, '0');
+  assert.equal(mount.style.overflow, 'auto'); assert.equal(mount.style.minHeight, '0');
+  assert.equal(frame.querySelector('.live-tool-gateway-host').style.overflow, 'auto');
+  assert.equal(frame.querySelector('.live-tool-gateway-host').style.maxHeight, '24%');
+  assert.ok(mount.querySelector('#accelerate-output')); assert.ok(mount.querySelector('#accelerate-model-id'));
+  assert.ok(mount.querySelector('#accelerate-error-status')); assert.ok(mount.querySelector('[data-action="run-primary-inference"]'));
+});

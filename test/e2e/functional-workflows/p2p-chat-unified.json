@@ -1,0 +1,44 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "p2p-chat-unified",
+  "description": "Send one exact message to the online peer through the governed publish binding, reopen the stored thread, then keep one offline-peer message queued and retry it without a second copy.",
+  "fixture_scope": "svf-p2p-chat-g030",
+  "backend_bindings": [
+    {
+      "binding_id": "p2p-chat-unified.ipfs_kit_py.exchange_peer_messages",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/delivery_state",
+        "operator": "equals",
+        "expected": "delivered"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {"op": "click", "selector": "[data-peer-id=\"peer-alice-g030\"]"},
+      {"op": "fill", "selector": "[data-chat-draft]", "value": "svf-p2p-342-hello"},
+      {"op": "click", "selector": ".send-button"},
+      {"op": "wait_for", "selector": "[data-gateway-confirm=\"p2p-chat-unified.ipfs_kit_py.exchange_peer_messages\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "[data-gateway-confirm=\"p2p-chat-unified.ipfs_kit_py.exchange_peer_messages\"]"},
+      {"op": "wait_for", "selector": ".messages-container .message[data-pubsub-acknowledged=\"true\"] .message-text", "state": "visible", "timeout_ms": 15000},
+      {"op": "press", "selector": "[data-chat-draft]", "key": "ArrowRight"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": ".messages-container .message:last-child .message-text"}, "operator": "equals", "expected": "svf-p2p-342-hello"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": ".messages-container .message:last-child .message-text"}, "operator": "equals", "expected": "svf-p2p-342-hello"}
+    ],
+    "failure_recovery": [
+      {"op": "click", "selector": "[data-peer-id=\"peer-bob-g030\"]"},
+      {"op": "fill", "selector": "[data-chat-draft]", "value": "svf-p2p-342-offline"},
+      {"op": "click", "selector": ".send-button"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": ".messages-container .message:last-child .message-text"}, "operator": "equals", "expected": "svf-p2p-342-offline"},
+      {"op": "click", "selector": "[data-chat-action=\"recover-offline\"]"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "count", "selector": ".messages-container .message"}, "operator": "equals", "expected": 2}
+    ]
+  }
+}

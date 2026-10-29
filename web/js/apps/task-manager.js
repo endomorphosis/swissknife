@@ -20,6 +20,8 @@ export class TaskManagerApp {
     this.p2pSystem = null;
     this.distributedTasks = new Map();
     this.currentView = 'processes'; // 'processes', 'performance', 'network', 'p2p'
+    this.sourceState = 'unavailable';
+    this.sourceObservedAt = null;
     
     // Performance monitoring configuration
     this.monitoringConfig = {
@@ -58,6 +60,46 @@ export class TaskManagerApp {
   createWindow() {
     const content = `
       <div class="task-manager-container">
+        <style>
+          .task-manager-container { display: flex; flex-direction: column; max-height: calc(100vh - 188px); min-height: 0; min-width: 0; overflow: hidden; }
+          .task-manager-container .processes-toolbar { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; min-width: 0; }
+          .task-manager-container .search-section { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; flex: 1 1 12rem; }
+          .task-manager-container .action-section { display: flex; flex-wrap: wrap; gap: 8px; position: static; flex: 0 1 auto; }
+          .task-manager-container .action-section .action-btn { position: static; margin: 0; }
+          .task-manager-container .task-manager-content { flex: 1; min-height: 0; min-width: 0; overflow: auto; }
+          .task-manager-container .tab-content { display: none; min-width: 0; }
+          .task-manager-container .tab-content.active { display: block; }
+          .task-manager-container .processes-table-container { overflow: auto; max-width: 100%; min-width: 0; }
+          .task-manager-container .processes-table { width: 100%; border-collapse: collapse; }
+          .task-manager-container .processes-table th,
+          .task-manager-container .processes-table td { white-space: nowrap; padding: 4px 8px; }
+          .task-manager-container .task-source-status { margin: 0 0 8px; }
+          .task-manager-container .task-source-when { white-space: nowrap; }
+          @media (max-width: 520px) {
+            .task-manager-container { max-height: calc(100vh - 240px); }
+            .task-manager-container .action-section { flex: 1 1 100%; }
+            .task-manager-container .action-section .action-btn { flex: 1 1 7.5rem; }
+            .task-manager-container .processes-table { table-layout: fixed; }
+            .task-manager-container .processes-table th,
+            .task-manager-container .processes-table td { white-space: normal; padding: 4px 3px; font-size: 12px; }
+            .task-manager-container .processes-table th:nth-child(1),
+            .task-manager-container .processes-table td:nth-child(1) { width: 1.6rem; }
+            .task-manager-container .processes-table th:nth-child(3),
+            .task-manager-container .processes-table td:nth-child(3) { width: 2.5rem; }
+            .task-manager-container .processes-table th:nth-child(4),
+            .task-manager-container .processes-table td:nth-child(4) { width: 2.4rem; }
+            .task-manager-container .processes-table th:nth-child(5),
+            .task-manager-container .processes-table td:nth-child(5) { width: 3.2rem; }
+            .task-manager-container .processes-table th:nth-child(6),
+            .task-manager-container .processes-table td:nth-child(6) { width: 4.2rem; }
+            .task-manager-container .processes-table th:nth-child(7),
+            .task-manager-container .processes-table td:nth-child(7) { width: 5.6rem; white-space: normal; }
+            .task-manager-container .process-actions .action-btn.small { padding: 2px 4px; min-width: 2.4rem; line-height: 1.2; white-space: normal; }
+          }
+          .task-manager-container button:focus-visible,
+          .task-manager-container input:focus-visible,
+          .task-manager-container select:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+        </style>
         <div class="task-manager-header">
           <div class="header-tabs">
             <button class="tab-btn ${this.currentView === 'processes' ? 'active' : ''}" data-view="processes">
@@ -74,9 +116,9 @@ export class TaskManagerApp {
             </button>
           </div>
           <div class="header-controls">
-            <button class="control-btn" id="pause-monitoring" title="Pause Monitoring">⏸️</button>
-            <button class="control-btn" id="export-data" title="Export Data">📤</button>
-            <button class="control-btn" id="settings-btn" title="Settings">⚙️</button>
+            <button type="button" class="control-btn" id="pause-monitoring" title="Pause Monitoring" aria-label="Pause monitoring">⏸️</button>
+            <button type="button" class="control-btn" id="export-data" title="Export Data" aria-label="Export data">📤</button>
+            <button type="button" class="control-btn" id="settings-btn" title="Settings" aria-label="Settings">⚙️</button>
           </div>
         </div>
 
@@ -84,8 +126,9 @@ export class TaskManagerApp {
           <!-- Processes View -->
           <div class="tab-content ${this.currentView === 'processes' ? 'active' : ''}" data-view="processes">
             <div class="processes-toolbar">
+              <p id="task-source-status" class="task-source-status sk-empty">Task source unavailable · observed pending</p>
               <div class="search-section">
-                <input type="text" id="process-search" placeholder="Search processes..." class="search-input sk-input">
+                <input type="text" id="process-search" placeholder="Search processes..." aria-label="Search processes" class="search-input sk-input">
                 <select id="process-filter" class="filter-select sk-select">
                   <option value="all">All Processes</option>
                   <option value="high-cpu">High CPU</option>
@@ -105,12 +148,12 @@ export class TaskManagerApp {
                 <thead>
                   <tr>
                     <th><input type="checkbox" id="select-all-processes"></th>
-                    <th class="sortable" data-sort="name">Process Name 📝</th>
-                    <th class="sortable" data-sort="pid">PID 🆔</th>
-                    <th class="sortable" data-sort="cpu">CPU % 🔥</th>
-                    <th class="sortable" data-sort="memory">Memory 🧠</th>
-                    <th class="sortable" data-sort="status">Status 📊</th>
-                    <th>Actions ⚡</th>
+                    <th class="sortable" data-sort="name">Name</th>
+                    <th class="sortable" data-sort="pid">PID</th>
+                    <th class="sortable" data-sort="cpu">CPU</th>
+                    <th class="sortable" data-sort="memory">Memory</th>
+                    <th class="sortable" data-sort="status">Status</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="processes-list">
@@ -128,11 +171,11 @@ export class TaskManagerApp {
                   <span class="metric-icon">🔥</span>
                   <span class="metric-title">CPU Usage</span>
                 </div>
-                <div class="metric-value" id="cpu-usage">0%</div>
+                <div class="metric-value" id="cpu-usage">n/a</div>
                 <div class="metric-chart" id="cpu-chart"></div>
                 <div class="metric-details">
-                  <span>Cores: <span id="cpu-cores">-</span></span>
-                  <span>Speed: <span id="cpu-speed">-</span></span>
+                  <span>Cores: <span id="cpu-cores">n/a</span></span>
+                  <span>Speed: <span id="cpu-speed">n/a</span></span>
                 </div>
               </div>
 
@@ -141,11 +184,11 @@ export class TaskManagerApp {
                   <span class="metric-icon">🧠</span>
                   <span class="metric-title">Memory Usage</span>
                 </div>
-                <div class="metric-value" id="memory-usage">0%</div>
+                <div class="metric-value" id="memory-usage">n/a</div>
                 <div class="metric-chart" id="memory-chart"></div>
                 <div class="metric-details">
-                  <span>Used: <span id="memory-used">-</span></span>
-                  <span>Total: <span id="memory-total">-</span></span>
+                  <span>Used: <span id="memory-used">n/a</span></span>
+                  <span>Total: <span id="memory-total">n/a</span></span>
                 </div>
               </div>
 
@@ -154,7 +197,7 @@ export class TaskManagerApp {
                   <span class="metric-icon">🎮</span>
                   <span class="metric-title">GPU Usage</span>
                 </div>
-                <div class="metric-value" id="gpu-usage">0%</div>
+                <div class="metric-value" id="gpu-usage">n/a</div>
                 <div class="metric-chart" id="gpu-chart"></div>
                 <div class="metric-details">
                   <span>Type: <span id="gpu-type">-</span></span>
@@ -167,7 +210,7 @@ export class TaskManagerApp {
                   <span class="metric-icon">🌐</span>
                   <span class="metric-title">Network</span>
                 </div>
-                <div class="metric-value" id="network-speed">0 MB/s</div>
+                <div class="metric-value" id="network-speed">n/a</div>
                 <div class="metric-chart" id="network-chart"></div>
                 <div class="metric-details">
                   <span>Down: <span id="network-down">-</span></span>
@@ -413,8 +456,8 @@ export class TaskManagerApp {
     // reported as null and rendered as "n/a" — never fabricated.
     const info = {
       cpu: {
-        cores: navigator.hardwareConcurrency || 4,
-        speed: await this.estimateCPUSpeed(),
+        cores: navigator.hardwareConcurrency || null,
+        speed: null,
         usage: null // Browser limitation: actual CPU usage not available
       },
       memory: {
@@ -438,21 +481,14 @@ export class TaskManagerApp {
   }
 
   estimateCPUSpeed() {
-    // Estimate CPU speed using performance benchmarking
-    if (navigator.deviceMemory) {
-      // Rough estimate based on device tier
-      const tier = navigator.deviceMemory >= 8 ? 'high' : navigator.deviceMemory >= 4 ? 'mid' : 'low';
-      return tier === 'high' ? '2.8 GHz' : tier === 'mid' ? '2.0 GHz' : '1.6 GHz';
-    }
-    return '~2.4 GHz (estimated)';
+    return null;
   }
 
   estimateDeviceMemory() {
-    // Use real device memory API if available
     if (navigator.deviceMemory) {
-      return navigator.deviceMemory * 1024 * 1024 * 1024; // Convert GB to bytes
+      return navigator.deviceMemory * 1024 * 1024 * 1024;
     }
-    return 8 * 1024 * 1024 * 1024; // Default 8GB estimate
+    return null;
   }
 
   estimateMemoryUsed() {
@@ -465,36 +501,18 @@ export class TaskManagerApp {
   }
 
   estimateGPUMemory() {
-    // Estimate GPU memory based on renderer info
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    if (gl) {
-      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-      if (debugInfo) {
-        const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-        // Rough estimates based on common GPU names
-        if (renderer.includes('RTX') || renderer.includes('RX 6')) return '8GB';
-        if (renderer.includes('GTX') || renderer.includes('RX 5')) return '4GB';
-        if (renderer.includes('Intel')) return '2GB (shared)';
-      }
-    }
-    return '~4GB (estimated)';
+    return null;
   }
 
   getNetworkSpeed() {
-    // Use Network Information API if available
-    if (navigator.connection && navigator.connection.downlink) {
-      return navigator.connection.downlink; // Mbps
+    if (navigator.connection && navigator.connection.downlink != null) {
+      return navigator.connection.downlink;
     }
-    return Math.random() * 100; // Fallback estimate
+    return null;
   }
 
   estimateActiveConnections() {
-    // Estimate based on active services
-    let count = 5; // Base connections
-    if (window.p2pMLSystem) count += 10; // P2P connections
-    if (this.swissknife) count += 5; // API connections
-    return count + Math.floor(Math.random() * 10);
+    return null;
   }
 
   getGPUInfo() {
@@ -517,8 +535,8 @@ export class TaskManagerApp {
     const cpuSpeed = document.getElementById('cpu-speed');
     const cpuUsage = document.getElementById('cpu-usage');
     
-    if (cpuCores) cpuCores.textContent = info.cpu.cores;
-    if (cpuSpeed) cpuSpeed.textContent = info.cpu.speed;
+    if (cpuCores) cpuCores.textContent = info.cpu.cores == null ? 'n/a' : String(info.cpu.cores);
+    if (cpuSpeed) cpuSpeed.textContent = info.cpu.speed == null ? 'n/a' : info.cpu.speed;
     if (cpuUsage) cpuUsage.textContent = info.cpu.usage == null ? 'n/a (not exposed by browser)' : `${info.cpu.usage.toFixed(1)}%`;
     
     // Update Memory information
@@ -538,7 +556,7 @@ export class TaskManagerApp {
     const gpuUsage = document.getElementById('gpu-usage');
     
     if (gpuType) gpuType.textContent = info.gpu.type;
-    if (gpuMemory) gpuMemory.textContent = info.gpu.memory;
+    if (gpuMemory) gpuMemory.textContent = info.gpu.memory == null ? 'n/a' : info.gpu.memory;
     if (gpuUsage) gpuUsage.textContent = info.gpu.usage == null ? 'n/a (not exposed by browser)' : `${info.gpu.usage.toFixed(1)}%`;
     
     // Store for monitoring
@@ -552,6 +570,7 @@ export class TaskManagerApp {
   }
 
   formatBytes(bytes) {
+    if (bytes == null || Number.isNaN(bytes)) return 'n/a';
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
@@ -559,19 +578,38 @@ export class TaskManagerApp {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
+  updateSourceStatus() {
+    const el = document.getElementById('task-source-status');
+    if (!el) return;
+    const when = this.sourceObservedAt || 'pending';
+    const label = this.sourceState === 'current'
+      ? 'Desktop tasks current'
+      : this.sourceState === 'stale'
+        ? 'Task source stale'
+        : 'Task source unavailable';
+    el.replaceChildren(document.createTextNode(`${label} · observed `));
+    const observed = document.createElement('span');
+    observed.className = 'task-source-when';
+    observed.textContent = when;
+    el.appendChild(observed);
+  }
+
   async loadProcesses() {
     try {
       const processes = await this.getRunningProcesses();
+      this.processes = processes;
       this.displayProcesses(processes);
+      this.updateSourceStatus();
     } catch (error) {
       console.error('Error loading processes:', error);
+      this.sourceState = 'unavailable';
+      this.sourceObservedAt = new Date().toISOString();
       this.displayProcessError();
+      this.updateSourceStatus();
     }
   }
 
   async getRunningProcesses() {
-    // Honestly local: the browser exposes no host process table. Tasks are
-    // the desktop session's real open windows — nothing fabricated.
     const desktop = this.desktop || window.desktop;
     const wins = desktop?.windows;
     const processes = [];
@@ -579,9 +617,9 @@ export class TaskManagerApp {
     const push = (windowId, title, minimized) => processes.push({
       pid: pid++,
       windowId,
-      name: title || 'Unknown App',
-      cpu: null,      // not exposed by the browser
-      memory: null,   // not exposed by the browser
+      name: (title || 'Unknown App').trim() || 'Unknown App',
+      cpu: null,
+      memory: null,
       status: minimized ? 'sleeping' : 'running'
     });
     if (wins instanceof Map) {
@@ -589,19 +627,37 @@ export class TaskManagerApp {
     } else if (wins && typeof wins === 'object') {
       for (const id of Object.keys(wins)) {
         const w = wins[id];
-        push(id, (w && (w.title || w.appId)) || id, false);
+        push(id, (w && (w.title || w.appId)) || id, !!(w && w.minimized));
       }
     }
+    if (processes.length === 0 && typeof document !== 'undefined') {
+      document.querySelectorAll('.window[data-app-id]').forEach((el) => {
+        const titleEl = el.querySelector('.window-title, .title-text, .window-header-title');
+        const title = (titleEl && titleEl.textContent) || el.getAttribute('data-app-id');
+        push(el.id || title, title, el.classList.contains('minimized'));
+      });
+    }
+    this.sourceObservedAt = new Date().toISOString();
+    this.sourceState = (wins || processes.length > 0) ? 'current' : 'unavailable';
     return processes;
   }
 
   displayProcesses(processes) {
     const tbody = document.getElementById('processes-list');
     if (!tbody) return;
-    
+    if (!processes.length) {
+      const when = this.sourceObservedAt || 'pending';
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="sk-empty">No matching desktop applications · observed ${when}. Host CPU and memory: n/a (not exposed by browser).</td>
+        </tr>
+      `;
+      return;
+    }
+
     tbody.innerHTML = processes.map(process => `
       <tr data-pid="${process.pid}">
-        <td><input type="checkbox" class="process-checkbox" value="${process.pid}"></td>
+        <td><input type="checkbox" class="process-checkbox" name="process-select" value="${process.pid}" aria-label="Select ${process.name}"></td>
         <td class="process-name">${process.name}</td>
         <td class="process-pid">${process.pid}</td>
         <td class="process-cpu">${process.cpu == null ? 'n/a' : process.cpu.toFixed(1) + '%'}</td>
@@ -610,23 +666,21 @@ export class TaskManagerApp {
           <span class="status-badge status-${process.status}"><span class="sk-status-dot ${process.status === 'running' ? 'is-ok' : process.status === 'sleeping' ? 'is-warn' : 'is-err'}"></span>${process.status}</span>
         </td>
         <td class="process-actions">
-          <button class="action-btn small" onclick="taskManager.viewProcessDetails(${process.pid})" title="Details">🔍</button>
-          <button class="action-btn small danger" onclick="taskManager.killProcess(${process.pid})" title="End Task (closes window)">❌</button>
+          <button type="button" class="action-btn small" onclick="taskManager.viewProcessDetails(${process.pid})" title="Details" aria-label="Details for ${process.name}">Details</button>
+          <button type="button" class="action-btn small danger" onclick="taskManager.killProcess(${process.pid})" title="End Task (closes window)" aria-label="End ${process.name}">End</button>
         </td>
       </tr>
     `).join('');
-    
-    this.processes = processes;
   }
 
   displayProcessError() {
     const tbody = document.getElementById('processes-list');
     if (!tbody) return;
-    
+    const when = this.sourceObservedAt || 'pending';
     tbody.innerHTML = `
       <tr>
         <td colspan="7" class="error-message sk-empty">
-          ⚠️ Unable to load process information. This feature requires system-level access.
+          Task source unavailable · observed ${when}. Host CPU and memory: n/a (not exposed by browser).
         </td>
       </tr>
     `;
@@ -763,9 +817,9 @@ export class TaskManagerApp {
     // Get real network data from browser APIs
     const info = {
       activeConnections: this.estimateActiveConnections(),
-      bandwidthUsage: navigator.connection?.downlink || Math.random() * 100,
-      latency: Math.random() * 100 + 10, // Would need external ping service
-      packetLoss: Math.random() * 5, // Browser limitation
+      bandwidthUsage: navigator.connection && navigator.connection.downlink != null ? navigator.connection.downlink : null,
+      latency: null,
+      packetLoss: null,
       connections: this.getEstimatedConnections()
     };
     
@@ -773,63 +827,16 @@ export class TaskManagerApp {
   }
 
   getEstimatedConnections() {
-    // Estimate connections based on active applications
-    const connections = [];
-    
-    // Check for active SwissKnife services
-    if (this.swissknife) {
-      connections.push({ 
-        protocol: 'HTTPS', 
-        local: 'localhost', 
-        remote: 'api.swissknife.ai', 
-        state: 'ESTABLISHED', 
-        process: 'SwissKnife API' 
-      });
-    }
-    
-    // Check for P2P connections
-    if (window.p2pMLSystem) {
-      connections.push({ 
-        protocol: 'WebRTC', 
-        local: 'localhost', 
-        remote: 'peer.network', 
-        state: 'CONNECTED', 
-        process: 'P2P Network' 
-      });
-    }
-    
-    // Check for IPFS connections
-    if (window.ipfsNode || this.swissknife?.ipfs) {
-      connections.push({ 
-        protocol: 'HTTP/2', 
-        local: 'localhost', 
-        remote: 'ipfs.io:443', 
-        state: 'ESTABLISHED', 
-        process: 'IPFS Node' 
-      });
-    }
-    
-    // Add default browser connections if none detected
-    if (connections.length === 0) {
-      connections.push({ 
-        protocol: 'HTTPS', 
-        local: 'localhost', 
-        remote: 'example.com:443', 
-        state: 'ESTABLISHED', 
-        process: 'Browser' 
-      });
-    }
-    
-    return connections;
+    return [];
   }
 
   displayNetworkInfo(networkInfo) {
     // Update network stats
     const elements = {
-      'active-connections': networkInfo.activeConnections,
-      'bandwidth-usage': `${networkInfo.bandwidthUsage.toFixed(1)} MB/s`,
-      'network-latency': `${networkInfo.latency.toFixed(0)}ms`,
-      'packet-loss': `${networkInfo.packetLoss.toFixed(2)}%`
+      'active-connections': networkInfo.activeConnections == null ? 'n/a' : String(networkInfo.activeConnections),
+      'bandwidth-usage': networkInfo.bandwidthUsage == null ? 'n/a' : `${Number(networkInfo.bandwidthUsage).toFixed(1)} MB/s`,
+      'network-latency': networkInfo.latency == null ? 'n/a' : `${Number(networkInfo.latency).toFixed(0)}ms`,
+      'packet-loss': networkInfo.packetLoss == null ? 'n/a' : `${Number(networkInfo.packetLoss).toFixed(2)}%`
     };
     
     Object.entries(elements).forEach(([id, value]) => {
@@ -840,16 +847,18 @@ export class TaskManagerApp {
     // Update connections table
     const connectionsTable = document.getElementById('connections-list');
     if (connectionsTable) {
-      connectionsTable.innerHTML = networkInfo.connections.map(conn => `
+      const rows = networkInfo.connections || [];
+      const when = this.sourceObservedAt || new Date().toISOString();
+      connectionsTable.innerHTML = rows.length ? rows.map(conn => `
         <tr>
           <td>${conn.protocol}</td>
           <td>${conn.local}</td>
           <td>${conn.remote}</td>
           <td><span class="status-badge status-${conn.state.toLowerCase()}"><span class="sk-status-dot ${/established|connected/i.test(conn.state) ? 'is-ok' : 'is-idle'}"></span>${conn.state}</span></td>
           <td>${conn.process}</td>
-          <td>${(Math.random() * 10).toFixed(1)} MB/s</td>
+          <td>n/a</td>
         </tr>
-      `).join('');
+      `).join('') : `<tr><td colspan="6" class="sk-empty">Network connections unavailable · observed ${when}. Bandwidth: n/a</td></tr>`;
     }
   }
 
@@ -887,7 +896,7 @@ export class TaskManagerApp {
       connectedPeers: this.p2pSystem.peers?.size || 0,
       activeTasks: this.distributedTasks.size,
       completedTasks: 0, // Would track from history
-      networkLoad: Math.random() * 100,
+      networkLoad: null,
       tasks: Array.from(this.distributedTasks.values())
     };
   }
@@ -898,7 +907,7 @@ export class TaskManagerApp {
       'connected-peers': p2pInfo.connectedPeers,
       'active-p2p-tasks': p2pInfo.activeTasks,
       'completed-p2p-tasks': p2pInfo.completedTasks,
-      'network-load': `${p2pInfo.networkLoad.toFixed(1)}%`
+      'network-load': p2pInfo.networkLoad == null ? 'n/a' : `${Number(p2pInfo.networkLoad).toFixed(1)}%`
     };
     
     Object.entries(elements).forEach(([id, value]) => {
@@ -1109,6 +1118,9 @@ export class TaskManagerApp {
     // Live instance for inline handlers (one desktop window per app).
     if (typeof window !== 'undefined') window.taskManager = this;
     await this.initializeIntegrations();
+    if (typeof document !== 'undefined' && document.getElementById('processes-list')) {
+      this.loadProcesses();
+    }
     console.log('✅ Task Manager initialized');
   }
 
@@ -1119,7 +1131,8 @@ export class TaskManagerApp {
     // Set up event listeners after content is rendered
     setTimeout(() => {
       this.setupEventListeners();
-    }, 100);
+      this.loadProcesses();
+    }, 0);
     
     return content;
   }
@@ -1164,6 +1177,9 @@ export class TaskManagerApp {
     const searchInput = document.getElementById('process-search');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => this.filterProcesses(e.target.value));
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') this.filterProcesses(searchInput.value);
+      });
     }
 
     const filterSelect = document.getElementById('process-filter');
@@ -1203,14 +1219,24 @@ export class TaskManagerApp {
   }
 
   toggleMonitoring() {
+    const btn = document.getElementById('pause-monitoring');
     if (this.monitoringInterval) {
       this.stopPerformanceMonitoring();
-      document.getElementById('pause-monitoring').innerHTML = '▶️';
-      document.getElementById('pause-monitoring').title = 'Resume Monitoring';
+      this.sourceState = 'stale';
+      if (!this.sourceObservedAt) this.sourceObservedAt = new Date().toISOString();
+      this.updateSourceStatus();
+      if (btn) {
+        btn.innerHTML = '▶️';
+        btn.title = 'Resume Monitoring';
+        btn.setAttribute('aria-label', 'Resume monitoring');
+      }
     } else {
       this.startPerformanceMonitoring();
-      document.getElementById('pause-monitoring').innerHTML = '⏸️';
-      document.getElementById('pause-monitoring').title = 'Pause Monitoring';
+      if (btn) {
+        btn.innerHTML = '⏸️';
+        btn.title = 'Pause Monitoring';
+        btn.setAttribute('aria-label', 'Pause monitoring');
+      }
     }
   }
 

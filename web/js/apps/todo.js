@@ -45,7 +45,7 @@ TodoApp.prototype.createWindowConfig = function() {
             }
             .todo-app .quick-add-row {
                 display: grid !important;
-                grid-template-columns: minmax(0, 1fr) max-content max-content;
+                grid-template-columns: minmax(0, 1fr) minmax(0, max-content) minmax(0, max-content) max-content;
                 align-items: center;
             }
             .todo-app .todo-main,
@@ -55,6 +55,7 @@ TodoApp.prototype.createWindowConfig = function() {
             .todo-app .todo-list,
             .todo-app .goals-content,
             .todo-app .graph-content {
+                min-height: 0;
                 overflow-x: hidden;
             }
             .todo-app .todo-item-row,
@@ -123,6 +124,27 @@ TodoApp.prototype.createWindowConfig = function() {
                 font-size: 11px;
                 color: var(--sk-text-faint, #9eb2aa);
             }
+            .todo-app button:focus-visible,
+            .todo-app input:focus-visible,
+            .todo-app select:focus-visible {
+                outline: 2px solid var(--sk-accent, #8bd8bd);
+                outline-offset: 2px;
+            }
+            .todo-app .todo-error {
+                margin-top: 8px;
+                color: var(--sk-err, #ff6b6b);
+                font-size: 13px;
+            }
+            .todo-app .todo-item-actions {
+                display: flex;
+                flex-shrink: 0;
+                gap: 4px;
+            }
+            @media (max-width: 900px) {
+                .todo-app .quick-add-row {
+                    grid-template-columns: minmax(0, 1fr);
+                }
+            }
             @media (max-width: 640px) {
                 .todo-app .todo-header {
                     align-items: flex-start !important;
@@ -165,24 +187,28 @@ TodoApp.prototype.createWindowConfig = function() {
             </div>
 
             <!-- Main Content -->
-            <div class="todo-main" style="flex: 1; display: flex; height: calc(100% - 70px);">
+            <div class="todo-main" style="flex: 1; display: flex; min-height: 0; overflow: hidden;">
                 <!-- Todos View -->
                 <div class="todos-view" id="todos-view" style="width: 100%; display: flex; flex-direction: column;">
                     <!-- Quick Add -->
                     <div class="quick-add" style="padding: 16px; background: var(--sk-bg-panel, #101b18); border-bottom: 1px solid var(--sk-border, #263a34);">
                         <div class="quick-add-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
-                            <input type="text" class="new-todo-input sk-input" placeholder="Add a new todo... (voice commands supported)" style="flex: 1;">
-                            <select class="todo-priority sk-select">
+                            <input type="text" class="new-todo-input sk-input" aria-label="New todo title" placeholder="Add a todo" style="flex: 1;">
+                            <select class="todo-priority sk-select" aria-label="Priority">
                                 <option value="low">💡 Low</option>
                                 <option value="medium" selected>📋 Medium</option>
                                 <option value="high">🔥 High</option>
                                 <option value="urgent">⚡ Urgent</option>
                             </select>
-                            <button class="add-todo-btn sk-btn sk-btn-primary">Add Todo</button>
+                            <select class="todo-depends sk-select" aria-label="Depends on">
+                                <option value="">No dependency</option>
+                            </select>
+                            <button type="button" class="add-todo-btn sk-btn sk-btn-primary">Add Todo</button>
                         </div>
                         <div class="voice-hint">
                             💡 Voice commands: "Add todo: [task]" | "Mark [task] complete" | "Set [task] priority high"
                         </div>
+                        <div class="todo-error" role="alert" hidden></div>
                     </div>
 
                     <!-- Todo List -->
@@ -272,17 +298,20 @@ TodoApp.prototype.createWindowConfig = function() {
 };
 
 TodoApp.prototype.loadTodos = function() {
+    var previousTodos = this.todos || [];
+    var previousGoals = this.goals || [];
     try {
         var savedTodos = localStorage.getItem('swissknife-todos');
         var savedGoals = localStorage.getItem('swissknife-goals');
-        
-        this.todos = savedTodos ? JSON.parse(savedTodos) : this.getDefaultTodos();
-        this.goals = savedGoals ? JSON.parse(savedGoals) : this.getDefaultGoals();
-        
+
+        this.todos = savedTodos ? JSON.parse(savedTodos) : (previousTodos.length ? previousTodos : this.getDefaultTodos());
+        this.goals = savedGoals ? JSON.parse(savedGoals) : (previousGoals.length ? previousGoals : this.getDefaultGoals());
+        this._storageError = '';
     } catch (error) {
         console.error('Failed to load todos:', error);
-        this.todos = this.getDefaultTodos();
-        this.goals = this.getDefaultGoals();
+        this.todos = previousTodos.length ? previousTodos : this.getDefaultTodos();
+        this.goals = previousGoals.length ? previousGoals : this.getDefaultGoals();
+        this._storageError = 'Local storage is unavailable. Existing tasks were kept.';
     }
 };
 
@@ -375,15 +404,21 @@ TodoApp.prototype.setupEventListeners = function(contentElement) {
     var addBtn = contentElement.querySelector('.add-todo-btn');
     var todoInput = contentElement.querySelector('.new-todo-input');
     var prioritySelect = contentElement.querySelector('.todo-priority');
+    var dependsSelect = contentElement.querySelector('.todo-depends');
 
     var addTodoHandler = function() {
         var text = todoInput.value.trim();
         var priority = prioritySelect.value;
-        
-        if (text) {
-            self.addTodo(text, priority);
+        var dependsOnTitle = dependsSelect ? dependsSelect.value : '';
+
+        if (!text) {
+            self.showError('Title is empty. Existing tasks were kept.');
+            return;
+        }
+        if (self.addTodo(text, priority, dependsOnTitle)) {
             todoInput.value = '';
             prioritySelect.value = 'medium';
+            if (dependsSelect) dependsSelect.value = '';
         }
     };
 
@@ -424,6 +459,7 @@ TodoApp.prototype.setupEventListeners = function(contentElement) {
     // Initial render
     this.renderTodos();
     this.updateCounts();
+    if (this._storageError) this.showError(this._storageError);
 };
 
 TodoApp.prototype.switchView = function(view) {
@@ -454,30 +490,70 @@ TodoApp.prototype.switchView = function(view) {
     }
 };
 
-TodoApp.prototype.addTodo = function(text, priority) {
-    priority = priority || 'medium';
-    var newTodo = {
-        id: Date.now(),
-        text: text,
-        priority: priority,
+TodoApp.prototype.addTodo = function(text, priority, dependsOnTitle) {
+    var trimmed = (text || '').trim();
+    if (!trimmed) {
+        this.showError('Title is empty. Existing tasks were kept.');
+        return false;
+    }
+    var dependsOnId = null;
+    if (dependsOnTitle) {
+        var dep = this.findTodoByTitle(dependsOnTitle);
+        if (dep) dependsOnId = dep.id;
+    }
+    var snapshot = JSON.stringify(this.todos);
+    this.todos.push({
+        id: this.nextTodoId(),
+        text: trimmed,
+        priority: priority || 'medium',
         completed: false,
         createdAt: new Date().toISOString(),
-        tags: []
-    };
-
-    this.todos.push(newTodo);
-    this.saveTodos();
+        tags: [],
+        dependsOnId: dependsOnId
+    });
+    if (!this.saveTodos()) {
+        this.todos = JSON.parse(snapshot);
+        this.showError(this._storageError || 'Local storage is unavailable. Existing tasks were kept.');
+        this.renderTodos();
+        this.updateCounts();
+        return false;
+    }
+    this.clearError();
     this.renderTodos();
     this.updateCounts();
+    return true;
 };
 
 TodoApp.prototype.saveTodos = function() {
+    var hadTodos = false;
+    var hadGoals = false;
+    var previousTodos = null;
+    var previousGoals = null;
+    var stage = 'read';
     try {
+        previousTodos = localStorage.getItem('swissknife-todos');
+        previousGoals = localStorage.getItem('swissknife-goals');
+        hadTodos = previousTodos !== null;
+        hadGoals = previousGoals !== null;
+        stage = 'write-todos';
         localStorage.setItem('swissknife-todos', JSON.stringify(this.todos));
+        stage = 'write-goals';
         localStorage.setItem('swissknife-goals', JSON.stringify(this.goals));
+        this._storageError = '';
         this.updateLastUpdated();
+        return true;
     } catch (error) {
+        if (stage === 'write-goals') {
+            try {
+                if (hadTodos) localStorage.setItem('swissknife-todos', previousTodos);
+                else localStorage.removeItem('swissknife-todos');
+            } catch (restoreError) {
+                console.error('Failed to restore todos:', restoreError);
+            }
+        }
+        this._storageError = 'Local storage is unavailable. Existing tasks were kept.';
         console.error('Failed to save todos:', error);
+        return false;
     }
 };
 
@@ -509,28 +585,38 @@ TodoApp.prototype.renderTodos = function() {
         }
     }
 
-    // Empty states per priority bucket
-    var emptyLabels = {
-        urgent: 'No urgent todos — everything can wait.',
-        high: 'No high-priority todos.',
-        medium: 'No medium-priority todos.',
-        low: 'No low-priority todos.',
-        completed: 'Nothing completed yet.'
-    };
+    var anyVisible = false;
     for (var key in containers) {
         var c = containers[key];
-        if (c && c.children.length === 0) {
-            var emptyDiv = document.createElement('div');
-            emptyDiv.className = 'sk-empty todo-empty';
-            emptyDiv.textContent = emptyLabels[key] || 'Nothing here yet.';
-            c.appendChild(emptyDiv);
+        if (!c) continue;
+        var category = c.parentElement;
+        if (c.children.length === 0) {
+            if (category) category.hidden = true;
+        } else {
+            anyVisible = true;
+            if (category) category.hidden = false;
         }
     }
+    var list = document.querySelector('.todo-categories');
+    var staleEmpty = list ? list.querySelector('.todo-empty-all') : null;
+    if (!anyVisible && list) {
+        if (!staleEmpty) {
+            var emptyAll = document.createElement('div');
+            emptyAll.className = 'sk-empty todo-empty-all';
+            emptyAll.textContent = 'No todos yet.';
+            list.appendChild(emptyAll);
+        }
+    } else if (staleEmpty) {
+        staleEmpty.remove();
+    }
+    this.renderDependsOptions();
 };
 
 TodoApp.prototype.createTodoElement = function(todo) {
     var div = document.createElement('div');
     div.className = 'todo-item sk-card' + (todo.completed ? ' is-completed' : '');
+    div.setAttribute('data-todo-id', String(todo.id));
+    div.setAttribute('data-todo-title', todo.text);
 
     var priorityColors = {
         urgent: 'var(--sk-err, #ff6b6b)',
@@ -545,10 +631,12 @@ TodoApp.prototype.createTodoElement = function(todo) {
         medium: '📋',
         low: '💡'
     };
+    var safeText = this.escapeHtml(todo.text);
 
     div.innerHTML = `
         <div class="todo-item-row" style="display: flex; align-items: flex-start; gap: 12px;">
-            <input type="checkbox" ${todo.completed ? 'checked' : ''} 
+            <input type="checkbox" class="todo-complete" ${todo.completed ? 'checked' : ''}
+                   aria-label="Mark ${safeText} complete"
                    onchange="window.todoApp.toggleTodo(${todo.id})"
                    style="margin-top: 2px;">
             <div style="flex: 1; min-width: 0;">
@@ -556,15 +644,20 @@ TodoApp.prototype.createTodoElement = function(todo) {
                     <span style="color: ${priorityColors[todo.priority]}; font-size: 14px;">
                         ${priorityIcons[todo.priority]}
                     </span>
-                    <span class="todo-item-title" style="font-weight: 500; ${todo.completed ? 'text-decoration: line-through;' : ''}">${todo.text}</span>
+                    <span class="todo-item-title" style="font-weight: 500; ${todo.completed ? 'text-decoration: line-through;' : ''}">${safeText}</span>
                 </div>
+                <div class="todo-dependency">${this.escapeHtml(this.dependencyText(todo))}</div>
                 <div class="todo-item-meta">
                     Created: ${new Date(todo.createdAt).toLocaleDateString()}
                     ${todo.completedAt ? ' • Completed: ' + new Date(todo.completedAt).toLocaleDateString() : ''}
                 </div>
             </div>
-            <button onclick="window.todoApp.deleteTodo(${todo.id})" class="sk-btn sk-btn-danger"
-                    style="padding: 4px 10px; font-size: 14px; line-height: 1;" title="Delete todo" aria-label="Delete todo">×</button>
+            <div class="todo-item-actions">
+                <button type="button" class="todo-edit-btn sk-btn" onclick="window.todoApp.beginEdit(${todo.id})"
+                        aria-label="Edit ${safeText}">Edit</button>
+                <button type="button" onclick="window.todoApp.deleteTodo(${todo.id})" class="sk-btn sk-btn-danger"
+                        style="padding: 4px 10px; font-size: 14px; line-height: 1;" title="Delete ${safeText}" aria-label="Delete ${safeText}">×</button>
+            </div>
         </div>
     `;
 
@@ -624,6 +717,7 @@ TodoApp.prototype.renderGraph = function() {
 };
 
 TodoApp.prototype.toggleTodo = function(id) {
+    var snapshot = JSON.stringify(this.todos);
     for (var i = 0; i < this.todos.length; i++) {
         if (this.todos[i].id === id) {
             this.todos[i].completed = !this.todos[i].completed;
@@ -635,16 +729,27 @@ TodoApp.prototype.toggleTodo = function(id) {
             break;
         }
     }
-    this.saveTodos();
+    if (!this.saveTodos()) {
+        this.todos = JSON.parse(snapshot);
+        this.showError(this._storageError || 'Local storage is unavailable. Existing tasks were kept.');
+    } else {
+        this.clearError();
+    }
     this.renderTodos();
     this.updateCounts();
 };
 
 TodoApp.prototype.deleteTodo = function(id) {
+    var snapshot = JSON.stringify(this.todos);
     this.todos = this.todos.filter(function(t) {
         return t.id !== id;
     });
-    this.saveTodos();
+    if (!this.saveTodos()) {
+        this.todos = JSON.parse(snapshot);
+        this.showError(this._storageError || 'Local storage is unavailable. Existing tasks were kept.');
+    } else {
+        this.clearError();
+    }
     this.renderTodos();
     this.updateCounts();
 };
@@ -694,6 +799,129 @@ TodoApp.prototype.updateLastUpdated = function() {
     if (lastUpdated) {
         lastUpdated.textContent = new Date().toLocaleTimeString();
     }
+};
+
+TodoApp.prototype.nextTodoId = function() {
+    var maxId = 0;
+    for (var i = 0; i < this.todos.length; i++) {
+        var id = this.todos[i].id;
+        if (typeof id === 'number' && id > maxId) maxId = id;
+    }
+    return maxId + 1;
+};
+
+TodoApp.prototype.findTodoByTitle = function(title) {
+    for (var i = 0; i < this.todos.length; i++) {
+        if (this.todos[i].text === title) return this.todos[i];
+    }
+    return null;
+};
+
+TodoApp.prototype.dependencyText = function(todo) {
+    if (!todo.dependsOnId) {
+        return 'No dependency. Stored in this browser only.';
+    }
+    var dep = null;
+    for (var i = 0; i < this.todos.length; i++) {
+        if (this.todos[i].id === todo.dependsOnId) dep = this.todos[i];
+    }
+    if (!dep) {
+        return 'Dependency id ' + todo.dependsOnId + ' is missing. Stored in this browser only.';
+    }
+    var state = dep.completed ? 'completed' : 'open';
+    return 'Depends on ' + dep.text + ' (id ' + dep.id + ', ' + state + '). This task is id ' + todo.id + '. Stored in this browser only.';
+};
+
+TodoApp.prototype.escapeHtml = function(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+};
+
+TodoApp.prototype.renderDependsOptions = function() {
+    var select = document.querySelector('.todo-depends');
+    if (!select) return;
+    var current = select.value;
+    while (select.firstChild) select.removeChild(select.firstChild);
+    var none = document.createElement('option');
+    none.value = '';
+    none.textContent = 'No dependency';
+    select.appendChild(none);
+    for (var i = 0; i < this.todos.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = this.todos[i].text;
+        opt.textContent = this.todos[i].text;
+        select.appendChild(opt);
+    }
+    if (current) select.value = current;
+};
+
+TodoApp.prototype.showError = function(message) {
+    var el = document.querySelector('.todo-error');
+    if (!el) return;
+    el.hidden = false;
+    el.textContent = message;
+};
+
+TodoApp.prototype.clearError = function() {
+    var el = document.querySelector('.todo-error');
+    if (!el) return;
+    el.hidden = true;
+    el.textContent = '';
+};
+
+TodoApp.prototype.beginEdit = function(id) {
+    var self = this;
+    var row = document.querySelector('[data-todo-id="' + id + '"]');
+    if (!row || row.querySelector('.todo-edit-input')) return;
+    var titleEl = row.querySelector('.todo-item-title');
+    if (!titleEl) return;
+    var current = titleEl.textContent;
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'todo-edit-input sk-input';
+    input.value = current;
+    input.setAttribute('aria-label', 'Edit title for ' + current);
+    titleEl.replaceWith(input);
+    input.focus();
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            self.commitEdit(id, input.value);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            self.renderTodos();
+        }
+    });
+};
+
+TodoApp.prototype.commitEdit = function(id, raw) {
+    var text = (raw || '').trim();
+    if (!text) {
+        this.showError('Title is empty. Existing tasks were kept.');
+        this.renderTodos();
+        return;
+    }
+    var snapshot = JSON.stringify(this.todos);
+    var found = false;
+    for (var i = 0; i < this.todos.length; i++) {
+        if (this.todos[i].id === id) {
+            this.todos[i].text = text;
+            found = true;
+            break;
+        }
+    }
+    if (!found) return;
+    if (!this.saveTodos()) {
+        this.todos = JSON.parse(snapshot);
+        this.showError(this._storageError || 'Local storage is unavailable. Existing tasks were kept.');
+    } else {
+        this.clearError();
+    }
+    this.renderTodos();
+    this.updateCounts();
 };
 
 // Real local voice input via the browser SpeechRecognition API. Honestly

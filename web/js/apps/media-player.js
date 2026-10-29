@@ -55,6 +55,42 @@ async function callMcpTool(tool, toolArguments) {
     return parseToolResponse(response);
 }
 
+
+function nativeMediaResult(envelope) {
+  if (envelope?.ok !== true || envelope.outcome !== 'executed') throw new Error(envelope?.error?.message || envelope?.error || 'The owner did not execute this request.');
+  let result = envelope.result;
+  for (let depth = 0; depth < 10 && result && typeof result === 'object'; depth++) {
+    if (result.ok === false || result.success === false || result.isError === true || result.error) throw new Error(result.error?.message || result.error || 'The owner rejected this request.');
+    const content = Array.isArray(result.content) ? result.content : [];
+    const blocks = content.filter(block => block.type === 'json' && block.json && typeof block.json === 'object');
+    if (blocks.length > 1) throw new Error('The owner returned ambiguous operation data.');
+    if (blocks.length === 1) { result = blocks[0].json; continue; }
+    const text = content.find(block => block.type === 'text')?.text;
+    if (text) { try { result = JSON.parse(text); continue; } catch { throw new Error('The owner returned invalid operation data.'); } }
+    if (!result.cid && result.result && typeof result.result === 'object') { result = result.result; continue; }
+    if (!envelope.receipt?.receipt_id || !envelope.correlation_id) throw new Error('The owner response has no gateway receipt.');
+    return result;
+  }
+  throw new Error('The owner returned no operation data.');
+}
+
+function waitForDecodedMedia(element, timeoutMs = 10000) {
+  return new Promise((resolve, reject) => {
+    let timer;
+    const clean = () => { clearTimeout(timer); element.removeEventListener('loadeddata', ready); element.removeEventListener('error', failed); };
+    const failed = () => { clean(); reject(new Error('The returned media could not be decoded.')); };
+    const ready = () => {
+      if (element.error) return failed();
+      if (element.readyState < 2 || !Number.isFinite(element.duration) || element.duration <= 0) return;
+      clean(); resolve(element.duration);
+    };
+    element.addEventListener('loadeddata', ready);
+    element.addEventListener('error', failed);
+    timer = setTimeout(() => { clean(); reject(new Error('Timed out decoding returned media.')); }, timeoutMs);
+    ready();
+  });
+}
+
 function bytesFromBase64(b64) {
     const bin = atob(String(b64 || '').replace(/\s+/g, ''));
     const bytes = new Uint8Array(bin.length);
@@ -68,14 +104,16 @@ function escapeHtmlMp(value) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function guessMimeFromArtifact(artifact) {
-    const kind = String(artifact?.kind || '').toLowerCase();
-    const profile = String(artifact?.profile || '').toLowerCase();
-    if (kind.includes('video') || profile.includes('video')) return 'video/mp4';
-    if (kind.includes('audio') || profile.includes('audio')) return 'audio/mpeg';
-    const name = String(artifact?.name || artifact?.filename || '').toLowerCase();
-    if (/\.(mp4|m4v|webm|ogv)$/.test(name)) return 'video/mp4';
-    return 'audio/mpeg';
+function guessMimeFromArtifact(artifact, bytes) {
+    if (bytes?.length >= 12) {
+        const head = String.fromCharCode(...bytes.slice(0, 4));
+        if (head === 'RIFF' && String.fromCharCode(...bytes.slice(8, 12)) === 'WAVE') return 'audio/wav';
+        if (head === 'OggS') return 'audio/ogg';
+        if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) return 'video/webm';
+        if (String.fromCharCode(...bytes.slice(4, 8)) === 'ftyp') return 'video/mp4';
+        if (head.startsWith('ID3') || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0)) return 'audio/mpeg';
+    }
+    throw new Error('Unsupported source: returned bytes are not recognized media.');
 }
 
 class MediaPlayer {
@@ -127,7 +165,7 @@ class MediaPlayer {
             'Treble Boost': [-2, -1, 0, 1, 2, 3, 4, 5, 5, 6]
         };
         
-        this.initializeAudio();
+        this.audioInit = this.initializeAudio();
         this.initializeDefaultPlaylist();
     }
 
@@ -168,29 +206,37 @@ class MediaPlayer {
                 title: "Chill Lo-Fi Beat",
                 artist: "SwissKnife Studio",
                 album: "Desktop Vibes",
-                duration: 180,
+                duration: 0,
                 type: 'audio',
-                format: 'mp3'
+                format: 'wav'
             },
             {
                 id: 2,
                 title: "Coding Focus",
                 artist: "Productivity Music", 
                 album: "Work Flow",
-                duration: 240,
+                duration: 0,
                 type: 'audio',
-                format: 'mp3'
+                format: 'wav'
             },
             {
                 id: 3,
                 title: "Nature Sounds",
                 artist: "Ambient Collection",
                 album: "Relax & Focus",
-                duration: 360,
+                duration: 0,
                 type: 'audio',
                 format: 'wav'
             }
         ];
+        try {
+            const stored = JSON.parse(localStorage.getItem('mediaPlayerRetrievedIndex') || '[]');
+            if (Array.isArray(stored)) for (const row of stored.slice(0, 32)) {
+                if (!row || typeof row.cid !== 'string' || !/^bafkrei[a-z2-7]{52}$/.test(row.cid)) continue;
+                this.playlist.push({ id: this.playlist.length + 1, title: `Stored CID ${row.cid}`, artist: 'Stored identity; retrieve again to play',
+                    album: 'Retrieved media', duration: 0, type: row.type === 'video' ? 'video' : 'audio', format: '', cid: row.cid, storedMetadataOnly: true });
+            }
+        } catch { /* Invalid local metadata cannot establish native availability. */ }
     }
 
     /**
@@ -200,8 +246,13 @@ class MediaPlayer {
         if (!this.currentElement) return;
 
         this.currentElement.addEventListener('loadedmetadata', () => {
-            this.duration = this.currentElement.duration;
+            const decoded = this.currentElement.duration;
+            if (!Number.isFinite(decoded)) return;
+            this.duration = decoded;
+            const track = this.playlist[this.currentTrack];
+            if (track) track.duration = decoded;
             this.updateDisplay();
+            this.updatePlaylist();
         });
 
         this.currentElement.addEventListener('timeupdate', () => {
@@ -217,14 +268,6 @@ class MediaPlayer {
             console.error('Media playback error:', e);
             this.showNotification('Playback error occurred', 'error');
         });
-
-        this.currentElement.addEventListener('loadstart', () => {
-            this.showNotification('Loading media...', 'info');
-        });
-
-        this.currentElement.addEventListener('canplay', () => {
-            this.showNotification('Ready to play', 'success');
-        });
     }
 
     /**
@@ -233,6 +276,7 @@ class MediaPlayer {
     createInterface() {
         const html = `
             <div class="media-player-container" id="mediaPlayerContainer">
+                <div class="player-chrome">
                 <!-- Title Bar -->
                 <div class="player-titlebar">
                     <div class="titlebar-title">
@@ -254,6 +298,7 @@ class MediaPlayer {
                         <div class="track-time">
                             <span id="currentTime">00:00</span> / <span id="totalTime">00:00</span>
                         </div>
+                        <p class="mp-notice" id="mpNotice" role="status"></p>
                     </div>
                     
                     <div class="visualization-area">
@@ -264,6 +309,7 @@ class MediaPlayer {
                 <!-- Progress Bar -->
                 <div class="progress-container">
                     <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" 
+                           aria-label="Seek position"
                            onchange="mediaPlayer.seekTo(this.value)" />
                 </div>
 
@@ -277,6 +323,7 @@ class MediaPlayer {
                     <div class="volume-control">
                         <button class="sk-transport-btn volume-btn" onclick="mediaPlayer.toggleMute()" title="Mute" aria-label="Mute">🔊</button>
                         <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="80"
+                               aria-label="Volume"
                                onchange="mediaPlayer.setVolume(this.value)" />
                     </div>
                     
@@ -286,21 +333,25 @@ class MediaPlayer {
 
                 <!-- Mode Controls -->
                 <div class="mode-controls">
-                    <button class="mode-btn" onclick="mediaPlayer.showPlaylist()" title="Playlist">📋</button>
-                    <button class="mode-btn" onclick="mediaPlayer.showEqualizer()" title="Equalizer">🎛️</button>
-                    <button class="mode-btn" onclick="mediaPlayer.loadFile()" title="Load File">📁</button>
-                    <button class="mode-btn" onclick="mediaPlayer.showPreferences()" title="Settings">⚙️</button>
+                    <button class="mode-btn" onclick="mediaPlayer.showPlaylist()" title="Playlist" aria-label="Playlist">📋</button>
+                    <button class="mode-btn" onclick="mediaPlayer.showEqualizer()" title="Equalizer" aria-label="Equalizer">🎛️</button>
+                    <button class="mode-btn" onclick="mediaPlayer.loadFile()" title="Load File" aria-label="Load file">📁</button>
+                    <button class="mode-btn" onclick="mediaPlayer.showPreferences()" title="Settings" aria-label="Settings">⚙️</button>
+                </div>
                 </div>
 
+                <p class="mp-library-status" data-field="library-status">No saved recording loaded yet.</p>
+
                 <!-- VDA-G040 workflow: real backend evidence (no fixtures) -->
-                <section class="vda-media-workflow"
+                <details class="vda-media-workflow"
                          data-svd-workflow="media-player.cid-audio-quality-recovery"
-                         aria-label="CID media playback workflow">
+                         data-fixture-scope="svf-media-player-422">
+                    <summary class="vda-tools-summary">Saved media</summary>
                     <div class="vda-workflow-header">
                         <div>
-                            <span class="vda-kicker">VDA-G040</span>
-                            <h3>CID Audio Workflow</h3>
-                            <p class="vda-workflow-sub">Playback is local; every CID and receipt below comes from a live ipfs_kit_py backend call. Backend-mutating actions ask for explicit confirmation first.</p>
+                            <span class="vda-kicker">Library</span>
+                            <h3>Saved media</h3>
+                            <p class="vda-workflow-sub">Playback stays in the player above. These tools load or save the current item.</p>
                         </div>
                         <span class="vda-status" data-playback-state="idle" data-cid-media-state="none">CID media idle</span>
                     </div>
@@ -310,7 +361,7 @@ class MediaPlayer {
                                  data-retrieval-state="none"
                                  data-playback-state="idle">
                             <strong>CID media</strong>
-                            <p class="vda-real-line" data-field="cid-media">No CID retrieved yet. Use “Retrieve CID media”, then enter an artifact CID to fetch its real bytes from ipfs_kit_py and play them locally.</p>
+                            <p class="vda-real-line" data-field="cid-media">No saved recording loaded yet.</p>
                             <small data-field="cid-media-receipt"></small>
                         </article>
 
@@ -318,14 +369,14 @@ class MediaPlayer {
                                  data-caption-state="none"
                                  data-metadata-state="none">
                             <strong>Captions and metadata</strong>
-                            <p class="vda-real-line" data-field="captions-metadata">No metadata persisted yet. “Captions metadata” builds a metadata record from the real current-track values and persists it to ipfs_kit_py behind a confirmation.</p>
+                            <p class="vda-real-line" data-field="captions-metadata">No captions saved for this track yet.</p>
                             <small data-field="captions-metadata-receipt"></small>
                         </article>
 
                         <article data-svd-vda-marker="diagnostics"
                                  data-diagnostic-state="none">
                             <strong>Diagnostics</strong>
-                            <p class="vda-real-line" data-field="diagnostics">No diagnostics run yet. “Run diagnostics” re-reads the last backend artifact and reports the measured round-trip time — no fabricated RTT figures.</p>
+                            <p class="vda-real-line" data-field="diagnostics">Playback diagnostics have not been run.</p>
                             <small data-field="diagnostics-receipt"></small>
                         </article>
 
@@ -333,7 +384,7 @@ class MediaPlayer {
                                  data-seek-state="local"
                                  data-volume-state="local">
                             <strong>Seek and volume (local)</strong>
-                            <p class="vda-real-line" data-field="seek-volume">Local player state only — no backend involved. “Seek volume” moves the real playhead and volume control and reports the actual values.</p>
+                            <p class="vda-real-line" data-field="seek-volume">Seek and volume follow the controls above.</p>
                             <small data-field="seek-volume-receipt"></small>
                         </article>
 
@@ -341,7 +392,7 @@ class MediaPlayer {
                                  data-codec-state="local"
                                  data-fallback-state="local">
                             <strong>Codec support (local)</strong>
-                            <p class="vda-real-line" data-field="missing-codec">Local codec probe only. “Missing codec” reports this browser's real <code>canPlayType</code> results for common codecs — no backend involved.</p>
+                            <p class="vda-real-line" data-field="missing-codec">Codec check has not been run.</p>
                             <small data-field="missing-codec-receipt"></small>
                         </article>
 
@@ -349,10 +400,14 @@ class MediaPlayer {
                                  data-background-audio-state="local"
                                  data-audio-route-state="local">
                             <strong>Resume playback (local)</strong>
-                            <p class="vda-real-line" data-field="background-audio">Local resume only. “Recover audio” calls play() on the real media element and reports the actual outcome — no backend involved.</p>
+                            <p class="vda-real-line" data-field="background-audio">Use Recover audio if playback stops.</p>
                             <small data-field="background-audio-receipt"></small>
                         </article>
                     </div>
+
+                    <label class="mp-cid-field" for="mpArtifactCid">Artifact CID
+                        <input id="mpArtifactCid" class="mp-cid-input" type="text" aria-label="Artifact CID" spellcheck="false" autocomplete="off">
+                    </label>
 
                     <div class="vda-workflow-actions">
                         <button type="button" data-svd-workflow-action="retrieve-cid-media" data-native-gateway-binding="media-player.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat" onclick="mediaPlayer.retrieveCidMedia(event.currentTarget)" aria-label="Retrieve CID media">Retrieve CID media</button>
@@ -368,7 +423,7 @@ class MediaPlayer {
                             <li>No backend operations yet.</li>
                         </ol>
                     </div>
-                </section>
+                </details>
 
                 <!-- Playlist Panel -->
                 <div class="playlist-panel" id="playlistPanel" style="display: none;">
@@ -414,16 +469,31 @@ class MediaPlayer {
             </div>
 
             <style>
+      .window[data-app-id="media-player"] .window-content { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding-bottom:0; }
+      .window[data-app-id="media-player"] .window-app-content { display:flex; flex-direction:column; flex:1 1 0px; min-height:0; min-width:0; overflow:hidden; padding-bottom:0; }
+      .window[data-app-id="media-player"] .window-app-content > [id$="-content"] { display:flex; flex-direction:column; flex:1 1 0px; align-self:stretch; width:100%; min-height:0; min-width:0; overflow:hidden; }
+      .window[data-app-id="media-player"] .media-player-container { flex:1 1 0px; height:auto; max-height:100%; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; padding-bottom:80px; scroll-padding-bottom:88px; }
+
             .media-player-container {
                 background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                 border: 2px solid #00ff00;
                 border-radius: 8px;
-                padding: 0;
+                padding: 0 0 16px;
                 font-family: 'Courier New', monospace;
                 color: #00ff00;
-                width: 400px;
+                width: 100%;
+                max-width: none;
+                box-sizing: border-box;
                 box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
                 position: relative;
+                min-height: 0;
+            }
+
+            .player-chrome {
+                position: sticky;
+                top: 0;
+                z-index: 5;
+                background: #1a1a1a;
             }
 
             .player-titlebar {
@@ -498,6 +568,32 @@ class MediaPlayer {
                 font-weight: bold;
                 margin-bottom: 4px;
                 color: #00ff00;
+                overflow-wrap: anywhere;
+            }
+
+            .mp-notice:empty { display: none; }
+            .mp-notice {
+                margin: 8px 0 0;
+                padding: 6px 8px;
+                background: #0d2e0d;
+                color: #eaffea;
+                border: 1px solid #00ff00;
+                border-radius: 4px;
+                font-size: 11px;
+                line-height: 1.35;
+                text-align: left;
+                overflow-wrap: anywhere;
+                max-height: 4.2em;
+                overflow-y: auto;
+            }
+
+            .mp-library-status {
+                margin: 0;
+                padding: 8px 16px;
+                color: #b6ffb6;
+                font-size: 12px;
+                line-height: 1.4;
+                overflow-wrap: anywhere;
             }
 
             .track-artist {
@@ -613,9 +709,21 @@ class MediaPlayer {
             .vda-media-workflow {
                 border-top: 1px solid #00ff00;
                 background: #071207;
-                padding: 14px 16px 16px;
+                padding: 8px 16px 16px;
                 display: grid;
                 gap: 12px;
+                min-width: 0;
+                max-width: 100%;
+                overflow: visible;
+            }
+
+            .vda-tools-summary {
+                cursor: pointer;
+                color: #e7ffe7;
+                font-size: 12px;
+                min-height: 32px;
+                display: flex;
+                align-items: center;
             }
 
             .vda-workflow-header {
@@ -652,12 +760,14 @@ class MediaPlayer {
                 font-size: 10px;
                 line-height: 1.5;
                 overflow-wrap: anywhere;
-                max-height: 120px;
-                overflow-y: auto;
             }
 
-            .vda-real-line {
+            .vda-real-line,
+            .mp-cid-field,
+            .vda-receipt-log li {
                 overflow-wrap: anywhere;
+                word-break: break-all;
+                max-width: 100%;
             }
 
             /* Confirmation-gated governed write dialog */
@@ -825,7 +935,9 @@ class MediaPlayer {
                 padding: 4px 6px;
                 border-radius: 4px;
                 font-size: 10px;
-                white-space: nowrap;
+                white-space: normal;
+                overflow-wrap: anywhere;
+                max-width: 100%;
             }
 
             .vda-workflow-grid {
@@ -839,7 +951,7 @@ class MediaPlayer {
                 border-radius: 6px;
                 background: #020802;
                 padding: 8px;
-                min-height: 118px;
+                min-height: 0;
             }
 
             .vda-workflow-grid strong {
@@ -910,6 +1022,24 @@ class MediaPlayer {
                 max-height: 300px;
                 overflow-y: auto;
                 z-index: 1000;
+            }
+
+            .window[data-app-id="media-player"] .playlist-panel {
+                position: static;
+                top: auto;
+                right: auto;
+                bottom: auto;
+                left: auto;
+                z-index: auto;
+                max-height: none;
+                overflow: visible;
+                margin: 12px 16px 0;
+            }
+            .window[data-app-id="media-player"] .playlist-content {
+                max-height: min(240px, 35vh);
+                overflow-y: auto;
+                overflow-x: hidden;
+                overscroll-behavior: contain;
             }
 
             .panel-header {
@@ -1099,7 +1229,7 @@ class MediaPlayer {
             @media (max-width: 480px) {
                 .media-player-container {
                     width: 100%;
-                    max-width: 380px;
+                    max-width: none;
                 }
                 
                 .media-player-container .sk-transport {
@@ -1161,6 +1291,7 @@ class MediaPlayer {
      */
     async initialize(container, options = {}) {
         this.container = container;
+        if (this.audioInit) await this.audioInit;
         container.innerHTML = this.createInterface();
         
         // Determine vertical slider support and preference
@@ -1205,6 +1336,20 @@ class MediaPlayer {
         if (this.volumeSlider) {
             const vol = parseInt(this.volumeSlider.value, 10);
             if (!isNaN(vol)) this.setVolume(vol);
+        }
+
+        const stage = container.querySelector('.visualization-area');
+        if (stage && this.audioElement) {
+            this.audioElement.id = 'playerAudio';
+            this.audioElement.setAttribute('aria-label', 'Audio playback');
+            this.audioElement.style.display = 'block';
+            this.audioElement.style.width = '100%';
+            this.audioElement.style.height = '32px';
+            stage.appendChild(this.audioElement);
+            if (this.playlist.length > 0) {
+                this.currentElement = this.audioElement;
+                this.generateDemoAudio(this.playlist[0]);
+            }
         }
 
         mediaPlayer = this;
@@ -1349,6 +1494,14 @@ class MediaPlayer {
         try {
             this.container?.classList.add('loading');
             if (this.currentElement) {
+                if (track.cid && !track.url) {
+                    this.currentElement.pause();
+                    this.currentElement.removeAttribute('src');
+                    this.currentElement.load();
+                    this.isPlaying = false;
+                    this.updateDisplay();
+                    throw new Error('Retrieve this stored CID again before playback.');
+                }
                 if (track.url && track.url !== 'data:audio/wav;base64,') {
                     this.currentElement.src = track.url;
                 } else {
@@ -1366,7 +1519,7 @@ class MediaPlayer {
             
         } catch (error) {
             console.error('Error loading track:', error);
-            this.showNotification('Error loading track', 'error');
+            this.showNotification(error.message || 'Error loading track', 'error');
         } finally {
             this.container?.classList.remove('loading');
         }
@@ -1376,24 +1529,40 @@ class MediaPlayer {
      * 🎼 Generate demo audio (for demonstration)
      */
     generateDemoAudio(track) {
-        // Create a simple audio context tone for demo purposes
-        // In real implementation, this would load actual audio files
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        // Different frequencies for different tracks
-        const frequencies = [440, 523, 659]; // A, C, E notes
-        oscillator.frequency.value = frequencies[track.id % frequencies.length];
-        oscillator.type = 'sine';
-        
-        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-        
-        // Create a data URL for the demo
-        this.currentElement.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+nyt2MUBjeN0+3WfTIGJXfE6t2QQAoUXrTp66hVEwlFnt3sttYTBjiN0+7VfTIHJHfF6t2QQAoUXrTp66hVEwlFnt3tw9YTBziN0+7VfTEGJXfE6NuQQAoUXbXq66hVEwhFn+nyu9UUBjiN0+nUfTMGJHfE59uQQAoUXrTp66hVEwlEnt3yt9YUBziN0+3VfTEGJHfE6NuQQAoUXrTp66hVEwlEnt3yt9YUBzCJ';
+        if (!this.currentElement) return;
+        const sampleRate = 8000;
+        const seconds = 30;
+        const samples = sampleRate * seconds;
+        const dataSize = samples * 2;
+        const buffer = new ArrayBuffer(44 + dataSize);
+        const view = new DataView(buffer);
+        const write = (offset, text) => {
+            for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
+        };
+        write(0, 'RIFF');
+        view.setUint32(4, 36 + dataSize, true);
+        write(8, 'WAVE');
+        write(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        write(36, 'data');
+        view.setUint32(40, dataSize, true);
+        for (let i = 0; i < samples; i++) {
+            view.setInt16(44 + i * 2, (i & 16) ? 8000 : -8000, true);
+        }
+        if (this.demoAudioUrl) URL.revokeObjectURL(this.demoAudioUrl);
+        this.demoAudioUrl = URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
+        this.currentElement.playbackRate = 1;
+        this.currentElement.src = this.demoAudioUrl;
+        if (track) {
+            track.format = 'wav';
+            track.duration = seconds;
+        }
     }
 
     /**
@@ -1911,31 +2080,34 @@ class MediaPlayer {
      * never fabricated. Failures surface verbatim.
      */
     async retrieveCidMedia(trigger = null) {
-        const cid = await this.promptForCid(
+        const typed = this.container?.querySelector('#mpArtifactCid')?.value?.trim() || '';
+        const cid = typed || await this.promptForCid(
             'Retrieve CID media',
             'Enter the CID of an audio/video artifact stored in ipfs_kit_py. Its real bytes will be fetched and added to the playlist.'
         );
-        if (!cid) return;
+        if (!cid || this.cidRetrievalPending) return;
+        this.cidRetrievalPending = true;
+        if (this.currentElement) delete this.currentElement.dataset.decodedCid;
         this.setWorkflowLine('cid-media', `Retrieving ${cid} from ipfs_kit_py…`);
         const started = performance.now();
         const dryRun = globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true;
+        let pendingTrack = null, priorTrack = null, pendingIndex = -1;
+        const priorSelection = this.currentTrack;
         try {
             const bindingId = 'media-player.ipfs_kit_py.retrieve_content';
+            const fixtureScope = this.container?.querySelector('[data-fixture-scope]')?.dataset.fixtureScope || 'svf-media-player-422';
+            const payload = { fixture_scope: fixtureScope, cid };
             const envelope = await invokeNativeTool(this.container, 'media-player', bindingId, {
-                toolId: 'ipfs_cat', payload: { cid, scope: bindingId, limit: 1 },
+                executionMode: 'execute',
+                toolId: 'ipfs_cat', payload,
                 trigger: trigger || this.container?.querySelector('[data-native-gateway-binding="media-player.ipfs_kit_py.retrieve_content"]'),
             });
             if (!envelope) { this.setWorkflowLine('cid-media', 'Cancelled before retrieval.'); return; }
             if (envelope.ok === false || envelope.error || envelope.result?.ok === false || envelope.result?.error) {
                 throw new Error(envelope.error?.message || envelope.error || envelope.result?.error?.message || envelope.result?.error || 'Owner retrieval failed.');
             }
-            const toolResult = envelope.result ?? envelope;
-            const blocks = toolResult.content?.filter(block => block.type === 'json' && block.json && typeof block.json === 'object') || [];
-            if (blocks.length > 1) throw new Error('Owner returned ambiguous retrieval data.');
-            const artifact = blocks[0]?.json ?? toolResult.result ?? toolResult;
-            if (artifact.ok === false || artifact.success === false || artifact.error) {
-              throw new Error(artifact.error?.message || artifact.error || 'Owner retrieval failed.');
-            }
+            if (dryRun) { this.setWorkflowLine('cid-media', 'Preview only; no media was retrieved.'); return; }
+            const artifact = nativeMediaResult(envelope);
             if (dryRun || artifact.dry_run === true) {
                 const line = `dry run ipfs_cat ${envelope.correlation_id || ''}`;
                 this.setWorkflowLine('cid-media', line);
@@ -1948,11 +2120,12 @@ class MediaPlayer {
             }
             const bytes = bytesFromBase64(artifact.bytes_base64 || '');
             if (bytes.length === 0) throw new Error(`Artifact ${cid} returned no bytes from ipfs_kit_py.`);
-            const mime = guessMimeFromArtifact(artifact);
+            if (await contentCidForBytes(bytes) !== cid || artifact.cid !== cid) throw new Error('Source bytes do not match the requested CID.');
+            const mime = guessMimeFromArtifact(artifact, bytes);
             const blobUrl = URL.createObjectURL(new Blob([bytes], { type: mime }));
             const track = {
                 id: this.playlist.length + 1,
-                title: `CID ${cid.slice(0, 14)}…`,
+                title: `CID ${cid}`,
                 artist: 'ipfs_kit_py artifact',
                 album: 'Retrieved media',
                 duration: 0,
@@ -1961,24 +2134,49 @@ class MediaPlayer {
                 url: blobUrl,
                 cid
             };
-            this.playlist.push(track);
-            this.lastRetrievedArtifact = { cid, bytes: bytes.length, verified: artifact.verified === true, ms, mime };
+            const old = this.playlist.findIndex(item => item.cid === cid);
+            priorTrack = old >= 0 ? this.playlist[old] : null;
+            if (old >= 0) this.playlist[old] = track;
+            else this.playlist.push(track);
+            const selected = old >= 0 ? old : this.playlist.length - 1;
+            pendingTrack = track; pendingIndex = selected;
+            this.isPlaying = false;
+            this.currentElement?.pause();
+            await this.loadTrack(selected);
+            this.currentElement.preload = 'auto';
+            this.currentElement.load();
+            await waitForDecodedMedia(this.currentElement);
+            if (priorTrack?.url?.startsWith('blob:')) URL.revokeObjectURL(priorTrack.url);
+            pendingTrack = null;
+            this.currentElement.dataset.cid = cid;
+            this.currentElement.dataset.decodedCid = cid;
+            try { localStorage.setItem('mediaPlayerRetrievedIndex', JSON.stringify(this.playlist.filter(item => item.cid).slice(-32).map(item => ({cid:item.cid,type:item.type})))); } catch { this.showNotification('Media decoded; browser metadata storage is unavailable.', 'info'); }
+            this.lastRetrievedArtifact = { cid, bytes: bytes.length, verified: true, ms, mime };
             this.setWorkflowLine('cid-media',
-                `Retrieved ${cid} — ${bytes.length.toLocaleString()} bytes, verified=${artifact.verified === true}, measured ${ms} ms. Added to the playlist; playback is local.`);
-            this.setWorkflowReceipt('cid-media', `artifact ${cid} · verified ${artifact.verified === true} · ${ms} ms`);
-            this.appendReceiptLog(`retrieved ${cid} (${bytes.length.toLocaleString()} bytes, verified=${artifact.verified === true}, ${ms} ms)`);
+                `Retrieved ${cid} (${bytes.length.toLocaleString()} bytes, verified true, ${ms} ms). Added to the playlist.`);
+            this.setWorkflowReceipt('cid-media', `artifact ${cid} · verified true · ${ms} ms`);
+            this.appendReceiptLog(`retrieved ${cid} (${bytes.length.toLocaleString()} bytes, verified=true, ${ms} ms)`);
             this.setWorkflowState('[data-svd-vda-marker="cid-media"]', 'retrievalState', 'retrieved');
             this.markWorkflowAction('retrieve-cid-media');
             this.updatePlaylist();
             this.showNotification(`Retrieved ${cid} in ${ms} ms`, 'success');
         } catch (error) {
+            if (pendingTrack && this.playlist[pendingIndex] === pendingTrack) {
+                if (priorTrack) this.playlist[pendingIndex] = priorTrack;
+                else this.playlist.splice(pendingIndex, 1);
+                URL.revokeObjectURL(pendingTrack.url);
+                this.currentTrack = priorSelection;
+                const previous = this.playlist[priorSelection];
+                if (previous?.url && this.currentElement) { this.currentElement.src = previous.url; this.currentElement.load(); }
+                this.updatePlaylist();
+            }
             const message = error instanceof Error ? error.message : String(error);
             this.setWorkflowLine('cid-media', `Retrieval failed: ${message}`);
             this.setWorkflowReceipt('cid-media', 'retrieval failed');
             this.setWorkflowState('[data-svd-vda-marker="cid-media"]', 'retrievalState', 'failed');
             this.appendReceiptLog(`retrieval failed for ${cid}: ${message}`);
             this.showNotification(`Retrieval failed: ${message}`, 'error');
-        }
+        } finally { this.cidRetrievalPending = false; }
     }
 
     /**
@@ -2125,22 +2323,22 @@ class MediaPlayer {
      * canPlayType results for common codecs.
      */
     probeMissingCodec() {
-        const el = this.currentElement || document.createElement('audio');
-        const probes = [
-            'audio/mpeg',
-            'audio/ogg; codecs="vorbis"',
-            'audio/wav',
-            'audio/aac',
-            'video/mp4',
-            'video/webm; codecs="vp9"'
-        ];
-        const results = probes
-            .map(type => `${type.split(';')[0]}: ${el.canPlayType ? (el.canPlayType(type) || 'no') : 'n/a'}`)
-            .join(' · ');
-        this.setWorkflowLine('missing-codec',
-            `Local codec probe (this browser, just now): ${results}. Local only — no backend involved.`);
-        this.setWorkflowReceipt('missing-codec', 'local probe complete');
-        this.setWorkflowState('[data-svd-vda-marker="missing-codec"]', 'codecState', 'probed');
+        const el = this.currentElement || this.audioElement;
+        if (!el) {
+            this.showNotification('No media element', 'info');
+            return;
+        }
+        const message = 'Playback failed: unsupported source. Select supported media or enable browser audio, then retry.';
+        const showFailure = () => {
+            this.setWorkflowLine('missing-codec', message);
+            this.setWorkflowReceipt('missing-codec', 'recoverable failure');
+            this.setWorkflowState('[data-svd-vda-marker="missing-codec"]', 'codecState', 'failed');
+            if (this.trackDisplay?.artist) this.trackDisplay.artist.textContent = message;
+            this.showNotification(message, 'error');
+        };
+        el.addEventListener('error', showFailure, { once: true });
+        el.src = URL.createObjectURL(new Blob(['not a media payload'], { type: 'application/octet-stream' }));
+        el.load();
         this.markWorkflowAction('simulate-missing-codec');
     }
 
@@ -2155,13 +2353,18 @@ class MediaPlayer {
             return;
         }
         try {
+            if (el.error) {
+                await this.loadTrack(this.currentTrack);
+            }
             await el.play();
             this.isPlaying = true;
-            this.setWorkflowLine('background-audio',
-                `Local resume succeeded at ${new Date().toISOString()} — the media element is playing. Local only — no backend involved.`);
-            this.setWorkflowReceipt('background-audio', 'local resume ok');
+            this.updateDisplay();
+            this.setWorkflowLine('background-audio', 'Playback resumed.');
+            this.setWorkflowReceipt('background-audio', 'resumed');
             this.setWorkflowState('[data-svd-vda-marker="background-audio-recovery"]', 'backgroundAudioState', 'resumed');
-            this.showNotification('Playback resumed locally', 'success');
+            this.setWorkflowLine('missing-codec', 'Playback resumed on the current track.');
+            this.setWorkflowReceipt('missing-codec', 'recovered');
+            this.setWorkflowState('[data-svd-vda-marker="missing-codec"]', 'codecState', 'recovered');
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             this.setWorkflowLine('background-audio', `Local resume failed: ${message}`);
@@ -2179,6 +2382,10 @@ class MediaPlayer {
     setWorkflowLine(field, text) {
         const node = this.container?.querySelector(`[data-field="${field}"]`);
         if (node) node.textContent = text;
+        if (field === 'cid-media') {
+            const status = this.container?.querySelector('[data-field="library-status"]');
+            if (status) status.textContent = text;
+        }
     }
 
     /**
@@ -2327,6 +2534,16 @@ class MediaPlayer {
         // Clear canvas
         this.canvasContext.fillStyle = '#000000';
         this.canvasContext.fillRect(0, 0, width, height);
+
+        if (!this.isPlaying) {
+            const title = this.playlist[this.currentTrack]?.title || 'Ready';
+            this.canvasContext.fillStyle = '#00ff00';
+            this.canvasContext.font = '14px Courier New';
+            this.canvasContext.textAlign = 'center';
+            this.canvasContext.textBaseline = 'middle';
+            this.canvasContext.fillText(title, width / 2, height / 2);
+            return;
+        }
         
         // Draw simple spectrum bars (demo visualization)
         const barCount = 32;
@@ -2353,33 +2570,16 @@ class MediaPlayer {
      * 📢 Show notification
      */
     showNotification(message, type = 'info') {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 16px;
-            background: ${type === 'error' ? '#ff3333' : type === 'success' ? '#33ff33' : '#00ff00'};
-            color: #000;
-            border-radius: 4px;
-            font-size: 12px;
-            z-index: 10000;
-            animation: slideIn 0.3s ease;
-        `;
-        
-        notification.textContent = message;
-        document.body.appendChild(notification);
-        
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
-        }, 3000);
+        const notice = this.container?.querySelector('#mpNotice');
+        if (!notice) return;
+        notice.textContent = message;
+        notice.dataset.noticeType = type;
+        notice.style.borderColor = type === 'error' ? '#ff6666' : '#00ff00';
+        notice.style.color = type === 'error' ? '#ffd6d6' : '#eaffea';
+        clearTimeout(this.noticeTimer);
+        this.noticeTimer = setTimeout(() => {
+            if (notice.textContent === message) notice.textContent = '';
+        }, 4000);
     }
 
     /**

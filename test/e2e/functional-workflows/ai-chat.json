@@ -1,0 +1,170 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "ai-chat",
+  "description": "Retrieve the stored model catalogue, cite its model/revision facts separately from real model continuation, reopen both turns and citation, and recover an unavailable optional context without duplicating the user turn.",
+  "fixture_scope": "svf-ai-chat-grounded-answer",
+  "backend_bindings": [
+    {
+      "binding_id": "ai-chat.ipfs_datasets_py.query_catalog",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/content",
+        "operator": "contains",
+        "expected": "607a30d783dfa663caf39e06633721c8d4cfcd7e"
+      }
+    },
+    {
+      "binding_id": "ai-chat.ipfs_accelerate_py.submit_inference",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 60,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/result/output",
+        "operator": "not_equals",
+        "expected": ""
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "check",
+        "selector": "#ai-chat-reference-enabled"
+      },
+      {
+        "op": "fill",
+        "selector": "#ai-chat-input",
+        "value": "Which model and snapshot are in the stored reference?"
+      },
+      {
+        "op": "press",
+        "selector": "#ai-chat-input",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"ai-chat.ipfs_accelerate_py.submit_inference\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"ai-chat.ipfs_accelerate_py.submit_inference\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": ".message.assistant .message-text",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "text",
+          "selector": ".message.assistant .message-text"
+        },
+        "operator": "contains",
+        "expected": "Model: gpt2; snapshot: 607a30d783dfa663caf39e06633721c8d4cfcd7e"
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "wait_for",
+        "selector": ".message.assistant .chat-reference-link[href=\"ipfs://bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "text",
+          "selector": ".message.assistant .message-text"
+        },
+        "operator": "contains",
+        "expected": "Model: gpt2; snapshot: 607a30d783dfa663caf39e06633721c8d4cfcd7e"
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "check",
+        "selector": "#ai-chat-reference-enabled"
+      },
+      {
+        "op": "check",
+        "selector": "#ai-chat-context-ipfs"
+      },
+      {
+        "op": "fill",
+        "selector": "#ai-chat-input",
+        "value": "Which model and snapshot are in the stored reference?"
+      },
+      {
+        "op": "press",
+        "selector": "#ai-chat-input",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": ".message.error .message-text",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": ".message.error .message-text"
+        },
+        "operator": "contains",
+        "expected": "No verified IPFS content has been selected"
+      },
+      {
+        "op": "uncheck",
+        "selector": "#ai-chat-context-ipfs"
+      },
+      {
+        "op": "press",
+        "selector": "#ai-chat-input",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"ai-chat.ipfs_accelerate_py.submit_inference\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"ai-chat.ipfs_accelerate_py.submit_inference\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": ".message.assistant + .message.assistant .chat-reference-link[href=\"ipfs://bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "count",
+          "selector": ".message.user"
+        },
+        "operator": "equals",
+        "expected": 1
+      }
+    ]
+  }
+}

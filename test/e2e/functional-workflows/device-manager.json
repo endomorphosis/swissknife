@@ -1,0 +1,42 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "device-manager",
+  "description": "Browser device access and owner inspect_hardware stay labeled separately, with retained diagnostic choice after reopen and an unsupported diagnostic that does not claim a scan or benchmark.",
+  "fixture_scope": "svf-device-manager-hw",
+  "backend_bindings": [
+    {
+      "binding_id": "device-manager.ipfs_accelerate_py.inspect_hardware",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 90,
+      "max_output_bytes": 262144,
+      "result_assertion": {
+        "pointer": "/result/result/result/cpu/available",
+        "operator": "equals",
+        "expected": true
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {"op": "wait_for", "selector": "#dm-browser-access", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "#dm-select-supported"},
+      {"op": "click", "selector": "#dm-request-owner"},
+      {"op": "wait_for", "selector": "button[data-gateway-confirm=\"device-manager.ipfs_accelerate_py.inspect_hardware\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "button[data-gateway-confirm=\"device-manager.ipfs_accelerate_py.inspect_hardware\"]"},
+      {"op": "press", "selector": "#dm-browser-access", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#dm-status-line"}, "operator": "contains", "expected": "Owner hardware source: ipfs_accelerate_py"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#dm-retained-selection"}, "operator": "equals", "expected": "Retained selection: inspect_hardware"}
+    ],
+    "failure_recovery": [
+      {"op": "click", "selector": "#dm-select-unsupported"},
+      {"op": "click", "selector": "#dm-request-owner"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#dm-status-line"}, "operator": "contains", "expected": "No scan or benchmark was run."},
+      {"op": "click", "selector": "#dm-select-supported"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#dm-status-line"}, "operator": "contains", "expected": "Supported owner diagnostic selected"}
+    ]
+  }
+}

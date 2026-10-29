@@ -104,6 +104,7 @@ export class CronApp {
   }
 
   async initializeIntegrations() {
+    this.loadSavedTasks();
     try {
       this.swissknife = this.desktop.swissknife;
       
@@ -131,8 +132,16 @@ export class CronApp {
   }
 
   createWindow() {
+    this.loadSavedTasks();
     const content = `
-      <div class="cron-app-container" data-cron-instance="${this.instanceId}">
+      <div class="cron-app-container" data-cron-instance="${this.instanceId}" style="display:flex;flex-direction:column;height:100%;max-height:100%;min-height:0;position:relative;">
+        <style>
+          .cron-app-container .cron-header { flex: 0 0 auto; }
+          .cron-app-container .header-tabs, .cron-app-container .header-controls, .cron-app-container .scheduler-controls, .cron-app-container .filter-section { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+          .cron-app-container .cron-content { flex: 1 1 auto; min-height: 0; overflow: auto; }
+          .cron-app-container .stats-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); gap: 8px; }
+          .cron-app-container .filter-select, .cron-app-container .search-input, .cron-app-container .sk-input { max-width: 100%; min-width: 0; }
+        </style>
         <div class="cron-header">
           <div class="header-tabs">
             <button class="tab-btn ${this.currentView === 'scheduler' ? 'active' : ''}" data-view="scheduler">
@@ -149,10 +158,10 @@ export class CronApp {
             </button>
           </div>
           <div class="header-controls">
-            <button class="control-btn" id="create-task" title="Create Task">➕</button>
-            <button class="control-btn" id="import-tasks" title="Import Tasks">📥</button>
-            <button class="control-btn" id="export-tasks" title="Export Tasks">📤</button>
-            <button class="control-btn" id="cron-settings" title="Settings">⚙️</button>
+            <button class="control-btn" id="create-task" title="Create Task" aria-label="Create task">➕</button>
+            <button class="control-btn" id="import-tasks" title="Import Tasks" aria-label="Import tasks">📥</button>
+            <button class="control-btn" id="export-tasks" title="Export Tasks" aria-label="Export tasks">📤</button>
+            <button class="control-btn" id="cron-settings" title="Settings" aria-label="Scheduler settings">⚙️</button>
           </div>
         </div>
 
@@ -183,10 +192,10 @@ export class CronApp {
                   </div>
                 </div>
                 <div class="stat-card sk-card">
-                  <div class="stat-icon">🔗</div>
+                  <div class="stat-icon">⏸️</div>
                   <div class="stat-content">
-                    <div class="stat-value" id="p2p-tasks">0</div>
-                    <div class="stat-label">P2P Distributed</div>
+                    <div class="stat-value" id="paused-tasks">0</div>
+                    <div class="stat-label">Paused</div>
                   </div>
                 </div>
               </div>
@@ -198,7 +207,7 @@ export class CronApp {
                   <button class="scheduler-btn sk-btn sk-btn-primary" id="run-now" disabled>🚀 Run Now</button>
                 </div>
                 <div class="filter-section">
-                  <select id="task-filter" class="filter-select sk-select">
+                  <select id="task-filter" class="filter-select sk-select" aria-label="Filter tasks">
                     <option value="all">All Tasks</option>
                     <option value="active">Active</option>
                     <option value="paused">Paused</option>
@@ -206,7 +215,7 @@ export class CronApp {
                     <option value="ml">ML Tasks</option>
                     <option value="p2p">P2P Tasks</option>
                   </select>
-                  <input type="text" id="task-search" placeholder="Search tasks..." class="search-input sk-input">
+                  <input type="text" id="task-search" placeholder="Search tasks..." aria-label="Search tasks" class="search-input sk-input">
                 </div>
               </div>
             </div>
@@ -214,7 +223,7 @@ export class CronApp {
             <div class="tasks-list">
               <h3>📋 Scheduled Tasks</h3>
               <div class="tasks-container" id="scheduled-tasks-container">
-                <!-- Scheduled tasks will be populated -->
+                ${this.renderScheduledTasksMarkup()}
               </div>
             </div>
 
@@ -396,7 +405,7 @@ export class CronApp {
                   </div>
                   <div class="form-group" id="cron-expression-group">
                     <label for="task-cron">Cron Expression</label>
-                    <input type="text" id="task-cron" class="sk-input" placeholder="0 0 * * *">
+                    <input type="text" id="task-cron" class="sk-input" placeholder="0 9 * * *" aria-describedby="task-schedule-error">
                     <div class="cron-help">
                       <span>Examples: </span>
                       <button type="button" class="cron-preset" data-cron="0 0 * * *">Daily</button>
@@ -404,6 +413,15 @@ export class CronApp {
                       <button type="button" class="cron-preset" data-cron="0 0 1 * *">Monthly</button>
                     </div>
                   </div>
+                  <div class="form-group" id="once-time-group" hidden>
+                    <label for="task-once">Run at</label>
+                    <input type="datetime-local" id="task-once" class="sk-input">
+                  </div>
+                  <div class="form-group">
+                    <label for="task-timezone">Timezone</label>
+                    <input type="text" id="task-timezone" class="sk-input" value="local" placeholder="local, UTC, or Region/City">
+                  </div>
+                  <p id="task-schedule-error" role="alert" style="display:none;color:var(--sk-danger,#f44336);margin:8px 0 0;"></p>
                 </div>
 
                 <div class="form-section">
@@ -438,8 +456,15 @@ export class CronApp {
             </div>
             <div class="modal-footer">
               <button type="button" class="btn-secondary sk-btn" id="cancel-task">Cancel</button>
-              <button type="submit" class="btn-primary sk-btn sk-btn-primary" form="task-creation-form">Create Task</button>
+              <button type="submit" class="btn-primary sk-btn sk-btn-primary" id="submit-task" form="task-creation-form">Create Task</button>
             </div>
+          </div>
+        </div>
+        <div id="cron-delete-dialog" role="dialog" aria-modal="true" aria-label="Delete schedule" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.45);z-index:20;align-items:center;justify-content:center;">
+          <div class="sk-card" style="padding:16px;max-width:420px;">
+            <p id="cron-delete-copy"></p>
+            <button type="button" class="sk-btn" id="cancel-delete-task">Keep schedule</button>
+            <button type="button" class="sk-btn sk-btn-primary" id="confirm-delete-task">Delete schedule</button>
           </div>
         </div>
       </div>
@@ -469,6 +494,18 @@ export class CronApp {
 
     // Control buttons
     document.addEventListener('click', (e) => {
+      const cronAction = e.target.closest?.('[data-cron-action]');
+      if (cronAction?.closest?.(`.cron-app-container[data-cron-instance="${this.instanceId}"]`)) {
+        e.preventDefault();
+        const taskId = cronAction.dataset.taskId;
+        const action = cronAction.dataset.cronAction;
+        if (action === 'run') this.runTaskNow(taskId);
+        else if (action === 'edit') this.editTask(taskId);
+        else if (action === 'toggle') this.toggleTask(taskId);
+        else if (action === 'delete') this.deleteTask(taskId);
+        else if (action === 'create') this.showTaskCreationModal();
+        return;
+      }
       const buttonHandlers = {
         'create-task': () => this.showTaskCreationModal(),
         'import-tasks': () => this.importTasks(),
@@ -490,7 +527,9 @@ export class CronApp {
         
         // Modal controls
         'close-task-modal': () => this.hideTaskCreationModal(),
-        'cancel-task': () => this.hideTaskCreationModal()
+        'cancel-task': () => this.hideTaskCreationModal(),
+        'confirm-delete-task': () => this.confirmDeleteTask(),
+        'cancel-delete-task': () => this.cancelDeleteTask()
       };
 
       if (buttonHandlers[e.target.id]) {
@@ -526,6 +565,13 @@ export class CronApp {
     document.addEventListener('change', (e) => {
       if (e.target.id === 'task-template') {
         this.updateTemplateFields(e.target.value);
+      }
+      if (e.target.id === 'task-schedule-type') {
+        const isOnce = e.target.value === 'once';
+        const once = document.getElementById('once-time-group');
+        const cron = document.getElementById('cron-expression-group');
+        if (once) once.hidden = !isOnce;
+        if (cron) cron.hidden = isOnce;
       }
     });
 
@@ -598,11 +644,12 @@ export class CronApp {
   }
 
   updateStats() {
+    const tasks = Array.from(this.scheduledTasks.values());
     const stats = {
-      'total-tasks': this.scheduledTasks.size,
+      'total-tasks': tasks.length,
       'running-tasks': this.runningTasks.size,
       'completed-today': this.getCompletedToday(),
-      'p2p-tasks': this.getP2PTasks()
+      'paused-tasks': tasks.filter(task => !task.enabled).length
     };
     
     Object.entries(stats).forEach(([id, value]) => {
@@ -622,9 +669,61 @@ export class CronApp {
     return Array.from(this.scheduledTasks.values()).filter(task => task.enableP2P).length;
   }
 
+  renderScheduledTasksMarkup() {
+    const tasks = Array.from(this.scheduledTasks.values());
+    if (tasks.length === 0) {
+      return `
+        <div class="no-tasks sk-empty">
+          <div class="no-tasks-icon sk-empty-icon">⏰</div>
+          <div class="no-tasks-message">No scheduled tasks</div>
+          <button type="button" class="btn-primary sk-btn sk-btn-primary" data-cron-action="create" aria-label="Create your first task">Create your first task</button>
+        </div>
+      `;
+    }
+    return tasks.map(task => `
+      <div class="task-card ${task.enabled ? 'enabled' : 'disabled'}" data-task-id="${task.id}">
+        <div class="task-header">
+          <div class="task-icon">${this.getTaskIcon(task)}</div>
+          <div class="task-info">
+            <div class="task-name">${task.name}</div>
+            <div class="task-description">${task.description || 'No description'}</div>
+          </div>
+          <div class="task-status">
+            <span class="status-badge status-${task.enabled ? 'enabled' : 'disabled'}">
+              <span class="sk-status-dot ${task.enabled ? 'is-ok' : 'is-idle'}"></span>
+              ${task.enabled ? 'Active' : 'Paused'}
+            </span>
+          </div>
+        </div>
+        <div class="task-details">
+          <div class="task-schedule">
+            <span class="schedule-icon">⏰</span>
+            <span class="schedule-text">${this.formatSchedule(task.schedule)} · ${task.timezone || 'local'}</span>
+          </div>
+          <div class="task-next-run">
+            <span class="next-run-icon">🕐</span>
+            <span class="next-run-text">${task.enabled ? 'Active' : 'Paused'} · Next: ${this.getNextRunTime(task)} · browser-local timer</span>
+          </div>
+        </div>
+        <div class="task-actions">
+          <button type="button" class="task-btn" data-cron-action="run" data-task-id="${task.id}" title="Run Now" aria-label="Run now">▶️</button>
+          <button type="button" class="task-btn" data-cron-action="edit" data-task-id="${task.id}" title="Edit" aria-label="Edit schedule">✏️</button>
+          <button type="button" class="task-btn" data-cron-action="toggle" data-task-id="${task.id}" title="${task.enabled ? 'Pause' : 'Resume'}" aria-label="${task.enabled ? 'Pause schedule' : 'Resume schedule'}">
+            ${task.enabled ? '⏸️' : '▶️'}
+          </button>
+          <button type="button" class="task-btn danger" data-cron-action="delete" data-task-id="${task.id}" title="Delete" aria-label="Delete schedule">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
   displayScheduledTasks() {
-    const container = document.getElementById('scheduled-tasks-container');
+    if (this.scheduledTasks.size === 0) this.loadSavedTasks();
+    const container = document.querySelector(`.cron-app-container[data-cron-instance="${this.instanceId}"] #scheduled-tasks-container`);
     if (!container) return;
+    container.innerHTML = this.renderScheduledTasksMarkup();
+    return;
+
     
     const tasks = Array.from(this.scheduledTasks.values());
     
@@ -633,7 +732,7 @@ export class CronApp {
         <div class="no-tasks sk-empty">
           <div class="no-tasks-icon sk-empty-icon">⏰</div>
           <div class="no-tasks-message">No scheduled tasks</div>
-          <button class="btn-primary sk-btn sk-btn-primary" onclick="cronApp.showTaskCreationModal()">Create Your First Task</button>
+          <button type="button" class="btn-primary sk-btn sk-btn-primary" data-cron-action="create" aria-label="Create your first task">Create your first task</button>
         </div>
       `;
       return;
@@ -652,33 +751,27 @@ export class CronApp {
               <span class="sk-status-dot ${task.enabled ? 'is-ok' : 'is-idle'}"></span>
               ${task.enabled ? 'Active' : 'Paused'}
             </span>
-            ${task.enableP2P ? '<span class="p2p-badge">🔗</span>' : ''}
           </div>
         </div>
         
         <div class="task-details">
           <div class="task-schedule">
             <span class="schedule-icon">⏰</span>
-            <span class="schedule-text">${this.formatSchedule(task.schedule)}</span>
+            <span class="schedule-text">${this.formatSchedule(task.schedule)} · ${task.timezone || 'local'}</span>
           </div>
           <div class="task-next-run">
             <span class="next-run-icon">🕐</span>
-            <span class="next-run-text">Next: ${this.getNextRunTime(task)}</span>
+            <span class="next-run-text">${task.enabled ? 'Active' : 'Paused'} · Next: ${this.getNextRunTime(task)} · browser-local timer</span>
           </div>
-          ${task.definitionCid ? `
-          <div class="task-ledger">
-            <span class="ledger-icon">🧾</span>
-            <span class="ledger-text" title="Definition CID in the ipfs_kit_py scheduling ledger">Ledger: ${task.definitionCid.slice(0, 18)}…</span>
-          </div>` : ''}
         </div>
         
         <div class="task-actions">
-          <button class="task-btn" onclick="cronApp.runTaskNow('${task.id}')" title="Run Now">▶️</button>
-          <button class="task-btn" onclick="cronApp.editTask('${task.id}')" title="Edit">✏️</button>
-          <button class="task-btn" onclick="cronApp.toggleTask('${task.id}')" title="${task.enabled ? 'Pause' : 'Resume'}">
+          <button type="button" class="task-btn" data-cron-action="run" data-task-id="${task.id}" title="Run Now" aria-label="Run now">▶️</button>
+          <button type="button" class="task-btn" data-cron-action="edit" data-task-id="${task.id}" title="Edit" aria-label="Edit schedule">✏️</button>
+          <button type="button" class="task-btn" data-cron-action="toggle" data-task-id="${task.id}" title="${task.enabled ? 'Pause' : 'Resume'}" aria-label="${task.enabled ? 'Pause schedule' : 'Resume schedule'}">
             ${task.enabled ? '⏸️' : '▶️'}
           </button>
-          <button class="task-btn danger" onclick="cronApp.deleteTask('${task.id}')" title="Delete">🗑️</button>
+          <button type="button" class="task-btn danger" data-cron-action="delete" data-task-id="${task.id}" title="Delete" aria-label="Delete schedule">🗑️</button>
         </div>
       </div>
     `).join('');
@@ -729,8 +822,8 @@ export class CronApp {
   }
 
   formatSchedule(schedule) {
-    // Convert cron expression to human-readable format
-    const parts = schedule.split(' ');
+    if (typeof schedule === 'string' && schedule.startsWith('once:')) return 'Run once';
+    const parts = String(schedule || '').split(' ');
     if (parts.length !== 5) return schedule;
     
     const [minute, hour, day, month, weekday] = parts;
@@ -745,9 +838,10 @@ export class CronApp {
   }
 
   getNextRunTime(task) {
-    // Real next-run computation for 5-field cron expressions. Returns an
-    // honest "unknown" when the expression cannot be parsed rather than a
-    // placeholder time.
+    if (typeof task.schedule === 'string' && task.schedule.startsWith('once:')) {
+      const when = new Date(task.schedule.slice(5));
+      return Number.isNaN(when.getTime()) ? 'unknown schedule' : when.toLocaleString();
+    }
     const next = this.computeNextCronRun(task.schedule, new Date());
     return next ? next.toLocaleString() : 'unknown schedule';
   }
@@ -1133,6 +1227,13 @@ export class CronApp {
     if (form) {
       form.reset();
     }
+    const errorEl = document.getElementById('task-schedule-error');
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.style.display = 'none';
+    }
+    const timezone = document.getElementById('task-timezone');
+    if (timezone && !timezone.value) timezone.value = 'local';
   }
 
   updateTemplateFields(templateId) {
@@ -1187,27 +1288,65 @@ export class CronApp {
     }
   }
 
+  showScheduleError(message) {
+    const errorEl = document.getElementById('task-schedule-error');
+    if (!errorEl) return;
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+  }
+
   async createTask() {
     const form = document.getElementById('task-creation-form');
     if (!form) return;
-    
-    const formData = new FormData(form);
-    const templateId = document.getElementById('task-template').value;
-    
+    const errorEl = document.getElementById('task-schedule-error');
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.style.display = 'none';
+    }
+
+    const name = (document.getElementById('task-name')?.value || '').trim();
+    const description = document.getElementById('task-description')?.value || '';
+    const templateId = document.getElementById('task-template')?.value || '';
+    const scheduleType = document.getElementById('task-schedule-type')?.value || 'cron';
+    const timezone = (document.getElementById('task-timezone')?.value || '').trim();
+    let schedule = (document.getElementById('task-cron')?.value || '').trim();
+
+    if (!name) {
+      this.showScheduleError('Task name is required.');
+      return;
+    }
+    if (!/^(local|UTC|GMT|[A-Za-z]+(?:\/[A-Za-z_+\-]+)+)$/.test(timezone)) {
+      this.showScheduleError('Ambiguous timezone. Use local, UTC, or a Region/City name.');
+      return;
+    }
+    if (scheduleType === 'once') {
+      const raw = document.getElementById('task-once')?.value || '';
+      const when = raw ? new Date(raw) : null;
+      if (!when || Number.isNaN(when.getTime()) || when.getTime() <= Date.now()) {
+        this.showScheduleError('Past or ambiguous time. Choose a future time.');
+        return;
+      }
+      schedule = `once:${when.toISOString()}`;
+    } else if (!this.parseCronExpression(schedule)) {
+      this.showScheduleError('Invalid schedule expression. Use five cron fields, for example 0 9 * * *.');
+      return;
+    }
+
     const task = {
       id: this.generateTaskId(),
-      name: formData.get('task-name') || document.getElementById('task-name').value,
-      description: formData.get('task-description') || document.getElementById('task-description').value,
-      templateId: templateId,
-      schedule: document.getElementById('task-cron').value,
-      enabled: document.getElementById('task-enabled').checked,
-      enableP2P: document.getElementById('task-p2p').checked,
-      priority: document.getElementById('task-priority').value,
+      name,
+      description,
+      templateId,
+      schedule,
+      timezone,
+      execution: 'browser-local',
+      enabled: document.getElementById('task-enabled')?.checked ?? true,
+      enableP2P: false,
+      priority: document.getElementById('task-priority')?.value || 'normal',
       createdAt: Date.now(),
       fields: {}
     };
-    
-    // Collect template-specific fields
+
     if (templateId) {
       const template = this.taskTemplates.find(t => t.id === templateId);
       if (template) {
@@ -1219,78 +1358,21 @@ export class CronApp {
         });
       }
     }
-    
-    // Save task locally first (always works, even with no backend)
+
     this.scheduledTasks.set(task.id, task);
     this.saveTasks();
-
-    // Persist the job definition to the real backend scheduling ledger
-    // (kit artifacts + event DAG) with the user's explicit confirmation.
-    await this.persistTaskDefinition(task);
-
-    // Hide modal and refresh
     this.hideTaskCreationModal();
-    await this.loadSchedulerData();
-
-    this.showNotification(
-      `Task "${task.name}" created successfully` +
-      (task.definitionCid ? ` — definition CID ${task.definitionCid}` : ' (local only; backend ledger unavailable)'),
-      'success'
-    );
+    this.displayScheduledTasks();
+    this.updateStats();
+    this.showNotification(`Saved browser-local timer "${task.name}"`, 'success');
   }
 
   // Persists the job definition record to ipfs_kit_py (real CID over the real
   // definition bytes) and appends a scheduling event to the event DAG. The
   // user explicitly confirms the backend write; failures surface verbatim and
   // never block the local task.
-  async persistTaskDefinition(task) {
-    let helper;
-    try {
-      helper = await import('./real-artifact.js');
-    } catch (error) {
-      console.warn('Artifact helper unavailable:', error.message);
-      return;
-    }
-    const confirmed = helper.userConfirmsBackendWrite(
-      `Persist the definition of task "${task.name}" to the ipfs_kit_py artifact store and scheduling ledger?`
-    );
-    if (!confirmed) return;
-    try {
-      const definition = {
-        schema: 'swissknife.cron.task-definition.v1',
-        id: task.id,
-        name: task.name,
-        description: task.description || '',
-        templateId: task.templateId || 'custom',
-        schedule: task.schedule,
-        enabled: task.enabled,
-        enableP2P: task.enableP2P,
-        priority: task.priority,
-        fields: task.fields || {},
-        createdAt: new Date(task.createdAt).toISOString()
-      };
-      const persisted = await helper.persistArtifactRecord({
-        record: definition,
-        profile: 'cron-task-definition',
-        kind: 'task-definition'
-      });
-      task.definitionCid = persisted.cid;
-      const appended = await helper.appendDagEvent({
-        event_type: 'cron.task.scheduled',
-        task_id: task.id,
-        task_name: task.name,
-        definition_cid: persisted.cid,
-        schedule: task.schedule,
-        created_at: new Date().toISOString()
-      });
-      task.ledgerEventCid = appended.event_cid;
-      this.scheduledTasks.set(task.id, task);
-      this.saveTasks();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.warn('Task definition persistence failed:', message);
-      this.showNotification(`Task saved locally; backend ledger failed: ${message}`, 'error');
-    }
+  async persistTaskDefinition() {
+    return;
   }
 
   generateTaskId() {
@@ -1367,9 +1449,8 @@ export class CronApp {
     if (templateId === 'system-monitoring') {
       return this.runLocalHealthCheck(task);
     }
-    if (task.enableP2P && this.p2pSystem && typeof this.p2pSystem.dispatchTask === 'function') {
-      const receipt = await this.p2pSystem.dispatchTask(task);
-      return `Dispatched to P2P executor: ${receipt || 'accepted'}`;
+    if (task.enableP2P) {
+      throw new Error('This scheduler is browser-local and does not dispatch P2P or backend jobs.');
     }
     throw new Error(
       `No executor is connected for template "${templateId || 'custom'}" in this session, ` +
@@ -1408,23 +1489,8 @@ export class CronApp {
   // Records the run in the backend scheduling ledger (kit event DAG) when the
   // task definition itself was persisted there. Best-effort: a ledger failure
   // never masks the local history entry, and its message is shown verbatim.
-  async recordTaskRunLedger(task, status, output, startedAt, completedAt) {
-    if (!task.definitionCid) return;
-    try {
-      const { appendDagEvent } = await import('./real-artifact.js');
-      await appendDagEvent({
-        event_type: 'cron.task.run',
-        task_id: task.id,
-        task_name: task.name,
-        definition_cid: task.definitionCid,
-        status,
-        output: String(output).slice(0, 2000),
-        started_at: new Date(startedAt).toISOString(),
-        completed_at: new Date(completedAt).toISOString()
-      });
-    } catch (error) {
-      console.warn('Scheduling ledger append failed:', error.message);
-    }
+  async recordTaskRunLedger() {
+    return;
   }
 
   toggleTask(taskId) {
@@ -1625,7 +1691,7 @@ export class CronApp {
       [
         'Tick interval: 60s (in-browser; schedules fire while the desktop is open)',
         `Tasks: ${this.scheduledTasks.size} defined, ${this.taskHistory.length} history entries kept (max 1000)`,
-        'Backend ledger: task definitions persist to ipfs_kit_py on creation when confirmed.',
+        'Storage: browser-local timers in swissknife-cron-tasks. No backend job ledger.',
         '',
         'Local data lives in the swissknife-cron-tasks browser store.'
       ].join('\n')
@@ -1666,15 +1732,34 @@ export class CronApp {
   deleteTask(taskId) {
     const task = this.scheduledTasks.get(taskId);
     if (!task) return;
-    
-    if (confirm(`Are you sure you want to delete task "${task.name}"?`)) {
-      this.scheduledTasks.delete(taskId);
-      this.saveTasks();
-      this.displayScheduledTasks();
-      this.updateStats();
-      
-      this.showNotification(`Task "${task.name}" deleted`, 'info');
+    this.pendingDeleteId = taskId;
+    const dialog = document.getElementById('cron-delete-dialog');
+    const copy = document.getElementById('cron-delete-copy');
+    if (copy) copy.textContent = `Delete browser-local schedule "${task.name}"? Other schedules stay saved.`;
+    if (dialog) {
+      dialog.style.display = 'flex';
+      document.getElementById('confirm-delete-task')?.focus();
     }
+  }
+
+  confirmDeleteTask() {
+    const taskId = this.pendingDeleteId;
+    const task = taskId ? this.scheduledTasks.get(taskId) : null;
+    this.pendingDeleteId = null;
+    const dialog = document.getElementById('cron-delete-dialog');
+    if (dialog) dialog.style.display = 'none';
+    if (!task) return;
+    this.scheduledTasks.delete(taskId);
+    this.saveTasks();
+    this.displayScheduledTasks();
+    this.updateStats();
+    this.showNotification(`Task "${task.name}" deleted`, 'info');
+  }
+
+  cancelDeleteTask() {
+    this.pendingDeleteId = null;
+    const dialog = document.getElementById('cron-delete-dialog');
+    if (dialog) dialog.style.display = 'none';
   }
 
   useTemplate(templateId) {
@@ -1785,9 +1870,13 @@ export class CronApp {
 
   loadSavedTasks() {
     try {
-      const saved = localStorage.getItem('swissknife-cron-tasks');
-      if (saved) {
-        const data = JSON.parse(saved);
+      let saved = null;
+      try { saved = localStorage.getItem('swissknife-cron-tasks'); } catch (error) { saved = null; }
+      if (!saved) {
+        try { saved = sessionStorage.getItem('swissknife-cron-tasks'); } catch (error) { saved = null; }
+      }
+      const data = saved ? JSON.parse(saved) : (typeof window !== 'undefined' ? window.__swissknifeCronTasks : null);
+      if (data) {
         this.scheduledTasks = new Map(data.tasks || []);
         this.taskHistory = data.history || [];
       }
@@ -1802,7 +1891,10 @@ export class CronApp {
         tasks: Array.from(this.scheduledTasks.entries()),
         history: this.taskHistory.slice(0, 1000) // Keep last 1000 entries
       };
-      localStorage.setItem('swissknife-cron-tasks', JSON.stringify(data));
+      const raw = JSON.stringify(data);
+      try { localStorage.setItem('swissknife-cron-tasks', raw); } catch (error) { /* keep the session copy */ }
+      try { sessionStorage.setItem('swissknife-cron-tasks', raw); } catch (error) { /* ignore */ }
+      if (typeof window !== 'undefined') window.__swissknifeCronTasks = data;
     } catch (error) {
       console.error('Error saving tasks:', error);
     }

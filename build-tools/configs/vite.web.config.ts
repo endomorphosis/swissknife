@@ -523,14 +523,21 @@ async function ownerToolNames(endpoints: Record<string, string>): Promise<{
   return { availableTools, discoveryUnavailable }
 }
 
-function safeDesktopPayload(toolId: string, capabilityId: string, appId = ''): Readonly<Record<string, unknown>> {
+export function safeDesktopPayload(toolId: string, capabilityId: string, appId = ''): Readonly<Record<string, unknown>> {
   if (toolId === 'tools_get_schema') return { name: 'tools_list_categories' }
   if (toolId === 'tools_list_tools') return { category: 'mcplusplus' }
   let fixtures: Record<string, any> = {}
   if (process.env.SWISSKNIFE_VDG_PAYLOAD_FIXTURES) {
     fixtures = JSON.parse(readFileSync(process.env.SWISSKNIFE_VDG_PAYLOAD_FIXTURES, 'utf8'))
   }
-  if (toolId === 'ipfs_cat') return { cid: ['media-player', 'peertube', 'cinema'].includes(appId) && fixtures.artifact_cids?.media ? fixtures.artifact_cids.media : LIVE_CLICK_FIXTURE_CID }
+  if (toolId === 'ipfs_cat') {
+    const appFixture = fixtures.artifact_cids?.[appId]
+    if (['file-manager', 'github'].includes(appId) && appFixture !== undefined) {
+      if (typeof appFixture !== 'string' || !/^bafkrei[a-z2-7]{52}$/.test(appFixture)) throw new Error('Invalid app content fixture CID')
+      return { cid: appFixture }
+    }
+    return { cid: ['media-player', 'peertube', 'cinema'].includes(appId) && fixtures.artifact_cids?.media ? fixtures.artifact_cids.media : LIVE_CLICK_FIXTURE_CID }
+  }
   if (toolId === 'files_ls') return { path: '/swissknife/vdg' }
   if (toolId === 'files_read') return { path: '/swissknife/vdg/README.md' }
   if (toolId === 'files_write') return { path: '/swissknife/vdg/README.md', content: 'SwissKnife governed workspace preview.\n' }
@@ -554,12 +561,16 @@ function safeDesktopPayload(toolId: string, capabilityId: string, appId = ''): R
   return { scope: capabilityId, limit: 1, cursor: 'desktop-read-only' }
 }
 
-async function persistGatewayArtifacts(
+export function gatewayArtifactEndpoint(base: string): string {
+  return new URL('/mcp/artifacts/put', base).href
+}
+
+export async function persistGatewayArtifacts(
   call: BrowserMediatedToolCall,
   result: AllAppToolMediatorResponse,
   kitMcpEndpoint: string,
 ): Promise<void> {
-  const artifactEndpoint = kitMcpEndpoint.replace(/\/mcp$/, '/mcp/artifacts/put')
+  const artifactEndpoint = gatewayArtifactEndpoint(kitMcpEndpoint)
   const receiptCid = result.receipt.receipt_id
   const eventCid = result.receipt.event_dag_refs[0]
   try {

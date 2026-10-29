@@ -1,0 +1,27 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "idl-explorer",
+  "description": "Select a local descriptor, validate one parameter object, reopen the selection, then recover from a missing descriptor.",
+  "fixture_scope": "svf-idl-explorer-local",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {"op": "select", "selector": "#idl-descriptor-select", "value": "ipfs_datasets_py"},
+      {"op": "fill", "selector": "#idl-parameter-input", "value": "{\"descriptor_id\":\"ipfs_datasets_py\",\"limit\":5}"},
+      {"op": "click", "selector": "#idl-validate-parameter"},
+      {"op": "fill", "selector": "#idl-parameter-input", "value": "{\"descriptor_id\":\"ipfs_datasets_py\",\"limit\":\"five\"}"},
+      {"op": "press", "selector": "#idl-parameter-input", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#idl-validation-status"}, "operator": "equals", "expected": "Schema ipfs_datasets_py fields descriptor_id:string required, limit:integer required 1-50. Valid parameter passed. Invalid field limit: limit must be an integer between 1 and 50. No owner tool was invoked."}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#idl-schema-view"}, "operator": "equals", "expected": "ipfs_datasets_py fields descriptor_id:string required, limit:integer required 1-50"}
+    ],
+    "failure_recovery": [
+      {"op": "select", "selector": "#idl-descriptor-select", "value": ""},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#idl-schema-view"}, "operator": "contains", "expected": "Descriptor unavailable"},
+      {"op": "select", "selector": "#idl-descriptor-select", "value": "ipfs_datasets_py"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#idl-schema-view"}, "operator": "equals", "expected": "ipfs_datasets_py fields descriptor_id:string required, limit:integer required 1-50"}
+    ]
+  }
+}

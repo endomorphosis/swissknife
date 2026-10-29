@@ -1,0 +1,38 @@
+{
+  "schema": "swissknife.native-foundation-app-context.v1",
+  "capability": "pubsub",
+  "app_ids": [
+    "p2p-chat-unified",
+    "p2p-chat"
+  ],
+  "tools": {
+    "owner": "ipfs_kit_py",
+    "tool": "ipfs_pubsub_publish",
+    "binding": "use the canonical app_contract backend_roles binding for this exact tool",
+    "policy": "mutates_remote_state; real trusted gateway confirmation required"
+  },
+  "request_contract": {
+    "fixture_scope": {
+      "p2p-chat-unified": "svf-p2p-chat-g030",
+      "p2p-chat": "svf-p2p-chat-classic"
+    },
+    "topic": "svf.pubsub.<32 lowercase UUID hex>; persist room-to-topic identity",
+    "message_id": "fresh canonical UUID; retry identical message with SAME message_id/topic/bytes",
+    "message": "1..4096 UTF8 bytes; a canonical JSON envelope with message_id, fresh nonce and actual user text is suitable, preserve exact sent bytes",
+    "dry_run": false,
+    "correlation_id": "fresh bounded alphanumeric/colon/underscore/hyphen string",
+    "forbidden": "api_url,peer/daemon controls,argv,path,validator,unknown scope; never bypass consent"
+  },
+  "response_contract": {
+    "unwrap": "Native payload may be under result/result/content[0].json; inspect actual endpoint response shape, reject every error/isError/false success envelope",
+    "schema": "swissknife.native-pubsub-exchange.v1",
+    "backend": "ipfs_kit_py.assurance.pinned_pubsub:live-kubo-http",
+    "actual_delivery": "accepted=true,durable=false,delivery_state=delivered plus B raw receive and A raw ACK matching exact message_id/topic/message_sha256; HTTP publish ACK or published flag alone is insufficient",
+    "receiver_frame_base64": "Actual Kubo NDJSON; decode canonical base64, then actual multibase data/topicIDs/seqno; sender_peer_id=A,receiver_peer_id=B distinct actual registered nodes",
+    "ack_frame_base64": "Actual B to A acknowledgement on topic+.ack; canonical JSON binds same message_id/topic/message_sha256 and reversed peer IDs",
+    "replayed": "true on identical retry; preserve original actual frames, never duplicate dispatch",
+    "ui": "Show actual decoded received text and concrete peer/delivery state; queued/offline is NOT delivered; preserve input and message identity for governed retry. Reopen metadata is not fresh delivery, obtain real readback/retry before new verification. Details and hashes can be collapsed.",
+    "scope": "Two owned local peers; real stopped-node bridge recovery is not certified by first foundation. Original app offline/recovery acceptance remains required."
+  },
+  "scope": "Readonly API context; edit only this task's declared app/scenario files. Canonical gateway consent, actual native results, independent receipt+DAG, original semantic workflow, final Grok review and validator remain mandatory. Foundation qualification is not app completion. No caller endpoint/argv/code/path or forged success."
+}

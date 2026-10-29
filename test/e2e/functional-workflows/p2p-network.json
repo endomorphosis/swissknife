@@ -1,0 +1,123 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "p2p-network",
+  "description": "Refresh owner peer state, reopen, then recover from an unavailable transport.",
+  "fixture_scope": "svf-p2p-network-332",
+  "backend_bindings": [
+    {
+      "binding_id": "p2p-network.ipfs_kit_py.inspect_peer_network",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/Peers",
+        "operator": "not_equals",
+        "expected": null
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "wait_for",
+        "selector": "#p2p-swarm-status",
+        "state": "visible",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "press",
+        "selector": "#p2p-refresh-swarm",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#p2p-swarm-settled",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "text",
+          "selector": "#p2p-swarm-observation"
+        },
+        "operator": "contains",
+        "expected": "observed at "
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "press",
+        "selector": "#p2p-refresh-swarm",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#p2p-swarm-settled",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "text",
+          "selector": "#p2p-swarm-observation"
+        },
+        "operator": "contains",
+        "expected": "observed at "
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "fill",
+        "selector": "#p2p-transport-input",
+        "value": "offline"
+      },
+      {
+        "op": "click",
+        "selector": "#p2p-apply-transport"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#p2p-swarm-status"
+        },
+        "operator": "contains",
+        "expected": "unavailable"
+      },
+      {
+        "op": "fill",
+        "selector": "#p2p-transport-input",
+        "value": "http"
+      },
+      {
+        "op": "click",
+        "selector": "#p2p-refresh-swarm"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#p2p-swarm-settled",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "text",
+          "selector": "#p2p-swarm-observation"
+        },
+        "operator": "contains",
+        "expected": "observed at "
+      }
+    ]
+  }
+}

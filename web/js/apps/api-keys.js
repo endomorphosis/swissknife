@@ -2,6 +2,8 @@
 class APIKeysApp {
     constructor() {
         this.name = 'API Keys';
+        this.id = 'api-keys';
+        this.appId = 'api-keys';
         this.icon = '🔑';
         this.keys = new Map();
         this.encryptionKey = null;
@@ -201,39 +203,40 @@ class APIKeysApp {
     }
 
     renderVaultLock() {
+        let savedRef = 'none';
+        try {
+            const parsed = JSON.parse(localStorage.getItem('api-keys-opaque-refs') || '[]');
+            if (Array.isArray(parsed)) {
+                const match = parsed.filter(item => item && /^ref-[a-z0-9-]{3,64}$/.test(item.ref));
+                if (match.length) savedRef = match[match.length - 1].ref;
+            }
+        } catch (error) {
+            savedRef = 'none';
+        }
+        const fieldStyle = 'background:Canvas;color:CanvasText;border:1px solid CanvasText;';
+        const hasSaved = savedRef !== 'none';
+        const statusText = hasSaved
+            ? `Saved reference ${savedRef}. Python-owner dispatch remains policy-blocked. Credential values are absent.`
+            : 'No reference saved yet.';
         return `
             <div class="vault-lock-screen">
                 <div class="lock-container">
-                    <div class="lock-icon">🔒</div>
-                    <h2>Secure API Vault</h2>
-                    <p>Enter your vault password to access encrypted API keys</p>
-                    
-                    <form id="vault-unlock-form" onsubmit="apiKeysApp.unlockVault(event)">
+                    <h2>API Keys</h2>
+                    <p id="svf-ref-status">${statusText}</p>
+                    <form id="svf-ref-form" onsubmit="apiKeysApp.saveOpaqueReference(event)">
                         <div class="form-group">
-                            <input type="password" id="vault-password" class="sk-input" placeholder="Vault Password" required autofocus>
+                            <label for="svf-ref-label">Reference label</label>
+                            <input type="text" id="svf-ref-label" name="referenceLabel" class="sk-input" autocomplete="off" placeholder="Local disposable" style="${fieldStyle}" onfocus="this.style.outline='2px solid CanvasText'" onblur="this.style.outline=''">
                         </div>
-                        <div class="unlock-options">
-                            <label>
-                                <input type="checkbox" id="remember-session"> Remember for this session
-                            </label>
+                        <div class="form-group">
+                            <label for="svf-ref-value">Opaque reference</label>
+                            <input type="text" id="svf-ref-value" name="opaqueReference" class="sk-input" autocomplete="off" spellcheck="false" placeholder="ref-local-opaque" style="${fieldStyle}" onfocus="this.style.outline='2px solid CanvasText'" onblur="this.style.outline=''" onkeydown="if(event.key==='Enter'){event.preventDefault();apiKeysApp.saveOpaqueReference(event)}">
                         </div>
-                        <button type="submit" class="btn-primary unlock-btn sk-btn sk-btn-primary">🔓 Unlock Vault</button>
+                        <button type="submit" id="svf-ref-save" class="btn-primary sk-btn sk-btn-primary">Save reference</button>
                     </form>
-                    
-                    <div class="security-info">
-                        <div class="info-item">
-                            <span class="info-icon">🛡️</span>
-                            <span>AES-256 Encryption</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-icon">⏰</span>
-                            <span>Auto-lock after ${this.securitySettings.autoLockMinutes} minutes</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-icon">🌐</span>
-                            <span>P2P Secure Sharing</span>
-                        </div>
-                    </div>
+                    <span id="svf-ref-saved" hidden>${hasSaved ? savedRef : ''}</span>
+                    <p id="svf-ref-guidance" hidden></p>
+                    <button type="button" id="svf-ref-retain" class="sk-btn" onclick="apiKeysApp.retainBlockedState()">Retain blocked state</button>
                 </div>
             </div>
         `;
@@ -399,30 +402,48 @@ class APIKeysApp {
         `;
     }
 
-    async unlockVault(event) {
+    saveOpaqueReference(event) {
         event.preventDefault();
-        const password = document.getElementById('vault-password').value;
-        
-        if (!password) {
-            this.showNotification('Please enter a password', 'error');
+        const label = (document.getElementById('svf-ref-label')?.value || '').trim();
+        const ref = (document.getElementById('svf-ref-value')?.value || '').trim();
+        const guidance = document.getElementById('svf-ref-guidance');
+        const boundary = document.getElementById('svf-ref-status');
+        const savedEl = document.getElementById('svf-ref-saved');
+        const labelOk = /^[A-Za-z0-9][A-Za-z0-9 ._-]{2,40}$/.test(label);
+        const refOk = /^ref-[a-z0-9-]{3,64}$/.test(ref);
+        if (!labelOk || !refOk) {
+            if (boundary) {
+                boundary.hidden = true;
+                boundary.textContent = '';
+            }
+            if (guidance) {
+                guidance.hidden = false;
+                guidance.textContent = 'Invalid reference. Dispatch denied by policy. No credential value is stored.';
+            }
             return;
         }
-        
-        try {
-            // In a real implementation, this would verify against stored hash
-            // For demo purposes, accept any non-empty password
-            this.isVaultUnlocked = true;
-            this.logSecurityEvent('vault_unlock', 'Vault unlocked successfully');
-            
-            // Re-render the full app
-            if (window.apiKeysApp && window.apiKeysApp.onMount) {
-                await window.apiKeysApp.onMount();
-            }
-            
-            this.showNotification('Vault unlocked successfully', 'success');
-        } catch (error) {
-            this.logSecurityEvent('vault_unlock_failed', `Unlock failed: ${error.message}`);
-            this.showNotification('Failed to unlock vault', 'error');
+        localStorage.setItem('api-keys-opaque-refs', JSON.stringify([{ label, ref }]));
+        if (savedEl) savedEl.textContent = ref;
+        if (boundary) {
+            boundary.hidden = false;
+            boundary.textContent = `Saved reference ${ref}. Python-owner dispatch remains policy-blocked. Credential values are absent.`;
+        }
+        if (guidance) {
+            guidance.hidden = true;
+            guidance.textContent = '';
+        }
+    }
+
+    retainBlockedState() {
+        const guidance = document.getElementById('svf-ref-guidance');
+        const boundary = document.getElementById('svf-ref-status');
+        if (boundary) {
+            boundary.hidden = true;
+            boundary.textContent = '';
+        }
+        if (guidance) {
+            guidance.hidden = false;
+            guidance.textContent = 'Explicit blocked state retained.';
         }
     }
 
@@ -444,8 +465,9 @@ class APIKeysApp {
 
     async onMount() {
         if (!this.isVaultUnlocked) {
-            // Show vault lock screen
-            document.getElementById('api-keys-container').innerHTML = await this.render();
+            const host = document.querySelector('.window[data-app-id="api-keys"] .window-app-content')
+                || document.getElementById('api-keys-container');
+            if (host) host.innerHTML = await this.render();
             return;
         }
         
@@ -1438,5 +1460,6 @@ class APIKeysApp {
 // Create global instance
 const apiKeysApp = new APIKeysApp();
 
-// Export for window manager
+// Inline onsubmit/onkeydown handlers resolve apiKeysApp on window.
+window.apiKeysApp = apiKeysApp;
 window.APIKeysApp = APIKeysApp;

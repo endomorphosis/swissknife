@@ -1,0 +1,129 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "ipfs-explorer",
+  "description": "Retrieve the CID already shown in Quick Access through the declared kit binding, reopen the verified preview, then reject an invalid CID without replacing that preview.",
+  "fixture_scope": "svf-ipfs-explorer",
+  "backend_bindings": [
+    {
+      "binding_id": "ipfs-explorer.ipfs_kit_py.retrieve_content",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 60,
+      "max_output_bytes": 262144,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/cid",
+        "operator": "equals",
+        "expected": "bafkreiboczqvtm47rm3pz7x27f7isrzi6ogfddyquo5qisw4fthjhiytcm"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "wait_for",
+        "selector": "#path-input",
+        "state": "visible",
+        "timeout_ms": 8000
+      },
+      {
+        "op": "fill",
+        "selector": "#path-input",
+        "value": "bafkreiboczqvtm47rm3pz7x27f7isrzi6ogfddyquo5qisw4fthjhiytcm"
+      },
+      {
+        "op": "click",
+        "selector": "#go-btn"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"ipfs-explorer.ipfs_kit_py.retrieve_content\"]",
+        "state": "visible",
+        "timeout_ms": 8000
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"ipfs-explorer.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#content-browser [data-retrieved-cid=\"bafkreiboczqvtm47rm3pz7x27f7isrzi6ogfddyquo5qisw4fthjhiytcm\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "text",
+          "selector": "#content-browser"
+        },
+        "operator": "contains",
+        "expected": "Retrieved bytes match the requested CID."
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#content-browser [data-retrieved-cid=\"bafkreiboczqvtm47rm3pz7x27f7isrzi6ogfddyquo5qisw4fthjhiytcm\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "text",
+          "selector": "#content-browser"
+        },
+        "operator": "contains",
+        "expected": "Retrieved bytes match the requested CID."
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "fill",
+        "selector": "#path-input",
+        "value": "not-a-cid"
+      },
+      {
+        "op": "press",
+        "selector": "#path-input",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": ".ipfs-error-banner"
+        },
+        "operator": "contains",
+        "expected": "Invalid or absent CID"
+      },
+      {
+        "op": "click",
+        "selector": "#home-btn"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#content-browser [data-retrieved-cid=\"bafkreiboczqvtm47rm3pz7x27f7isrzi6ogfddyquo5qisw4fthjhiytcm\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "text",
+          "selector": "#content-browser"
+        },
+        "operator": "contains",
+        "expected": "Retrieved bytes match the requested CID."
+      }
+    ]
+  }
+}

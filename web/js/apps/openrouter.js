@@ -233,6 +233,7 @@ class OpenRouterApp {
         if (typeof window !== 'undefined') {
             window.openRouterApp?.dispose?.();
             window.openRouterApp = this;
+            this.setupEventListeners();
         }
         this.currentTab = 'models';
         this.models = new Map();
@@ -276,6 +277,28 @@ class OpenRouterApp {
     render() {
         return `
         <div class="openrouter-app" data-openrouter-instance="${this.instanceId}">
+            <style>
+              .openrouter-app{max-width:100%;box-sizing:border-box}
+              .openrouter-app .playground-layout,.openrouter-app .playground-controls,.openrouter-app .control-section,.openrouter-app .chat-layout{max-width:100%;min-width:0;box-sizing:border-box;margin-left:0;position:relative;left:auto;transform:none}
+              .openrouter-app .control-section h3{margin-left:0;padding-left:0;overflow:visible}
+              .openrouter-app .or-header{flex-wrap:wrap;align-items:center}
+              .openrouter-app .or-logo-text,.openrouter-app .or-status,.openrouter-app .tab-item,.openrouter-app .tab-label{white-space:nowrap;overflow:visible;text-overflow:clip;flex:0 0 auto;max-width:none}
+              .openrouter-app .or-nav-tabs{display:flex;flex-wrap:wrap;overflow:visible;max-width:100%}
+              .openrouter-app .or-catalog-status{white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+              .openrouter-app .or-content{display:block;min-height:12rem;overflow:auto}
+              .openrouter-app .or-chat-tab,.openrouter-app .chat-layout,.openrouter-app .chat-sidebar,.openrouter-app .chat-main,.openrouter-app .sidebar-header,.openrouter-app .or-playground-tab,.openrouter-app .playground-main,.openrouter-app .playground-footer{display:block;visibility:visible;position:relative;overflow:visible;min-height:2.5rem}
+              .openrouter-app #openrouter-new-chat,.openrouter-app #generate-btn{display:inline-flex;visibility:visible;opacity:1;position:relative;min-height:2.25rem;min-width:6rem;max-width:100%}
+              .openrouter-app #message-input,.openrouter-app #playground-input{display:block;visibility:visible;opacity:1;position:relative;width:100%;min-height:2.25rem;box-sizing:border-box}
+              .openrouter-app .or-modal{overflow:auto;display:flex;align-items:flex-start;justify-content:center;box-sizing:border-box;padding:0.75rem}
+              .openrouter-app .or-modal .modal-content{width:min(26rem,100%);max-height:100%;height:auto;overflow:auto;box-sizing:border-box;display:flex;flex-direction:column;background:#f4f6f8;color:#1a1a1a}
+              .openrouter-app .or-modal .modal-body{flex:1 1 auto;min-height:0;overflow:auto}
+              .openrouter-app .or-modal .modal-footer{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:0.5rem;overflow:visible}
+              .openrouter-app .or-modal .modal-footer .or-btn{visibility:visible;opacity:1;min-height:2.25rem;position:relative}
+              .openrouter-app .or-modal #api-key-input{display:block !important;width:100% !important;box-sizing:border-box !important;min-height:2.5rem !important;padding:0.45rem 0.65rem !important;background:#fff !important;background-color:#fff !important;background-image:none !important;background-clip:border-box !important;color:#1a1a1a !important;-webkit-text-fill-color:#1a1a1a !important;border:1px solid #5c6570 !important;border-radius:6px !important;caret-color:#1a1a1a !important;opacity:1 !important;filter:none !important;box-shadow:inset 0 0 0 1px #5c6570 !important;appearance:none !important;-webkit-appearance:none !important}
+              .openrouter-app .or-modal #api-key-input::placeholder{color:#5c6570 !important;opacity:1 !important;-webkit-text-fill-color:#5c6570 !important}
+              .openrouter-app .or-modal .help-text,.openrouter-app .or-modal .help-text a{color:#1a1a1a !important;opacity:1 !important}
+              .openrouter-app .or-modal #api-key-input:-webkit-autofill,.openrouter-app .or-modal #api-key-input:-webkit-autofill:focus{-webkit-text-fill-color:#1a1a1a !important;-webkit-box-shadow:0 0 0 1000px #fff inset !important;caret-color:#1a1a1a !important}
+            </style>
             <!-- Header with Authentication -->
             <div class="or-header">
                 <div class="or-header-left">
@@ -285,7 +308,7 @@ class OpenRouterApp {
                     </div>
                     <div class="or-status ${this.isAuthenticated ? 'authenticated' : 'unauthenticated'}">
                         <div class="status-indicator sk-status-dot ${this.isAuthenticated ? 'is-ok' : 'is-idle'}"></div>
-                        <span>${this.isAuthenticated ? 'Connected' : 'Not Connected'}</span>
+                        <span>${this.isAuthenticated ? 'Key set' : 'No key'}</span>
                     </div>
                     ${this.isAuthenticated ? `
                     <div class="or-credits">
@@ -301,7 +324,7 @@ class OpenRouterApp {
                         <span class="btn-icon">⚙️</span>
                         Settings
                     </button>
-                    <button class="or-btn or-btn-primary sk-btn sk-btn-primary" onclick="window.openRouterApp.showAuthentication()">
+                    <button type="button" id="openrouter-connect" class="or-btn or-btn-primary sk-btn sk-btn-primary" onclick="window.openRouterApp.showAuthentication()">
                         <span class="btn-icon">🔑</span>
                         ${this.isAuthenticated ? 'Manage API Key' : 'Connect'}
                     </button>
@@ -310,25 +333,25 @@ class OpenRouterApp {
 
             <!-- Navigation Tabs -->
             <div class="or-nav-tabs">
-                <div class="tab-item ${this.currentTab === 'models' ? 'active' : ''}" data-tab="models">
+                <div class="tab-item ${this.currentTab === 'models' ? 'active' : ''}" data-tab="models" role="tab" tabindex="0" onclick="window.openRouterApp.switchTab('models')">
                     <span class="tab-icon">🤖</span>
                     <span class="tab-label">Models</span>
                     <span class="tab-count">${this.models.size}</span>
                 </div>
-                <div class="tab-item ${this.currentTab === 'chat' ? 'active' : ''}" data-tab="chat">
+                <div class="tab-item ${this.currentTab === 'chat' ? 'active' : ''}" data-tab="chat" role="tab" tabindex="0" onclick="window.openRouterApp.switchTab('chat')">
                     <span class="tab-icon">💬</span>
                     <span class="tab-label">Chat</span>
                     <span class="tab-count">${this.conversations.length}</span>
                 </div>
-                <div class="tab-item ${this.currentTab === 'playground' ? 'active' : ''}" data-tab="playground">
+                <div class="tab-item ${this.currentTab === 'playground' ? 'active' : ''}" data-tab="playground" role="tab" tabindex="0" onclick="window.openRouterApp.switchTab('playground')">
                     <span class="tab-icon">🎮</span>
                     <span class="tab-label">Playground</span>
                 </div>
-                <div class="tab-item ${this.currentTab === 'analytics' ? 'active' : ''}" data-tab="analytics">
+                <div class="tab-item ${this.currentTab === 'analytics' ? 'active' : ''}" data-tab="analytics" role="tab" tabindex="0" onclick="window.openRouterApp.switchTab('analytics')">
                     <span class="tab-icon">📊</span>
                     <span class="tab-label">Analytics</span>
                 </div>
-                <div class="tab-item ${this.currentTab === 'providers' ? 'active' : ''}" data-tab="providers">
+                <div class="tab-item ${this.currentTab === 'providers' ? 'active' : ''}" data-tab="providers" role="tab" tabindex="0" onclick="window.openRouterApp.switchTab('providers')">
                     <span class="tab-icon">🏢</span>
                     <span class="tab-label">Providers</span>
                     <span class="tab-count">${this.providers.size}</span>
@@ -368,16 +391,16 @@ class OpenRouterApp {
             <div class="models-header">
                 <div class="models-controls">
                     <div class="search-bar">
-                        <input type="text" class="sk-input" placeholder="Search models..." id="model-search" oninput="window.openRouterApp.filterModels(event.target.value)">
+                        <input type="text" class="sk-input" placeholder="Search models..." aria-label="Search models" id="model-search" oninput="window.openRouterApp.filterModels(event.target.value)">
                         <span class="search-icon">🔍</span>
                     </div>
-                    <select id="provider-filter" class="sk-select" onchange="window.openRouterApp.filterByProvider(event.target.value)">
+                    <select id="provider-filter" class="sk-select" aria-label="Provider" onchange="window.openRouterApp.filterByProvider(event.target.value)">
                         <option value="">All Providers</option>
                         ${Array.from(this.providers.keys()).map(provider => 
                             `<option value="${provider}">${provider}</option>`
                         ).join('')}
                     </select>
-                    <select id="model-sort" class="sk-select" onchange="window.openRouterApp.sortModels(event.target.value)">
+                    <select id="model-sort" class="sk-select" aria-label="Sort models" onchange="window.openRouterApp.sortModels(event.target.value)">
                         <option value="name">Sort by Name</option>
                         <option value="provider">Sort by Provider</option>
                         <option value="pricing">Sort by Price</option>
@@ -478,7 +501,7 @@ class OpenRouterApp {
                 <div class="chat-sidebar">
                     <div class="sidebar-header">
                         <h3>Conversations</h3>
-                        <button class="or-btn or-btn-primary or-btn-sm sk-btn sk-btn-primary" onclick="window.openRouterApp.createNewConversation()">
+                        <button type="button" id="openrouter-new-chat" class="or-btn or-btn-primary or-btn-sm sk-btn sk-btn-primary" onclick="window.openRouterApp.createNewConversation()">
                             + New Chat
                         </button>
                     </div>
@@ -497,6 +520,15 @@ class OpenRouterApp {
                     ${this.currentConversation ? this.renderCurrentConversation() : this.renderChatWelcome()}
                 </div>
             </div>
+        </div>
+        `;
+    }
+
+    renderChatWelcome() {
+        return `
+        <div class="chat-welcome">
+            <h3>OpenRouter Chat</h3>
+            <p>Choose New Chat, enter a prompt, and press Enter. Without an API key, the message stays in this conversation and no provider request is sent.</p>
         </div>
         `;
     }
@@ -805,7 +837,11 @@ class OpenRouterApp {
     }
 
     getContainer() {
-        return document.querySelector(`.openrouter-app[data-openrouter-instance="${this.instanceId}"]`);
+        const exact = document.querySelector(`.openrouter-app[data-openrouter-instance="${this.instanceId}"]`);
+        if (exact?.isConnected) return exact;
+        const nested = document.querySelector('.window[data-app-id="openrouter"] .window-app-content .openrouter-app')
+            || document.querySelector('.window[data-app-id="openrouter"] .openrouter-app');
+        return nested?.isConnected ? nested : null;
     }
 
     dispose() {
@@ -822,6 +858,7 @@ class OpenRouterApp {
     }
 
     switchTab(tab) {
+        if (!tab) return;
         this.currentTab = tab;
         this.updateDisplay();
     }
@@ -829,9 +866,20 @@ class OpenRouterApp {
     updateDisplay() {
         if (!this.isCurrentInstance()) return;
         const container = this.getContainer();
+        const content = container?.querySelector('.or-content');
+        if (container && content) {
+            content.innerHTML = this.renderCurrentTab();
+            container.querySelectorAll('.tab-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.tab === this.currentTab);
+            });
+            return;
+        }
         if (container) {
             container.outerHTML = this.render();
+            return;
         }
+        const host = document.querySelector('.window[data-app-id="openrouter"] .window-app-content');
+        if (host) host.innerHTML = this.render();
     }
 
     checkAuthentication() {
@@ -913,7 +961,7 @@ class OpenRouterApp {
         if (metadata.mode === 'snapshot') return metadata.verified
             ? `Verified OpenRouter catalog snapshot from ${metadata.original_source}, observed ${metadata.observed_at} (age ${Math.max(0, Date.now() - Date.parse(metadata.observed_at))} ms); ${metadata.model_count} models, SHA-256 ${metadata.input_sha256}. This declared input remains fixed for this run.`
             : `Declared OpenRouter catalog snapshot unavailable: ${metadata.error}`;
-        if (metadata.error) return `${metadata.stale ? `Retaining the actual catalog observed ${metadata.observed_at} (age ${metadata.cache_age_ms} ms). ` : 'No live catalog observation is available. '}OpenRouter catalog unavailable: ${metadata.error} Retry after ${metadata.retry_at}.`;
+        if (metadata.error) return metadata.stale ? 'Showing the last OpenRouter catalog from this session. Refresh failed; reopen the window to try again.' : 'OpenRouter catalog is unavailable. Reopen this window to retry.';
         return `Actual OpenRouter catalog observed ${metadata.observed_at}; ${metadata.cache} response, age ${metadata.cache_age_ms} ms. Complete catalog retained for up to ${metadata.cache_ttl_ms / 60000} minutes.`;
     }
 
@@ -1082,7 +1130,7 @@ class OpenRouterApp {
         if (!this.isCurrentInstance()) return;
         const app = this.getContainer();
         if (!app?.isConnected) return;
-        const host = app.closest('.window-content') || app;
+        const host = app;
         if (!host.style.position || host.style.position === 'static') host.style.position = 'relative';
         this.closeModal();
         const modal = document.createElement('div');
@@ -1091,17 +1139,17 @@ class OpenRouterApp {
         modal.setAttribute('aria-modal', 'true');
         modal.setAttribute('aria-label', 'OpenRouter API Configuration');
         // Stay below the owning titlebar and disappear with the app window.
-        modal.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:10000';
+        modal.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:10000;overflow:auto;display:flex;align-items:flex-start;justify-content:center;box-sizing:border-box;padding:0.75rem';
         modal.innerHTML = `
-        <div class="modal-content">
+        <div class="modal-content" style="width:min(26rem,100%);max-height:100%;height:auto;overflow:auto;box-sizing:border-box;display:flex;flex-direction:column">
             <div class="modal-header">
                 <h3>OpenRouter API Configuration</h3>
                 <button class="modal-close" onclick="window.openRouterApp.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>API Key:</label>
-                    <input type="password" id="api-key-input" class="sk-input" value="${this.apiKey}" placeholder="Enter your OpenRouter API key">
+                    <label for="api-key-input">Credential reference:</label>
+                    <input type="text" id="api-key-input" class="sk-input" value="" autocomplete="off" spellcheck="false" placeholder="Opaque reference, stored locally" aria-label="OpenRouter credential reference" style="display:block !important;width:100% !important;box-sizing:border-box !important;min-height:2.5rem !important;padding:0.45rem 0.65rem !important;background:#fff !important;background-color:#fff !important;background-image:none !important;background-clip:border-box !important;color:#1a1a1a !important;-webkit-text-fill-color:#1a1a1a !important;border:1px solid #5c6570 !important;border-radius:6px !important;caret-color:#1a1a1a !important;opacity:1 !important;filter:none !important;box-shadow:inset 0 0 0 1px #5c6570 !important;appearance:none !important;-webkit-appearance:none !important">
                     <div class="help-text">
                         Get your API key from <a href="https://openrouter.ai/keys" target="_blank">OpenRouter Dashboard</a>
                     </div>
@@ -1177,6 +1225,22 @@ class OpenRouterApp {
         this.updateDisplay();
     }
 
+    renderConversationItem(conv) {
+        const title = String(conv.title ?? 'Conversation')
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const active = this.currentConversation?.id === conv.id ? ' active' : '';
+        return `<button type="button" class="or-conversation${active}" data-conversation-id="${conv.id}" onclick="window.openRouterApp.openConversation('${conv.id}')">${title}</button>`;
+    }
+
+    openConversation(id) {
+        if (!this.isCurrentInstance()) return;
+        const conversation = this.conversations.find(item => item.id === id);
+        if (!conversation) return;
+        this.currentConversation = conversation;
+        this.currentTab = 'chat';
+        this.updateDisplay();
+    }
+
     createNewConversation() {
         const conversation = {
             id: 'conv-' + Date.now(),
@@ -1245,11 +1309,14 @@ class OpenRouterApp {
         const text = (input?.value || '').trim();
         if (!text) return;
         if (!this.currentConversation) this.createNewConversation();
+        const conversation = this.currentConversation;
         if (!this.apiKey) {
-            alert('Enter your OpenRouter API key (Settings tab) to send messages.');
+            conversation.messages.push({ role: 'user', content: text });
+            conversation.messages.push({ role: 'assistant', content: 'OpenRouter needs an API key reference before it can send this prompt. No request was sent.' });
+            this.saveSettings();
+            this.updateDisplay();
             return;
         }
-        const conversation = this.currentConversation;
         conversation.messages.push({ role: 'user', content: text });
         if (input) input.value = '';
         this.updateDisplay();
@@ -1302,7 +1369,7 @@ class OpenRouterApp {
         const prompt = (input?.value || '').trim();
         if (!prompt) return;
         if (!this.apiKey) {
-            if (output) output.textContent = 'Enter your OpenRouter API key (Settings tab) to generate.';
+            if (output) output.textContent = 'OpenRouter needs an API key reference before it can send this prompt. No request was sent.';
             return;
         }
         const model = document.getElementById('playground-model')?.value || this.settings.defaultModel;

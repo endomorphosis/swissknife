@@ -1,0 +1,27 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "strudel",
+  "description": "Play a short local pattern, restore its source and tempo, then recover from a real syntax error.",
+  "fixture_scope": "svf-strudel-local-pattern",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {"op": "fill", "selector": "#strudel-pattern", "value": "c4 e4 g4"},
+      {"op": "fill", "selector": "#strudel-tempo", "value": "100"},
+      {"op": "press", "selector": "#play-button", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#strudel-status"}, "operator": "equals", "expected": "Playing c4 e4 g4 at 100 BPM in the local audio engine."}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "json_attribute", "selector": "#strudel-session", "attribute": "data-session"}, "operator": "equals", "expected": {"pattern": "c4 e4 g4", "tempo": 100}}
+    ],
+    "failure_recovery": [
+      {"op": "fill", "selector": "#strudel-pattern", "value": "c4 )))"},
+      {"op": "press", "selector": "#play-button", "key": "Enter"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#strudel-status"}, "operator": "contains", "expected": "Syntax error"},
+      {"op": "fill", "selector": "#strudel-pattern", "value": "c4 e4 g4"},
+      {"op": "press", "selector": "#play-button", "key": "Enter"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#strudel-status"}, "operator": "equals", "expected": "Playing c4 e4 g4 at 100 BPM in the local audio engine."}
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "oauth-login",
+  "description": "Inspect the Google scope on an unconfigured provider, reopen the signed-out status, then cancel an unavailable handoff back to the login chooser.",
+  "fixture_scope": "svf-oauth-login-handoff",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {"op": "wait_for", "selector": "#oauth-inspect-google", "state": "visible"},
+      {"op": "press", "selector": "#oauth-inspect-google", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#oauth-lifecycle-note"}, "operator": "contains", "expected": "No authorization code"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#oauth-session-status"}, "operator": "equals", "expected": "No active session"}
+    ],
+    "failure_recovery": [
+      {"op": "click", "selector": "#oauth-handoff-google"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#oauth-error"}, "operator": "contains", "expected": "unavailable"},
+      {"op": "click", "selector": "#oauth-cancel-handoff"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#oauth-inspect-google"}, "operator": "equals", "expected": "Google scope"}
+    ]
+  }
+}

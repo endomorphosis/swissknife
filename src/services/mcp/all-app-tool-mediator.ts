@@ -72,6 +72,55 @@ const FORBIDDEN_KEYS = new Set([
   'url', 'endpoint', 'base_url', 'backend_url',
 ]);
 
+interface OwnerFailureDetails { message: string; code?: string | number; type?: string }
+class OwnerAdapterFailure extends Error {
+  constructor(readonly details: OwnerFailureDetails) { super(details.message); }
+}
+
+function safeOwnerErrorText(value: string): string {
+  return value.split(/\n(?:Traceback|\s*File ")/)[0].slice(0, 2048)
+    .replace(/\bBearer\s+[^\s,;]+/gi, 'Bearer [redacted]')
+    .replace(/((?:api[_-]?key|access[_-]?token|refresh[_-]?token|password|secret|authorization)\s*[=:]\s*)[^\s,;]+/gi, '$1[redacted]')
+    .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, '$1[redacted]@')
+    .replace(/(?:\/home\/|\/Users\/)[^\s"']+/g, '[private path]');
+}
+
+/** Extract only protocol error fields; never export traceback/credentials. */
+function ownerFailure(value: unknown, fallback = 'Owner adapter rejected the tool call.'): OwnerAdapterFailure {
+  const pending: unknown[] = [value];
+  const seen = new Set<object>();
+  let plainText: string | undefined;
+  while (pending.length && seen.size < 64) {
+    const candidate = pending.shift();
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate) || seen.has(candidate)) continue;
+    seen.add(candidate);
+    const record = candidate as Record<string, unknown>;
+    const nestedError = record.error && typeof record.error === 'object' ? record.error as Record<string, unknown> : null;
+    const message = typeof record.error === 'string' ? record.error
+      : nestedError && typeof nestedError.message === 'string' ? nestedError.message
+        : typeof record.message === 'string' ? record.message : null;
+    if (message) {
+      const details: OwnerFailureDetails = { message: safeOwnerErrorText(message) };
+      const code = nestedError?.code ?? record.code;
+      if (typeof code === 'number' && Number.isFinite(code)) details.code = code;
+      else if (typeof code === 'string' && /^[A-Za-z0-9_.:-]{1,100}$/.test(code)) details.code = code;
+      const type = nestedError?.type ?? record.error_type;
+      if (typeof type === 'string' && /^[A-Za-z0-9_.:-]{1,100}$/.test(type)) details.type = type;
+      return new OwnerAdapterFailure(details);
+    }
+    for (const key of ['error', 'result', 'response']) if (record[key] && typeof record[key] === 'object') pending.push(record[key]);
+    for (const item of Array.isArray(record.content) ? record.content.slice(0, 24) : []) {
+      if (!item || typeof item !== 'object') continue;
+      if (item.json && typeof item.json === 'object') pending.push(item.json);
+      if (typeof item.text === 'string') {
+        try { pending.push(JSON.parse(item.text)); }
+        catch { plainText ??= safeOwnerErrorText(item.text); }
+      }
+    }
+  }
+  return new OwnerAdapterFailure({ message: plainText || fallback });
+}
+
 export class AllAppToolMediator {
   private readonly now: () => Date;
   private readonly receiptId: (call: BrowserMediatedToolCall, result: unknown) => string;
@@ -120,7 +169,8 @@ export class AllAppToolMediator {
       const message = error instanceof Error ? error.message : String(error);
       return this.response(call, /^owner adapter returned http|fetch failed|network|connect|timed out/i.test(message)
         ? 'unreachable'
-        : 'failed', { error: message });
+        : 'failed', { error: safeOwnerErrorText(message),
+          ...(error instanceof OwnerAdapterFailure ? { owner_error: error.details } : {}) });
     }
   }
 
@@ -177,19 +227,12 @@ function unwrapMcpResult(value: unknown): unknown {
   if (value && typeof value === 'object' && 'jsonrpc' in value) {
     const response = value as { result?: unknown; error?: { code?: unknown; message?: unknown; data?: unknown } };
     if (response.error) {
-      const message = typeof response.error.message === 'string'
-        ? response.error.message
-        : 'Owner adapter returned a JSON-RPC error.';
-      throw new Error(message);
+      throw ownerFailure(response.error, 'Owner adapter returned a JSON-RPC error.');
     }
     if ('result' in response) {
       const result = response.result;
       if (result && typeof result === 'object' && (result as { isError?: unknown }).isError === true) {
-        const content = (result as { content?: Array<{ text?: unknown }> }).content;
-        const message = typeof content?.[0]?.text === 'string'
-          ? content[0].text
-          : 'Owner adapter rejected the tool call.';
-        throw new Error(message);
+        throw ownerFailure(result);
       }
       assertOwnerResultSucceeded(result);
       return result;
@@ -213,14 +256,7 @@ function assertOwnerResultSucceeded(value: unknown): void {
     if (record.isError === true || record.ok === false || record.success === false
       || failures.has(String(record.outcome || '')) || failures.has(String(record.status || ''))
       || (record.error && record.ok !== true && record.success !== true)) {
-      const content = Array.isArray(record.content) ? record.content : [];
-      const first = content.find(item => item && typeof item === 'object' && typeof item.text === 'string');
-      const error = record.error;
-      const message = typeof error === 'string' ? error
-        : error && typeof error === 'object' && typeof (error as { message?: unknown }).message === 'string'
-          ? (error as { message: string }).message
-          : first?.text || 'Owner adapter rejected the tool call.';
-      throw new Error(message);
+      throw ownerFailure(record);
     }
     // Follow protocol envelopes, never arbitrary application data fields.
     for (const key of ['result', 'response']) {

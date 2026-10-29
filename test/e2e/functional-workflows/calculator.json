@@ -1,0 +1,43 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "calculator",
+  "description": "Browser-local 12.5 times 4, reopen history, then divide by zero and clear.",
+  "fixture_scope": "svf-calculator-372",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {"op": "click", "selector": ".calc-btn[data-value=\"1\"]"},
+      {"op": "click", "selector": ".calc-btn[data-value=\"2\"]"},
+      {"op": "click", "selector": ".calc-btn[data-action=\"decimal\"]"},
+      {"op": "click", "selector": ".calc-btn[data-value=\"5\"]"},
+      {"op": "click", "selector": ".calc-btn[data-action=\"multiply\"]"},
+      {"op": "click", "selector": ".calc-btn[data-value=\"4\"]"},
+      {"op": "press", "selector": ".calc-btn[data-action=\"equals\"]", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#display-primary"}, "operator": "equals", "expected": "50"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "click", "selector": "#history-btn"},
+      {"op": "wait_for", "selector": ".history-item", "state": "visible", "timeout_ms": 5000},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": ".history-item"}, "operator": "contains", "expected": "12.5 \u00d7 4 = 50"}
+    ],
+    "failure_recovery": [
+      {"op": "click", "selector": "#history-btn"},
+      {"op": "wait_for", "selector": "#history-panel", "state": "hidden", "timeout_ms": 5000},
+      {"op": "click", "selector": ".calc-btn[data-value=\"8\"]"},
+      {"op": "click", "selector": ".calc-btn[data-action=\"divide\"]"},
+      {"op": "click", "selector": ".calc-btn[data-value=\"0\"]"},
+      {"op": "click", "selector": ".calc-btn[data-action=\"equals\"]"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#display-error"}, "operator": "contains", "expected": "zero"},
+      {"op": "click", "selector": ".calc-btn[data-action=\"clear\"]"},
+      {"op": "click", "selector": ".calc-btn[data-value=\"1\"]"},
+      {"op": "click", "selector": ".calc-btn[data-value=\"2\"]"},
+      {"op": "click", "selector": ".calc-btn[data-action=\"decimal\"]"},
+      {"op": "click", "selector": ".calc-btn[data-value=\"5\"]"},
+      {"op": "click", "selector": ".calc-btn[data-action=\"multiply\"]"},
+      {"op": "click", "selector": ".calc-btn[data-value=\"4\"]"},
+      {"op": "click", "selector": ".calc-btn[data-action=\"equals\"]"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#display-primary"}, "operator": "equals", "expected": "50"}
+    ]
+  }
+}

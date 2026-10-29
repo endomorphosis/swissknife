@@ -1,0 +1,37 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "terminal",
+  "fixture_scope": "svf-terminal-local-history",
+  "backend_bindings": [],
+  "phases": {
+    "primary_result": [
+      {"op": "wait_for", "selector": "#terminal-input", "state": "visible", "timeout_ms": 5000},
+      {"op": "fill", "selector": "#terminal-input", "value": "help"},
+      {"op": "press", "selector": "#terminal-input", "key": "Enter"},
+      {"op": "fill", "selector": "#terminal-input", "value": "ls"},
+      {"op": "press", "selector": "#terminal-input", "key": "Enter"},
+      {"op": "press", "selector": "#terminal-input", "key": "ArrowUp"},
+      {"op": "press", "selector": "#terminal-input", "key": "Enter"},
+      {"op": "fill", "selector": "#terminal-input", "value": "history"},
+      {"op": "press", "selector": "#terminal-input", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#terminal-output"}, "operator": "contains", "expected": "README.md"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "wait_for", "selector": "#terminal-input", "state": "visible", "timeout_ms": 5000},
+      {"op": "fill", "selector": "#terminal-input", "value": "history"},
+      {"op": "press", "selector": "#terminal-input", "key": "Enter"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#terminal-output"}, "operator": "contains", "expected": "ls"}
+    ],
+    "failure_recovery": [
+      {"op": "fill", "selector": "#terminal-input", "value": "not-a-real-command"},
+      {"op": "press", "selector": "#terminal-input", "key": "Enter"},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#terminal-output"}, "operator": "contains", "expected": "Command not found"},
+      {"op": "fill", "selector": "#terminal-input", "value": "clear"},
+      {"op": "press", "selector": "#terminal-input", "key": "Enter"},
+      {"op": "fill", "selector": "#terminal-input", "value": "whoami"},
+      {"op": "press", "selector": "#terminal-input", "key": "Enter"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#terminal-output"}, "operator": "contains", "expected": "swissknife-user"}
+    ]
+  }
+}

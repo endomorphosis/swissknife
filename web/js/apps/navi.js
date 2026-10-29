@@ -1,3 +1,4 @@
+import { contentCidForBytes } from '../core/mcp-plus-plus-desktop-client.js';
 /**
  * NAVI - Advanced AI Assistant App for SwissKnife Web Desktop
  * Context-aware AI assistant with voice interaction, learning capabilities, and deep system integration
@@ -85,10 +86,17 @@ export class NAVIApp {
     const content = `
       <div class="navi-container">
       <style>
+        .window[data-app-id="navi"] .window-content { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding-bottom:0; }
+        .window[data-app-id="navi"] .window-app-content { display:flex; flex-direction:column; height:100%; min-height:0; min-width:0; overflow:hidden; }
+        .window[data-app-id="navi"] .window-app-content > [id$="-content"] { flex:1 1 0; min-height:0; min-width:0; overflow:hidden; }
         .navi-container {
           display: flex;
           flex-direction: column;
           height: 100%;
+          max-height: 100%;
+          min-height: 0;
+          min-width: 0;
+          box-sizing: border-box;
           position: relative;
           background: var(--sk-bg-deep, #0e1412);
           color: var(--sk-text, #edf7f2);
@@ -145,9 +153,9 @@ export class NAVIApp {
           flex: 1; display: flex;
           min-height: 0; overflow: hidden;
         }
-        .conversation-area {
+        .navi-container .conversation-area {
           flex: 1; display: flex; flex-direction: column;
-          min-width: 0;
+          min-width: 0; min-height: 0; overflow: hidden;
         }
         .conversation-header {
           display: flex; align-items: center; justify-content: space-between;
@@ -165,8 +173,8 @@ export class NAVIApp {
           color: var(--sk-text, #edf7f2);
           font-size: 12px;
         }
-        .conversation-messages {
-          flex: 1; overflow-y: auto;
+        .navi-container .conversation-messages {
+          flex: 1 1 0; min-height: 0; overflow: auto; overscroll-behavior: contain;
           padding: 16px;
           display: flex; flex-direction: column; gap: 12px;
         }
@@ -227,6 +235,9 @@ export class NAVIApp {
           0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
           40% { transform: scale(1); opacity: 1; }
         }
+        .navi-container .conversation-header,
+        .navi-container .navi-resolution,
+        .navi-container .conversation-input { flex: 0 0 auto; }
         .conversation-input {
           padding: 12px 16px;
           border-top: 1px solid var(--sk-border, #263a34);
@@ -245,9 +256,19 @@ export class NAVIApp {
           font-size: 14px; font-family: inherit;
         }
         .navi-container .message-input::placeholder { color: var(--sk-text-faint, #9eb2aa); }
-        .navi-container .message-input:focus {
-          outline: none; border-color: var(--sk-accent, #8bd8bd);
+        .navi-container .message-input:focus,
+        .navi-container button:focus-visible,
+        .navi-container select:focus-visible {
+          outline: 2px solid var(--sk-accent, #8bd8bd);
+          outline-offset: 2px;
+          border-color: var(--sk-accent, #8bd8bd);
         }
+        .navi-container [hidden] { display: none !important; }
+        .navi-resolution { padding: 8px 16px 0; display: flex; flex-direction: column; gap: 6px; }
+        .navi-intent-status, .navi-retained-intent, .navi-selected-target {
+          margin: 0; font-size: 12px; line-height: 1.4; color: var(--sk-text, #edf7f2);
+        }
+        .navi-match-list { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
         .navi-container .voice-btn,
         .navi-container .send-btn {
           width: 38px; height: 38px; flex-shrink: 0;
@@ -376,8 +397,11 @@ export class NAVIApp {
         .learned-preferences h4 { margin: 0 0 8px; font-size: 12px; color: var(--sk-text-faint, #9eb2aa); }
         .preferences-list { display: flex; flex-direction: column; gap: 6px; }
         @media (max-width: 760px) {
-          .context-panel { display: none; }
+          .context-panel { display: none; width: 100%; max-height: 42%; }
+          .context-panel.navi-context-open { display: flex; }
           .navi-content { flex-direction: column; }
+          .navi-container .message-input { font-size: 13px; }
+          .navi-container .quick-btn { font-size: 11px; padding: 6px 8px; }
         }
       </style>
         <div class="navi-header">
@@ -401,6 +425,7 @@ export class NAVIApp {
             <div class="conversation-header">
               <h3>💬 Conversation</h3>
               <div class="conversation-controls">
+                <button type="button" class="quick-btn" id="show-context">Context</button>
                 <select id="personality-select" title="AI Personality">
                   <option value="helpful" ${this.personality === 'helpful' ? 'selected' : ''}>Helpful</option>
                   <option value="casual" ${this.personality === 'casual' ? 'selected' : ''}>Casual</option>
@@ -415,23 +440,18 @@ export class NAVIApp {
               </div>
             </div>
             
+            <div class="navi-resolution" id="navi-resolution">
+              <p id="navi-retained-intent" class="navi-retained-intent"></p>
+              <p id="navi-selected-target" class="navi-selected-target">No target selected</p>
+              <p id="navi-intent-status" class="navi-intent-status" hidden></p>
+              <div id="navi-match-list" class="navi-match-list" hidden></div>
+            </div>
             <div class="conversation-messages" id="conversation-messages">
               <div class="welcome-message">
                 <div class="message navi-message">
                   <div class="message-avatar">🤖</div>
                   <div class="message-content">
-                    <div class="message-text">
-                      Hello! I'm NAVI, your AI assistant. I can help you with:
-                      <ul>
-                        <li>🖥️ Controlling your desktop and applications</li>
-                        <li>📁 Managing files and organizing data</li>
-                        <li>🤖 AI-powered analysis and assistance</li>
-                        <li>🎤 Voice commands and interactions</li>
-                        <li>📊 System monitoring and optimization</li>
-                        <li>🔗 P2P network coordination</li>
-                      </ul>
-                      Try saying "help" to see available commands, or just ask me anything!
-                    </div>
+                    <div class="message-text">Ask NAVI for a catalog target, or say help for local commands.</div>
                   </div>
                 </div>
               </div>
@@ -439,7 +459,7 @@ export class NAVIApp {
 
             <div class="conversation-input">
               <div class="input-container">
-                <input type="text" id="message-input" placeholder="Ask NAVI anything or type a command..." class="message-input">
+                <input type="text" id="message-input" aria-label="Intent" placeholder="Ask NAVI" class="message-input">
                 <button class="voice-btn ${this.isListening ? 'listening' : ''}" id="voice-input-btn" title="Voice Input">🎤</button>
                 <button class="send-btn" id="send-message-btn" title="Send Message">📤</button>
               </div>
@@ -462,35 +482,35 @@ export class NAVIApp {
               <div class="context-section">
                 <h4>🖥️ Active Apps</h4>
                 <div class="context-list" id="active-apps-list">
-                  <!-- Active apps will be populated -->
+                  <div class="context-empty">No active apps</div>
                 </div>
               </div>
 
               <div class="context-section">
                 <h4>📁 Recent Files</h4>
                 <div class="context-list" id="recent-files-list">
-                  <!-- Recent files will be populated -->
+                  <div class="context-empty">No recent files</div>
                 </div>
               </div>
 
               <div class="context-section">
                 <h4>🔗 P2P Network</h4>
                 <div class="context-list" id="p2p-status-list">
-                  <!-- P2P status will be populated -->
+                  <div class="context-empty">No peers connected</div>
                 </div>
               </div>
 
               <div class="context-section">
                 <h4>📊 System Health</h4>
                 <div class="context-list" id="system-health-list">
-                  <!-- System health will be populated -->
+                  <div class="context-empty">Local signals pending</div>
                 </div>
               </div>
 
               <div class="context-section">
                 <h4>🎯 Suggestions</h4>
                 <div class="context-list" id="suggestions-list">
-                  <!-- AI suggestions will be populated -->
+                  <div class="context-empty">No suggestions yet</div>
                 </div>
               </div>
             </div>
@@ -545,17 +565,29 @@ export class NAVIApp {
     await this.initializeIntegrations();
     this.setupEventListeners();
     await this.loadInitialContext();
+    this.restoreWorkflowState();
     this.startPeriodicUpdates();
   }
 
-  setupEventListeners() {
+  setupEventListeners(container = null) {
     // Message input
     const messageInput = document.getElementById('message-input');
     const sendBtn = document.getElementById('send-message-btn');
     
     if (messageInput) {
-      messageInput.addEventListener('keypress', (e) => {
+      messageInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
+          e.preventDefault();
+          const status = document.getElementById('navi-intent-status');
+          const list = document.getElementById('navi-match-list');
+          if (status) {
+            status.hidden = true;
+            status.textContent = '';
+          }
+          if (list) {
+            list.hidden = true;
+            list.innerHTML = '';
+          }
           this.sendMessage();
         }
       });
@@ -563,6 +595,26 @@ export class NAVIApp {
     
     if (sendBtn) {
       sendBtn.addEventListener('click', () => this.sendMessage());
+    }
+
+    const showContext = document.getElementById('show-context');
+    if (showContext) {
+      showContext.addEventListener('click', () => {
+        const panel = showContext.closest('.navi-container')?.querySelector('.context-panel');
+        if (panel) panel.classList.toggle('navi-context-open');
+      });
+    }
+
+    const nativeRoot = container?.matches?.('.navi-container') ? container
+      : container?.querySelector?.('.navi-container') || document.querySelector('.navi-container');
+    if (nativeRoot && nativeRoot.dataset.naviTargetBound !== 'true') {
+      nativeRoot.dataset.naviTargetBound = 'true';
+      nativeRoot.addEventListener('click', (e) => {
+        const choice = e.target.closest && e.target.closest('.navi-target-choice');
+        if (!choice || !nativeRoot.contains(choice)) return;
+        e.preventDefault();
+        this.commitSelectedTarget(choice.getAttribute('data-target') || '');
+      });
     }
 
     // Voice controls
@@ -617,6 +669,9 @@ export class NAVIApp {
         this.saveSettings();
       });
     }
+    // The desktop initializes the model before inserting createWindow() HTML.
+    // Apply retained selection again only after its actual native root exists.
+    if (nativeRoot) this.restoreWorkflowState();
   }
 
   async initializeVoice() {
@@ -662,21 +717,266 @@ export class NAVIApp {
   async sendMessage() {
     const input = document.getElementById('message-input');
     if (!input || !input.value.trim()) return;
-    
+
     const message = input.value.trim();
-    input.value = '';
-    
-    // Add user message to conversation
     this.addMessage('user', message);
-    
-    // Process message
-    await this.processMessage(message);
+
+    const commandMatch = this.parseCommand(message);
+    if (commandMatch) {
+      input.value = '';
+      await this.processMessage(message);
+      return;
+    }
+
+    input.value = message;
+    await this.resolveCatalogIntent(message);
+  }
+
+  catalogLabel(entry, index) {
+    if (typeof entry === 'string' && entry.trim()) return entry.trim().slice(0, 160);
+    if (entry && typeof entry === 'object') {
+      for (const key of ['name', 'title', 'path', 'id', 'dataset', 'cid', 'label', 'text']) {
+        if (typeof entry[key] === 'string' && entry[key].trim()) return entry[key].trim().slice(0, 160);
+      }
+    }
+    return '';
+  }
+
+  decodeCatalogResult(output) {
+    let value = output;
+    for (let depth = 0; depth < 8; depth++) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Catalog owner returned no structured result.');
+      if (value.ok === false || value.success === false || value.isError === true || value.error
+          || ['error', 'failed', 'unavailable'].includes(value.status)) throw new Error(value.error?.message || value.error || 'Catalog owner rejected the read.');
+      if (Array.isArray(value.content)) {
+        const blocks = value.content.filter(item => item?.type === 'json' && item.json && typeof item.json === 'object');
+        if (blocks.length === 1 && value.content.length === 1) { value = blocks[0].json; continue; }
+        const texts = value.content.filter(item => item?.type === 'text' && typeof item.text === 'string');
+        if (texts.length === 1 && value.content.length === 1) { value = JSON.parse(texts[0].text); continue; }
+        throw new Error('Catalog owner returned ambiguous result blocks.');
+      }
+      if (value.result && typeof value.result === 'object') { value = value.result; continue; }
+      return value;
+    }
+    throw new Error('Catalog owner result nesting exceeded its bound.');
+  }
+
+  extractCatalogMatches(output) {
+    const value = this.decodeCatalogResult(output);
+    if (typeof value.content !== 'string' || value.content.length > 65536) throw new Error('Catalog owner returned no bounded JSON content.');
+    const rows = JSON.parse(value.content);
+    if (!Array.isArray(rows) || rows.length > 256) throw new Error('Catalog content is not a bounded row list.');
+    return rows;
+  }
+
+  escapeText(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  showIntentOutcome(message, statusText, labels) {
+    const status = document.getElementById('navi-intent-status');
+    const list = document.getElementById('navi-match-list');
+    const input = document.getElementById('message-input');
+    if (input) input.value = message;
+    this.lastIntent = message;
+    this.lastStatus = statusText;
+    this.lastLabels = Array.isArray(labels) ? labels.slice(0, 8) : [];
+    if (status) {
+      status.hidden = false;
+      status.textContent = statusText;
+    }
+    if (list) {
+      if (!labels || labels.length === 0) {
+        list.hidden = true;
+        list.innerHTML = '';
+      } else if (labels.length === 1) {
+        const label = labels[0];
+        list.hidden = false;
+        list.innerHTML = `<span class="navi-match-text">${this.escapeText(message)} → ${this.escapeText(label)}</span> <button type="button" class="action-btn navi-target-choice" id="navi-use-target" data-target="${this.escapeText(label)}">Use this target</button>`;
+      } else {
+        list.hidden = false;
+        list.innerHTML = `<span class="navi-match-text">${this.escapeText(message)}</span> ` + labels.map((label, index) => `<button type="button" class="action-btn navi-target-choice"${index === 0 ? ' id="navi-use-target"' : ''} data-target="${this.escapeText(label)}">${this.escapeText(label)}</button>`).join('');
+      }
+    }
+    this.addMessage('navi', statusText);
+    this.saveWorkflowState();
+  }
+
+  commitSelectedTarget(label) {
+    const clean = String(label || '').trim();
+    if (!clean) return;
+    this.selectedTarget = clean;
+    const node = document.getElementById('navi-selected-target');
+    if (node) node.textContent = `Selected target: ${clean}`;
+    this.saveWorkflowState();
+  }
+
+  saveWorkflowState() {
+    try {
+      localStorage.setItem('navi-workflow-state', JSON.stringify({
+        selectedTarget: this.selectedTarget || '',
+        lastIntent: this.lastIntent || '',
+        lastStatus: this.lastStatus || '',
+        lastLabels: Array.isArray(this.lastLabels) ? this.lastLabels.slice(0, 8) : [],
+        transcript: (this.conversations || []).slice(-8).map((entry) => ({
+          sender: entry.sender === 'user' ? 'user' : 'navi',
+          content: String(entry.content || '').slice(0, 400)
+        }))
+      }));
+    } catch (error) {
+      console.error('Error saving NAVI workflow state:', error);
+    }
+  }
+
+  restoreWorkflowState() {
+    let saved = {};
+    try {
+      saved = JSON.parse(localStorage.getItem('navi-workflow-state') || '{}');
+    } catch (error) {
+      console.error('Error loading NAVI workflow state:', error);
+      return;
+    }
+    this.selectedTarget = typeof saved.selectedTarget === 'string' ? saved.selectedTarget : '';
+    this.lastIntent = typeof saved.lastIntent === 'string' ? saved.lastIntent : '';
+    this.lastStatus = typeof saved.lastStatus === 'string' ? saved.lastStatus : '';
+    this.lastLabels = Array.isArray(saved.lastLabels) ? saved.lastLabels.filter(label => typeof label === 'string').slice(0, 8) : [];
+    const selected = document.getElementById('navi-selected-target');
+    if (selected && this.selectedTarget) selected.textContent = `Selected target: ${this.selectedTarget}`;
+    const retained = document.getElementById('navi-retained-intent');
+    if (retained && this.lastIntent) retained.textContent = `Last intent: ${this.lastIntent}`;
+    const input = document.getElementById('message-input');
+    if (input && this.lastIntent && !input.value) input.value = this.lastIntent;
+    const status = document.getElementById('navi-intent-status');
+    const list = document.getElementById('navi-match-list');
+    if (status && this.lastStatus) {
+      status.hidden = false;
+      status.textContent = this.lastStatus;
+    }
+    if (list && this.lastIntent && this.lastLabels.length) {
+      const labels = this.lastLabels;
+      list.hidden = false;
+      if (labels.length === 1) {
+        const label = labels[0];
+        list.innerHTML = `<span class="navi-match-text">${this.escapeText(this.lastIntent)} → ${this.escapeText(label)}</span> <button type="button" class="action-btn navi-target-choice" id="navi-use-target" data-target="${this.escapeText(label)}">Use this target</button>`;
+      } else {
+        list.innerHTML = `<span class="navi-match-text">${this.escapeText(this.lastIntent)}</span> ` + labels.map((label, index) => `<button type="button" class="action-btn navi-target-choice"${index === 0 ? ' id="navi-use-target"' : ''} data-target="${this.escapeText(label)}">${this.escapeText(label)}</button>`).join('');
+      }
+    }
+    const transcript = Array.isArray(saved.transcript) ? saved.transcript.filter((entry) => entry && (entry.sender === 'user' || entry.sender === 'navi') && typeof entry.content === 'string').slice(-8) : [];
+    if (transcript.length) {
+      this.conversations = transcript.map((entry) => ({
+        sender: entry.sender,
+        content: entry.content.slice(0, 400),
+        metadata: {},
+        timestamp: 0
+      }));
+      const messagesContainer = document.getElementById('conversation-messages');
+      if (messagesContainer) {
+        messagesContainer.replaceChildren();
+        for (const entry of this.conversations) {
+          const messageElement = document.createElement('div');
+          messageElement.className = `message ${entry.sender}-message`;
+          const avatar = document.createElement('div');
+          avatar.className = 'message-avatar';
+          avatar.textContent = entry.sender === 'user' ? '👤' : '🤖';
+          const content = document.createElement('div');
+          content.className = 'message-content';
+          const text = document.createElement('div');
+          text.className = 'message-text';
+          text.textContent = entry.content;
+          content.appendChild(text);
+          messageElement.append(avatar, content);
+          messagesContainer.appendChild(messageElement);
+        }
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }
+  }
+
+  async resolveCatalogIntent(message) {
+    this.lastIntent = message;
+    const status = document.getElementById('navi-intent-status');
+    const list = document.getElementById('navi-match-list');
+    if (status) status.hidden = true;
+    if (list) list.hidden = true;
+    this.saveWorkflowState();
+
+    if (!/[0-9A-Za-z]/.test(message)) {
+      this.showIntentOutcome(message, 'Not resolved: no catalog match. Original intent kept.', []);
+      return;
+    }
+
+    let envelope, requestedCid;
+    try {
+      const { invokeNativeTool } = await import('../live-tool-gateway.js');
+      const trigger = document.getElementById('message-input');
+      const container = trigger?.closest('.window-app-content') || document.getElementById('navi-resolution');
+      const discovery = await fetch('/mcp/tools/bindings?app_id=navi');
+      if (!discovery.ok) throw new Error('Catalog binding discovery is unavailable.');
+      const control = (await discovery.json()).controls?.find(item => item.binding_id === 'navi.ipfs_datasets_py.query_catalog' && item.owner === 'ipfs_datasets_py');
+      const payload = control?.safe_payloads?.get_from_ipfs;
+      if (!control?.preferred_tool_ids?.includes('get_from_ipfs') || typeof payload?.cid !== 'string'
+          || !/^bafkrei[a-z2-7]{52}$/.test(payload.cid)) throw new Error('No qualified catalog CID is configured for this owner.');
+      requestedCid = payload.cid;
+      envelope = await invokeNativeTool(container, 'navi', 'navi.ipfs_datasets_py.query_catalog', {
+        executionMode: 'execute', toolId: 'get_from_ipfs', payload: { ...payload }, trigger
+      });
+    } catch (error) {
+      this.showIntentOutcome(message, 'Not resolved: catalog owner unavailable. Original intent kept.', []);
+      console.warn('Catalog query failed:', error?.message || error);
+      return;
+    }
+
+    const payload = envelope && (envelope.output != null ? envelope.output : envelope.result);
+    const outcome = String(envelope?.status || envelope?.outcome || '').toLowerCase();
+    const accepted = outcome === 'ok' || outcome === 'executed' || outcome === 'success' || outcome === 'completed';
+    if (!envelope || !accepted || payload == null || payload === '') {
+      const reason = envelope?.error?.message || envelope?.summary || 'catalog owner unavailable';
+      const unavailable = /unavailable|outage|timeout|denied|failed/i.test(String(reason));
+      const statusText = unavailable
+        ? 'Not resolved: catalog owner unavailable. Original intent kept.'
+        : 'Not resolved: no catalog match. Original intent kept.';
+      this.showIntentOutcome(message, statusText, []);
+      return;
+    }
+
+    let labels;
+    try {
+      const record = this.decodeCatalogResult(payload);
+      if (record.cid !== requestedCid || typeof record.content !== 'string'
+          || await contentCidForBytes(new TextEncoder().encode(record.content)) !== requestedCid) throw new Error('Catalog bytes do not match the requested CID.');
+      labels = this.extractCatalogMatches(payload).map((entry, index) => this.catalogLabel(entry, index)).filter(Boolean);
+      const terms = message.toLowerCase().trim().split(/\s+/).filter(Boolean);
+      labels = labels.filter(label => terms.every(term => label.toLowerCase().includes(term)));
+    } catch (error) {
+      this.showIntentOutcome(message, 'Not resolved: catalog result could not be verified. Original intent kept.', []);
+      return;
+    }
+    if (labels.length > 1) {
+      const folded = message.toLowerCase();
+      const narrowed = labels.filter((label) => label.toLowerCase().includes(folded));
+      if (narrowed.length === 1) labels = narrowed;
+    }
+    if (labels.length === 0) {
+      this.showIntentOutcome(message, 'Not resolved: no catalog match. Original intent kept.', []);
+      return;
+    }
+    if (labels.length > 1) {
+      this.showIntentOutcome(message, 'Not resolved: ambiguous catalog targets. Choose one explicitly.', labels);
+      return;
+    }
+    this.showIntentOutcome(message, `Matched catalog context: ${labels[0]}`, labels);
   }
 
   addMessage(sender, content, metadata = {}) {
     const messagesContainer = document.getElementById('conversation-messages');
     if (!messagesContainer) return;
-    
+    messagesContainer.querySelector('.welcome-message')?.remove();
+
     const messageElement = document.createElement('div');
     messageElement.className = `message ${sender}-message`;
     
@@ -1161,9 +1461,9 @@ CPU % and network throughput are not measurable from a browser and are not shown
 
   generateSmartSuggestions() {
     const suggestions = [
-      '🔧 **System Optimization**: Run system cleanup and optimize performance',
-      '📊 **Data Backup**: Backup important files to IPFS',
-      '🤖 **AI Analysis**: Analyze recent chat conversations for insights',
+      '🔧 System Optimization: Run system cleanup and optimize performance',
+      '📊 Data Backup: Backup important files to IPFS',
+      '🤖 AI Analysis: Analyze recent chat conversations for insights',
       '🔗 **P2P Tasks**: Distribute ML training across network peers',
       '📅 **Schedule Automation**: Set up recurring tasks with AI Cron'
     ];
@@ -1384,20 +1684,13 @@ CPU % and network throughput are not measurable from a browser and are not shown
     // Update system health
     const healthContainer = document.getElementById('system-health-list');
     if (healthContainer) {
-      const health = this.context.systemHealth;
-      const heapLabel = health.jsHeapUsedMB === 'n/a' || health.jsHeapTotalMB === 'n/a'
-        ? 'n/a'
-        : `${health.jsHeapUsedMB}/${health.jsHeapTotalMB} MB`;
       healthContainer.innerHTML = `
         <div class="context-item">
           <span class="item-icon">💚</span>
-          <span class="item-text">Cores: ${health.cpuCores}</span>
-        </div>
-        <div class="context-item">
-          <span class="item-icon">🧠</span>
-          <span class="item-text">JS heap: ${heapLabel}</span>
+          <span class="item-text">Local signals only</span>
         </div>
       `;
+
     }
     
     // Update suggestions

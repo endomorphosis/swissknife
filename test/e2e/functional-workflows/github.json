@@ -1,0 +1,152 @@
+{
+  "schema": "swissknife.visual-functional-scenario.v1",
+  "app_id": "github",
+  "fixture_scope": "svf-github-review",
+  "backend_bindings": [
+    {
+      "binding_id": "github.ipfs_kit_py.retrieve_content",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/cid",
+        "operator": "equals",
+        "expected": "bafkreie6e3xy7rntajjyvrustikaefsnxrr3pfdz3vgiytsogvjhgfphpa"
+      }
+    }
+  ],
+  "phases": {
+    "primary_result": [
+      {
+        "op": "fill",
+        "selector": "#github-repo-context",
+        "value": "fixture-owner/fixture-repo"
+      },
+      {
+        "op": "fill",
+        "selector": "#github-file-path",
+        "value": "README.md"
+      },
+      {
+        "op": "press",
+        "selector": "#github-file-path",
+        "key": "Enter"
+      },
+      {
+        "op": "click",
+        "selector": "#github-retrieve-content"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"github.ipfs_kit_py.retrieve_content\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"github.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#github-retrieved-content",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "text",
+          "selector": "#github-review-identity"
+        },
+        "operator": "equals",
+        "expected": "fixture-owner/fixture-repo \u00b7 README.md"
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "text",
+          "selector": "#github-review-identity"
+        },
+        "operator": "equals",
+        "expected": "fixture-owner/fixture-repo \u00b7 README.md"
+      }
+    ],
+    "failure_recovery": [
+      {
+        "op": "fill",
+        "selector": "#github-repo-context",
+        "value": "missing-repo"
+      },
+      {
+        "op": "press",
+        "selector": "#github-file-path",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#github-review-error"
+        },
+        "operator": "contains",
+        "expected": "not found"
+      },
+      {
+        "op": "fill",
+        "selector": "#github-repo-context",
+        "value": "fixture-owner/fixture-repo"
+      },
+      {
+        "op": "fill",
+        "selector": "#github-file-path",
+        "value": "README.md"
+      },
+      {
+        "op": "press",
+        "selector": "#github-file-path",
+        "key": "Enter"
+      },
+      {
+        "op": "click",
+        "selector": "#github-retrieve-content"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"github.ipfs_kit_py.retrieve_content\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"github.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#github-review-identity:has-text(\"fixture-owner/fixture-repo \u00b7 README.md\")",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "text",
+          "selector": "#github-review-identity"
+        },
+        "operator": "equals",
+        "expected": "fixture-owner/fixture-repo \u00b7 README.md"
+      }
+    ]
+  }
+}

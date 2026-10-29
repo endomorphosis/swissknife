@@ -1,9 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { inflateSync } from 'node:zlib';
 import { Window } from 'happy-dom';
 import { NeuralPhotoshopApp } from '../../web/js/apps/neural-photoshop.js';
 import { contentCidForBytes } from '../../web/js/core/mcp-plus-plus-desktop-client.js';
+// Controlled PNG decoding below is a unit fixture, never real browser/owner qualification.
+const SOURCE_PNG="iVBORw0KGgoAAAANSUhEUgAAAEAAAAAwCAYAAAChS3wfAAAAbklEQVR42u3YMREAIAwDwNpABF6YEYYcrIEDmKE/dMzQn3KJMvo6XW3zeK/nAwAAAAAAAEgM8PuDtzwAAAAAAACQGUATBAAAAAAAAOwBmiAAAAAAAABgD9AEAQAAAAAAAHuAJggAAAAAAAB8D7ABVCeNeI7CTKoAAAAASUVORK5CYII=";
+function crc32(bytes){let crc=0xffffffff;for(const byte of bytes){crc^=byte;for(let bit=0;bit<8;bit++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);}return(crc^0xffffffff)>>>0;}
+function decodePng(bytes){bytes=Buffer.from(bytes);assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a');const width=bytes.readUInt32BE(16),height=bytes.readUInt32BE(20);assert.equal(bytes[24],8);assert.equal(bytes[25],6);let at=8,parts=[];while(at<bytes.length){const size=bytes.readUInt32BE(at),tag=bytes.subarray(at+4,at+8),data=bytes.subarray(at+8,at+8+size);assert.equal(bytes.readUInt32BE(at+8+size),crc32(Buffer.concat([tag,data])));if(tag.toString()==='IDAT')parts.push(data);at+=12+size;}const raw=inflateSync(Buffer.concat(parts)),pixels=new Uint8ClampedArray(width*height*4),stride=width*4;for(let y=0;y<height;y++){const filter=raw[y*(stride+1)];for(let x=0;x<stride;x++){const a=x>=4?pixels[y*stride+x-4]:0,b=y?pixels[(y-1)*stride+x]:0,c=y&&x>=4?pixels[(y-1)*stride+x-4]:0;let pred=0;if(filter===1)pred=a;if(filter===2)pred=b;if(filter===3)pred=Math.floor((a+b)/2);if(filter===4){const p=a+b-c,pa=Math.abs(p-a),pb=Math.abs(p-b),pc=Math.abs(p-c);pred=pa<=pb&&pa<=pc?a:pb<=pc?b:c;}assert.ok(filter<=4);pixels[y*stride+x]=(raw[y*(stride+1)+1+x]+pred)&255;}}return{width,height,pixels};}
 const bindings = [
   { app_id: 'neural-photoshop', owner: 'ipfs_accelerate_py', binding_id: 'neural-photoshop.ipfs_accelerate_py.run_inference_job', selected_tool_id: 'run_inference_job', preferred_tool_ids: ['run_inference_job'] },
   { app_id: 'neural-photoshop', owner: 'ipfs_kit_py', binding_id: 'neural-photoshop.ipfs_kit_py.retrieve_content', selected_tool_id: 'ipfs_cat', preferred_tool_ids: ['ipfs_cat'] },
@@ -27,10 +32,17 @@ function fixture(t, ownerResult = { ok: true, dry_run: true, body_executed: fals
   const app = new NeuralPhotoshopApp(root, {}); root.innerHTML = app.renderVdaG042WorkflowPanel();
   return { app, root, calls };
 }
-async function confirm(root, pending, cancel = false) {
+async function confirm(root, pending, cancel = false, authoredTrusted = false) {
   for (let count = 0; count < 100 && !root.querySelector('[data-gateway-confirm]'); count++) await new Promise(resolve => setTimeout(resolve, 3));
   assert.ok(root.querySelector('[data-gateway-confirm]'));
-  root.querySelector(cancel ? '[data-gateway-cancel]' : '[data-gateway-confirm]').click();
+  const button = root.querySelector(cancel ? '[data-gateway-cancel]' : '[data-gateway-confirm]');
+  button.click();
+  if (authoredTrusted && !cancel) {
+    assert.equal(button.isConnected, true, 'An untrusted click cannot consume real confirmation');
+    const event = new window.MouseEvent('click', { bubbles: true });
+    Object.defineProperty(event, 'isTrusted', { value: true });
+    button.dispatchEvent(event);
+  }
   await pending;
 }
 test('initial workflow has no invented CID, job, receipt, progress or persistence', t => {
@@ -93,13 +105,41 @@ test('a job identifier or incomplete preview acknowledgement cannot become a no-
   assert.match(root.querySelector('[data-generation-status]').textContent, /did not verify a no-side-effect inference preview/);
   assert.equal(root.querySelectorAll('.vda-g042-receipt').length, 0);
 });
-test('source load verifies actual bytes against the requested CID', async t => {
-  const bytes = new TextEncoder().encode('<svg>real test source bytes</svg>'); const cid = await contentCidForBytes(bytes);
-  const { app, root } = fixture(t, { success: true, cid, bytes_base64: Buffer.from(bytes).toString('base64') });
+test('source load verifies actual PNG bytes and waits for authored decode before publishing the image', async t => {
+  const bytes = Uint8Array.from(Buffer.from(SOURCE_PNG, 'base64')); const decoded = decodePng(bytes);
+  const cid = await contentCidForBytes(bytes);
+  const { app, root, calls } = fixture(t, { success: true, cid, bytes_base64: SOURCE_PNG });
+  globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ = false;
+  const previousImage = Object.getOwnPropertyDescriptor(globalThis, 'Image');
+  const imageWindow = window, originalContext = imageWindow.HTMLCanvasElement.prototype.getContext; const contexts = new WeakMap(); let decodeEvents = 0;
+  const oldCreate = URL.createObjectURL, oldRevoke = URL.revokeObjectURL, blobs = new Map(); let serial = 0;
+  URL.createObjectURL = file => { const key = `blob:authored-source-${++serial}`; blobs.set(key, file); return key; };
+  URL.revokeObjectURL = key => blobs.delete(key);
+  window.HTMLCanvasElement.prototype.getContext = function() {
+    let context = contexts.get(this);
+    if (!context) { context = { pixels: new Uint8ClampedArray(decoded.pixels.length), clearRect() { this.pixels.fill(0); },
+      drawImage(image) { this.pixels.set(image.unitPixels || image.getContext('2d').pixels); },
+      getImageData() { return { data: this.pixels.slice() }; } }; contexts.set(this, context); }
+    return context;
+  };
+  globalThis.Image = function() {
+    const image = document.createElement('img'); let loaded = false, source = '';
+    Object.defineProperties(image, { unitPixels: { get: () => decoded.pixels }, complete: { get: () => loaded },
+      naturalWidth: { get: () => loaded ? decoded.width : 0 }, naturalHeight: { get: () => loaded ? decoded.height : 0 },
+      src: { get: () => source, set: value => { source = value; queueMicrotask(async () => { const encoded = value.startsWith('blob:') ? Buffer.from(await blobs.get(value).arrayBuffer()) : Buffer.from(value.split(',')[1], 'base64'); assert.deepEqual(encoded, Buffer.from(SOURCE_PNG, 'base64')); assert.deepEqual(decodePng(encoded).pixels, decoded.pixels); loaded = true; decodeEvents++; image.onload?.(); }); } } });
+    return image;
+  };
+  t.after(() => { imageWindow.HTMLCanvasElement.prototype.getContext = originalContext; URL.createObjectURL = oldCreate; URL.revokeObjectURL = oldRevoke; if (previousImage) Object.defineProperty(globalThis, 'Image', previousImage); else delete globalThis.Image; });
+  app.currentProject = { name: 'Controlled native PNG', width: decoded.width, height: decoded.height, colorMode: 'RGB', resolution: 300 };
+  root.innerHTML = app.createWindow().content; app.setupCanvas(root);
   root.querySelector('[data-source-cid-input]').value = cid;
-  await confirm(root, app.markVdaG042SourceLoaded(root));
+  const pending = app.markVdaG042SourceLoaded(root); await new Promise(resolve => setTimeout(resolve, 0)); assert.equal(calls.length, 0);
+  await confirm(root, pending, false, true);
   assert.equal(app.vdaG042.sourceCid, cid); assert.deepEqual(app.vdaG042.sourceBytes, bytes);
-  assert.equal(root.querySelector('[data-source-cid-state]').dataset.sourceCidState, 'verified-bytes');
+  assert.equal(root.querySelector('[data-source-cid-state]').dataset.sourceCidState, 'decoded-image');
+  assert.equal(decodeEvents > 0, true); assert.equal(app.canvas.width, 64); assert.equal(app.canvas.height, 48);
+  assert.equal(app.canvas.dataset.sourcePixelsSha256, '9fdb6b885b647934503a0738caad55ff72c56f47726e06b09332fd606ebafc11');
+  assert.equal(calls.length, 1); assert.equal(calls[0].input.policy.consent, 'granted'); assert.equal(calls[0].input.policy.dry_run, false);
 });
 test('a plausible source CID cannot conceal bytes with another hash', async t => {
   const { app, root } = fixture(t, { success: true, bytes_base64: Buffer.from('other bytes').toString('base64') });
