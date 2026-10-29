@@ -248,14 +248,14 @@ test('large actual-format owner responses stay in bounded diagnostics without ex
  assert.equal(styles(raw).whiteSpace,'pre-wrap');assert.equal(styles(raw).overflowWrap,'anywhere');assert.equal(styles(raw).overflow,'auto');assert.equal(styles(raw).maxHeight,'128px');
  assert.equal(raw.textContent,payload,'diagnostic contents remain exact and accessible');
  const details=raw.closest('details.cinema-diagnostics');assert.ok(details,'raw output must be inside the existing diagnostics');assert.equal(details.open,false);
- for(const action of ['load-project-media-cids','simulate-failed-export']){const button=panel.querySelector('[data-cinema-workflow="'+action+'"]');assert.equal(button.disabled,false);assert.equal(details.contains(button),false);assert.notEqual(styles(button).pointerEvents,'none');}
+ for(const action of ['load-project-media-cids','simulate-failed-export']){const button=f.root.querySelector('[data-cinema-workflow="'+action+'"]');assert.ok(button.closest('.cinema-primary-actions'));assert.equal(f.root.querySelectorAll('[data-cinema-workflow="'+action+'"]').length,1);assert.equal(button.disabled,false);assert.equal(details.contains(button),false);assert.notEqual(styles(button).pointerEvents,'none');}
  details.open=true;assert.equal(styles(raw).maxHeight,'128px');assert.equal(raw.textContent,payload);
 });
 test('project panel native responses retain zero minimum intrinsic width at desktop and mobile sizes',t=>{
  const f=fixture(t);for(const width of [1440,390]){f.window.happyDOM.setWindowSize({width,height:width===1440?900:844});const view=f.mount(),panel=view.root.querySelector('.cinema-vda-panel');
   for(const child of panel.children){const style=f.window.getComputedStyle(child);assert.equal(Number.parseFloat(style.minWidth),0);assert.equal(style.maxWidth,'100%');}
   assert.equal(f.window.getComputedStyle(panel).gridTemplateColumns,'minmax(0, 1fr)');
-  assert.equal(view.root.querySelector('[data-cinema-workflow="load-project-media-cids"]').closest('.cinema-props')!==null,true);
+  assert.equal(view.root.querySelector('[data-cinema-workflow="load-project-media-cids"]').closest('.cinema-primary-actions')!==null,true);
  }
 });
 test('actual nested desktop mount stacks native operation details after Cinema rather than alongside its controls',t=>{

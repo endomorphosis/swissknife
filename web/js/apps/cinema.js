@@ -292,10 +292,8 @@ export class CinemaApp {
           <output class="cinema-workflow-status" data-cinema-workflow-status data-render-queue-state="not_observed" role="status">No owner operation has run.</output>
         </div>
         <div class="cinema-workflow-actions cinema-actions">
-          <button class="sk-btn" data-cinema-workflow="load-project-media-cids" data-native-gateway-binding="cinema.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" aria-label="Review Cinema project persistence">Persist project</button>
           <button class="sk-btn" data-cinema-workflow="verify-rights-metadata" aria-label="Inspect local rights metadata">Rights</button>
           <button class="sk-btn" data-cinema-workflow="submit-render-queue" aria-label="Check render availability">Render availability</button>
-          <button class="sk-btn" data-cinema-workflow="simulate-failed-export" aria-label="Export WebM or inspect format availability">Export WebM</button>
           <button class="sk-btn" data-cinema-workflow="activate-playback-fallback" aria-label="Check local playback fallback">Fallback</button>
           <button class="sk-btn" data-cinema-workflow="stabilize-timeline-controls" aria-label="Inspect local timeline controls">Timeline</button>
         </div>
@@ -376,6 +374,9 @@ export class CinemaApp {
           .cinema-app button:focus-visible,.cinema-app input:focus-visible,.cinema-app select:focus-visible,.cinema-app textarea:focus-visible,.cinema-app .cinema-vda-workflow:focus-visible{outline:2px solid var(--sk-accent,#7dd3fc);outline-offset:2px}
           .cinema-app.cinema-root{position:relative;flex:1 1 auto;width:100%;height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:auto;background:var(--sk-bg-panel,#101b18);color:var(--sk-text,#fff)}
           .cinema-app .cinema-header{position:sticky;top:0;z-index:6;display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:0 0 auto;padding:8px 12px;background:var(--sk-bg-panel,#101b18);border-bottom:1px solid var(--sk-border,rgba(255,255,255,.1))}
+          .cinema-app .cinema-primary-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;flex:1 1 100%;min-width:0}
+          .cinema-app .cinema-primary-actions button{min-width:0;min-height:32px;padding:6px 8px;font-size:12px;white-space:nowrap}
+          .cinema-app .cinema-project-reference:has(>[data-cinema-project-reference][data-reference-state="not_saved"]){display:none}
           .cinema-app .cinema-project-navigation{flex:0 0 auto;padding:6px 10px;border:1px solid #658d81;border-radius:6px;background:#18382c;color:#ecfff7;cursor:pointer;font:inherit;font-size:12px}
           .cinema-app .cinema-title{font-size:16px;font-weight:600}
           .cinema-app .cinema-project-cid{flex:1 1 140px;min-width:0;margin-left:8px;font-size:12px;overflow-wrap:anywhere}
@@ -495,7 +496,11 @@ export class CinemaApp {
           <div class="app-icon cinema-icon">🎬</div>
           <div class="app-title cinema-title" >Cinema - Professional Video Editor</div>
           <div class="project-info cinema-project-cid" >${this.cinemaWorkflow.projectCid ? 'Project saved' : restoredProject?.lastSavedProjectCid ? 'Unsaved changes · history in Project actions' : 'Local project changes · not saved'}</div>
+          <div class="cinema-primary-actions">
           <button type="button" class="cinema-project-navigation" data-cinema-navigation="project-actions" aria-controls="${this.projectActionsId}">Project actions ↓</button>
+          <button class="sk-btn" data-cinema-workflow="load-project-media-cids" data-native-gateway-binding="cinema.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" aria-label="Review Cinema project persistence">Persist project</button>
+          <button class="sk-btn" data-cinema-workflow="simulate-failed-export" aria-label="Export WebM or inspect format availability">Export WebM</button>
+          </div>
         </div>
         
         <!-- Main Content -->
@@ -1409,7 +1414,8 @@ export class CinemaApp {
       const project = this.readLocalProject();
       const sourceCid = project?.source?.cid || this.sourceMedia?.cid || 'unavailable';
       const retention = project?.projectCid ? 'saved project retained' : 'local project retained';
-      const message = `Export unavailable: no encoder is connected. Supported codec ${codec} retried; No output file was created. Last good media ${sourceCid}; ${retention}.`;
+      const outputCid = project?.output?.cid || this.exportMedia?.cid || 'none';
+      const message = `Export unavailable: no encoder for ${codec} is connected. No output file was created for this ${codec} attempt. Last good source ${sourceCid}, output ${outputCid}, and ${retention}. Browser WebM export remains available when supported.`;
       setText(message);
       this.showExportOutcome(container, 'unsupported', message);
     }

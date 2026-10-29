@@ -117,7 +117,7 @@ test('scenario strengthens all original named media roles toward actual output, 
  const scenario=JSON.parse(fs.readFileSync(new URL('../e2e/functional-workflows/cinema.json',import.meta.url)));const {validateScenario}=await import('../../scripts/run-visual-functional-workflow.mjs');const app=JSON.parse(fs.readFileSync(new URL('../../config/visual-functional-app-contracts.json',import.meta.url))).apps.find(row=>row.app_id==='cinema');assert.equal(validateScenario(scenario,app),scenario);
  assert.deepEqual(scenario.backend_bindings.map(x=>[x.binding_id,x.mode,x.consent]),[['cinema.ipfs_kit_py.retrieve_content','isolated_mutation','ui_required'],['cinema.ipfs_kit_py.persist_artifact','isolated_mutation','ui_required']]);assert.equal(scenario.backend_bindings[0].result_assertion.expected,'bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla');assert.equal(scenario.backend_bindings[1].result_assertion.expected,true);
  for(const phase of ['primary_result','failure_recovery']){const steps=scenario.phases[phase],role=steps.at(-1);assert.equal(role.requirement_id,phase==='primary_result'?'result_1':'failure_recovery');assert.equal(role.probe.kind,'media_state');assert.equal(role.probe.selector,'[data-cinema-video]');assert.equal(role.probe.temporal_ms,250);assert.equal(role.expected,.05);assert.ok(steps.some(s=>s.op==='select'&&s.value==='webm'));assert.ok(steps.some(s=>s.selector==='[data-gateway-confirm="cinema.ipfs_kit_py.persist_artifact"]'&&s.op==='click'));}
- const errors=scenario.phases.failure_recovery.filter(s=>s.checkpoint_id);assert.equal(errors.length,1);assert.equal(errors[0].checkpoint_id,'error_observed');assert.equal(errors[0].expected,'Unsupported codec');assert.ok(scenario.phases.failure_recovery.some(s=>s.expected==='Supported codec mp4 retried'));assert.equal(scenario.phases.persist_reopen.at(-1).requirement_id,'persist_reopen');const persistedSelection=scenario.phases.persist_reopen.find(step=>step.probe?.pointer==='/selection_serialized');assert.ok(persistedSelection);assert.equal(JSON.parse(persistedSelection.expected).saved,true);assert.equal(scenario.phases.persist_reopen.at(-1).probe.kind,'media_state');
+ const errors=scenario.phases.failure_recovery.filter(s=>s.checkpoint_id);assert.equal(errors.length,1);assert.equal(errors[0].checkpoint_id,'error_observed');assert.equal(errors[0].expected,'Unsupported codec');assert.ok(scenario.phases.failure_recovery.some(s=>s.expected==='no encoder for mp4 is connected'));assert.equal(scenario.phases.persist_reopen.at(-1).requirement_id,'persist_reopen');const persistedSelection=scenario.phases.persist_reopen.find(step=>step.probe?.pointer==='/selection_serialized');assert.ok(persistedSelection);assert.equal(JSON.parse(persistedSelection.expected).saved,true);assert.equal(scenario.phases.persist_reopen.at(-1).probe.kind,'media_state');
 });
 
 test('close rejects a silent native recorder stop instead of waiting forever for its final event',async t=>{
@@ -139,7 +139,12 @@ test('the canonical post-import primary command order records the entered trim, 
  const f=fixture(t);await f.open();recorderFixture(t,f);const scenario=JSON.parse(fs.readFileSync(new URL('../e2e/functional-workflows/cinema.json',import.meta.url)));let role;
  // Source retrieval itself is covered above using the authored bytes; replay the exact canonical commands after that imported-source boundary.
  for(const step of scenario.phases.primary_result.slice(5)){
-  if(step.op==='assert'){role=step;break;}
+  if(step.op==='assert'){
+   if(step.requirement_id){role=step;break;}
+   assert.equal(step.probe.kind,'json_attribute');const input=f.root.querySelector(step.probe.selector);let actual=JSON.parse(input.getAttribute(step.probe.attribute));
+   for(const name of step.probe.pointer.split('/').slice(1))actual=actual[name];
+   const {evaluateObservation}=await import('../../scripts/run-visual-functional-workflow.mjs');evaluateObservation({operator:step.operator,actual,expected:step.expected});continue;
+  }
   if(step.op==='wait_for'){await until(()=>{const n=f.root.querySelector(step.selector);return n&&(step.state==='attached'||!n.hidden);});continue;}
   const node=f.root.querySelector(step.selector);assert.ok(node,'declared canonical target '+step.selector);
   if(step.op==='fill'||step.op==='select'){node.value=step.value;node.dispatchEvent(new f.window.Event('input',{bubbles:true}));node.dispatchEvent(new f.window.Event('change',{bubbles:true}));}
@@ -183,7 +188,7 @@ test('retry waits for its actual persisted native preview commit while the previ
 test('successful WebM retry replaces the current MP4 refusal while retaining its exact prior message in separate history',async t=>{
  const f=fixture(t);await f.open();f.app.commitTimeline(f.root,2);
  f.root.querySelector('[data-cinema-codec]').value='mp4';await f.app.handleCinemaWorkflowAction(f.root,'simulate-failed-export');
- const refusal=f.root.querySelector('[data-cinema-workflow-status]').textContent;assert.match(refusal,/Supported codec mp4 retried/);
+ const refusal=f.root.querySelector('[data-cinema-workflow-status]').textContent;assert.match(refusal,/no encoder for mp4 is connected/);
  f.root.querySelector('[data-cinema-codec]').value='webm';recorderFixture(t,f);assert.equal(await runExport(f),true);
  const status=f.root.querySelector('[data-cinema-workflow-status]');assert.equal(status.dataset.exportState,'persisted');assert.match(status.textContent,/WebM output persisted/);assert.doesNotMatch(status.textContent,/no encoder|No output file/);
  assert.equal(f.root.querySelector('[data-cinema-export-history]').textContent,refusal);
@@ -272,4 +277,44 @@ test('decoded output and actual saved-project CID remain readonly full-value tex
  for(const field of [output,project]){field.select();assert.equal(field.selectionEnd-field.selectionStart,field.value.length);assert.equal(field.value.length,59);}
  assert.equal(f.root.querySelector('[data-cinema-previous-project-reference]').readOnly,true);
  assert.equal(f.calls.length,3,'same authored source/export/project calls, no reference-display dispatch');
+});
+
+test('primary persist/export commands are unique accessible header actions at mobile and desktop widths',t=>{
+ for(const width of [390,1440]){
+  const f=fixture(t);f.window.happyDOM.setWindowSize({width,height:width===390?844:900});const header=f.root.querySelector('.cinema-header'),row=header.querySelector('.cinema-primary-actions');assert.ok(row);
+  assert.equal(row.children.length,3);assert.equal(f.window.getComputedStyle(row).gridTemplateColumns.replace(/\s+/g,''),'repeat(3,minmax(0,1fr))');
+  for(const action of ['load-project-media-cids','simulate-failed-export']){const nodes=f.root.querySelectorAll('[data-cinema-workflow="'+action+'"]');assert.equal(nodes.length,1);assert.equal(row.contains(nodes[0]),true);assert.equal(nodes[0].closest('details'),null);assert.equal(nodes[0].disabled,false);assert.ok(nodes[0].getAttribute('aria-label'));nodes[0].focus();assert.equal(document.activeElement,nodes[0]);}
+  assert.equal(f.calls.length,0);assert.equal(f.window.getComputedStyle(f.root.querySelector('.cinema-native-video')).maxHeight,width===390?'110px':'140px');
+ }
+});
+
+test('only the empty unsaved project reference is hidden and a real persisted project reference becomes visible',async t=>{
+ const f=fixture(t),field=f.root.querySelector('[data-cinema-project-reference]'),label=field.closest('label');
+ assert.equal(field.dataset.referenceState,'not_saved');assert.equal(field.value,'');assert.equal(f.window.getComputedStyle(label).display,'none');
+ for(const selector of ['[data-cinema-source-cid]','[data-cinema-output-reference]'])assert.equal(f.window.getComputedStyle(f.root.querySelector(selector)).height,'46px');
+ await f.open();f.app.commitTimeline(f.root,2);recorderFixture(t,f);assert.equal(await runExport(f),true);
+ await f.approve(f.app.handleCinemaWorkflowAction(f.root,'load-project-media-cids',f.root.querySelector('[data-cinema-workflow="load-project-media-cids"]')));
+ assert.equal(field.dataset.referenceState,'saved');assert.equal(field.value,f.app.readLocalProject().projectCid);assert.notEqual(f.window.getComputedStyle(label).display,'none');
+ const saved=field.value;recorderFixture(t,f);assert.equal(await runExport(f),true);assert.equal(field.dataset.referenceState,'not_saved');assert.equal(field.value,'');assert.equal(f.window.getComputedStyle(label).display,'none');
+ assert.equal(f.root.querySelector('[data-cinema-previous-project-reference]').value,saved);assert.match(f.root.querySelector('.cinema-header .project-info').textContent,/Unsaved changes/);
+});
+
+test('MP4 refusal is format-local and preserves the actual last-good source output and saved project',async t=>{
+ const f=fixture(t);await f.open();f.app.commitTimeline(f.root,2);recorderFixture(t,f);assert.equal(await runExport(f),true);
+ await f.approve(f.app.handleCinemaWorkflowAction(f.root,'load-project-media-cids',f.root.querySelector('[data-cinema-workflow="load-project-media-cids"]')));
+ const source=f.app.sourceMedia,output=f.app.exportMedia,before=sessionStorage.getItem('swissknife.cinema.localProject'),calls=f.calls.length;
+ f.root.querySelector('[data-cinema-codec]').value='mp4';await f.app.handleCinemaWorkflowAction(f.root,'simulate-failed-export');const text=f.root.querySelector('[data-cinema-export-outcome]').textContent;
+ assert.match(text,/no encoder for mp4 is connected/);assert.match(text,/No output file was created for this mp4 attempt/);assert.match(text,/Browser WebM export remains available when supported/);
+ assert.ok(text.includes(source.cid));assert.ok(text.includes(output.cid));assert.match(text,/saved project retained/);
+ assert.equal(f.app.sourceMedia,source);assert.equal(f.app.exportMedia,output);const retained=JSON.parse(sessionStorage.getItem('swissknife.cinema.localProject')),prior=JSON.parse(before);retained.workflowStatus=prior.workflowStatus;assert.deepEqual(retained,prior,'only the actual workflow-status diagnostic may change');assert.equal(f.calls.length,calls);
+});
+
+test('all original temporal and native consent checks remain while declared scalar checks strengthen output and reopen identity',async()=>{
+ const scenario=JSON.parse(fs.readFileSync(new URL('../e2e/functional-workflows/cinema.json',import.meta.url))),{validateScenario,supplementalScenarioObservations}=await import('../../scripts/run-visual-functional-workflow.mjs');
+ const contract=JSON.parse(fs.readFileSync(new URL('../../config/visual-functional-app-contracts.json',import.meta.url))).apps.find(v=>v.app_id==='cinema');assert.equal(validateScenario(scenario,contract),scenario);
+ const rows=supplementalScenarioObservations(scenario);assert.equal(rows.length,8);
+ for(const phase of ['primary_result','persist_reopen','failure_recovery']){const last=scenario.phases[phase].at(-1);assert.equal(last.probe.kind,'media_state');assert.equal(last.probe.temporal_ms,250);assert.equal(last.operator,'at_least');assert.equal(last.expected,.05);}
+ assert.ok(rows.some(v=>v.phase==='persist_reopen'&&v.probe.pointer==='/restored'&&v.expected===true));assert.ok(rows.some(v=>v.phase==='persist_reopen'&&v.probe.pointer==='/mime'&&v.expected==='video/webm'));
+ for(const phase of ['primary_result','failure_recovery'])assert.ok(rows.some(v=>v.phase===phase&&v.probe.pointer==='/size'&&v.operator==='at_least'&&v.expected===1));
+ assert.equal(scenario.backend_bindings[1].result_assertion.pointer,'/result/result/content/0/json/persisted');assert.equal(scenario.backend_bindings[1].result_assertion.expected,true);
 });

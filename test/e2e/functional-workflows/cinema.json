@@ -134,6 +134,17 @@
       },
       {
         "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-cinema-output-reference]",
+          "attribute": "data-output-identity",
+          "pointer": "/size"
+        },
+        "operator": "at_least",
+        "expected": 1
+      },
+      {
+        "op": "assert",
         "requirement_id": "result_1",
         "probe": {
           "kind": "media_state",
@@ -214,6 +225,28 @@
       },
       {
         "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-cinema-output-reference]",
+          "attribute": "data-output-identity",
+          "pointer": "/restored"
+        },
+        "operator": "equals",
+        "expected": true
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-cinema-output-reference]",
+          "attribute": "data-output-identity",
+          "pointer": "/mime"
+        },
+        "operator": "equals",
+        "expected": "video/webm"
+      },
+      {
+        "op": "assert",
         "requirement_id": "persist_reopen",
         "probe": {
           "kind": "media_state",
@@ -273,7 +306,7 @@
           "selector": "[data-cinema-export-outcome]"
         },
         "operator": "contains",
-        "expected": "Supported codec mp4 retried"
+        "expected": "no encoder for mp4 is connected"
       },
       {
         "op": "press",
@@ -320,6 +353,28 @@
         "op": "press",
         "selector": "[data-cinema-play]",
         "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-cinema-output-reference]",
+          "attribute": "data-output-identity",
+          "pointer": "/mime"
+        },
+        "operator": "equals",
+        "expected": "video/webm"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-cinema-output-reference]",
+          "attribute": "data-output-identity",
+          "pointer": "/size"
+        },
+        "operator": "at_least",
+        "expected": 1
       },
       {
         "op": "assert",
