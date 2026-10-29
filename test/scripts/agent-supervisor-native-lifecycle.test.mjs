@@ -301,3 +301,166 @@ test('mobile tabs form two balanced rows and explicit owner readback remains out
  assert.equal(f.root.querySelector('[data-native-run-id]').value,run);
  assert.equal(f.calls.length,3,'layout and readback presentation add no owner request');
 });
+
+// R35: authored protocol responses only. Heartbeat-shaped fixtures below are
+// deliberately not claimed to be heartbeat observations from the live SDK.
+test('pending owner inspection withholds completion and validated output even with heartbeat-shaped metadata',async t=>{
+ const f=fixture(t);await f.act('createNativeRun');const run=f.app.state.fixtureRun.run_id;
+ f.setOverride(v=>{const body=v.result.result.content[0].json;body.heartbeat_at=Date.now();body.progress_percent=100;return v;});
+ assert.equal(await f.act('readNativeRun'),true);
+ assert.equal(f.calls.at(-1).tool_id,'get_task');assert.equal(f.calls.at(-1).input.payload.task_key,'a');
+ assert.equal(f.app.state.fixtureRun.stages.a.status,'ready');assert.equal(f.app.state.fixtureRun.stages.a.output_sha256,undefined);
+ assert.equal(f.app.state.fixtureRun.stages.a.execution,undefined);assert.equal(f.app.state.dispatch.result.accepted,false);
+ const observed=JSON.parse(f.root.querySelector('[data-native-result-stage="a"]').getAttribute('data-native-state'));
+ assert.deepEqual(observed,{owner_status:'ready',validated:false,output_sha256:'',readback:false});
+ assert.equal(f.root.querySelector('[data-native-a-complete]').getAttribute('data-native-a-complete'),'false');
+ assert.deepEqual(f.runs.get(run).spawns,{a:0,b:0});
+ assert.equal(JSON.parse(sessionStorage.getItem('agent-supervisor-board')).fixtureRun.stages.a.status,'ready');
+});
+
+test('incomplete or heartbeat-only completed-shaped replies cannot create a validated task result',async t=>{
+ for(const status of ['running','completed']){
+  const f=fixture(t);await f.act('createNativeRun');
+  f.setOverride(v=>{const body=v.result.result.content[0].json;body.status=status;body.heartbeat_at=Date.now();body.progress_percent=100;delete body.output_sha256;delete body.execution;return v;});
+  const accepted=await f.act('readNativeRun');
+  assert.equal(accepted,status==='running');assert.notEqual(f.app.state.fixtureRun.stages.a.status,'completed');
+  assert.equal(f.app.state.fixtureRun.stages.a.output_sha256,undefined);assert.equal(f.app.state.dispatch.result?.accepted||false,false);
+  assert.equal(JSON.parse(f.root.querySelector('[data-native-result-stage="a"]').getAttribute('data-native-state')).validated,false);
+ }
+});
+
+test('both recovery outputs survive reopen and need separate matching owner readbacks in the new session',async t=>{
+ const f=fixture(t);await f.act('createNativeRun');f.app.selectNativeTask('b');await f.act('submitTaskDispatch');await f.act('repairNamedBlocker');await f.act('retryNativeTask');
+ const saved=structuredClone(f.app.state.fixtureRun),note=f.app.state.dispatch.recoveryNote;
+ assert.deepEqual(f.runs.get(saved.run_id).spawns,{a:1,b:1});
+ f.reopen();assert.equal(f.app.state.fixtureRun.run_id,saved.run_id);assert.equal(f.app.state.nativeReadback,null);
+ for(const stage of ['a','b']){
+  assert.equal(f.root.querySelector(`[data-native-stage-output="${stage}"]`).textContent,saved.stages[stage].output_sha256);
+  assert.equal(f.root.querySelector(`[data-native-readback-stage="${stage}"]`).getAttribute('data-readback-state'),'not_read');
+ }
+ f.app.selectNativeTask('a');assert.equal(await f.act('readNativeRun'),true);
+ assert.equal(f.app.nativeReadbackFor('a').matched,true);assert.equal(f.app.nativeReadbackFor('b'),null);
+ f.app.selectNativeTask('b');assert.equal(f.root.querySelector('[data-native-readback]').getAttribute('data-native-readback'),'not_read');
+ assert.equal(await f.act('readNativeRun'),true);
+ for(const stage of ['a','b']){
+  const observed=JSON.parse(f.root.querySelector(`[data-native-result-stage="${stage}"]`).getAttribute('data-native-state'));
+  assert.equal(observed.readback,true);assert.equal(observed.validated,true);assert.equal(observed.output_sha256,saved.stages[stage].output_sha256);
+  assert.deepEqual(f.app.state.fixtureRun.stages[stage].execution,saved.stages[stage].execution);
+ }
+ assert.equal(f.app.state.dispatch.recoveryNote,note,'owner readback cannot erase the retained recovery result');
+ assert.deepEqual(f.runs.get(saved.run_id).spawns,{a:1,b:1});assert.deepEqual(f.calls.slice(-2).map(x=>x.input.payload.task_key),['a','b']);
+ const stored=JSON.parse(sessionStorage.getItem('agent-supervisor-board'));assert.equal(stored.fixtureRun.history.filter(x=>x.action==='read').length,2);
+ assert.match(f.root.querySelector('[data-native-readback-stage="a"]').textContent,/Task A: owner readback matched this session/);
+ assert.match(f.root.querySelector('[data-native-readback-stage="b"]').textContent,/Task B: owner readback matched this session/);
+});
+
+test('a readback never transfers across stage or run and a foreign read preserves both validated outputs',async t=>{
+ const f=fixture(t);await f.act('createNativeRun');f.app.selectNativeTask('b');await f.act('submitTaskDispatch');await f.act('repairNamedBlocker');await f.act('retryNativeTask');
+ const before=structuredClone(f.app.state.fixtureRun);f.app.selectNativeTask('a');await f.act('readNativeRun');f.app.selectNativeTask('b');
+ assert.equal(f.app.nativeReadbackFor('b'),null);
+ f.setOverride(v=>{v.result.result.content[0].json.task_id=before.task_ids.a;return v;});
+ assert.equal(await f.act('readNativeRun'),false);assert.equal(f.app.nativeReadbackFor('b'),null);assert.equal(f.app.nativeReadbackFor('a').matched,true);
+ for(const stage of ['a','b'])assert.equal(f.app.state.fixtureRun.stages[stage].output_sha256,before.stages[stage].output_sha256);
+ f.setOverride(null);await f.act('createNativeRun');assert.notEqual(f.app.state.fixtureRun.run_id,before.run_id);
+ assert.equal(f.app.nativeReadbackFor('a'),null);assert.equal(f.app.nativeReadbackFor('b'),null);
+});
+
+test('declared ten-call authored flow preserves all three semantic predicates and caps supplemental observations at eight',async t=>{
+ const f=fixture(t);await f.act('createNativeRun');await f.act('readNativeRun');await f.act('submitTaskDispatch');f.reopen();await f.act('readNativeRun');
+ await f.act('createNativeRun');f.app.selectNativeTask('b');await f.act('submitTaskDispatch');await f.act('repairNamedBlocker');await f.act('retryNativeTask');f.reopen();
+ f.app.selectNativeTask('a');await f.act('readNativeRun');f.app.selectNativeTask('b');await f.act('readNativeRun');
+ assert.equal(f.calls.length,10);
+ assert.deepEqual(f.calls.map(x=>[x.tool_id,x.input.payload.action||'read',x.input.payload.task_key||null]),[
+  ['WorkflowCoordinator.submit_task','create',null],['get_task','read','a'],['WorkflowCoordinator.submit_task','dispatch','a'],['get_task','read','a'],
+  ['WorkflowCoordinator.submit_task','create',null],['WorkflowCoordinator.submit_task','dispatch','b'],['WorkflowCoordinator.submit_task','dispatch','a'],['WorkflowCoordinator.submit_task','retry','b'],['get_task','read','a'],['get_task','read','b']]);
+ const {readFile}=await import('node:fs/promises');const scenario=JSON.parse(await readFile(new URL('../e2e/functional-workflows/agent-supervisor.json',import.meta.url),'utf8'));
+ const phases=Object.values(scenario.phases),semantic=phases.flat().filter(x=>x.requirement_id),supplemental=phases.flat().filter(x=>x.op==='assert'&&!Object.hasOwn(x,'requirement_id')&&!Object.hasOwn(x,'checkpoint_id'));
+ assert.deepEqual(semantic.map(x=>[x.requirement_id,x.probe.kind,x.probe.selector,x.operator,x.expected]),[
+  ['result_1','text','[data-testid="active-task"]','contains','Heartbeat and progress percent are not completion'],
+  ['persist_reopen','text','[data-testid="active-task"]','contains','Dependency blocker: SWR-105'],
+  ['failure_recovery','text','[data-testid="dispatch-recovery-note"]','contains','without a duplicate dispatch']]);
+ assert.equal(supplemental.length,8);assert.equal(scenario.phases.failure_recovery.filter(x=>x.op==='reopen_app').length,1);
+});
+
+test('storage refusal cannot publish a fresh readback match or overwrite the last stored run',async t=>{
+ const f=fixture(t);await f.act('createNativeRun');await f.act('submitTaskDispatch');
+ const before=sessionStorage.getItem('agent-supervisor-board'),digest=f.app.state.fixtureRun.stages.a.output_sha256;
+ const original=globalThis.sessionStorage;
+ globalThis.sessionStorage={getItem:key=>original.getItem(key),setItem(){throw Error('authored storage quota refusal');}};
+ try{
+  assert.equal(await f.act('readNativeRun'),false);assert.equal(f.app.nativeReadbackFor('a'),null);
+  assert.equal(f.app.state.dispatch.result,null);assert.match(f.app.state.dispatch.error.message,/could not retain native run identity/);
+  assert.equal(f.app.state.fixtureRun.stages.a.output_sha256,digest);assert.equal(sessionStorage.getItem('agent-supervisor-board'),before);
+  assert.equal(JSON.parse(f.root.querySelector('[data-native-result-stage="a"]').getAttribute('data-native-state')).readback,false);
+ }finally{globalThis.sessionStorage=original;}
+});
+
+// Authored layout/computed-style checks only; fresh viewport pixels still need qualification.
+test('native run collapses the cached metric strip while retaining its labelled keyboard disclosure',async t=>{
+ for(const width of [1440,390]){
+  const f=fixture(t);f.window.happyDOM.setWindowSize({width,height:width===390?844:900});
+  assert.equal(f.root.querySelector('[data-testid="supervisor-health"]').tagName,'SECTION');
+  await f.act('createNativeRun');
+  const cached=f.root.querySelector('[data-testid="supervisor-health"]');
+  assert.equal(cached.tagName,'DETAILS');assert.equal(cached.open,false);
+  assert.match(cached.querySelector('summary').textContent,/Cached board:/);assert.match(cached.querySelector('summary').textContent,/mode /);
+  assert.ok(cached.querySelector('.as-health-band'));
+  for(const label of ['Cached status','Cached goals','Cached queue','Cached running','Cached mode'])assert.ok(cached.textContent.includes(label));
+  const summary=cached.querySelector('summary');summary.focus();assert.equal(f.window.document.activeElement,summary);summary.click();assert.equal(cached.open,true);
+  assert.equal(cached.contains(f.root.querySelector('[data-native-run-id]')),false);
+  assert.equal(cached.contains(f.root.querySelector('[data-native-read]')),false);
+ }
+});
+
+test('named A and B result labels own the original completion selectors without a duplicate status row',async t=>{
+ const f=fixture(t);await f.act('createNativeRun');f.app.selectNativeTask('b');await f.act('submitTaskDispatch');await f.act('repairNamedBlocker');await f.act('retryNativeTask');
+ assert.equal(f.root.querySelector('.as-native-status'),null);
+ for(const stage of ['a','b']){
+  const row=f.root.querySelector(`[data-native-result-stage="${stage}"]`);
+  assert.equal(f.root.querySelectorAll(`[data-native-${stage}-complete]`).length,1);
+  assert.equal(row.querySelector(`[data-native-${stage}-complete]`).getAttribute(`data-native-${stage}-complete`),'true');
+  assert.ok(row.textContent.includes(`Task ${stage.toUpperCase()}: completed`));
+  assert.equal(row.querySelector(`[data-native-stage-output="${stage}"]`).textContent,f.app.state.fixtureRun.stages[stage].output_sha256);
+ }
+ assert.equal(f.root.querySelector('[data-native-select-stage="a"]').getAttribute('aria-label'),'Select native task A');
+ assert.equal(f.root.querySelector('[data-native-read]').getAttribute('aria-label'),'Read owner task B');
+});
+
+test('post-recovery owner reads explicitly open the real action dock before checking consent',async t=>{
+ const f=fixture(t);await f.act('createNativeRun');f.app.selectNativeTask('b');await f.act('submitTaskDispatch');await f.act('repairNamedBlocker');await f.act('retryNativeTask');f.reopen();
+ f.app.selectNativeTask('a');let dock=f.root.querySelector('.as-dispatch-controls');assert.equal(dock.open,false);
+ dock.querySelector('summary').click();assert.equal(dock.open,true);
+ const confirm=dock.querySelector('[data-testid="dispatch-confirm"]');confirm.checked=true;confirm.dispatchEvent(new f.window.Event('change',{bubbles:true}));
+ assert.equal(f.root.querySelector('.as-dispatch-controls').open,true);assert.equal(f.calls.length,4,'opening consent controls is not owner work');
+ const {readFile}=await import('node:fs/promises');const scenario=JSON.parse(await readFile(new URL('../e2e/functional-workflows/agent-supervisor.json',import.meta.url),'utf8'));
+ const steps=scenario.phases.failure_recovery,start=steps.findIndex(x=>x.op==='reopen_app'),reads=steps.slice(start);
+ for(let i=0;i<reads.length;i++)if(reads[i].op==='check')assert.deepEqual(reads[i-1],{op:'click',selector:'[data-testid="dispatch-panel"] .as-dispatch-controls > summary'});
+ assert.equal(reads.filter(x=>x.op==='check').length,2);
+});
+
+
+test('validated dispatch invalidates the same-stage pending read without carrying stale no-output UI forward',async t=>{
+ const f=fixture(t);await f.act('createNativeRun');await f.act('readNativeRun');
+ assert.equal(f.app.nativeReadbackFor('a').owner_status,'ready');
+ assert.match(f.root.querySelector('[data-native-readback-stage="a"]').textContent,/validated output is not published/);
+ assert.equal(await f.act('submitTaskDispatch'),true);
+ assert.equal(f.app.nativeReadbackFor('a'),null);assert.equal(f.app.state.nativeReadback,null);
+ const card=f.root.querySelector('[data-native-result-stage="a"]');
+ assert.equal(card.textContent.includes('validated output is not published'),false);
+ assert.deepEqual(JSON.parse(card.getAttribute('data-native-state')),{owner_status:'completed',validated:true,output_sha256:f.app.state.fixtureRun.stages.a.output_sha256,readback:false});
+ assert.equal(f.runs.get(f.app.state.fixtureRun.run_id).spawns.a,1);assert.equal(f.calls.length,3);
+});
+
+
+test('native action completion scrolls the selected result card while creation uses the summary',async t=>{
+ const f=fixture(t),seen=[],proto=f.window.HTMLElement.prototype;
+ const previous=Object.getOwnPropertyDescriptor(proto,'scrollIntoView');
+ Object.defineProperty(proto,'scrollIntoView',{configurable:true,value:function(options){seen.push({stage:this.getAttribute('data-native-result-stage'),summary:this.hasAttribute('data-native-summary'),options});}});
+ t.after(()=>previous?Object.defineProperty(proto,'scrollIntoView',previous):delete proto.scrollIntoView);
+ await f.act('createNativeRun');assert.deepEqual(seen.at(-1),{stage:null,summary:true,options:{block:'nearest'}});
+ f.app.selectNativeTask('b');await f.act('submitTaskDispatch');assert.deepEqual(seen.at(-1),{stage:null,summary:true,options:{block:'nearest'}},'dependency failure retains original summary/error positioning');
+ await f.act('repairNamedBlocker');assert.deepEqual(seen.at(-1),{stage:'a',summary:false,options:{block:'nearest'}});
+ f.app.selectNativeTask('b');await f.act('retryNativeTask');assert.deepEqual(seen.at(-1),{stage:'b',summary:false,options:{block:'nearest'}});
+ await f.act('readNativeRun');assert.deepEqual(seen.at(-1),{stage:'b',summary:false,options:{block:'nearest'}});
+ assert.equal(f.calls.length,5);assert.deepEqual(f.runs.get(f.app.state.fixtureRun.run_id).spawns,{a:1,b:1});
+});

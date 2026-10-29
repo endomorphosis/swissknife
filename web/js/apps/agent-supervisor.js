@@ -192,6 +192,7 @@ export class AgentSupervisorApp {
       fixtureHistory: [],
       nativeStage: 'a',
       nativeReadback: null,
+      nativeReadbacks: {},
       events: [],
       receiptOperation: {
         loading: false,
@@ -858,7 +859,7 @@ export class AgentSupervisorApp {
   }
 
   async createNativeRun() { return this.performNativeAction('create', 'a'); }
-  async readNativeRun() { return this.performNativeAction('read', 'a'); }
+  async readNativeRun() { return this.performNativeAction('read', this.state.nativeStage || 'a'); }
   async retryNativeTask() { return this.performNativeAction('retry', 'b'); }
 
   async submitTaskDispatch() {
@@ -903,7 +904,7 @@ export class AgentSupervisorApp {
     const container = this.container;
     const operation = Symbol('native-run-action');this.nativeOperation = operation;
     dispatch.submitting = true;dispatch.error = null;dispatch.result = null;dispatch.confirm = false;
-    if (action === 'create') this.state.nativeReadback = null;
+    if (action === 'create') { this.state.nativeReadback = null; this.state.nativeReadbacks = {}; }
     this.update();
     try {
       const trigger = container?.querySelector(triggerSelector || (action === 'create' ? '[data-native-create]' : action === 'read' ? '[data-native-read]' : action === 'retry' ? '[data-native-retry]' : stage === 'a' && dispatch.error?.reason === 'dependency_blocked' ? '[data-testid="dispatch-repair"]' : '[data-testid="dispatch-submit"]'));
@@ -936,55 +937,83 @@ export class AgentSupervisorApp {
         this.state.nativeStage='a';dispatch.recoveryNote='Run created. No worker has completed; explicitly run task A.';
       } else {
         if(body.run_id!==existing.run_id || body.task_key!==stage || body.task_id!==existing.task_ids[stage]) throw new Error('Owner returned a different run or task.');
-        if(body.status!=='completed'||!nativeDigest(body.output_sha256))throw new Error('Owner has not published validated task output.');
         const prior=existing.stages?.[stage];
-        if(action==='read' && (!prior?.output_sha256 || prior.output_sha256!==body.output_sha256))throw new Error('Owner readback does not match the retained validated output.');
-        if(action!=='read' && (!nativeArtifact(body.execution?.producer,body.run_id)||!nativeArtifact(body.execution?.validator,body.run_id)
-          ||body.execution.producer.path===body.execution.validator.path))throw new Error('Distinct native producer and independent validator records are missing.');
-        const execution=action==='read'?prior.execution:body.execution;
-        existing.stages[stage]={status:'completed',task_id:body.task_id,output_sha256:body.output_sha256,execution,...reference};
-        this.state.nativeStage=stage;
-        existing.output_sha256=body.output_sha256;existing.last_validated_stage=stage;
-        // The owner returned one task status, never a goal/run completion.
-        delete existing.status;
-        existing.history=[...(existing.history||[]),{action,stage,run_id:body.run_id,task_id:body.task_id,status:body.status,
-          output_sha256:body.output_sha256,outcome:'executed',...reference}].slice(-12);
-        if(action==='read')this.state.nativeReadback={run_id:body.run_id,task_id:body.task_id,output_sha256:body.output_sha256,matched:true};
-        if(stage==='a')dispatch.recoveryNote='Dependency A now has actual validated output. Task B can be explicitly retried.';
-        else {
-          const taskADispatches=(existing.history||[]).filter(item=>item.action==='dispatch'&&item.stage==='a'&&item.outcome==='executed').length;
-          dispatch.recoveryNote=`The named dependency was repaired and task B completed with validated output without a duplicate dispatch of task A. Task A executed dispatches: ${taskADispatches}.`;
+        if(action==='read' && body.status!=='completed') {
+          const nonCompleted=['proposed','admitted','pending','ready','todo','queued','retrying','claimed','in_progress','running','blocked','cancelled','failed','quarantined','rejected'];
+          if(!nonCompleted.includes(body.status)||prior?.output_sha256)throw new Error('Owner readback does not match the retained validated output.');
+          existing.stages[stage]={...prior,status:body.status,owner_status:body.status,task_id:body.task_id};
+          const observed={run_id:body.run_id,task_id:body.task_id,stage,owner_status:body.status,matched:false};
+          this.state.nativeReadback=observed;this.state.nativeReadbacks={...(this.state.nativeReadbacks||{}),[stage]:observed};
+          existing.history=[...(existing.history||[]),{action,stage,run_id:body.run_id,task_id:body.task_id,status:body.status,outcome:'executed',...reference}].slice(-12);
+          this.state.nativeStage=stage;
+        } else {
+          if(body.status!=='completed'||!nativeDigest(body.output_sha256))throw new Error('Owner has not published validated task output.');
+          if(action==='read' && (!prior?.output_sha256 || prior.output_sha256!==body.output_sha256))throw new Error('Owner readback does not match the retained validated output.');
+          if(action!=='read' && (!nativeArtifact(body.execution?.producer,body.run_id)||!nativeArtifact(body.execution?.validator,body.run_id)
+            ||body.execution.producer.path===body.execution.validator.path))throw new Error('Distinct native producer and independent validator records are missing.');
+          const execution=action==='read'?prior.execution:body.execution;
+          existing.stages[stage]={status:'completed',owner_status:'completed',task_id:body.task_id,output_sha256:body.output_sha256,execution,...reference};
+          this.state.nativeStage=stage;
+          existing.output_sha256=body.output_sha256;existing.last_validated_stage=stage;
+          if(action==='read') {
+            const matched={run_id:body.run_id,task_id:body.task_id,stage,owner_status:body.status,output_sha256:body.output_sha256,matched:true};
+            this.state.nativeReadback=matched;this.state.nativeReadbacks={...(this.state.nativeReadbacks||{}),[stage]:matched};
+          } else {
+            if(this.state.nativeReadbacks)delete this.state.nativeReadbacks[stage];
+            if(this.state.nativeReadback?.stage===stage)this.state.nativeReadback=null;
+          }
+          existing.history=[...(existing.history||[]),{action,stage,run_id:body.run_id,task_id:body.task_id,status:body.status,
+            output_sha256:body.output_sha256,outcome:'executed',...reference}].slice(-12);
+          if(action!=='read') {
+            if(stage==='a')dispatch.recoveryNote='Dependency A now has actual validated output. Task B can be explicitly retried.';
+            else {
+              const taskADispatches=(existing.history||[]).filter(item=>item.action==='dispatch'&&item.stage==='a'&&item.outcome==='executed').length;
+              dispatch.recoveryNote=`The named dependency was repaired and task B completed with validated output without a duplicate dispatch of task A. Task A executed dispatches: ${taskADispatches}.`;
+            }
+          }
         }
+        // Owner observations describe one task; never infer whole-run completion.
+        delete existing.status;
       }
       const run=this.state.fixtureRun;const current=run.stages?.[stage];
       dispatch.result={accepted:current?.status==='completed',native_stage:stage,native_status:current?.status||'created',run_id:run.run_id,output_sha256:current?.output_sha256||'',
         correlation_id:reference.correlation_id,receipt:{receipt_id:reference.receipt_id,cid:reference.receipt_id},
         event_dag:{cid:reference.event_id,event_type:action},policy_class:'privileged-control',
-        note:current?.status==='completed'?'Actual native output passed its fixed independent validator. Heartbeat is not completion.':'Created only; no validated worker output yet.'};
+        note:current?.status==='completed'?'Actual native output passed its fixed independent validator. Heartbeat is not completion.':action==='read'?`Owner reports ${current?.owner_status||'unverified'}; completion is withheld without validated output.`:'Created only; no validated worker output yet.'};
       this.rememberEvent(`${action} ${run.run_id} ${stage}: ${reference.receipt_id}; event ${reference.event_id}.`);
       if (!this.persistBoard()) throw new Error('The browser could not retain native run identity for reopen.');
       return true;
     } catch(error) {
-      dispatch.error={reason:'owner_result_unverified',message:error instanceof Error?error.message:String(error)};
-      this.state.nativeReadback=null;return false;
+      dispatch.error={reason:'owner_result_unverified',message:error instanceof Error?error.message:String(error)};dispatch.result=null;
+      this.state.nativeReadback=null;if(this.state.nativeReadbacks)delete this.state.nativeReadbacks[stage];return false;
     } finally {
-      if(this.nativeOperation===operation){dispatch.submitting=false;dispatch.confirm=false;if(this.container===container && container?.isConnected){this.state.activeTab='dispatch';this.update();container.querySelector('[data-native-summary]')?.scrollIntoView?.({block:'nearest'});}}
+      if(this.nativeOperation===operation){dispatch.submitting=false;dispatch.confirm=false;if(this.container===container && container?.isConnected){this.state.activeTab='dispatch';this.update();(action!=='create'&&!dispatch.error?container.querySelector(`[data-native-result-stage="${stage}"]`)||container.querySelector('[data-native-summary]'):container.querySelector('[data-native-summary]'))?.scrollIntoView?.({block:'nearest'});}}
     }
   }
 
+  nativeReadbackFor(stage) {
+    const run=this.state.fixtureRun,read=this.state.nativeReadbacks?.[stage];
+    if(!run||!read||read.run_id!==run.run_id||read.task_id!==run.task_ids?.[stage])return null;
+    if(read.matched&&(!nativeDigest(read.output_sha256)||read.output_sha256!==run.stages?.[stage]?.output_sha256))return null;
+    return read;
+  }
+
   renderNativeRun() {
-    const run=this.state.fixtureRun,stage=this.state.nativeStage||'a',current=run?.stages?.[stage],read=this.state.nativeReadback;
+    const run=this.state.fixtureRun,stage=this.state.nativeStage||'a',current=run?.stages?.[stage],read=this.nativeReadbackFor(stage);
     return `<section class="as-section-line" data-native-run data-native-summary data-native-run-state="${run?.task_ids?.a?'created':'none'}">
       <h4>Bounded native task run</h4>
       <label class="as-field as-native-identity"><span>Native run ID</span><input readonly data-native-run-id aria-label="Native run ID" value="${escapeHtml(run?.run_id||'')}" placeholder="Create a run to obtain its ID"></label>
-      <div class="as-native-status"><span data-native-a-complete="${run?.stages?.a?.status==='completed'}">Task A: ${escapeHtml(run?.stages?.a?.status||'not created')}</span>
-      <span data-native-b-complete="${run?.stages?.b?.status==='completed'}">Task B: ${escapeHtml(run?.stages?.b?.status||'not created')}</span></div>
-      <span>Validated output <code style="overflow-wrap:anywhere" data-native-output-sha>${escapeHtml(current?.output_sha256||'not published')}</code></span>
-      <span data-native-readback="${read?.matched?'matched':'not_read'}">${read?.matched?'Saved A: owner readback matched.':'Saved A: not read back in this session.'}</span>
-      <div class="as-actions"><button type="button" data-native-create ${this.state.dispatch.submitting?'disabled':''}>Create new run</button>
-      <button type="button" data-native-select-stage="a" ${!run?.task_ids?.a?'disabled':''}>Select native task A</button>
-      <button type="button" data-native-select-stage="b" ${!run?.task_ids?.b?'disabled':''}>Select native task B</button>
-      <button type="button" data-native-read ${!run?.stages?.a?.output_sha256?'disabled':''}>Read back saved A</button></div>
+      <div class="as-native-stage-results">${['a','b'].map(key=>{
+        const result=run?.stages?.[key],matched=this.nativeReadbackFor(key),label=key.toUpperCase();
+        return `<section class="as-native-stage-result" data-native-result-stage="${key}" data-native-state="${escapeHtml(JSON.stringify({owner_status:result?.owner_status||'not_read',validated:result?.status==='completed'&&nativeDigest(result?.output_sha256),output_sha256:result?.output_sha256||'',readback:matched?.matched===true}))}">
+        <strong data-native-${key}-complete="${result?.status==='completed'}" data-native-owner-status="${key}" data-owner-status="${escapeHtml(result?.owner_status||'not_read')}">Task ${label}: ${escapeHtml(result?.status||'not created')}</strong>
+        <code style="overflow-wrap:anywhere" data-native-stage-output="${key}" ${stage===key?'data-native-output-sha':''}>${escapeHtml(result?.output_sha256||'not published')}</code>
+        <span data-native-readback-stage="${key}" data-readback-state="${matched?.matched?'matched':matched?'pending':'not_read'}" ${stage===key?`data-native-readback="${matched?.matched?'matched':matched?'pending':'not_read'}"`:''}>${matched?.matched?`Task ${label}: owner readback matched this session.`:matched?`Task ${label}: owner returned ${escapeHtml(matched.owner_status)}; validated output is not published.`:`Task ${label}: not read back in this session.`}</span></section>`;
+      }).join('')}</div>
+      <div class="as-actions"><button type="button" data-native-create aria-label="Create new bounded native run" ${this.state.dispatch.submitting?'disabled':''}>New run</button>
+      <button type="button" data-native-select-stage="a" aria-label="Select native task A" ${!run?.task_ids?.a?'disabled':''}>Select A</button>
+      <button type="button" data-native-select-stage="b" aria-label="Select native task B" ${!run?.task_ids?.b?'disabled':''}>Select B</button>
+      <button type="button" data-native-read aria-label="Read owner task ${escapeHtml(stage.toUpperCase())}" ${!run?.task_ids?.[stage]?'disabled':''}>Read owner ${escapeHtml(stage.toUpperCase())}</button></div>
       <details><summary>Task and result references</summary><div class="as-section-line">
       <span>Actual isolated supervisor tasks. The cached board is separate from this run.</span>
       <span>${read?.matched?'Owner readback matched the retained run, task and validated output.':'Reopen identity requires explicit owner readback.'}</span>
@@ -1007,7 +1036,7 @@ export class AgentSupervisorApp {
       <span style="overflow-wrap:anywhere">Task B ${escapeHtml(run.task_ids.b)} depends on task A ${escapeHtml(run.task_ids.a)}.</span>
       <span style="overflow-wrap:anywhere">Validated output SHA-256 ${escapeHtml(current?.output_sha256||'not published')}</span>
       <span style="overflow-wrap:anywhere">Owner receipt ${escapeHtml(current?.receipt_id||'not returned')}; event ${escapeHtml(current?.event_id||'not returned')}</span>
-      <span>${this.state.nativeReadback?.matched?'Explicit owner readback matched this retained run, task and output.':'Task status and artifacts below are retained results, not a new owner readback.'} Goal completion is not inferred.</span>
+      <span>${this.nativeReadbackFor(stage)?.matched?'Explicit owner readback matched this retained run, task and output.':'Task status and artifacts below are retained results, not a new owner readback.'} Goal completion is not inferred.</span>
       <details><summary>Goal and independent validation references</summary>
       <span style="overflow-wrap:anywhere">Goal ${escapeHtml(run.root_goal_cid)}; subgoal ${escapeHtml(run.child_goal_cid)}</span>
       <span style="overflow-wrap:anywhere">Producer ${escapeHtml(current?.execution?.producer?.path||'not returned')} (${escapeHtml(current?.execution?.producer?.sha256||'none')})</span>
@@ -1033,7 +1062,7 @@ export class AgentSupervisorApp {
       if (saved.fixtureRun && nativeUUID(saved.fixtureRun.run_id)) {
         const value=saved.fixtureRun;
         this.state.fixtureRun={...value,stages:value.stages&&typeof value.stages==='object'?value.stages:{},history:Array.isArray(value.history)?value.history.slice(-12):[]};
-        this.state.nativeReadback=null;
+        this.state.nativeReadback=null;this.state.nativeReadbacks={};
       }
       if(Array.isArray(saved.fixtureHistory))this.state.fixtureHistory=saved.fixtureHistory.slice(-2);
       if(['a','b'].includes(saved.nativeStage))this.state.nativeStage=saved.nativeStage;
@@ -1248,13 +1277,15 @@ export class AgentSupervisorApp {
           <button type="button" data-action="error" data-supervisor-focusable>Error</button>
         </div>
       </header>
-      <section class="as-health-band" aria-label="Supervisor health" data-testid="supervisor-health">
+      <${this.state.fixtureRun?'details':'section'} class="${this.state.fixtureRun?'as-cached-health':'as-health-band'}" aria-label="${this.state.fixtureRun?'Cached board status':'Supervisor health'}" data-testid="supervisor-health">
+        ${this.state.fixtureRun?`<summary>Cached board: ${escapeHtml(health.status||'unavailable')} · mode ${escapeHtml(this.state.transportMode)}</summary><div class="as-health-band">`:''}
         ${metric(this.state.fixtureRun?'Cached status':'Status', health.status || 'unavailable')}
         ${metric(this.state.fixtureRun?'Cached goals':'Active goals', String(health.active_goal_count ?? 0))}
         ${metric(this.state.fixtureRun?'Cached queue':'Queued', String(health.queued_task_count ?? 0))}
         ${metric(this.state.fixtureRun?'Cached running':'Running', String(health.running_task_count ?? 0))}
-        ${metric('Mode', this.state.transportMode)}
-      </section>
+        ${metric(this.state.fixtureRun?'Cached mode':'Mode', this.state.transportMode)}
+        ${this.state.fixtureRun?'</div>':''}
+      </${this.state.fixtureRun?'details':'section'}>
     `;
   }
 
@@ -1873,6 +1904,9 @@ export class AgentSupervisorApp {
         .as-actions button[aria-disabled="true"] { color: #9eb2aa; border-color: #315248; }
         .as-actions button:hover, .as-actions a:hover, .as-tabs button:hover, .as-row:hover, .as-queue-row:hover, .as-receipt-list button:hover, .as-section-line button:hover, .as-state button:hover { border-color: #5fb99d; }
         .as-actions button:focus-visible, .as-actions a:focus-visible, .as-tabs button:focus-visible, .as-row:focus-visible, .as-queue-row:focus-visible, .as-receipt-list button:focus-visible, .as-section-line button:focus-visible, .as-state button:focus-visible, .as-proof-actions button:focus-visible { outline: 2px solid #8bd8bd; outline-offset: 2px; }
+        .as-cached-health { flex-shrink: 0; border-bottom: 1px solid #263a34; background: #15241e; }
+        .as-cached-health > summary { padding: 7px 12px; cursor: pointer; font-size: 12px; line-height: 1.35; color: #bfcbc4; }
+        .as-cached-health > summary:focus-visible { outline: 2px solid #8bd8bd; outline-offset: -2px; }
         .as-health-band, .as-inline-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: 1px; background: #263a34; border-bottom: 1px solid #263a34; }
         .as-metric { background: #101b18; padding: 10px 12px; min-width: 0; }
         .as-metric span { display: block; color: #91a79d; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
@@ -1897,6 +1931,9 @@ export class AgentSupervisorApp {
         .as-native-identity input { width: 100%; min-width: 0; height: 32px; border: 1px solid #315248; border-radius: 4px; padding: 6px 8px; background: #101b18; color: #edf7f2; font: 12px/1.4 monospace; user-select: all; }
         .as-native-identity input:focus-visible { outline: 2px solid #8bd8bd; outline-offset: 2px; }
         .as-native-status { display: flex; gap: 8px 20px; flex-wrap: wrap; }
+        .as-native-stage-results { display: grid; gap: 8px; }
+        .as-native-stage-result { display: grid; gap: 2px; min-width: 0; font-size: 12px; }
+        .as-native-stage-result code { font: 11px/1.35 monospace; user-select: all; }
         .as-tree-children { display: grid; gap: 6px; margin: 6px 0 10px 18px; }
         .as-row, .as-queue-row { width: 100%; display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 9px; text-align: left; }
         .as-subgoal { grid-template-columns: 10px minmax(0, 1fr); background: #101b18; }

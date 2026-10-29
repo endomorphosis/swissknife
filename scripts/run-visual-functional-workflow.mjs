@@ -26,6 +26,7 @@ export const PILOT_OBSERVATIONS = Object.freeze(['arithmetic_result', 'keyboard_
 export const PHASES = Object.freeze(['primary_result', 'persist_reopen', 'failure_recovery']);
 export const BACKEND_OBSERVATION_PHASES = Object.freeze([...PHASES, 'backend_proof', 'unknown']);
 export const BACKEND_REQUEST_PHASE_SCHEMA = 'swissknife.visual-functional-backend-request-phases.v1';
+export const BACKEND_REQUEST_ARTIFACT_SCHEMA = 'swissknife.visual-functional-request-artifacts.v1';
 export const FOUNDATION_STAGES = Object.freeze(['stage1', 'stage2', 'stage3', 'pilot']);
 export const OBSERVATION_KINDS = Object.freeze(['text', 'value', 'checked', 'count', 'image_state', 'media_state', 'json_attribute', 'dom_property', 'backend_result']);
 const DOM_PROPERTIES = ['currentTime', 'duration', 'paused', 'volume', 'muted', 'playbackRate', 'readyState', 'naturalWidth', 'naturalHeight',
@@ -1562,6 +1563,121 @@ export async function collectPhaseBackendProofs({ session, artifactReader = read
   }
 }
 
+/** Retain content-addressed bytes for every observed request, without granting
+ * a semantic postcondition or changing the legacy selected owner proofs. */
+function verifyRequestArtifactBytes({ app, scenario, record, receiptBytes, eventBytes }) {
+  const { cidForBytes } = require('./mcpplusplus-profile-a.cjs');
+  const { call, response, http_status: status } = record;
+  const { binding, intent } = admitBackendCall(call, app, scenario);
+  demand(Number.isInteger(status) && status >= 200 && status < 300 && plain(response)
+    && ['executed','failed'].includes(response.outcome) && response.ok === (response.outcome === 'executed'),
+    'BACKEND_JOIN_MISMATCH', 'request artifact response lacks a completed governed outcome');
+  if (binding.mutates_remote_state && record.actual_desktop === true) demand(record.ui_consent_verified === true,
+    'POLICY_BOUNDARY', 'request artifact mutation lacks observed trusted consent');
+  for (const key of ['owner','tool_id','transport','correlation_id']) demand(response[key] === call[key],
+    'BACKEND_JOIN_MISMATCH', 'request artifact response identity differs');
+  demand(Buffer.byteLength(canonicalJSON(response)) <= intent.max_output_bytes,
+    'BACKEND_OUTPUT_BOUND', 'request artifact response exceeds its declared bound');
+  const header=response.receipt, events=header?.event_dag_refs;
+  demand(plain(header) && header.outcome === response.outcome && header.policy_outcome === call.input.policy.outcome
+    && Array.isArray(events) && events.length === 1 && /^b[a-z2-7]{58}$/.test(header.receipt_id || '')
+    && /^b[a-z2-7]{58}$/.test(events[0] || '') && header.persistence?.status === 'persisted'
+    && header.persistence.receipt_cid === header.receipt_id && header.persistence.event_cid === events[0],
+    'BACKEND_JOIN_MISMATCH', 'request artifact receipt persistence/outcome differs');
+  for (const key of ['owner','tool_id','transport','correlation_id']) demand(header[key] === call[key],
+    'BACKEND_JOIN_MISMATCH', 'request artifact receipt identity differs');
+  for (const [kind,bytes,cid] of [['receipt',receiptBytes,header.receipt_id],['event',eventBytes,events[0]]]) {
+    demand(Buffer.isBuffer(bytes) && bytes.length > 0 && bytes.length <= intent.max_output_bytes && cidForBytes(bytes) === cid,
+      'ARTIFACT_CID_MISMATCH', 'request artifact bytes differ from the persisted CID');
+    let value;try {value=JSON.parse(bytes.toString('utf8'));} catch {throw new WorkflowError('ARTIFACT_INVALID','request artifact is not JSON');}
+    demand(plain(value) && Object.keys(value).length === 3 && value.kind === kind
+      && bytes.equals(Buffer.from(canonicalJSON(value),'utf8')) && canonicalJSON(value.call) === canonicalJSON(call)
+      && canonicalJSON(value.result) === canonicalJSON(response.result),
+      'BACKEND_JOIN_MISMATCH', 'request artifact canonical call/result differs');
+  }
+  return {receipt_id:header.receipt_id,event_dag_cid:events[0]};
+}
+
+export async function collectBackendRequestArtifacts({session,artifactReader=readPersistedGatewayArtifact,evidenceRoot=WORKSPACE_ROOT}) {
+  demand(session.phase_evidence && session.backend_enabled === true && session.backend_records.length <= 64,
+    'BACKEND_JOIN_MISMATCH','request artifacts require a bounded V2 actual request sequence');
+  const requests=[], identities=new Set();
+  for (const [index,record] of session.backend_records.entries()) {
+    await session.assertActive();
+    const witness=record.request_phase;
+    demand(record.finished && !record.error && record.response && witness?.request_index === index
+      && witness.call_sha256 === digest(canonicalJSON(record.call)) && witness.correlation_id === record.call.correlation_id
+      && witness.binding_id === record.call.binding_id, 'BACKEND_JOIN_MISMATCH','request artifact source witness differs');
+    const receiptBytes=await artifactReader(record.response.receipt?.receipt_id);
+    const eventBytes=await artifactReader(record.response.receipt?.event_dag_refs?.[0]);
+    const ids=verifyRequestArtifactBytes({app:session.app,scenario:session.scenario,record,receiptBytes,eventBytes});
+    const row={request_index:index,phase:witness.phase,step_index:witness.step_index,binding_id:witness.binding_id,
+      correlation_id:witness.correlation_id,call_sha256:witness.call_sha256,...ids};
+    const directory=path.join(session.outputDir,'backend');fs.mkdirSync(directory,{recursive:true});
+    for (const [kind,bytes,cid] of [['receipt',receiptBytes,ids.receipt_id],['event',eventBytes,ids.event_dag_cid]]) {
+      demand(!identities.has(cid),'BACKEND_JOIN_MISMATCH','request artifacts reuse another request identity');identities.add(cid);
+      const file=path.join(directory,`${kind}-${cid}.json`);
+      if(fs.existsSync(file))demand(boundedFile(file,1048576).equals(bytes),'ARTIFACT_COLLISION','request artifact path has foreign bytes');
+      else fs.writeFileSync(file,bytes,{flag:'wx'});
+      const reference=artifactRecord(file,evidenceRoot);session.backend_artifacts.set(file,reference);row[kind+'_artifact']=reference;
+    }
+    requests.push(row);
+  }
+  session.backend_request_artifacts={schema:BACKEND_REQUEST_ARTIFACT_SCHEMA,requests};
+  return session.backend_request_artifacts;
+}
+
+/** Pure artifact/source joins. This field never supplies semantic acceptance. */
+export function validateBackendRequestArtifacts(report,scenario,{app,readArtifact}={}) {
+  if(report.backend_request_artifacts === undefined)return null; // Historical reports claim no all-request retrieval.
+  keys(report.backend_request_artifacts,['schema','requests']);
+  const rows=report.backend_request_artifacts.requests,witnesses=report.backend_request_phases?.requests;
+  demand(report.backend_request_artifacts.schema === BACKEND_REQUEST_ARTIFACT_SCHEMA && Array.isArray(rows)
+    && Array.isArray(witnesses) && rows.length === witnesses.length && rows.length === report.backend_call_count && rows.length <= 64,
+    'BACKEND_JOIN_MISMATCH','request artifact count/schema differs from source witnesses');
+  demand(Array.isArray(report.artifacts) && (!rows.length || typeof readArtifact==='function'), 'ARTIFACT_INVALID','request artifacts need a retained artifact reader');
+  const calls=new Map(),identities=new Set();
+  for(const [index,row]of rows.entries()) {
+    keys(row,['request_index','phase','step_index','binding_id','correlation_id','call_sha256','receipt_id','event_dag_cid','receipt_artifact','event_artifact']);
+    const witness=witnesses[index];
+    demand(witness?.request_index === index && row.request_index === index
+      && ['phase','step_index','binding_id','correlation_id','call_sha256'].every(key=>canonicalJSON(row[key])===canonicalJSON(witness[key])),
+      'BACKEND_JOIN_MISMATCH','request artifact order/phase/source identity differs');
+    const payloads={};
+    for(const [kind,cid]of [['receipt',row.receipt_id],['event',row.event_dag_cid]]) {
+      const reference=row[kind+'_artifact'];keys(reference,['path','sha256','bytes']);
+      demand(typeof reference.path==='string' && /^[0-9a-f]{64}$/.test(reference.sha256||'') && Number.isSafeInteger(reference.bytes) && reference.bytes>0 && reference.bytes<=1048576, 'ARTIFACT_INVALID','request artifact reference is not bounded typed data');
+      demand(/^b[a-z2-7]{58}$/.test(cid||'') && !identities.has(cid), 'BACKEND_JOIN_MISMATCH','request artifact CID is duplicated or malformed');identities.add(cid);
+      demand(report.artifacts.some(item=>canonicalJSON(item)===canonicalJSON(reference))
+        && path.posix.basename(reference.path)===`${kind}-${cid}.json`,'ARTIFACT_MISSING','request artifact is not an exact retained child artifact');
+      const bytes=readArtifact(reference);
+      demand(Buffer.isBuffer(bytes) && bytes.length===reference.bytes && digest(bytes)===reference.sha256,'ARTIFACT_CID_MISMATCH','request artifact raw hash/length differs');
+      let payload;
+      try{payload=JSON.parse(bytes.toString('utf8'));}catch{throw new WorkflowError('ARTIFACT_INVALID','request artifact is not JSON');}
+      payloads[kind]={bytes,payload};
+    }
+    const receipt=payloads.receipt.payload,event=payloads.event.payload;
+    demand(canonicalJSON(receipt.call)===canonicalJSON(event.call) && canonicalJSON(receipt.result)===canonicalJSON(event.result),
+      'BACKEND_JOIN_MISMATCH','request artifact pair contains distinct calls/results');
+    const call=receipt.call;
+    demand(call.correlation_id===row.correlation_id && call.binding_id===row.binding_id && digest(canonicalJSON(call))===row.call_sha256,
+      'BACKEND_JOIN_MISMATCH','request artifact call hash/correlation differs');
+    // Raw records bind the exact returned result; success/failure and consent
+    // header were verified at acquisition. They are not a semantic predicate.
+    const {cidForBytes}=require('./mcpplusplus-profile-a.cjs');
+    for(const [kind,cid]of [['receipt',row.receipt_id],['event',row.event_dag_cid]]) {
+      const {bytes,payload}=payloads[kind];
+      demand(cidForBytes(bytes)===cid && plain(payload) && Object.keys(payload).length===3 && payload.kind===kind
+        && bytes.equals(Buffer.from(canonicalJSON(payload),'utf8')),'ARTIFACT_CID_MISMATCH','request raw bytes/CID/kind differ');
+    }
+    const {intent}=admitBackendCall(call,app,scenario);
+    demand(payloads.receipt.bytes.length<=intent.max_output_bytes && payloads.event.bytes.length<=intent.max_output_bytes, 'BACKEND_OUTPUT_BOUND','request artifacts exceed declared binding bytes');
+    calls.set(row.correlation_id,call);
+  }
+  validateBackendRequestPhases(report,scenario,calls);
+  return rows;
+}
+
 export function validateBackendRequestPhases(report, scenario, calls = new Map()) {
   const witness = report.backend_request_phases;
   if (witness === undefined) {
@@ -2045,6 +2161,7 @@ export function buildViewportWorkflowEvidence(settings) {
     ...(session.phase_evidence ? { phase_evidence: validatePhaseEvidence({ ...result, error_observations: session.checkpoints,
       phase_evidence: session.phase_evidence }, settings.scenario) } : {}),
     ...(session.image_observations?.length ? { image_observations: session.image_observations } : {}),
+    ...(session.backend_request_artifacts ? {backend_request_artifacts:session.backend_request_artifacts} : {}),
     backend_call_count: session.backend_records.length,
     ...(session.phase_evidence ? { backend_request_phases: { schema: BACKEND_REQUEST_PHASE_SCHEMA,
       requests: session.backend_records.map(row => row.request_phase) } } : {}),
@@ -2130,6 +2247,8 @@ export function validateViewportWorkflowReport(report, { app, scenario, sources,
       phaseCalls.set(row.correlation_id, payload.call);
     }
   }
+  const allRequestRows=validateBackendRequestArtifacts(report,scenario,{app,readArtifact:ref=>exactArtifact(workspaceRoot,ref,prefix,1048576)});
+  if(allRequestRows)for(const row of allRequestRows){const raw=exactArtifact(workspaceRoot,row.receipt_artifact,prefix,1048576);phaseCalls.set(row.correlation_id,JSON.parse(raw).call);}
   validateBackendRequestPhases(report, scenario, phaseCalls);
   validateDecodedImageObservations(report, scenario,
     ref => exactArtifact(workspaceRoot, ref, prefix, 1048576));
@@ -2169,7 +2288,7 @@ export function validateViewportWorkflowReport(report, { app, scenario, sources,
       supplemental_observations:supplemental, phase_evidence:report.phase_evidence,
       backend_records: Array.from({ length: report.backend_call_count }, (_,index) => ({request_phase:report.backend_request_phases?.requests[index],
         dispatch_observation_phase:report.backend_request_phases?.requests[index]?.phase})), backend_observations: report.backend_observations,
-      temporal_observations:report.temporal_observations,
+      temporal_observations:report.temporal_observations,backend_request_artifacts:report.backend_request_artifacts,
       unexpected_backend_calls: 0, backend_policy_errors: [], actual_desktop: report.actual_desktop }, viewports: [{ name, layout }], artifacts: report.artifacts });
   demand(canonicalJSON(rebuilt.checks) === canonicalJSON(report.checks), 'INVALID_OBSERVATION', 'V2 checks differ from actual typed observations');
   return report;
@@ -2183,7 +2302,7 @@ export function buildIndependentWorkflowEvidence({ app, scenario, sources, child
     demand(child?.viewport && canonicalJSON(child.viewport) === canonicalJSON(viewport), 'INVALID_OBSERVATION', 'V2 children must be in exact desktop/mobile order');
     validateViewportWorkflowReport(child.report, { app, scenario, sources, viewport, reference: child.reference, outputDir, workspaceRoot });
     demand(!identities.has(child.report.session_id), 'SYNTHETIC_PROOF', 'V2 cannot reuse one session for desktop and mobile'); identities.add(child.report.session_id);
-    const observedIds = new Set(child.report.backend_observations.flatMap(row => [row.correlation_id, row.receipt_id, row.event_dag_cid]));
+    const observedIds = new Set([...child.report.backend_observations, ...(child.report.backend_request_artifacts?.requests || [])].flatMap(row => [row.correlation_id, row.receipt_id, row.event_dag_cid]));
     for (const identity of observedIds) {
       demand(text(identity) && !backendIdentities.has(identity), 'BACKEND_EVIDENCE_MISSING', 'V2 child sessions cannot reuse another viewport owner call/receipt');
       backendIdentities.add(identity);
@@ -2371,6 +2490,7 @@ export async function runIndependentWorkflow(settings) {
           operator: intent.result_assertion.operator, expected: intent.result_assertion.expected });
       }
       await collectPhaseBackendProofs({ session });
+      await collectBackendRequestArtifacts({ session });
       // This capture never changes viewport or recreates the current result.
       const captured = await captureWorkflowViewport(session, viewport);
       await session.stopTrace(); assertSources();

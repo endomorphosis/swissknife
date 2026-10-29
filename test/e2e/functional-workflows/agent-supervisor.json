@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "agent-supervisor",
-  "description": "Actual bounded native runs: create and validate task A, re-read the identical saved run/output, then observe native task B dependency refusal in a fresh run, validate its dependency A and explicitly retry B without duplicate worker dispatch.",
+  "description": "Actual bounded native runs: inspect real pending A with completion withheld, validate A, reopen/read the identical saved output, then observe B dependency refusal, repair A once and retry B. Reopen the recovery run and separately read back both validated task outputs and retained history.",
   "fixture_scope": "svf-agent-supervisor-552",
   "backend_bindings": [
     {
@@ -64,6 +64,64 @@
         "selector": "[data-native-run-state=\"created\"]",
         "state": "visible",
         "timeout_ms": 15000
+      },
+      {
+        "op": "check",
+        "selector": "[data-testid=\"dispatch-confirm\"]"
+      },
+      {
+        "op": "press",
+        "selector": "[data-native-read]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-native-owner-status=\"a\"][data-owner-status=\"ready\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-native-result-stage=\"a\"]",
+          "attribute": "data-native-state",
+          "pointer": "/owner_status"
+        },
+        "operator": "equals",
+        "expected": "ready"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-native-result-stage=\"a\"]",
+          "attribute": "data-native-state",
+          "pointer": "/validated"
+        },
+        "operator": "equals",
+        "expected": false
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-native-result-stage=\"a\"]",
+          "attribute": "data-native-state",
+          "pointer": "/output_sha256"
+        },
+        "operator": "equals",
+        "expected": ""
       },
       {
         "op": "check",
@@ -337,6 +395,107 @@
         },
         "operator": "contains",
         "expected": "Task A executed dispatches: 1"
+      },
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-testid=\"agent-supervisor-app\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-tab=\"dispatch\"]"
+      },
+      {
+        "op": "click",
+        "selector": "[data-native-select-stage=\"a\"]"
+      },
+      {
+        "op": "click",
+        "selector": "[data-testid=\"dispatch-panel\"] .as-dispatch-controls > summary"
+      },
+      {
+        "op": "check",
+        "selector": "[data-testid=\"dispatch-confirm\"]"
+      },
+      {
+        "op": "press",
+        "selector": "[data-native-read]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-native-readback-stage=\"a\"][data-readback-state=\"matched\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-native-result-stage=\"a\"]",
+          "attribute": "data-native-state",
+          "pointer": "/readback"
+        },
+        "operator": "equals",
+        "expected": true
+      },
+      {
+        "op": "click",
+        "selector": "[data-native-select-stage=\"b\"]"
+      },
+      {
+        "op": "click",
+        "selector": "[data-testid=\"dispatch-panel\"] .as-dispatch-controls > summary"
+      },
+      {
+        "op": "check",
+        "selector": "[data-testid=\"dispatch-confirm\"]"
+      },
+      {
+        "op": "press",
+        "selector": "[data-native-read]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"agent-supervisor.ipfs_accelerate_py.supervise_agent_work\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-native-readback-stage=\"b\"][data-readback-state=\"matched\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-native-result-stage=\"b\"]",
+          "attribute": "data-native-state",
+          "pointer": "/readback"
+        },
+        "operator": "equals",
+        "expected": true
       }
     ]
   }
