@@ -11,9 +11,9 @@
       "max_duration_seconds": 60,
       "max_output_bytes": 65536,
       "result_assertion": {
-        "pointer": "/result/result/content/0/json/status",
-        "operator": "equals",
-        "expected": "completed"
+        "pointer": "/result/result/content/0/json/run_proof",
+        "operator": "contains",
+        "expected": "catalog=gpt2 model=gpt2 prompt="
       }
     }
   ],
@@ -76,10 +76,10 @@
         "requirement_id": "result_1",
         "probe": {
           "kind": "text",
-          "selector": "#model-run-status"
+          "selector": "#model-test-output"
         },
-        "operator": "equals",
-        "expected": "Run status: completed"
+        "operator": "contains",
+        "expected": "Prompt: ping\nOutput: ping"
       }
     ],
     "persist_reopen": [
@@ -87,14 +87,35 @@
         "op": "reopen_app"
       },
       {
+        "op": "click",
+        "selector": "#read-saved-run"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"model-browser.ipfs_accelerate_py.inspect_model_catalog\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"model-browser.ipfs_accelerate_py.inspect_model_catalog\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#model-run-retrieved",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
         "op": "assert",
         "requirement_id": "persist_reopen",
         "probe": {
           "kind": "text",
-          "selector": "#model-run-history"
+          "selector": "#model-run-retrieved"
         },
         "operator": "contains",
-        "expected": "gpt2 | ping"
+        "expected": "model gpt2, prompt ping, output ping"
       }
     ],
     "failure_recovery": [
@@ -142,15 +163,20 @@
         "checkpoint_id": "error_observed",
         "probe": {
           "kind": "text",
-          "selector": "#model-run-status"
+          "selector": "#model-test-output"
         },
         "operator": "contains",
-        "expected": "unsupported model"
+        "expected": "No generated answer."
       },
       {
         "op": "fill",
         "selector": "#model-test-model-id",
         "value": "gpt2"
+      },
+      {
+        "op": "fill",
+        "selector": "#model-test-prompt",
+        "value": "pong"
       },
       {
         "op": "press",
@@ -179,10 +205,10 @@
         "requirement_id": "failure_recovery",
         "probe": {
           "kind": "text",
-          "selector": "#model-run-status"
+          "selector": "#model-test-output"
         },
-        "operator": "equals",
-        "expected": "Run status: completed"
+        "operator": "contains",
+        "expected": "Prompt: pong\nOutput: pong"
       }
     ]
   }

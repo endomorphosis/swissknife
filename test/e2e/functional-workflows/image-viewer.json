@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "image-viewer",
-  "description": "Retrieve exact controlled SVG through native SDK after trusted confirmation; reopen the same artifact; observe a genuine missing-CID owner failure, then retrieve the known valid CID again. Policy/help text is not an error case.",
+  "description": "Retrieve the controlled SVG through the declared binding after trusted confirmation, zoom it to 120% and rotate it 90 degrees, reopen that same decoded image, then reject a non-content CID and retrieve the known CID again. Policy and help text are not the error.",
   "fixture_scope": "svf-image-viewer-cid",
   "backend_bindings": [
     {
@@ -49,22 +49,61 @@
       },
       {
         "op": "wait_for",
-        "selector": "#main-image[data-cid=\"bafkreiboczqvtm47rm3pz7x27f7isrzi6ogfddyquo5qisw4fthjhiytcm\"]",
+        "selector": "#main-image[data-cid=\"bafkreiboczqvtm47rm3pz7x27f7isrzi6ogfddyquo5qisw4fthjhiytcm\"][data-pixel-source=\"png\"]",
         "state": "visible",
         "timeout_ms": 10000
       },
       {
+        "op": "click",
+        "selector": "#zoom-in-btn"
+      },
+      {
+        "op": "click",
+        "selector": "#rotate-right-btn"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#zoom-level"
+        },
+        "operator": "equals",
+        "expected": "120%"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#rotation-readout"
+        },
+        "operator": "equals",
+        "expected": "90°"
+      },
+      {
+        "op": "click",
+        "selector": "#pan-demo-btn"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#pan-readout"
+        },
+        "operator": "equals",
+        "expected": "28, -18"
+      },
+      {
         "op": "press",
-        "selector": "#zoom-in-btn",
-        "key": "Enter"
+        "selector": "#iv-cid-field",
+        "key": "ArrowDown"
       },
       {
         "op": "assert",
         "requirement_id": "result_1",
         "probe": {
-          "kind": "dom_property",
+          "kind": "image_state",
           "selector": "#main-image",
-          "property": "naturalWidth"
+          "pointer": "/natural_width"
         },
         "operator": "equals",
         "expected": 128
@@ -76,17 +115,32 @@
       },
       {
         "op": "wait_for",
-        "selector": "#main-image",
+        "selector": "#main-image[data-cid=\"bafkreiboczqvtm47rm3pz7x27f7isrzi6ogfddyquo5qisw4fthjhiytcm\"][data-pixel-source=\"png\"]",
+        "state": "visible",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "wait_for",
+        "selector": "#iv-png-sha256",
         "state": "visible",
         "timeout_ms": 5000
       },
       {
         "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#iv-png-sha256"
+        },
+        "operator": "equals",
+        "expected": "41e51a4d2c0ee952e9e3f45add23bf14aeda19a22fa2cf6f5204485856db5cd8"
+      },
+      {
+        "op": "assert",
         "requirement_id": "persist_reopen",
         "probe": {
-          "kind": "dom_property",
+          "kind": "image_state",
           "selector": "#main-image",
-          "property": "naturalHeight"
+          "pointer": "/natural_height"
         },
         "operator": "equals",
         "expected": 96
@@ -96,7 +150,7 @@
       {
         "op": "fill",
         "selector": "#iv-cid-field",
-        "value": "bafkreievvhbk2fw6nemdowppvh2qfcd2i7a44w32ykzfbb5cnuue4xrq2m"
+        "value": "not-a-content-cid"
       },
       {
         "op": "fill",
@@ -117,7 +171,7 @@
       },
       {
         "op": "wait_for",
-        "selector": "#image-workflow-log:has-text(\"retrieval failed for bafkreievvhbk2fw6nemdowppvh2qfcd2i7a44w32ykzfbb5cnuue4xrq2m\")",
+        "selector": "#image-workflow-log:has-text(\"retrieval failed for not-a-content-cid\")",
         "state": "visible",
         "timeout_ms": 15000
       },
@@ -129,7 +183,7 @@
           "selector": "#image-workflow-log"
         },
         "operator": "contains",
-        "expected": "retrieval failed for bafkreievvhbk2fw6nemdowppvh2qfcd2i7a44w32ykzfbb5cnuue4xrq2m"
+        "expected": "retrieval failed for not-a-content-cid"
       },
       {
         "op": "fill",
@@ -152,6 +206,65 @@
       {
         "op": "click",
         "selector": "[data-gateway-confirm=\"image-viewer.ipfs_kit_py.retrieve_content\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#main-image[data-cid=\"bafkreiboczqvtm47rm3pz7x27f7isrzi6ogfddyquo5qisw4fthjhiytcm\"][data-pixel-source=\"png\"]",
+        "state": "visible",
+        "timeout_ms": 10000
+      },
+      {
+        "op": "click",
+        "selector": "#zoom-in-btn"
+      },
+      {
+        "op": "click",
+        "selector": "#rotate-right-btn"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#zoom-level"
+        },
+        "operator": "equals",
+        "expected": "120%"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#rotation-readout"
+        },
+        "operator": "equals",
+        "expected": "90°"
+      },
+      {
+        "op": "click",
+        "selector": "#pan-demo-btn"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#pan-readout"
+        },
+        "operator": "equals",
+        "expected": "28, -18"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#iv-recovery-note"
+        },
+        "operator": "equals",
+        "expected": "recovered after retrieval failed for not-a-content-cid"
+      },
+      {
+        "op": "press",
+        "selector": "#iv-cid-field",
+        "key": "ArrowDown"
       },
       {
         "op": "assert",

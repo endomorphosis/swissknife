@@ -25,6 +25,19 @@ export class NAVIApp {
     this.personality = 'helpful'; // 'helpful', 'casual', 'professional', 'creative'
     this.aiModel = 'gpt-4';
     this.p2pSystem = null;
+    this.selectedTarget = '';
+    this.lastIntent = '';
+    this.lastStatus = '';
+    this.lastLabels = [];
+    this.targetConfirmed = false;
+    this.storedIntent = '';
+    this.storedTarget = '';
+    this.failedIntent = '';
+    this.choiceRecord = '';
+    this.choiceLabels = [];
+    this.lastCatalogCid = '';
+    this.queryHistory = [];
+    this.reopenReadInFlight = false;
     
     // NAVI capabilities
     this.capabilities = [
@@ -106,18 +119,18 @@ export class NAVIApp {
         .navi-header {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 12px 16px;
+          gap: 8px;
+          padding: 6px 10px;
           background: var(--sk-bg-panel, #101b18);
           border-bottom: 1px solid var(--sk-border, #263a34);
           flex-shrink: 0;
         }
         .navi-avatar { position: relative; flex-shrink: 0; }
         .avatar-image {
-          width: 40px; height: 40px;
+          width: 28px; height: 28px;
           border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
-          font-size: 22px;
+          font-size: 16px;
           background: var(--sk-bg-inset, #17241f);
           border: 1px solid var(--sk-border, #263a34);
         }
@@ -134,7 +147,7 @@ export class NAVIApp {
         .navi-status { font-size: 12px; color: var(--sk-text-faint, #9eb2aa); }
         .navi-controls { display: flex; gap: 8px; }
         .navi-btn {
-          width: 36px; height: 36px;
+          width: 28px; height: 28px;
           border-radius: 8px;
           border: 1px solid var(--sk-border, #263a34);
           background: var(--sk-bg-header, #12211d);
@@ -157,12 +170,7 @@ export class NAVIApp {
           flex: 1; display: flex; flex-direction: column;
           min-width: 0; min-height: 0; overflow: hidden;
         }
-        .conversation-header {
-          display: flex; align-items: center; justify-content: space-between;
-          gap: 8px; padding: 10px 16px;
-          border-bottom: 1px solid var(--sk-border, #263a34);
-          flex-wrap: wrap;
-        }
+        .conversation-header { display: none !important; }
         .conversation-header h3 { margin: 0; font-size: 14px; }
         .conversation-controls { display: flex; gap: 8px; }
         .conversation-controls select {
@@ -174,14 +182,15 @@ export class NAVIApp {
           font-size: 12px;
         }
         .navi-container .conversation-messages {
-          flex: 1 1 0; min-height: 0; overflow: auto; overscroll-behavior: contain;
-          padding: 16px;
-          display: flex; flex-direction: column; gap: 12px;
+          flex: 1 1 0; min-height: 0; min-width: 0;
+          overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+          padding: 8px 10px 10px;
+          display: flex; flex-direction: column; gap: 6px;
         }
-        .navi-container .message { display: flex; gap: 10px; max-width: 88%; }
-        .navi-container .message.user-message { align-self: flex-end; flex-direction: row-reverse; }
+        .navi-container .message { display: flex; gap: 6px; max-width: 100%; min-width: 0; position: static; flex-shrink: 0; opacity: 1; transform: none; animation: none; }
+        .navi-container .message.user-message { align-self: flex-end; flex-direction: row-reverse; max-width: 85%; }
         .navi-container .message-avatar {
-          width: 32px; height: 32px; border-radius: 50%;
+          width: 22px; height: 22px; border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
           font-size: 16px; flex-shrink: 0;
           background: var(--sk-bg-inset, #17241f);
@@ -191,13 +200,27 @@ export class NAVIApp {
           background: var(--sk-bg-panel, #101b18);
           border: 1px solid var(--sk-border, #263a34);
           border-radius: 12px;
-          padding: 10px 14px;
-          font-size: 14px; line-height: 1.5;
-          overflow-wrap: anywhere;
+          padding: 6px 8px;
+          font-size: 13px; line-height: 1.35;
+          min-width: 0; max-width: 100%;
+          overflow-wrap: anywhere; word-break: break-word;
         }
+        .navi-container .message-text { display: block; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
         .navi-container .message.user-message .message-content {
-          background: rgba(139, 216, 189, 0.14);
+          background: rgba(139, 216, 189, 0.22);
           border-color: var(--sk-accent, #8bd8bd);
+          color: #f8fffb;
+          font-weight: 600;
+          flex-shrink: 0;
+          min-width: 7rem;
+          overflow: visible;
+        }
+        .navi-container .message.user-message .message-text {
+          color: #f8fffb;
+          font-weight: 600;
+          min-width: 7rem;
+          overflow: visible;
+          white-space: normal;
         }
         .navi-container .message-text ul { margin: 8px 0; padding-left: 20px; }
         .navi-container .message-text li { margin-bottom: 4px; }
@@ -207,10 +230,7 @@ export class NAVIApp {
           font-family: ui-monospace, monospace; font-size: 13px;
           color: var(--sk-accent, #8bd8bd);
         }
-        .navi-container .message-time {
-          font-size: 11px; color: var(--sk-text-faint, #9eb2aa);
-          margin-top: 6px; opacity: 0.8;
-        }
+        .navi-container .message-time { display: none; }
         .navi-container .message-actions {
           display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
         }
@@ -239,7 +259,7 @@ export class NAVIApp {
         .navi-container .navi-resolution,
         .navi-container .conversation-input { flex: 0 0 auto; }
         .conversation-input {
-          padding: 12px 16px;
+          padding: 8px 10px;
           border-top: 1px solid var(--sk-border, #263a34);
           background: var(--sk-bg-panel, #101b18);
         }
@@ -257,18 +277,97 @@ export class NAVIApp {
         }
         .navi-container .message-input::placeholder { color: var(--sk-text-faint, #9eb2aa); }
         .navi-container .message-input:focus,
+        .navi-container .message-input.navi-intent-focused,
+        .navi-container button:focus,
         .navi-container button:focus-visible,
+        .navi-container select:focus,
         .navi-container select:focus-visible {
-          outline: 2px solid var(--sk-accent, #8bd8bd);
+          outline: 3px solid #f8fffb;
           outline-offset: 2px;
-          border-color: var(--sk-accent, #8bd8bd);
+          box-shadow: 0 0 0 3px #8bd8bd;
+          border-color: #f8fffb;
         }
         .navi-container [hidden] { display: none !important; }
-        .navi-resolution { padding: 8px 16px 0; display: flex; flex-direction: column; gap: 6px; }
-        .navi-intent-status, .navi-retained-intent, .navi-selected-target {
-          margin: 0; font-size: 12px; line-height: 1.4; color: var(--sk-text, #edf7f2);
+        .navi-resolution {
+          padding: 8px 12px;
+          display: flex; flex-direction: column; gap: 4px;
+          flex-shrink: 0;
+          background: #101b18;
+          border-bottom: 1px solid var(--sk-border, #263a34);
+          position: relative; z-index: 2;
         }
-        .navi-match-list { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .navi-intent-status {
+          margin: 0; font-size: 13px; line-height: 1.35; color: var(--sk-text, #edf7f2);
+          overflow-wrap: anywhere; word-break: break-word;
+        }
+        .navi-stored-row {
+          margin: 0; display: flex; gap: 8px; align-items: baseline;
+          min-width: 0; font-size: 13px; line-height: 1.35;
+        }
+        .navi-stored-label { color: var(--sk-text-faint, #9eb2aa); flex: 0 0 auto; }
+        .navi-stored-value {
+          color: var(--sk-text, #edf7f2); font-weight: 600;
+          min-width: 1.5rem; overflow-wrap: anywhere; word-break: break-word;
+        }
+        .navi-match-list { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+        .navi-match-list .navi-target-choice,
+        .navi-match-list .navi-kept-choice {
+          position: static; align-self: center; flex: 0 0 auto;
+          opacity: 1; color: #edf7f2;
+          background: #17241f;
+          border: 1px solid #8bd8bd;
+          padding: 4px 8px; font-size: 13px;
+        }
+        .navi-match-list .navi-kept-choice[data-target="gpt2"] {
+          background: rgba(139, 216, 189, 0.28);
+          color: #edf7f2;
+        }
+        .navi-match-list .navi-confirmed-target,
+        .navi-match-list .navi-declined-choice {
+          opacity: 1;
+          font-weight: 700;
+          padding: 4px 8px;
+          width: auto;
+          max-width: 100%;
+          flex: 0 0 auto;
+          align-self: center;
+        }
+        .navi-match-list .navi-confirmed-target {
+          color: #0e1412;
+          background: #8bd8bd;
+          border: 1px solid #8bd8bd;
+        }
+        .navi-match-list .navi-declined-choice {
+          color: #f8fffb;
+          background: #17241f;
+          border: 1px solid #8bd8bd;
+        }
+        .navi-selected-target {
+          flex: 0 0 auto;
+          min-width: 7rem;
+          padding: 4px 8px;
+          font-size: 13px;
+          font-weight: 700;
+          color: #0e1412;
+          background: #8bd8bd;
+          border: 1px solid #8bd8bd;
+          border-radius: 6px;
+        }
+        .navi-failed-row {
+          margin: 0; display: flex; gap: 8px; align-items: center; min-width: 0;
+        }
+        .navi-failed-input {
+          width: 6.5rem; min-width: 0; max-width: 100%;
+          padding: 6px 8px; font-size: 14px;
+          color: var(--sk-text, #edf7f2);
+          background: var(--sk-bg-header, #12211d);
+          border: 1px solid var(--sk-border, #263a34);
+          border-radius: 8px;
+        }
+        .navi-match-text { overflow-wrap: anywhere; word-break: break-word; }
+        .navi-container .context-panel,
+        .navi-container .conversation-controls,
+        .navi-container .quick-actions { display: none !important; }
         .navi-container .voice-btn,
         .navi-container .send-btn {
           width: 38px; height: 38px; flex-shrink: 0;
@@ -441,9 +540,11 @@ export class NAVIApp {
             </div>
             
             <div class="navi-resolution" id="navi-resolution">
-              <p id="navi-retained-intent" class="navi-retained-intent"></p>
-              <p id="navi-selected-target" class="navi-selected-target">No target selected</p>
+              <p id="navi-retained-choice" class="navi-intent-status" hidden></p>
+              <p id="navi-choice-record" class="navi-intent-status" hidden></p>
               <p id="navi-intent-status" class="navi-intent-status" hidden></p>
+              <select id="navi-selected-target" class="navi-selected-target" aria-label="Selected catalog target" hidden></select>
+              <div id="navi-kept-choices" class="navi-match-list" hidden></div>
               <div id="navi-match-list" class="navi-match-list" hidden></div>
             </div>
             <div class="conversation-messages" id="conversation-messages">
@@ -584,7 +685,7 @@ export class NAVIApp {
             status.hidden = true;
             status.textContent = '';
           }
-          if (list) {
+          if (list && !list.dataset.kept) {
             list.hidden = true;
             list.innerHTML = '';
           }
@@ -719,6 +820,7 @@ export class NAVIApp {
     if (!input || !input.value.trim()) return;
 
     const message = input.value.trim();
+    this.noteQuery(message);
     this.addMessage('user', message);
 
     const commandMatch = this.parseCommand(message);
@@ -761,6 +863,19 @@ export class NAVIApp {
     throw new Error('Catalog owner result nesting exceeded its bound.');
   }
 
+  catalogLabels(rows, term) {
+    const labels = [];
+    if (!term) return labels;
+    for (const entry of rows) {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+      for (const key of ['device', 'id', 'model_id', 'snapshot', 'task']) {
+        const value = entry[key];
+        if (typeof value === 'string' && value.toLowerCase().includes(term) && !labels.includes(value)) labels.push(value);
+      }
+    }
+    return labels;
+  }
+
   extractCatalogMatches(output) {
     const value = this.decodeCatalogResult(output);
     if (typeof value.content !== 'string' || value.content.length > 65536) throw new Error('Catalog owner returned no bounded JSON content.');
@@ -777,42 +892,182 @@ export class NAVIApp {
       .replace(/"/g, '&quot;');
   }
 
+  choiceButtons(labels, live) {
+    return labels.map((label) => {
+      const choiceId = live && label === 'gpt2' ? ' id="navi-choice-gpt2"' : '';
+      const className = live ? 'action-btn navi-target-choice' : 'action-btn navi-kept-choice navi-target-choice';
+      return `<button type="button" class="${className}"${choiceId} data-target="${this.escapeText(label)}">Use ${this.escapeText(label)}</button>`;
+    }).join('');
+  }
+
   showIntentOutcome(message, statusText, labels) {
     const status = document.getElementById('navi-intent-status');
     const list = document.getElementById('navi-match-list');
     const input = document.getElementById('message-input');
     if (input) input.value = message;
     this.lastIntent = message;
-    this.lastStatus = statusText;
     this.lastLabels = Array.isArray(labels) ? labels.slice(0, 8) : [];
-    if (status) {
-      status.hidden = false;
-      status.textContent = statusText;
+    const choosing = this.lastLabels.length > 0;
+    if (this.lastLabels.length > 1) this.choiceLabels = this.lastLabels.slice(0, 8);
+    if (!choosing && !/[0-9A-Za-z]/.test(message)) this.failedIntent = message;
+    if (choosing) {
+      this.lastStatus = '';
+      if (status) {
+        status.hidden = true;
+        status.textContent = '';
+      }
+    } else {
+      this.lastStatus = statusText;
+      if (status) {
+        status.hidden = false;
+        status.textContent = statusText;
+      }
+      this.addMessage('navi', statusText);
     }
     if (list) {
-      if (!labels || labels.length === 0) {
-        list.hidden = true;
-        list.innerHTML = '';
-      } else if (labels.length === 1) {
-        const label = labels[0];
+      if (!choosing) {
+        if (this.targetConfirmed && this.storedTarget) this.renderChosenTarget(this.storedTarget);
+        else {
+          list.hidden = true;
+          list.innerHTML = '';
+        }
+      } else if (this.lastLabels.length === 1) {
+        const label = this.lastLabels[0];
         list.hidden = false;
-        list.innerHTML = `<span class="navi-match-text">${this.escapeText(message)} → ${this.escapeText(label)}</span> <button type="button" class="action-btn navi-target-choice" id="navi-use-target" data-target="${this.escapeText(label)}">Use this target</button>`;
+        const choiceId = label === 'gpt2' ? ' id="navi-choice-gpt2"' : '';
+        list.innerHTML = `<span class="navi-match-text">Matched ${this.escapeText(label)}</span><button type="button" class="action-btn navi-target-choice"${choiceId} data-target="${this.escapeText(label)}">Use ${this.escapeText(label)}</button>`;
       } else {
         list.hidden = false;
-        list.innerHTML = `<span class="navi-match-text">${this.escapeText(message)}</span> ` + labels.map((label, index) => `<button type="button" class="action-btn navi-target-choice"${index === 0 ? ' id="navi-use-target"' : ''} data-target="${this.escapeText(label)}">${this.escapeText(label)}</button>`).join('');
+        const text = this.lastLabels.map((label) => this.escapeText(label)).join(' | ');
+        list.innerHTML = `<span id="navi-match-text" class="navi-match-text">${text}</span>${this.choiceButtons(this.lastLabels, true)}`;
       }
     }
-    this.addMessage('navi', statusText);
+    this.paintStoredReadback();
     this.saveWorkflowState();
+  }
+
+  renderKeptChoices(labels) {
+    this.keptLabels = labels.slice(0, 8);
+    const host = document.getElementById('navi-kept-choices');
+    if (!host || !labels.length) return;
+    host.hidden = false;
+    host.innerHTML = `<span class="navi-match-text">${labels.map((label) => this.escapeText(label)).join(' | ')}</span>${this.choiceButtons(labels, false)}`;
+  }
+
+  renderConfirmedTarget(label) {
+    const clean = String(label || '').trim();
+    if (!clean) return;
+    this.keptLabels = [clean];
+    const host = document.getElementById('navi-kept-choices');
+    if (host) {
+      host.hidden = true;
+      host.innerHTML = '';
+    }
+    const select = document.getElementById('navi-selected-target');
+    if (!select) return;
+    const labels = (Array.isArray(this.choiceLabels) && this.choiceLabels.length)
+      ? this.choiceLabels.slice(0, 8)
+      : [clean];
+    const options = labels.includes(clean) ? labels : [clean, ...labels];
+    select.replaceChildren();
+    for (const item of options) {
+      const option = document.createElement('option');
+      option.value = item;
+      option.textContent = item;
+      select.appendChild(option);
+    }
+    select.value = clean;
+    select.hidden = false;
+  }
+
+  noteQuery(message) {
+    const clean = String(message || '').trim().slice(0, 80);
+    if (!clean) return;
+    if (!Array.isArray(this.queryHistory)) this.queryHistory = [];
+    if (this.queryHistory[this.queryHistory.length - 1] !== clean) this.queryHistory.push(clean);
+    this.queryHistory = this.queryHistory.slice(-4);
+  }
+
+  revealRetainedChoice(text) {
+    const node = document.getElementById('navi-retained-choice');
+    if (!node) return;
+    node.hidden = false;
+    node.textContent = text;
+  }
+
+  noteCatalogReceipt() {
+    const target = this.selectedTarget || this.storedTarget;
+    if (!target) return;
+    const labels = (Array.isArray(this.choiceLabels) && this.choiceLabels.length)
+      ? this.choiceLabels
+      : (Array.isArray(this.lastLabels) && this.lastLabels.length ? this.lastLabels : [target]);
+    const text = `Chose ${target} from ${labels.join(' | ')}.`;
+    this.choiceRecord = text;
+    const node = document.getElementById('navi-choice-record');
+    if (!node) return;
+    node.hidden = false;
+    node.textContent = text;
+  }
+
+  renderChosenTarget(clean) {
+    const list = document.getElementById('navi-match-list');
+    if (list) {
+      list.hidden = true;
+      list.innerHTML = '';
+    }
+    this.renderConfirmedTarget(clean);
   }
 
   commitSelectedTarget(label) {
     const clean = String(label || '').trim();
     if (!clean) return;
     this.selectedTarget = clean;
-    const node = document.getElementById('navi-selected-target');
-    if (node) node.textContent = `Selected target: ${clean}`;
+    this.targetConfirmed = true;
+    const firstChoice = !this.storedTarget;
+    if (firstChoice) {
+      this.storedIntent = this.lastIntent || '';
+      this.storedTarget = clean;
+      this.lastStatus = `Selected ${clean}.`;
+      this.revealRetainedChoice(this.lastStatus);
+    } else {
+      this.lastStatus = `Matched catalog context: ${clean}.`;
+    }
+    this.noteCatalogReceipt();
+    this.renderChosenTarget(clean);
+    this.paintStoredReadback();
+    const status = document.getElementById('navi-intent-status');
+    if (status) {
+      status.hidden = false;
+      status.textContent = this.lastStatus;
+    }
+    if (firstChoice) {
+      this.addMessage('navi', this.choiceRecord || `Chose ${clean}.`);
+      const intentNode = document.querySelector('#conversation-messages .user-message .message-text');
+      if (intentNode && intentNode.textContent === this.storedIntent) intentNode.id = 'navi-retained-intent';
+    } else if (!this.lastStatus.startsWith('Selected ')) this.addMessage('navi', this.lastStatus);
+    const input = document.getElementById('message-input');
+    if (input) {
+      input.classList.add('navi-intent-focused');
+      input.focus();
+    }
     this.saveWorkflowState();
+  }
+
+  paintStoredReadback() {
+    const intentText = this.storedIntent || '';
+    const targetText = this.storedTarget || '';
+    const intent = document.getElementById('navi-stored-intent');
+    const intentRow = document.getElementById('navi-stored-intent-row');
+    const target = document.getElementById('navi-stored-target');
+    const targetRow = document.getElementById('navi-stored-target-row');
+    const failed = document.getElementById('navi-failed-intent');
+    const failedRow = document.getElementById('navi-failed-row');
+    if (intent) intent.textContent = intentText;
+    if (intentRow) intentRow.hidden = intentText.length === 0;
+    if (target) target.textContent = targetText;
+    if (targetRow) targetRow.hidden = targetText.length === 0;
+    if (failed && this.failedIntent) failed.value = this.failedIntent;
+    if (failedRow) failedRow.hidden = !this.failedIntent;
   }
 
   saveWorkflowState() {
@@ -822,9 +1077,17 @@ export class NAVIApp {
         lastIntent: this.lastIntent || '',
         lastStatus: this.lastStatus || '',
         lastLabels: Array.isArray(this.lastLabels) ? this.lastLabels.slice(0, 8) : [],
-        transcript: (this.conversations || []).slice(-8).map((entry) => ({
+        targetConfirmed: this.targetConfirmed === true,
+        storedIntent: this.storedIntent || '',
+        storedTarget: this.storedTarget || '',
+        failedIntent: this.failedIntent || '',
+        keptLabels: Array.isArray(this.keptLabels) ? this.keptLabels.slice(0, 8) : [],
+        choiceRecord: this.choiceRecord || '',
+        choiceLabels: Array.isArray(this.choiceLabels) ? this.choiceLabels.slice(0, 8) : [],
+        lastCatalogCid: this.lastCatalogCid || '',
+        transcript: (this.conversations || []).slice(-12).map((entry) => ({
           sender: entry.sender === 'user' ? 'user' : 'navi',
-          content: String(entry.content || '').slice(0, 400)
+          content: String(entry.content || '').slice(0, 180)
         }))
       }));
     } catch (error) {
@@ -844,57 +1107,78 @@ export class NAVIApp {
     this.lastIntent = typeof saved.lastIntent === 'string' ? saved.lastIntent : '';
     this.lastStatus = typeof saved.lastStatus === 'string' ? saved.lastStatus : '';
     this.lastLabels = Array.isArray(saved.lastLabels) ? saved.lastLabels.filter(label => typeof label === 'string').slice(0, 8) : [];
-    const selected = document.getElementById('navi-selected-target');
-    if (selected && this.selectedTarget) selected.textContent = `Selected target: ${this.selectedTarget}`;
-    const retained = document.getElementById('navi-retained-intent');
-    if (retained && this.lastIntent) retained.textContent = `Last intent: ${this.lastIntent}`;
+    this.targetConfirmed = saved.targetConfirmed === true;
+    this.storedIntent = typeof saved.storedIntent === 'string' ? saved.storedIntent : '';
+    this.storedTarget = typeof saved.storedTarget === 'string' ? saved.storedTarget : '';
+    this.failedIntent = typeof saved.failedIntent === 'string' ? saved.failedIntent : '';
+    this.keptLabels = Array.isArray(saved.keptLabels) ? saved.keptLabels.filter((label) => typeof label === 'string').slice(0, 8) : [];
+    this.choiceRecord = typeof saved.choiceRecord === 'string' ? saved.choiceRecord : '';
+    this.choiceLabels = Array.isArray(saved.choiceLabels) ? saved.choiceLabels.filter((label) => typeof label === 'string').slice(0, 8) : [];
+    this.lastCatalogCid = typeof saved.lastCatalogCid === 'string' ? saved.lastCatalogCid : '';
+    this.paintStoredReadback();
+    if (this.storedTarget) this.revealRetainedChoice(`Selected ${this.storedTarget}.`);
+    if (this.choiceRecord) {
+      const record = document.getElementById('navi-choice-record');
+      if (record) {
+        record.hidden = false;
+        record.textContent = this.choiceRecord;
+      }
+    }
+    if (this.storedTarget) this.renderConfirmedTarget(this.storedTarget);
     const input = document.getElementById('message-input');
-    if (input && this.lastIntent && !input.value) input.value = this.lastIntent;
+    if (input && this.storedIntent) input.value = this.storedIntent;
     const status = document.getElementById('navi-intent-status');
     const list = document.getElementById('navi-match-list');
     if (status && this.lastStatus) {
       status.hidden = false;
       status.textContent = this.lastStatus;
     }
-    if (list && this.lastIntent && this.lastLabels.length) {
+    if (list && this.targetConfirmed && this.storedTarget) {
+      this.renderChosenTarget(this.storedTarget);
+    } else if (list && this.lastIntent && this.lastLabels.length) {
       const labels = this.lastLabels;
       list.hidden = false;
       if (labels.length === 1) {
         const label = labels[0];
-        list.innerHTML = `<span class="navi-match-text">${this.escapeText(this.lastIntent)} → ${this.escapeText(label)}</span> <button type="button" class="action-btn navi-target-choice" id="navi-use-target" data-target="${this.escapeText(label)}">Use this target</button>`;
+        const choiceId = label === 'gpt2' ? ' id="navi-choice-gpt2"' : '';
+        list.innerHTML = `<span class="navi-match-text">Matched ${this.escapeText(label)}</span><button type="button" class="action-btn navi-target-choice"${choiceId} data-target="${this.escapeText(label)}">Use ${this.escapeText(label)}</button>`;
       } else {
-        list.innerHTML = `<span class="navi-match-text">${this.escapeText(this.lastIntent)}</span> ` + labels.map((label, index) => `<button type="button" class="action-btn navi-target-choice"${index === 0 ? ' id="navi-use-target"' : ''} data-target="${this.escapeText(label)}">${this.escapeText(label)}</button>`).join('');
+        list.innerHTML = `<span class="navi-match-text">Choices: ${labels.map((label) => this.escapeText(label)).join(' | ')}</span>` + labels.map((label) => `<button type="button" class="action-btn navi-target-choice"${label === 'gpt2' ? ' id="navi-choice-gpt2"' : ''} data-target="${this.escapeText(label)}">${this.escapeText(label)}</button>`).join('');
       }
     }
-    const transcript = Array.isArray(saved.transcript) ? saved.transcript.filter((entry) => entry && (entry.sender === 'user' || entry.sender === 'navi') && typeof entry.content === 'string').slice(-8) : [];
-    if (transcript.length) {
+    const transcript = Array.isArray(saved.transcript) ? saved.transcript.filter((entry) => entry && (entry.sender === 'user' || entry.sender === 'navi') && typeof entry.content === 'string').slice(-12) : [];
+    const messagesContainer = document.getElementById('conversation-messages');
+    if (messagesContainer && transcript.length) {
       this.conversations = transcript.map((entry) => ({
-        sender: entry.sender,
-        content: entry.content.slice(0, 400),
+        sender: entry.sender === 'user' ? 'user' : 'navi',
+        content: entry.content.slice(0, 180),
         metadata: {},
         timestamp: 0
       }));
-      const messagesContainer = document.getElementById('conversation-messages');
-      if (messagesContainer) {
-        messagesContainer.replaceChildren();
-        for (const entry of this.conversations) {
-          const messageElement = document.createElement('div');
-          messageElement.className = `message ${entry.sender}-message`;
-          const avatar = document.createElement('div');
-          avatar.className = 'message-avatar';
-          avatar.textContent = entry.sender === 'user' ? '👤' : '🤖';
-          const content = document.createElement('div');
-          content.className = 'message-content';
-          const text = document.createElement('div');
-          text.className = 'message-text';
-          text.textContent = entry.content;
-          content.appendChild(text);
-          messageElement.append(avatar, content);
-          messagesContainer.appendChild(messageElement);
-        }
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      messagesContainer.replaceChildren();
+      for (const entry of this.conversations) {
+        const messageElement = document.createElement('div');
+        messageElement.className = `message ${entry.sender}-message`;
+        messageElement.style.opacity = '1';
+        messageElement.style.transform = 'none';
+        messageElement.style.animation = 'none';
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = entry.sender === 'user' ? '👤' : '🤖';
+        const content = document.createElement('div');
+        content.className = 'message-content';
+        const text = document.createElement('div');
+        text.className = 'message-text';
+        text.textContent = entry.content;
+        if (entry.sender === 'user' && entry.content === this.storedIntent) text.id = 'navi-retained-intent';
+        content.appendChild(text);
+        messageElement.append(avatar, content);
+        messagesContainer.appendChild(messageElement);
       }
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
+    const intent = document.getElementById('message-input');
+    if (intent) intent.classList.add('navi-intent-focused');
   }
 
   async resolveCatalogIntent(message) {
@@ -949,17 +1233,18 @@ export class NAVIApp {
       const record = this.decodeCatalogResult(payload);
       if (record.cid !== requestedCid || typeof record.content !== 'string'
           || await contentCidForBytes(new TextEncoder().encode(record.content)) !== requestedCid) throw new Error('Catalog bytes do not match the requested CID.');
-      labels = this.extractCatalogMatches(payload).map((entry, index) => this.catalogLabel(entry, index)).filter(Boolean);
-      const terms = message.toLowerCase().trim().split(/\s+/).filter(Boolean);
-      labels = labels.filter(label => terms.every(term => label.toLowerCase().includes(term)));
+      this.lastCatalogCid = requestedCid;
+      const rows = this.extractCatalogMatches(payload);
+      const full = message.toLowerCase().trim();
+      labels = this.catalogLabels(rows, full);
+      if (!labels.length) {
+        const tokens = full.match(/[0-9a-z]+/g);
+        const token = tokens && tokens.length ? tokens[tokens.length - 1] : '';
+        if (token && token !== full) labels = this.catalogLabels(rows, token);
+      }
     } catch (error) {
       this.showIntentOutcome(message, 'Not resolved: catalog result could not be verified. Original intent kept.', []);
       return;
-    }
-    if (labels.length > 1) {
-      const folded = message.toLowerCase();
-      const narrowed = labels.filter((label) => label.toLowerCase().includes(folded));
-      if (narrowed.length === 1) labels = narrowed;
     }
     if (labels.length === 0) {
       this.showIntentOutcome(message, 'Not resolved: no catalog match. Original intent kept.', []);
@@ -979,10 +1264,14 @@ export class NAVIApp {
 
     const messageElement = document.createElement('div');
     messageElement.className = `message ${sender}-message`;
+    messageElement.style.opacity = '1';
+    messageElement.style.transform = 'none';
+    messageElement.style.animation = 'none';
     
     const isUser = sender === 'user';
     const avatar = isUser ? '👤' : '🤖';
     
+    if (metadata.unresolved) messageElement.classList.add('navi-unresolved-bubble');
     messageElement.innerHTML = `
       <div class="message-avatar">${avatar}</div>
       <div class="message-content">
@@ -1001,6 +1290,7 @@ export class NAVIApp {
       sender,
       content,
       metadata,
+      unresolved: metadata.unresolved === true,
       timestamp: Date.now()
     });
     

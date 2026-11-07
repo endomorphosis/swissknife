@@ -3014,6 +3014,15 @@ class SwissKnifeDesktop {
                 .accelerate-panel-workflow.sk-app { height: auto; max-height: 100%; overflow: auto; }
                 .accelerate-panel-workflow .sk-card { height: auto; max-height: none; overflow: visible; align-self: start; }
                 #accelerate-run-record { display: block; margin: 0 0 12px; overflow-wrap: anywhere; line-height: 1.35; }
+                #accelerate-hardware-status { overflow-wrap: anywhere; }
+                @media (max-width: 520px) {
+                    .accelerate-panel-workflow.sk-app { padding: 8px 8px 96px !important; }
+                    .accelerate-panel-workflow .sk-honest-note,
+                    .accelerate-panel-workflow [data-svd-vda-marker="evaluation-policy"] { display: none; }
+                    .accelerate-panel-workflow [data-svd-vda-marker="hardware-fit"] { order: -1; }
+                    .accelerate-panel-workflow .sk-card { padding: 6px; }
+                    .accelerate-panel-workflow .sk-section-head { padding: 6px 8px; }
+                }
             `;
             document.head.appendChild(fitStyle);
         }
@@ -3169,9 +3178,12 @@ class SwissKnifeDesktop {
                 if (result) { const pre = document.createElement('pre'); pre.textContent = JSON.stringify(envelope, null, 2); pre.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0'; result.replaceChildren(pre); }
                 if (statusEl) {
                     const state = value?.state || value?.status || envelope.outcome;
+                    const device = typeof value?.device === 'string' ? value.device.trim() : '';
                     statusEl.textContent = preview
                         ? `${operation} preview validated; no job or remote change was created.`
-                        : `${operation} ${state}. See Diagnostics for the receipt and full response.`;
+                        : operation === 'hardware_profile'
+                            ? `hardware_profile ${state}${device ? ` · ${device}` : ''}`
+                            : `${operation} ${state}. See Diagnostics for the receipt and full response.`;
                 }
                 if (operation === 'run_inference_job') {
                     contentElement.querySelector('#accelerate-selected-model').textContent = `Actual requested model: ${payload.model || payload.model_id}`;
@@ -3216,6 +3228,7 @@ class SwissKnifeDesktop {
         };
         const showAccelerateRecord = saved => {
             if (!saved || typeof saved.output !== 'string' || !saved.output.trim()) return;
+            if (typeof saved.job_id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(saved.job_id)) lastJobId = saved.job_id;
             if (accelerateModelInput && typeof saved.model === 'string') accelerateModelInput.value = saved.model;
             if (acceleratePromptInput && typeof saved.input === 'string') acceleratePromptInput.value = saved.input;
             if (accelerateOutput) accelerateOutput.textContent = saved.output;
@@ -3277,6 +3290,7 @@ class SwissKnifeDesktop {
                 model: response.value?.model_id || response.value?.model || model,
                 input: typedInput, output: usableOutput, started: response.value?.started_at || response.value?.created_at || started,
                 finished: response.value?.finished_at || response.value?.completed_at || new Date().toISOString(), state: ownerState || 'unnamed',
+                ...(typeof jobId === 'string' && jobId ? { job_id: jobId } : {}),
             };
             try { sessionStorage.setItem(accelerateRunKey, JSON.stringify(saved)); } catch { /* storage unavailable */ }
             showAccelerateRecord(saved);

@@ -1,23 +1,197 @@
 {
-  "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "file-manager",
-  "description": "Open the isolated folder, preview the UTF-8 file, save a renamed copy, reopen it, then recover from a filename conflict.",
-  "fixture_scope": "svf-file-manager",
   "backend_bindings": [
     {
       "binding_id": "file-manager.ipfs_kit_py.retrieve_content",
-      "mode": "isolated_mutation",
       "consent": "ui_required",
       "max_duration_seconds": 30,
       "max_output_bytes": 65536,
+      "mode": "isolated_mutation",
       "result_assertion": {
-        "pointer": "/result/result/content/0/json/bytes_base64",
+        "expected": "7a26ef347543682dfee955176f6f81987c0b2a5503908035387eaca387b18817",
         "operator": "equals",
-        "expected": "c3ZmLWZpeHR1cmUtdXRmOC1vaw=="
+        "pointer": "/result/result/content/0/json/sha256"
+      }
+    },
+    {
+      "binding_id": "file-manager.ipfs_datasets_py.record_provenance",
+      "consent": "ui_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "mode": "isolated_mutation",
+      "result_assertion": {
+        "expected": "/tmp/svf-fm-notes-",
+        "operator": "contains",
+        "pointer": "/result/result/content/0/json/destination"
       }
     }
   ],
+  "description": "Open the isolated folder, preview the UTF-8 file, save a renamed copy, reopen it, then recover from a filename conflict.",
+  "fixture_scope": "svf-file-manager",
   "phases": {
+    "failure_recovery": [
+      {
+        "op": "click",
+        "selector": "#kept-selection"
+      },
+      {
+        "op": "fill",
+        "selector": "#copy-name",
+        "value": "notes-copy.txt"
+      },
+      {
+        "key": "Enter",
+        "op": "press",
+        "selector": "#copy-name"
+      },
+      {
+        "checkpoint_id": "error_observed",
+        "expected": "filename conflict",
+        "op": "assert",
+        "operator": "contains",
+        "probe": {
+          "kind": "text",
+          "selector": "#file-error"
+        }
+      },
+      {
+        "op": "fill",
+        "selector": "#copy-name",
+        "value": "notes-retry.txt"
+      },
+      {
+        "key": "Enter",
+        "op": "press",
+        "selector": "#copy-name"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"file-manager.ipfs_datasets_py.record_provenance\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"file-manager.ipfs_datasets_py.record_provenance\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#workflow-status:has-text(\"notes-retry.txt\")",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "expected": "notes-retry.txt",
+        "op": "assert",
+        "operator": "contains",
+        "probe": {
+          "kind": "text",
+          "selector": "#workflow-status"
+        },
+        "requirement_id": "failure_recovery"
+      },
+      {
+        "expected": "Copy notes-copy.txt",
+        "op": "assert",
+        "operator": "contains",
+        "probe": {
+          "kind": "text",
+          "selector": "#workflow-status"
+        }
+      },
+      {
+        "expected": "Retry copy notes-retry.txt",
+        "op": "assert",
+        "operator": "contains",
+        "probe": {
+          "kind": "text",
+          "selector": "#file-metadata"
+        }
+      },
+      {
+        "expected": "Original notes.txt",
+        "op": "assert",
+        "operator": "contains",
+        "probe": {
+          "kind": "text",
+          "selector": "#file-metadata"
+        }
+      },
+      {
+        "op": "click",
+        "selector": "#copy-name"
+      }
+    ],
+    "persist_reopen": [
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#reopen-saved-copy",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "#reopen-saved-copy"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"file-manager.ipfs_kit_py.retrieve_content\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"file-manager.ipfs_kit_py.retrieve_content\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"file-manager.ipfs_datasets_py.record_provenance\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"file-manager.ipfs_datasets_py.record_provenance\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#reopen-proof:has-text(\"Reopened notes-copy.txt /tmp/svf-fm-notes-copy.txt.json dataset_79623791fcc29916 sha256 7a26ef347543682dfee955176f6f81987c0b2a5503908035387eaca387b18817 bytes svf-fixture-utf8-ok\")",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "expected": "Reopened notes-copy.txt /tmp/svf-fm-notes-copy.txt.json dataset_79623791fcc29916 sha256 7a26ef347543682dfee955176f6f81987c0b2a5503908035387eaca387b18817 bytes svf-fixture-utf8-ok",
+        "op": "assert",
+        "operator": "contains",
+        "probe": {
+          "kind": "text",
+          "selector": "#reopen-proof"
+        },
+        "requirement_id": "persist_reopen"
+      },
+      {
+        "expected": "svf-fixture-utf8-ok",
+        "op": "assert",
+        "operator": "equals",
+        "probe": {
+          "kind": "text",
+          "selector": "#preview-content"
+        }
+      },
+      {
+        "expected": "/svf-isolated/notes-copy.txt",
+        "op": "assert",
+        "operator": "equals",
+        "probe": {
+          "kind": "value",
+          "selector": "#kept-selection"
+        }
+      }
+    ],
     "primary_result": [
       {
         "op": "click",
@@ -53,77 +227,65 @@
         "value": "notes-copy.txt"
       },
       {
+        "key": "Enter",
         "op": "press",
-        "selector": "#copy-name",
+        "selector": "#copy-name"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"file-manager.ipfs_datasets_py.record_provenance\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"file-manager.ipfs_datasets_py.record_provenance\"]",
         "key": "Enter"
       },
       {
+        "op": "wait_for",
+        "selector": "#workflow-status:has-text(\"notes-copy.txt\")",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "expected": "svf-fixture-utf8-ok",
         "op": "assert",
-        "requirement_id": "result_1",
+        "operator": "contains",
         "probe": {
           "kind": "text",
           "selector": "#workflow-status"
         },
-        "operator": "contains",
-        "expected": "svf-fixture-utf8-ok"
-      }
-    ],
-    "persist_reopen": [
-      {
-        "op": "reopen_app"
+        "requirement_id": "result_1"
       },
       {
+        "expected": "svf-fixture-utf8-ok",
         "op": "assert",
-        "requirement_id": "persist_reopen",
+        "operator": "equals",
         "probe": {
           "kind": "text",
-          "selector": "#workflow-status"
-        },
-        "operator": "contains",
-        "expected": "notes-copy.txt"
-      }
-    ],
-    "failure_recovery": [
-      {
-        "op": "fill",
-        "selector": "#copy-name",
-        "value": "notes-copy.txt"
+          "selector": "#preview-content"
+        }
       },
       {
-        "op": "press",
-        "selector": "#copy-name",
-        "key": "Enter"
-      },
-      {
+        "expected": "Selection notes.txt",
         "op": "assert",
-        "checkpoint_id": "error_observed",
+        "operator": "contains",
         "probe": {
           "kind": "text",
-          "selector": "#file-error"
-        },
-        "operator": "contains",
-        "expected": "filename conflict"
+          "selector": "#file-metadata"
+        }
       },
       {
-        "op": "fill",
-        "selector": "#copy-name",
-        "value": "notes-retry.txt"
-      },
-      {
-        "op": "press",
-        "selector": "#copy-name",
-        "key": "Enter"
-      },
-      {
+        "expected": "Saved copy notes-copy.txt",
         "op": "assert",
-        "requirement_id": "failure_recovery",
+        "operator": "contains",
         "probe": {
           "kind": "text",
-          "selector": "#workflow-status"
-        },
-        "operator": "contains",
-        "expected": "notes-retry.txt"
+          "selector": "#file-metadata"
+        }
       }
     ]
-  }
+  },
+  "schema": "swissknife.visual-functional-scenario.v1"
 }

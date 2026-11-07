@@ -12,8 +12,8 @@
       "max_output_bytes": 65536,
       "result_assertion": {
         "pointer": "/result/result/content/0/json/Peers",
-        "operator": "not_equals",
-        "expected": null
+        "operator": "equals",
+        "expected": []
       }
     }
   ],
@@ -41,10 +41,10 @@
         "requirement_id": "result_1",
         "probe": {
           "kind": "text",
-          "selector": "#p2p-swarm-observation"
+          "selector": "#p2p-swarm-status"
         },
-        "operator": "contains",
-        "expected": "observed at "
+        "operator": "equals",
+        "expected": "Empty swarm. No peers in the latest owner response."
       }
     ],
     "persist_reopen": [

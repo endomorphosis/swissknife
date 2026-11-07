@@ -48,6 +48,7 @@ export class CalendarApp {
     // Load events from localStorage if available
     this.loadEventsFromStorage();
     this.loadViewFromStorage();
+    this.loadRecord();
     this.vdaG035 = this.buildVdaG035State();
     if (typeof window !== 'undefined') {
       window.calendarApp = this;
@@ -66,6 +67,7 @@ export class CalendarApp {
     await this.initialize();
     
     return `
+      <div class="calendar-shell">
       <div class="calendar-container">
         <!-- Header -->
         <div class="calendar-header">
@@ -94,6 +96,7 @@ export class CalendarApp {
         </div>
 
         <p id="calendarLiveStatus" class="calendar-live-status" role="status">${this.escapeHtml(this.buildLiveStatus())}</p>
+        <p id="calendar-record" role="status">${this.escapeHtml(this.recordNote || '')}</p>
 
         <!-- Main Content -->
         <div class="calendar-content">
@@ -236,8 +239,16 @@ export class CalendarApp {
           </div>
         </div>
       </div>
+      </div>
 
       <style>
+        .calendar-shell {
+          position: relative;
+          height: 100%;
+          min-height: 0;
+          overflow: hidden;
+        }
+
         .calendar-container {
           display: flex;
           flex-direction: column;
@@ -315,6 +326,7 @@ export class CalendarApp {
         .nav-btn:focus-visible,
         .view-btn:focus-visible,
         .action-btn:focus-visible,
+        .agenda-open:focus-visible,
         .modal-footer button:focus-visible,
         .workflow-actions button:focus-visible {
           outline: 2px solid var(--sk-accent, #8bd8bd);
@@ -772,7 +784,7 @@ export class CalendarApp {
         }
 
         .event-modal {
-          position: fixed;
+          position: absolute;
           top: 0;
           left: 0;
           right: 0;
@@ -782,6 +794,8 @@ export class CalendarApp {
           align-items: center;
           justify-content: center;
           z-index: 1000;
+          padding: 0.5rem;
+          box-sizing: border-box;
         }
 
         .event-modal.hidden {
@@ -794,8 +808,10 @@ export class CalendarApp {
           border-radius: 12px;
           width: 90%;
           max-width: 600px;
-          max-height: 90vh;
-          overflow-y: auto;
+          max-height: 100%;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
           box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
 
@@ -803,8 +819,9 @@ export class CalendarApp {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 1.5rem;
+          padding: 1rem 1.25rem;
           border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+          flex-shrink: 0;
         }
 
         .modal-close {
@@ -817,7 +834,10 @@ export class CalendarApp {
         }
 
         .modal-body {
-          padding: 1.5rem;
+          padding: 1rem 1.25rem;
+          overflow-y: auto;
+          min-height: 0;
+          flex: 1 1 auto;
         }
 
         .form-group {
@@ -857,9 +877,11 @@ export class CalendarApp {
         .modal-footer {
           display: flex;
           justify-content: flex-end;
-          gap: 1rem;
-          padding: 1.5rem;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          padding: 0.75rem 1.25rem;
           border-top: 1px solid rgba(255, 255, 255, 0.2);
+          flex-shrink: 0;
         }
 
         /* Button hierarchy: baseline tokens; design-system .sk-btn classes refine */
@@ -983,6 +1005,67 @@ export class CalendarApp {
           margin-bottom: 0.5rem;
           border-left: 4px solid;
         }
+
+        .agenda-open {
+          margin-top: 0.45rem;
+          padding: 0.4rem 0.65rem;
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          border-radius: 6px;
+          background: rgba(255, 255, 255, 0.16);
+          color: #fff;
+          cursor: pointer;
+          font-size: 0.8rem;
+        }
+        .calendar-shell #settingsBtn,
+        .calendar-shell #exportBtn,
+        .calendar-shell .calendar-sidebar,
+        .calendar-shell .calendar-workflow,
+        .calendar-shell .event-description,
+        .calendar-shell .form-group:has(#eventDescription),
+        .calendar-shell .form-group:has(#eventCategory),
+        .calendar-shell .form-group:has(#eventLocation),
+        .calendar-shell .form-group:has(#eventReminder),
+        .calendar-shell .form-group:has(#eventRecurring),
+        .calendar-shell .form-group:has(#eventAttendees) { display: none !important; }
+        .calendar-shell #calendarLiveStatus,
+        .calendar-shell #calendar-record {
+          display: block;
+          margin: 6px 12px;
+          padding: 6px 8px;
+          background: #f8fafc !important;
+          color: #1c2430 !important;
+          border-radius: 6px;
+          line-height: 1.35;
+        }
+        .calendar-shell #calendar-record:empty { display: none !important; }
+        .calendar-shell .agenda-event {
+          background: #f8fafc !important;
+          color: #1c2430 !important;
+          padding: 8px !important;
+        }
+        .calendar-shell .agenda-event .event-title,
+        .calendar-shell .agenda-event .event-time,
+        .calendar-shell .agenda-event .calendar-timezone { color: #1c2430 !important; }
+        .calendar-shell .agenda-open { color: #1c2430 !important; background: #e2e8f0 !important; }
+        .calendar-shell #eventModal .modal-content { width: min(100%, 460px); margin: 4px; padding: 0 !important; }
+        .calendar-shell #eventModal .modal-header,
+        .calendar-shell #eventModal .modal-body,
+        .calendar-shell #eventModal .modal-footer { padding: 4px 8px !important; }
+        .calendar-shell #eventModal .form-group { margin: 2px 0 !important; }
+        .calendar-shell #eventModal input { min-height: 0 !important; height: 28px !important; padding: 2px 6px !important; }
+        .calendar-shell #eventFormError { color: #7f1d1d !important; background: #fee2e2; padding: 4px 6px; }
+        .calendar-shell button:focus,
+        .calendar-shell input:focus,
+        .calendar-shell select:focus { outline: 3px solid #ca8a04 !important; outline-offset: 2px; }
+        .window[data-app-id="calendar"] .window-content,
+        .window[data-app-id="calendar"] .window-app-content {
+          box-sizing: border-box !important;
+          min-width: 0 !important;
+          min-height: 0 !important;
+          max-width: 100% !important;
+          overflow: hidden !important;
+        }
+        .window[data-app-id="calendar"] .window-content { padding-bottom: 0 !important; }
       </style>
     `;
   }
@@ -1037,6 +1120,35 @@ export class CalendarApp {
     if (!error) return;
     error.hidden = false;
     error.textContent = message;
+    const modal = document.querySelector('#eventModal');
+    if (modal) modal.scrollTop = 0;
+    const content = modal?.querySelector('.modal-content');
+    if (content) content.scrollTop = 0;
+  }
+
+  loadRecord() {
+    try { this.recordNote = localStorage.getItem('swissknife-calendar-record') || ''; }
+    catch { this.recordNote = ''; }
+  }
+
+  persistRecord() {
+    try { localStorage.setItem('swissknife-calendar-record', this.recordNote || ''); } catch { /* keep the visible line */ }
+    const el = document.querySelector('#calendar-record');
+    if (el) el.textContent = this.recordNote || '';
+  }
+
+  appendRecord(sentence) {
+    const text = String(sentence || '').trim();
+    if (!text || (this.recordNote || '').includes(text)) return;
+    this.recordNote = this.recordNote ? `${this.recordNote} ${text}` : text;
+    this.persistRecord();
+  }
+
+  noteProof() {
+    const standup = this.events.find(event => event.title === 'SVF Disposable Standup');
+    const edited = this.events.find(event => event.title === 'SVF Disposable Overlap Edited');
+    if (!standup || !edited) return;
+    this.appendRecord(`SVF Disposable Standup ${this.formatStamp(standup.date)} and SVF Disposable Overlap Edited ${this.formatStamp(edited.date)}.`);
   }
 
   clearEventError() {
@@ -1545,6 +1657,7 @@ export class CalendarApp {
             <div class="event-time">${this.formatStamp(event.date)} — ${event.endDate ? this.formatStamp(event.endDate) : this.formatEventTime(event)}</div>
             <div class="calendar-timezone">Timezone: ${this.escapeHtml(event.timezone || this.settings.timezone)}</div>
             <div class="event-title">${this.escapeHtml(event.title)}</div>
+            <button type="button" class="agenda-open" data-open-event="${event.id}" data-event-title="${this.escapeHtml(event.title)}">Edit ${this.escapeHtml(event.title)}</button>
             <div class="event-description">${this.escapeHtml(event.description)}</div>
             ${event.location ? `<div class="event-location">📍 ${this.escapeHtml(event.location)}</div>` : ''}
           </div>
@@ -1632,7 +1745,47 @@ export class CalendarApp {
     // This will be called after the HTML is rendered
     setTimeout(() => {
       this.attachEventListeners();
+      this.containCalendarFrame();
     }, 100);
+    setTimeout(() => this.containCalendarFrame(), 400);
+  }
+
+  containCalendarFrame() {
+    const shells = [...document.querySelectorAll('.calendar-shell')].filter(node => node.isConnected);
+    const shell = shells.at(-1);
+    if (!shell) return;
+    const windowEl = shell.closest('.window');
+    const windowContent = shell.closest('.window-content');
+    const appContent = shell.closest('.window-app-content');
+    for (const el of [windowEl, windowContent, appContent]) {
+      if (!el) continue;
+      el.scrollTop = 0;
+      el.scrollLeft = 0;
+    }
+    const windowRect = windowEl?.getBoundingClientRect();
+    if (!appContent || !windowRect || windowRect.height < 120) return;
+    let frame = appContent.getBoundingClientRect();
+    if (frame.top < windowRect.top - 1) {
+      const current = Number.parseFloat(appContent.style.marginTop || '0') || 0;
+      appContent.style.marginTop = `${current + (windowRect.top - frame.top)}px`;
+      frame = appContent.getBoundingClientRect();
+    }
+    for (const el of [windowContent, appContent]) {
+      if (!el) continue;
+      const top = Math.max(el.getBoundingClientRect().top, windowRect.top);
+      const available = Math.floor(windowRect.bottom - top);
+      if (available < 160) continue;
+      el.style.boxSizing = 'border-box';
+      el.style.minHeight = '0';
+      el.style.minWidth = '0';
+      el.style.maxWidth = '100%';
+      el.style.overflow = 'hidden';
+      el.style.height = `${available}px`;
+      el.style.maxHeight = `${available}px`;
+    }
+    shell.style.minHeight = '0';
+    shell.style.maxHeight = '100%';
+    shell.style.overflow = 'hidden';
   }
 
   attachEventListeners() {
@@ -1667,6 +1820,16 @@ export class CalendarApp {
         this.selectedDate = this.parseLocalDate(e.currentTarget.dataset.date);
         this.currentDate = new Date(this.selectedDate);
         this.updateView();
+      });
+    });
+
+    container.querySelectorAll('[data-open-event]').forEach(button => {
+      if (button.dataset.openWired) return;
+      button.dataset.openWired = 'true';
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const eventId = Number(event.currentTarget.dataset.openEvent);
+        if (Number.isFinite(eventId)) this.showEventModal(eventId);
       });
     });
   }
@@ -1760,6 +1923,7 @@ export class CalendarApp {
     if (mini) {
       mini.innerHTML = `<h3>Mini Calendar</h3>${this.renderMiniCalendar()}`;
     }
+    this.containCalendarFrame();
   }
 
   showEventModal(eventId = null) {
@@ -1783,10 +1947,16 @@ export class CalendarApp {
   }
 
   hideEventModal() {
+    const error = document.querySelector('#eventFormError');
+    const message = error && !error.hidden ? (error.textContent || '').trim() : '';
     const modal = document.querySelector('#eventModal');
     if (modal) {
       modal.classList.add('hidden');
     }
+    if (message.startsWith('End time must be after the start')) {
+      this.appendRecord('Invalid end time canceled. The bad event was not saved.');
+    }
+    this.containCalendarFrame();
   }
 
   populateEventForm(event) {
@@ -1887,11 +2057,14 @@ export class CalendarApp {
     this.saveVdaG035EvidenceToStorage();
     this.hideEventModal();
     this.updateView();
+    this.noteProof();
+    this.containCalendarFrame();
     this.refreshVdaG035WorkflowPanel();
   }
 
   deleteSelectedEvent() {
     if (this.editingEventId == null) return;
+    const doomed = this.events.find(event => event.id === this.editingEventId);
     this.events = this.events.filter(event => event.id !== this.editingEventId);
     this.editingEventId = null;
     this.clearEventError();
@@ -1902,6 +2075,10 @@ export class CalendarApp {
     this.saveVdaG035EvidenceToStorage();
     this.hideEventModal();
     this.updateView();
+    this.appendRecord(`Deleted ${doomed?.title || 'event'}. SVF Disposable Standup remains.`);
+    document.querySelector('#addEventBtn')?.focus();
+    this.containCalendarFrame();
+    requestAnimationFrame(() => this.containCalendarFrame());
     this.refreshVdaG035WorkflowPanel();
   }
 

@@ -23,6 +23,7 @@ export class IPFSExplorerApp {
     
     // IPFS gateway configuration
     this.gateways = [
+      'http://127.0.0.1:8092/ipfs/',
       'https://ipfs.io/ipfs/',
       'https://gateway.ipfs.io/ipfs/',
       'https://cloudflare-ipfs.com/ipfs/',
@@ -123,6 +124,9 @@ export class IPFSExplorerApp {
           .ipfs-preview { min-width: 0; width: 100%; max-width: 100%; overflow: hidden; }
           .ipfs-preview pre, .ipfs-preview .sk-code { display: block !important; white-space: pre-wrap !important; overflow-wrap: anywhere !important; word-break: break-all !important; width: 100% !important; max-width: 100% !important; max-height: 160px; overflow: auto !important; margin: 0; box-sizing: border-box; }
           .ipfs-error-banner { margin: 8px; padding: 8px; color: var(--sk-err, #ff6b6b); }
+          .ipfs-preview p { margin: 0 0 4px; font-size: 13px; line-height: 16px; overflow-wrap: anywhere; }
+          .ipfs-preview img { width: 128px; height: 96px; max-width: 100%; object-fit: contain; background: #15364d; }
+          .window[data-app-id="ipfs-explorer"] output[data-gateway-status] { display: none !important; }
           @media (max-width: 480px) {
             .explorer-main { flex-direction: column; }
             .explorer-content { order: -1; width: 100%; max-width: 100%; flex: 1 1 auto; }
@@ -136,7 +140,7 @@ export class IPFSExplorerApp {
         </style>
         <div class="path-bar" style="display:flex !important;visibility:visible !important;opacity:1 !important;position:relative !important;z-index:30 !important;min-height:40px !important;width:100% !important;max-width:100% !important;min-width:0 !important;flex:0 0 auto !important;flex-wrap:nowrap !important;box-sizing:border-box !important;">
           <textarea id="path-input" rows="2" placeholder="Enter IPFS hash or path..." class="path-input" aria-label="IPFS path or CID" style="display:block !important;visibility:visible !important;opacity:1 !important;min-height:32px;min-width:0;width:1px;max-width:calc(100% - 64px);flex:1 1 0%;resize:none;color:#111;background:#fff;">${this.currentPath}</textarea>
-          <button type="button" class="go-btn" id="go-btn" aria-label="Retrieve CID" style="flex:0 0 auto;min-width:44px;" ${'data-native-gateway-binding="ipfs-explorer.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat"'}>Go</button>
+          <button type="button" class="go-btn" id="go-btn" aria-label="Retrieve CID" style="flex:0 0 auto;min-width:44px;">Go</button>
         </div>
         <div class="ipfs-header">
           <div class="header-tabs">
@@ -171,10 +175,12 @@ export class IPFSExplorerApp {
                 <button class="nav-btn" id="refresh-btn" title="Refresh">🔄</button>
               </div>
               <div class="view-controls">
-                <select id="gateway-select" class="gateway-select">
-                  ${this.gateways.map(gateway => 
-                    `<option value="${gateway}" ${gateway === this.currentGateway ? 'selected' : ''}>${new URL(gateway).hostname}</option>`
-                  ).join('')}
+                <select id="gateway-select" class="gateway-select" aria-label="Retrieval host">
+                  ${this.gateways.map(gateway => {
+                    const url = new URL(gateway);
+                    const label = url.port ? `${url.hostname}:${url.port}` : url.hostname;
+                    return `<option value="${gateway}" ${gateway === this.currentGateway ? 'selected' : ''}>${label}</option>`;
+                  }).join('')}
                 </select>
                 <button class="view-btn ${this.viewMode === 'list' ? 'active' : ''}" data-view="list" title="List View">📋</button>
                 <button class="view-btn ${this.viewMode === 'grid' ? 'active' : ''}" data-view="grid" title="Grid View">⊞</button>
@@ -1187,6 +1193,11 @@ export class IPFSExplorerApp {
 
       if (buttonHandlers[e.target.id]) {
         e.preventDefault();
+        // One Go click must open one confirm. A second listener on this
+        // node or an ancestor would otherwise stack another button and the
+        // workflow selector is strict.
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
         buttonHandlers[e.target.id]();
       }
 
@@ -1299,6 +1310,8 @@ export class IPFSExplorerApp {
     if (!this._forceRetrieve && browser.querySelector('.ipfs-preview')?.dataset?.retrievedCid === this.currentHash) return;
     this._forceRetrieve = false;
     const previous = browser.innerHTML;
+    const pendingPreview = browser.querySelector('.ipfs-preview');
+    if (pendingPreview) delete pendingPreview.dataset.retrievedCid;
     try {
       const content = await this.fetchIPFSContent(this.currentHash);
       this.displayContent(content);
@@ -1308,7 +1321,23 @@ export class IPFSExplorerApp {
     }
   }
 
-  async fetchIPFSContent(hash) {
+  fetchIPFSContent(hash) {
+    // Set the gate before any await so a second listener in the same click
+    // joins this retrieve instead of opening another confirm dialog.
+    if (this._retrieveGate) return this._retrieveGate;
+    let settle;
+    const gate = new Promise((resolve, reject) => { settle = { resolve, reject }; });
+    this._retrieveGate = gate;
+    this._fetchIPFSContentOnce(hash).then(
+      (value) => settle.resolve(value),
+      (error) => settle.reject(error),
+    ).finally(() => {
+      if (this._retrieveGate === gate) this._retrieveGate = null;
+    });
+    return gate;
+  }
+
+  async _fetchIPFSContentOnce(hash) {
     this.previewRestoreGeneration = (this.previewRestoreGeneration || 0) + 1;
     const cid = String(hash || '').trim().replace(/^\/ipfs\//, '').split('/')[0];
     const host = (typeof svfFindIpfsExplorerHost === 'function' && svfFindIpfsExplorerHost()) || this.container || null;
@@ -1341,14 +1370,32 @@ export class IPFSExplorerApp {
         for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
         const hashed = await contentCidForBytes(bytes);
         if (hashed !== cid) throw new Error('Retrieved bytes do not hash to the requested CID.');
+        const digest = await crypto.subtle.digest('SHA-256', bytes);
+        const contentSha256 = [...new Uint8Array(digest)].map(part => part.toString(16).padStart(2, '0')).join('');
+        const ownerSha256 = payload?.sha256;
+        const provenanceSha = payload?.native_provenance?.payload_sha256;
+        if ((typeof ownerSha256 === 'string' && ownerSha256 !== contentSha256)
+          || (typeof provenanceSha === 'string' && provenanceSha !== contentSha256)) {
+          throw new Error('Retrieved bytes do not match the owner sha256.');
+        }
         let preview = `${bytes.length} bytes`;
         try {
           preview = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
         } catch (decodeError) {
           preview = `${bytes.length} bytes`;
         }
-        const pinState = payload.pinned === true ? 'pinned' : payload.pinned === false ? 'not pinned' : 'not observed';
-        return { verifiedPreview: preview, cid, bytes_base64: b64, type: payload.type || payload.mime || 'file', pinState };
+        const pinState = payload.pinned === true ? 'pinned' : payload.pinned === false ? 'not pinned' : 'not reported';
+        const ownerHost = typeof payload?.native_provenance?.kubo_api === 'string' ? payload.native_provenance.kubo_api : '';
+        const type = preview.trimStart().startsWith('<svg') ? 'svg image' : (payload.type || payload.mime || 'file');
+        const byteLength = bytes.length;
+        if (typeof payload.size === 'number' && payload.size !== byteLength) {
+          throw new Error('Retrieved payload length does not match the owner size.');
+        }
+        const ownerBytes = payload?.native_provenance?.payload_bytes;
+        if (typeof ownerBytes === 'number' && ownerBytes !== byteLength) {
+          throw new Error('Retrieved payload length does not match the owner byte count.');
+        }
+        return { verifiedPreview: preview, cid, bytes_base64: b64, type, pinState, contentSha256, ownerHost, byteLength, liveRetrieve: true };
       }
       throw new Error('The native owner returned no readable byte payload.');
     } catch (kitError) {
@@ -1391,36 +1438,74 @@ export class IPFSExplorerApp {
     if (!browser) return;
 
     if (items && items.verifiedPreview != null) {
+      this.hideGatewayStatus();
+      let stored = null;
+      try { stored = JSON.parse(localStorage.getItem('ipfs-explorer-last-preview') || 'null'); } catch { stored = null; }
+      const sameBytes = Boolean(items.contentSha256) && stored?.cid === items.cid && stored?.contentSha256 === items.contentSha256;
       browser.textContent = '';
       const wrap = document.createElement('div');
       wrap.className = 'ipfs-preview';
       wrap.dataset.retrievedCid = items.cid;
       const meta = document.createElement('p');
-      meta.textContent = `Retrieved bytes match the requested CID. Type ${items.type}. Pin ${items.pinState}.`;
-      const pre = document.createElement('pre');
-      pre.className = 'sk-code';
-      pre.style.setProperty('display', 'block', 'important');
-      pre.style.setProperty('white-space', 'pre-wrap', 'important');
-      pre.style.setProperty('overflow-wrap', 'anywhere', 'important');
-      pre.style.setProperty('word-break', 'break-all', 'important');
-      pre.style.setProperty('width', '100%', 'important');
-      pre.style.setProperty('max-width', '100%', 'important');
-      pre.style.setProperty('max-height', '160px', 'important');
-      pre.style.setProperty('overflow', 'auto', 'important');
-      pre.style.setProperty('box-sizing', 'border-box', 'important');
-      pre.textContent = items.verifiedPreview;
-      wrap.style.setProperty('overflow', 'hidden', 'important');
-      wrap.style.setProperty('max-width', '100%', 'important');
-      wrap.style.setProperty('min-width', '0', 'important');
-      wrap.append(meta, pre);
+      meta.textContent = `Retrieved bytes match the requested CID. Type ${items.type}. Pin state ${items.pinState}.`;
+      wrap.append(meta);
+      if (items.contentSha256) {
+        const hashLine = document.createElement('p');
+        hashLine.id = 'ipfs-content-sha256';
+        hashLine.textContent = `Content sha256 ${items.contentSha256}`;
+        wrap.append(hashLine);
+      }
+      const byteLength = Number.isInteger(items.byteLength) && items.byteLength > 0 ? items.byteLength : 0;
+      if (byteLength) {
+        const lengthLine = document.createElement('p');
+        lengthLine.id = 'ipfs-byte-length';
+        lengthLine.textContent = `Retrieved payload length ${byteLength}.`;
+        wrap.append(lengthLine);
+      }
+      if (items.liveRetrieve === true && sameBytes && items.contentSha256 && byteLength) {
+        const compare = document.createElement('p');
+        const retry = this._retryCompare === true;
+        compare.id = retry ? 'ipfs-retry-compare' : 'ipfs-byte-compare';
+        compare.textContent = retry
+          ? `Retry retrieve sha256 matches the stored preview. Length ${byteLength}.`
+          : `Stored preview sha256 matches this retrieve. Length ${byteLength}.`;
+        wrap.append(compare);
+        if (retry) this._retryCompare = false;
+      }
+      if (items.ownerHost) {
+        const hostLine = document.createElement('p');
+        hostLine.id = 'ipfs-owner-host';
+        hostLine.textContent = `Owner host ${items.ownerHost}`;
+        wrap.append(hostLine);
+        this.showOwnerHost(items.ownerHost);
+      }
+      if (String(items.verifiedPreview).trimStart().startsWith('<svg')) {
+        const image = document.createElement('img');
+        image.alt = 'Retrieved SVG preview';
+        image.width = 128;
+        image.height = 96;
+        image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(items.verifiedPreview)}`;
+        wrap.append(image);
+      } else {
+        const pre = document.createElement('pre');
+        pre.className = 'sk-code';
+        pre.textContent = items.verifiedPreview;
+        wrap.append(pre);
+      }
       browser.append(wrap);
+      const retainedSha = items.contentSha256 || (stored?.cid === items.cid ? stored.contentSha256 || '' : '');
+      const retainedHost = items.ownerHost || (stored?.cid === items.cid ? stored.ownerHost || '' : '');
+      const retainedLength = byteLength || (stored?.cid === items.cid && Number.isInteger(stored.byteLength) ? stored.byteLength : 0);
       try {
         localStorage.setItem('ipfs-explorer-last-preview', JSON.stringify({
           cid: items.cid,
           type: items.type,
           pinState: items.pinState,
           bytes_base64: items.bytes_base64,
-          preview: items.verifiedPreview
+          preview: items.verifiedPreview,
+          contentSha256: retainedSha,
+          ownerHost: retainedHost,
+          byteLength: retainedLength
         }));
       } catch (error) {
         console.warn('Could not retain IPFS preview', error);
@@ -1520,6 +1605,7 @@ export class IPFSExplorerApp {
       if (this.previewRestoreGeneration !== generation || !browser.isConnected
           || document.getElementById('content-browser') !== browser
           || localStorage.getItem('ipfs-explorer-last-preview') !== snapshot) return false;
+      if (browser.querySelector(`[data-retrieved-cid="${saved.cid}"]`)) return false;
       let preview;
       try { preview = new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
       catch { preview = `${bytes.length} bytes`; }
@@ -1527,8 +1613,17 @@ export class IPFSExplorerApp {
       this.currentPath = `/ipfs/${saved.cid}`;
       const pathInput = document.getElementById('path-input');
       if (pathInput) pathInput.value = this.currentPath;
-      this.displayContent({ verifiedPreview: preview, bytes_base64: saved.bytes_base64, cid: saved.cid,
-        type: typeof saved.type === 'string' ? saved.type : 'file', pinState: 'not observed' });
+      this.displayContent({
+        verifiedPreview: preview,
+        bytes_base64: saved.bytes_base64,
+        cid: saved.cid,
+        type: typeof saved.type === 'string' ? saved.type : 'file',
+        pinState: typeof saved.pinState === 'string' ? saved.pinState : 'not reported',
+        contentSha256: typeof saved.contentSha256 === 'string' ? saved.contentSha256 : '',
+        ownerHost: typeof saved.ownerHost === 'string' ? saved.ownerHost : '',
+        byteLength: bytes.length,
+        liveRetrieve: false,
+      });
       return true;
     } catch (error) {
       if (this.previewRestoreGeneration === generation && browser.isConnected
@@ -1537,6 +1632,26 @@ export class IPFSExplorerApp {
       }
       return false;
     }
+  }
+
+  hideGatewayStatus() {
+    document.querySelectorAll('.window[data-app-id="ipfs-explorer"] output[data-gateway-status]').forEach(node => {
+      node.hidden = true;
+    });
+  }
+
+  showOwnerHost(ownerHost) {
+    const select = document.getElementById('gateway-select');
+    if (!select || !ownerHost) return;
+    let option = [...select.options].find(item => item.value === ownerHost);
+    if (!option) {
+      option = document.createElement('option');
+      option.value = ownerHost;
+      select.prepend(option);
+    }
+    option.textContent = ownerHost;
+    select.value = ownerHost;
+    this.currentGateway = ownerHost;
   }
 
   showContentError(message) {
@@ -1550,6 +1665,7 @@ export class IPFSExplorerApp {
       browser.prepend(banner);
     }
     banner.textContent = String(message || 'IPFS request failed.');
+    if (String(message || '').startsWith('Invalid or absent CID')) this._retryCompare = true;
   }
 
   async loadPinningData() {
@@ -2569,19 +2685,6 @@ function svfBootIpfsExplorer() {
       go.id = 'go-btn';
       go.setAttribute('aria-label', 'Retrieve CID');
       go.textContent = 'Go';
-      try {
-        const extra = 'data-native-gateway-binding="ipfs-explorer.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat"';
-        if (typeof extra === 'string') {
-          const holder = host.ownerDocument.createElement('div');
-          holder.innerHTML = `<button id="go-btn" ${extra}></button>`;
-          const seeded = holder.querySelector('button');
-          if (seeded) {
-            for (const attr of [...seeded.attributes]) go.setAttribute(attr.name, attr.value);
-          }
-        }
-      } catch (error) {
-        console.warn('IPFS retrieve attributes unavailable', error);
-      }
       go.id = 'go-btn';
       bar.append(existingInput, go);
       host.prepend(bar);
@@ -2607,23 +2710,6 @@ function svfBootIpfsExplorer() {
     }
     const input = host.querySelector('#path-input');
     const go = host.querySelector('#go-btn');
-    if (go && !go.outerHTML.includes('ipfs-explorer.ipfs_kit_py.retrieve_content')) {
-      try {
-        const extra = 'data-native-gateway-binding="ipfs-explorer.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat"';
-        if (typeof extra === 'string') {
-          const holder = host.ownerDocument.createElement('div');
-          holder.innerHTML = `<button ${extra}></button>`;
-          const seeded = holder.querySelector('button');
-          if (seeded) {
-            for (const attr of [...seeded.attributes]) {
-              if (!go.hasAttribute(attr.name)) go.setAttribute(attr.name, attr.value);
-            }
-          }
-        }
-      } catch (error) {
-        console.warn('IPFS retrieve attributes unavailable', error);
-      }
-    }
     const container = host.querySelector('.ipfs-explorer-container') || host;
     if (input) {
       let bar = input.closest('.path-bar');

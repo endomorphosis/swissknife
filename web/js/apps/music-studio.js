@@ -51,6 +51,10 @@
   };
   const classicInstruments = ['lead', 'bass', 'pad'];
   let classicVoices = [];
+  let classicPlayed = false;
+  let classicStopped = false;
+  let classicSaved = false;
+  let classicEnterConfirmed = false;
 
   // Initialize Audio System
   async function initializeAudioSystem() {
@@ -461,6 +465,7 @@
           <button type="button" class="btn btn-warning" id="classic-save" aria-label="Save classic project">Save</button>
         </div>
         <p id="classic-reopen-summary">${escapeHtml(classicProject.trackName)} | ${classicProject.tempo} | ${escapeHtml(classicProject.instrument)}</p>
+        <p id="classic-transport-state">${classicPlayed && classicStopped ? 'Played and stopped' : 'Idle'}${classicEnterConfirmed ? '. Enter confirmed' : ''}</p>
         <p id="music-studio-workflow-status">${escapeHtml(classicProject.status)}</p>
 
         <!-- Main Studio Interface -->
@@ -783,6 +788,7 @@
         }
 
         #classic-reopen-summary,
+        #classic-transport-state,
         #music-studio-workflow-status {
           margin: 0 8px 6px;
           font-size: 13px;
@@ -1173,8 +1179,20 @@
     });
   }
 
+  function syncTransportState() {
+    const transport = document.getElementById('classic-transport-state');
+    if (!transport) return;
+    const motion = classicPlayed && classicStopped ? 'Played and stopped' : (classicPlayed ? 'Playing' : 'Idle');
+    transport.textContent = motion + (classicEnterConfirmed ? '. Enter confirmed' : '');
+  }
+
   function playClassic() {
     commitClassicForm();
+    classicPlayed = true;
+    classicStopped = false;
+    syncTransportState();
+    const status = document.getElementById('music-studio-workflow-status');
+    if (status) status.textContent = 'Playing local classic project. No remote render.';
     if (!audioContext || !masterGain) {
       showRecovery('Audio unavailable. Project kept. Enable audio and retry.');
       return;
@@ -1197,6 +1215,8 @@
       }
     });
     classicVoices = [];
+    if (classicPlayed) classicStopped = true;
+    syncTransportState();
     const status = document.getElementById('music-studio-workflow-status');
     if (status) status.textContent = 'Stopped. Local project kept. No remote render.';
   }
@@ -1204,8 +1224,13 @@
   function confirmClassicTrack(event) {
     if (event && typeof event.preventDefault === 'function') event.preventDefault();
     commitClassicForm();
+    classicEnterConfirmed = true;
+    syncTransportState();
     const status = document.getElementById('music-studio-workflow-status');
-    if (status) status.textContent = classicProject.status;
+    if (!status) return;
+    status.textContent = classicPlayed && classicStopped && classicSaved
+      ? 'Played, stopped, and saved locally. Enter confirmed. No remote render.'
+      : classicProject.status;
   }
 
   function openClassicProjectText(text) {
@@ -1231,7 +1256,10 @@
     if (classicInstruments.includes(parsed.instrument)) classicProject.instrument = parsed.instrument;
     applyFormFromState();
     const recovery = document.getElementById('music-studio-recovery');
-    if (recovery) recovery.hidden = true;
+    if (recovery) {
+      recovery.hidden = false;
+      recovery.textContent = 'Invalid project was not deleted. Opened a valid classic project.';
+    }
     const status = document.getElementById('music-studio-workflow-status');
     if (status) status.textContent = 'Opened a valid classic project locally. No remote render.';
   }
@@ -1435,6 +1463,7 @@
       showRecovery('Could not save in this browser. The open project was not deleted.');
       return null;
     }
+    classicSaved = true;
     const status = document.getElementById('music-studio-workflow-status');
     if (status) status.textContent = 'Saved in this browser. No remote render.';
     return bundle;

@@ -216,11 +216,43 @@ class APIKeysApp {
         const fieldStyle = 'background:Canvas;color:CanvasText;border:1px solid CanvasText;';
         const hasSaved = savedRef !== 'none';
         const statusText = hasSaved
-            ? `Saved reference ${savedRef}. Python-owner dispatch remains policy-blocked. Credential values are absent.`
+            ? `Saved reference ${savedRef}. Owner dispatch is not performed on this policy boundary. Credential values are absent.`
             : 'No reference saved yet.';
         return `
             <div class="vault-lock-screen">
                 <div class="lock-container">
+                    <style>
+                        .window[data-app-id="api-keys"] .window-app-content {
+                            position: absolute;
+                            left: 0;
+                            right: 0;
+                            top: 32px;
+                            bottom: 0;
+                            min-height: 0;
+                            overflow: auto;
+                            box-sizing: border-box;
+                        }
+                        .vault-lock-screen {
+                            min-height: 0;
+                            max-height: 100%;
+                            overflow: auto;
+                            box-sizing: border-box;
+                        }
+                        .vault-lock-screen .lock-container {
+                            margin: 0;
+                            padding: 8px 12px;
+                            box-sizing: border-box;
+                        }
+                        .vault-lock-screen h2,
+                        .vault-lock-screen p {
+                            margin: 0 0 6px;
+                        }
+                        .vault-lock-screen input:focus,
+                        .vault-lock-screen button:focus {
+                            outline: 3px solid #0b57d0;
+                            outline-offset: 2px;
+                        }
+                    </style>
                     <h2>API Keys</h2>
                     <p id="svf-ref-status">${statusText}</p>
                     <form id="svf-ref-form" onsubmit="apiKeysApp.saveOpaqueReference(event)">
@@ -234,7 +266,7 @@ class APIKeysApp {
                         </div>
                         <button type="submit" id="svf-ref-save" class="btn-primary sk-btn sk-btn-primary">Save reference</button>
                     </form>
-                    <span id="svf-ref-saved" hidden>${hasSaved ? savedRef : ''}</span>
+                    <p>Stored reference <strong id="svf-ref-saved">${hasSaved ? savedRef : ''}</strong></p>
                     <p id="svf-ref-guidance" hidden></p>
                     <button type="button" id="svf-ref-retain" class="sk-btn" onclick="apiKeysApp.retainBlockedState()">Retain blocked state</button>
                 </div>
@@ -412,10 +444,6 @@ class APIKeysApp {
         const labelOk = /^[A-Za-z0-9][A-Za-z0-9 ._-]{2,40}$/.test(label);
         const refOk = /^ref-[a-z0-9-]{3,64}$/.test(ref);
         if (!labelOk || !refOk) {
-            if (boundary) {
-                boundary.hidden = true;
-                boundary.textContent = '';
-            }
             if (guidance) {
                 guidance.hidden = false;
                 guidance.textContent = 'Invalid reference. Dispatch denied by policy. No credential value is stored.';
@@ -426,7 +454,7 @@ class APIKeysApp {
         if (savedEl) savedEl.textContent = ref;
         if (boundary) {
             boundary.hidden = false;
-            boundary.textContent = `Saved reference ${ref}. Python-owner dispatch remains policy-blocked. Credential values are absent.`;
+            boundary.textContent = `Saved reference ${ref}. Owner dispatch is not performed on this policy boundary. Credential values are absent.`;
         }
         if (guidance) {
             guidance.hidden = true;
@@ -436,14 +464,9 @@ class APIKeysApp {
 
     retainBlockedState() {
         const guidance = document.getElementById('svf-ref-guidance');
-        const boundary = document.getElementById('svf-ref-status');
-        if (boundary) {
-            boundary.hidden = true;
-            boundary.textContent = '';
-        }
         if (guidance) {
             guidance.hidden = false;
-            guidance.textContent = 'Explicit blocked state retained.';
+            guidance.textContent = 'Dispatch denied by policy. Explicit blocked state retained. No credential value is stored.';
         }
     }
 

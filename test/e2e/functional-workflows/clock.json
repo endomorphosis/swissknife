@@ -10,25 +10,41 @@
       {"op": "fill", "selector": "#alarm-label", "value": "Desk check"},
       {"op": "fill", "selector": "#alarm-time", "value": "23:59"},
       {"op": "click", "selector": "#add-alarm-btn"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#clock-saved-alarm"}, "operator": "equals", "expected": "Saved alarm Desk check at 23:59."},
       {"op": "click", "selector": ".view-tab[data-view=\"timer\"]"},
       {"op": "fill", "selector": "#timer-hours", "value": "0"},
       {"op": "fill", "selector": "#timer-minutes", "value": "2"},
       {"op": "fill", "selector": "#timer-seconds", "value": "0"},
+      {"op": "click", "selector": "#timer-toggle"},
+      {"op": "click", "selector": "#timer-toggle"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#clock-timer-log"}, "operator": "equals", "expected": "Timer started and paused. Duration 120000 ms."},
       {"op": "press", "selector": "#timer-toggle", "key": "Enter"},
-      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "json_attribute", "selector": "#timer-time", "attribute": "data-timer-sample", "pointer": "/elapsed_ms", "temporal_ms": 500}, "operator": "at_least", "expected": 100}
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "json_attribute", "selector": "#timer-time", "attribute": "data-timer-sample", "pointer": "/elapsed_ms", "temporal_ms": 500}, "operator": "at_least", "expected": 450},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#clock-timer-log"}, "operator": "equals", "expected": "Timer started, paused, and resumed. Duration 120000 ms. Ceiling 900 ms."},
+      {"op": "click", "selector": "#timer-reset"},
+      {"op": "fill", "selector": "#timer-hours", "value": "0"},
+      {"op": "fill", "selector": "#timer-minutes", "value": "2"},
+      {"op": "fill", "selector": "#timer-seconds", "value": "0"},
+      {"op": "click", "selector": "#timer-toggle"},
+      {"op": "click", "selector": "#timer-toggle"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#clock-timer-log"}, "operator": "equals", "expected": "Timer started, paused, resumed, reset, and paused. Duration 120000 ms. Ceiling 900 ms."}
     ],
     "persist_reopen": [
       {"op": "reopen_app"},
       {"op": "click", "selector": ".view-tab[data-view=\"alarm\"]"},
-      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#alarm-status"}, "operator": "contains", "expected": "Desk check"}
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#clock-retained-alarm"}, "operator": "equals", "expected": "Retained alarm Desk check at 23:59."},
+      {"op": "assert", "probe": {"kind": "json_attribute", "selector": "#clock-retained-timer", "attribute": "data-clock-timer", "pointer": "/duration_ms"}, "operator": "equals", "expected": 120000},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#clock-timer-log"}, "operator": "equals", "expected": "Timer started, paused, resumed, reset, and paused. Duration 120000 ms. Ceiling 900 ms."}
     ],
     "failure_recovery": [
       {"op": "fill", "selector": "#alarm-time", "value": "99:99"},
       {"op": "click", "selector": "#add-alarm-btn"},
       {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#alarm-error"}, "operator": "contains", "expected": "Invalid alarm time"},
       {"op": "fill", "selector": "#alarm-time", "value": "23:58"},
-      {"op": "click", "selector": "#add-alarm-btn"},
-      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#alarm-status"}, "operator": "contains", "expected": "Local timer retained"}
+      {"op": "press", "selector": "#add-alarm-btn", "key": "Enter"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#alarm-status"}, "operator": "contains", "expected": "Local timer retained"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#clock-retained-alarm"}, "operator": "equals", "expected": "Retained alarm Desk check at 23:59."},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#clock-saved-alarm"}, "operator": "equals", "expected": "Saved alarm Desk check at 23:58."}
     ]
   }
 }

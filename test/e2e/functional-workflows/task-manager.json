@@ -1,20 +1,29 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "task-manager",
-  "description": "Refresh the desktop task list, confirm unavailable host metrics stay labeled, reopen, then recover a paused stale source.",
+  "description": "Open Clock beside Task Manager, filter to Clock, close it from the desktop control, refresh, reopen, then recover a paused stale source.",
   "fixture_scope": "svf-task-manager-workflow",
   "backend_bindings": [],
   "phases": {
     "primary_result": [
-      {"op": "click", "selector": "#refresh-processes"},
-      {"op": "select", "selector": "#process-filter", "value": "all"},
+      {"op": "click", "selector": "#open-second-app"},
+      {"op": "wait_for", "selector": "#processes-list:has-text(\"Clock & Timers\")", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#processes-list"}, "operator": "contains", "expected": "Clock & Timers"},
+      {"op": "fill", "selector": "#process-search", "value": "Clock"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#processes-list"}, "operator": "contains", "expected": "matching Clock"},
+      {"op": "fill", "selector": "#process-search", "value": ""},
+      {"op": "click", "selector": "#close-open-app"},
+      {"op": "wait_for", "selector": "#processes-list:has-text(\"closed Clock & Timers\")", "state": "visible", "timeout_ms": 15000},
       {"op": "press", "selector": "#process-search", "key": "Enter"},
-      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#processes-list"}, "operator": "contains", "expected": "n/a"}
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#processes-list"}, "operator": "contains", "expected": "open Task Manager · closed Clock & Timers · host CPU and memory n/a"}
     ],
     "persist_reopen": [
       {"op": "reopen_app"},
       {"op": "wait_ms", "milliseconds": 500},
-      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#task-source-status"}, "operator": "contains", "expected": "current"}
+      {"op": "click", "selector": "#refresh-processes"},
+      {"op": "wait_for", "selector": "#processes-list:has-text(\"closed Clock & Timers\")", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#processes-list"}, "operator": "contains", "expected": "Showing 1 · all desktop apps · open Task Manager · closed Clock & Timers · host CPU and memory n/a"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#task-source-status"}, "operator": "contains", "expected": "current"}
     ],
     "failure_recovery": [
       {"op": "click", "selector": "#pause-monitoring"},

@@ -12,9 +12,9 @@
       {"op": "press", "selector": "#terminal-input", "key": "Enter"},
       {"op": "press", "selector": "#terminal-input", "key": "ArrowUp"},
       {"op": "press", "selector": "#terminal-input", "key": "Enter"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#terminal-output"}, "operator": "contains", "expected": "recalled from history: ls"},
       {"op": "fill", "selector": "#terminal-input", "value": "history"},
-      {"op": "press", "selector": "#terminal-input", "key": "Enter"},
-      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#terminal-output"}, "operator": "contains", "expected": "README.md"}
+      {"op": "press", "selector": "#terminal-input", "key": "Enter"}
     ],
     "persist_reopen": [
       {"op": "reopen_app"},

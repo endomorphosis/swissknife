@@ -1,49 +1,253 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "calendar",
-  "description": "Create a disposable dated event, overlap it, reopen, and recover from an end time before the start.",
+  "description": "Create a dated standup, overlap and edit it, reopen, then cancel an invalid end time and delete only the overlap.",
   "fixture_scope": "svf-calendar-disposable-event",
   "backend_bindings": [],
   "phases": {
     "primary_result": [
-      {"op": "wait_for", "selector": "#addEventBtn", "state": "visible", "timeout_ms": 10000},
-      {"op": "click", "selector": "[data-view=\"agenda\"]"},
-      {"op": "click", "selector": "#addEventBtn"},
-      {"op": "wait_for", "selector": "#eventTitle", "state": "visible", "timeout_ms": 5000},
-      {"op": "fill", "selector": "#eventTitle", "value": "SVF Disposable Standup"},
-      {"op": "fill", "selector": "#eventDate", "value": "2027-06-15"},
-      {"op": "fill", "selector": "#eventTime", "value": "10:30"},
-      {"op": "fill", "selector": "#eventEndDate", "value": "2027-06-15"},
-      {"op": "fill", "selector": "#eventEndTime", "value": "11:30"},
-      {"op": "click", "selector": "#saveBtn"},
-      {"op": "wait_for", "selector": "#eventModal", "state": "hidden", "timeout_ms": 5000},
-      {"op": "click", "selector": "#addEventBtn"},
-      {"op": "wait_for", "selector": "#eventTitle", "state": "visible", "timeout_ms": 5000},
-      {"op": "fill", "selector": "#eventTitle", "value": "SVF Disposable Overlap"},
-      {"op": "fill", "selector": "#eventDate", "value": "2027-06-15"},
-      {"op": "fill", "selector": "#eventTime", "value": "10:45"},
-      {"op": "fill", "selector": "#eventEndDate", "value": "2027-06-15"},
-      {"op": "fill", "selector": "#eventEndTime", "value": "11:15"},
-      {"op": "press", "selector": "#saveBtn", "key": "Enter"},
-      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#calendarLiveStatus"}, "operator": "contains", "expected": "SVF Disposable Standup 2027-06-15 10:30 and SVF Disposable Overlap 2027-06-15 10:45"}
+      {
+        "op": "wait_for",
+        "selector": "#addEventBtn",
+        "state": "visible",
+        "timeout_ms": 10000
+      },
+      {
+        "op": "click",
+        "selector": "[data-view=\"agenda\"]"
+      },
+      {
+        "op": "click",
+        "selector": "#addEventBtn"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#eventTitle",
+        "state": "visible",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "fill",
+        "selector": "#eventTitle",
+        "value": "SVF Disposable Standup"
+      },
+      {
+        "op": "fill",
+        "selector": "#eventDate",
+        "value": "2027-06-15"
+      },
+      {
+        "op": "fill",
+        "selector": "#eventTime",
+        "value": "10:30"
+      },
+      {
+        "op": "fill",
+        "selector": "#eventEndDate",
+        "value": "2027-06-15"
+      },
+      {
+        "op": "fill",
+        "selector": "#eventEndTime",
+        "value": "11:30"
+      },
+      {
+        "op": "click",
+        "selector": "#saveBtn"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#eventModal",
+        "state": "hidden",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "click",
+        "selector": "#addEventBtn"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#eventTitle",
+        "state": "visible",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "fill",
+        "selector": "#eventTitle",
+        "value": "SVF Disposable Overlap"
+      },
+      {
+        "op": "fill",
+        "selector": "#eventDate",
+        "value": "2027-06-15"
+      },
+      {
+        "op": "fill",
+        "selector": "#eventTime",
+        "value": "10:45"
+      },
+      {
+        "op": "fill",
+        "selector": "#eventEndDate",
+        "value": "2027-06-15"
+      },
+      {
+        "op": "fill",
+        "selector": "#eventEndTime",
+        "value": "11:15"
+      },
+      {
+        "op": "click",
+        "selector": "#saveBtn"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#eventModal",
+        "state": "hidden",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "click",
+        "selector": "button[data-event-title=\"SVF Disposable Overlap\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#eventTitle",
+        "state": "visible",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "fill",
+        "selector": "#eventTitle",
+        "value": "SVF Disposable Overlap Edited"
+      },
+      {
+        "op": "press",
+        "selector": "#saveBtn",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#calendar-record",
+        "state": "visible",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "text",
+          "selector": "#calendar-record"
+        },
+        "operator": "contains",
+        "expected": "SVF Disposable Standup 2027-06-15 10:30 and SVF Disposable Overlap Edited 2027-06-15 10:45."
+      }
     ],
     "persist_reopen": [
-      {"op": "reopen_app"},
-      {"op": "wait_for", "selector": "#calendarLiveStatus", "state": "visible", "timeout_ms": 10000},
-      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#calendarLiveStatus"}, "operator": "contains", "expected": "SVF Disposable Standup | 2027-06-15 10:30 | timezone:"}
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#calendarLiveStatus",
+        "state": "visible",
+        "timeout_ms": 10000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "text",
+          "selector": "#calendarLiveStatus"
+        },
+        "operator": "contains",
+        "expected": "SVF Disposable Standup | 2027-06-15 10:30 | timezone:"
+      }
     ],
     "failure_recovery": [
-      {"op": "click", "selector": "#addEventBtn"},
-      {"op": "wait_for", "selector": "#eventTitle", "state": "visible", "timeout_ms": 5000},
-      {"op": "fill", "selector": "#eventTitle", "value": "SVF Invalid Time"},
-      {"op": "fill", "selector": "#eventDate", "value": "2027-06-15"},
-      {"op": "fill", "selector": "#eventTime", "value": "15:00"},
-      {"op": "fill", "selector": "#eventEndDate", "value": "2027-06-15"},
-      {"op": "fill", "selector": "#eventEndTime", "value": "14:00"},
-      {"op": "click", "selector": "#saveBtn"},
-      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#eventFormError"}, "operator": "contains", "expected": "End time must be after the start."},
-      {"op": "click", "selector": "#cancelBtn"},
-      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#calendarLiveStatus"}, "operator": "contains", "expected": "SVF Disposable Standup | 2027-06-15 10:30"}
+      {
+        "op": "click",
+        "selector": "#addEventBtn"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#eventTitle",
+        "state": "visible",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "fill",
+        "selector": "#eventTitle",
+        "value": "SVF Invalid Time"
+      },
+      {
+        "op": "fill",
+        "selector": "#eventDate",
+        "value": "2027-06-15"
+      },
+      {
+        "op": "fill",
+        "selector": "#eventTime",
+        "value": "15:00"
+      },
+      {
+        "op": "fill",
+        "selector": "#eventEndDate",
+        "value": "2027-06-15"
+      },
+      {
+        "op": "fill",
+        "selector": "#eventEndTime",
+        "value": "14:00"
+      },
+      {
+        "op": "click",
+        "selector": "#saveBtn"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#eventFormError"
+        },
+        "operator": "contains",
+        "expected": "End time must be after the start."
+      },
+      {
+        "op": "click",
+        "selector": "#cancelBtn"
+      },
+      {
+        "op": "click",
+        "selector": "button[data-event-title=\"SVF Disposable Overlap Edited\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#deleteBtn",
+        "state": "visible",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "click",
+        "selector": "#deleteBtn"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#eventModal",
+        "state": "hidden",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "text",
+          "selector": "#calendar-record"
+        },
+        "operator": "equals",
+        "expected": "SVF Disposable Standup 2027-06-15 10:30 and SVF Disposable Overlap Edited 2027-06-15 10:45. Invalid end time canceled. The bad event was not saved. Deleted SVF Disposable Overlap Edited. SVF Disposable Standup remains."
+      }
     ]
   }
 }

@@ -56,6 +56,7 @@ export class StrudelAIDAW {
         this.activePattern = 'main';
         this.patternHistory = [];
         this.undoStack = [];
+        this.restoredProof = '';
         this.renderState = {
             status: 'idle',
             progress: 0,
@@ -183,6 +184,7 @@ export class StrudelAIDAW {
                 .strudel-ai-daw #strudel-code-editor{width:100%!important;min-height:130px!important;flex:1 1 auto!important}
                 .strudel-ai-daw button:focus,.strudel-ai-daw textarea:focus,.strudel-ai-daw input:focus{outline:none;box-shadow:none}
                 .strudel-ai-daw :focus-visible{outline:2px solid #7dffb3!important;outline-offset:2px!important;box-shadow:none!important}
+                .strudel-ai-daw .cpu-meter,.strudel-ai-daw .latency-display{display:none!important}
                 @media (max-width:800px){
                     .window[data-app-id="strudel-ai-daw"]{max-height:calc(100dvh - 56px)!important;height:calc(100dvh - 56px)!important;overflow:hidden!important}
                     .strudel-ai-daw .pattern-sidebar{max-height:44px!important;overflow:auto!important}
@@ -190,7 +192,7 @@ export class StrudelAIDAW {
                     .strudel-ai-daw .daw-menubar,.strudel-ai-daw .transport-bar,.strudel-ai-daw .menu-section,.strudel-ai-daw .transport-controls{flex-wrap:wrap!important;max-width:100%!important;overflow:visible!important}
                     .strudel-ai-daw .logo{display:none!important}
                     .strudel-ai-daw .menu-btn,.strudel-ai-daw .sk-transport-btn{padding:2px 6px!important;font-size:12px!important}
-                    .strudel-ai-daw .status-section{flex:0 0 auto!important;max-height:3.2em!important;overflow:auto!important;font-size:12px!important;line-height:1.3!important}
+                    .strudel-ai-daw .status-section{flex:0 0 auto!important;max-height:none!important;overflow:visible!important;font-size:12px!important;line-height:1.3!important}
                     .strudel-ai-daw .code-editor-container{min-height:120px!important}
                     .strudel-ai-daw #strudel-code-editor{min-height:100px!important}
                 }
@@ -242,6 +244,8 @@ export class StrudelAIDAW {
                     <div class="status-section">
                         <span id="audio-playback-status" role="status">Audio initializing</span>
                         <span id="assistance-status" role="status">Assistance idle. Local edits stay in the editor.</span>
+                        <span id="project-retention" role="status">track:main tempo:120 source:</span>
+                        <span id="restored-source" role="status" style="display:block;font-size:12px;line-height:1.3;overflow-wrap:anywhere"></span>
                         <div class="cpu-meter">
                             <span>CPU:</span>
                             <div class="meter"><div class="meter-fill" id="cpu-meter"></div></div>
@@ -643,7 +647,10 @@ Examples:
         window.querySelector('#undo-btn')?.addEventListener('click', () => this.undoLastChange(window));
 
         // BPM and volume
-        window.querySelector('#bpm-input').addEventListener('change', (e) => this.setBPM(window, e.target.value));
+        const bpmInput = window.querySelector('#bpm-input');
+        const onBpm = (e) => this.setBPM(window, e.target.value);
+        bpmInput.addEventListener('change', onBpm);
+        bpmInput.addEventListener('input', onBpm);
         window.querySelector('#master-volume').addEventListener('input', (e) => this.setMasterVolume(window, e.target.value));
         window.querySelector('#tap-tempo').addEventListener('click', () => this.tapTempo(window));
 
@@ -727,6 +734,11 @@ stack(
         }
         if (typeof restored?.id === 'string' && restored.id) this.activePattern = restored.id;
         this.currentCode = editor.value;
+        this.restoredProof = typeof restored?.restoredProof === 'string' ? restored.restoredProof : '';
+        const retention = window.querySelector('#project-retention');
+        if (retention) retention.textContent = `track:${this.activePattern} tempo:${this.bpm} source:${this.currentCode}`;
+        const restoredNode = window.querySelector('#restored-source');
+        if (restoredNode) restoredNode.textContent = this.restoredProof;
 
         this.updateLineNumbers(window);
         this.scanCodeVariables(window);
@@ -1157,6 +1169,8 @@ stack(
     onCodeChange(window) {
         const editor = window.querySelector('#strudel-code-editor');
         this.currentCode = editor.value;
+        const retention = window.querySelector('#project-retention');
+        if (retention) retention.textContent = `track:${this.activePattern} tempo:${this.bpm} source:${this.currentCode}`;
         
         this.updateLineNumbers(window);
         this.scheduleCodeAnalysis(window);
@@ -1467,6 +1481,8 @@ stack(
         if (this.isUsingWorklet && this.audioNode) {
             this.audioNode.port.postMessage({ type: 'setBPM', value: this.bpm });
         }
+        const retention = window.querySelector('#project-retention');
+        if (retention) retention.textContent = `track:${this.activePattern} tempo:${this.bpm} source:${this.currentCode}`;
         this.addConsoleMessage(window, `🎵 BPM set to ${this.bpm}`, 'info');
     }
 
@@ -1817,6 +1833,11 @@ note("c2 ~ eb2 ~").sound("sawtooth").lpf(300).gain(0.6)`;
         editor.value = snapshot.code;
         this.currentCode = snapshot.code;
         this.activePattern = snapshot.activePattern;
+        const retention = window.querySelector('#project-retention');
+        if (retention) retention.textContent = `Undo applied from the local history stack. Restored reason ${snapshot.reason}, active pattern ${snapshot.activePattern}, tempo ${this.bpm}, and editable code ${snapshot.code}.`;
+        this.restoredProof = `Restored undo track:${snapshot.activePattern} tempo:${this.bpm} source:${snapshot.code}`;
+        const restoredNode = window.querySelector('#restored-source');
+        if (restoredNode) restoredNode.textContent = this.restoredProof;
         this.updateLineNumbers(window);
         this.scanCodeVariables(window);
         this.updateG045Marker(
@@ -2009,6 +2030,7 @@ stack(
             bpm: this.bpm,
             masterVolume: this.masterVolume,
             code,
+            restoredProof: this.restoredProof || '',
             codeContext: this.codeContext,
             assetProvenance: this.assetProvenance,
             renderState: this.renderState,

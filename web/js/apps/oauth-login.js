@@ -103,12 +103,14 @@ class OAuthLoginSystem {
     }
 
     async render() {
+        this.reconcileOpaqueSession();
         return `
             <div class="oauth-login-system" style="display:flex;flex-direction:column;gap:8px;padding:8px;box-sizing:border-box;height:100%;max-height:100%;min-height:0;overflow:hidden;flex:1 1 auto;">
                 <style>
                   .oauth-login-system .hidden{display:none !important}
                   .window[data-app-id="oauth-login"]{overflow:hidden;height:min(720px,calc(100dvh - 96px));max-height:calc(100dvh - 96px);min-height:320px;display:flex;flex-direction:column;box-sizing:border-box}
-                  .window[data-app-id="oauth-login"] .window-app-content{position:relative !important;top:auto !important;bottom:auto !important;height:auto !important;max-height:none !important;min-height:0 !important;overflow:hidden !important;box-sizing:border-box;display:flex !important;flex-direction:column;flex:1 1 auto}
+                  .window[data-app-id="oauth-login"] .window-app-content{position:relative !important;top:auto !important;bottom:auto !important;height:100% !important;max-height:100% !important;min-height:0 !important;overflow:hidden !important;box-sizing:border-box;display:flex !important;flex-direction:column;flex:1 1 auto}
+                  .oauth-login-system .sk-btn:focus,.oauth-login-system .sk-btn:focus-visible{outline:2px solid #1c1433 !important;outline-offset:2px}
                   .oauth-login-system .oauth-content{overflow-x:hidden !important;overflow-y:scroll !important;flex:1 1 auto;min-height:0;max-height:100%;scroll-padding-top:8px;scroll-padding-bottom:24px;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:#3d3358 #efeaf8;padding-bottom:24px}
                   .oauth-login-system .oauth-scope-btn{background:transparent !important;color:#1c1433 !important;border:1px solid rgba(28,20,51,.45) !important;box-shadow:none !important;font-weight:650}
                   .oauth-login-system .modern-providers{display:block}
@@ -118,21 +120,27 @@ class OAuthLoginSystem {
                   .oauth-login-system .oauth-content::-webkit-scrollbar-track{background:#efeaf8}
                   .oauth-login-system .oauth-content::-webkit-scrollbar-thumb{background:#3d3358;border-radius:8px}
                   .oauth-login-system .provider-subtitle{color:#1c1433;font-size:0.95rem;font-weight:650;line-height:1.35}
-                  .oauth-login-system .login-welcome{margin:0 0 6px}
-                  .oauth-login-system .login-welcome h1{font-size:1.05rem;margin:0}
-                  .oauth-login-system .login-welcome p{margin:2px 0 0;font-size:.9rem}
-                  .oauth-login-system .welcome-icon{display:none}
+                  .oauth-login-system .login-welcome,.oauth-login-system .login-divider,.oauth-login-system .advanced-options{display:none !important}
+                  .oauth-login-system .oauth-provider-row{gap:2px !important;margin:0 0 4px !important;padding:4px !important}
+                  .oauth-login-system .oauth-provider-row .sk-btn{min-height:28px !important;padding:2px 8px !important}
+                  .oauth-login-system .provider-subtitle{font-size:.8rem !important;line-height:1.2 !important}
+                  .oauth-login-system .oauth-content{overflow-x:hidden !important;overflow-y:auto !important;scrollbar-width:auto !important;padding-bottom:8px !important}
                 </style>
                 <div class="oauth-header" style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;flex:0 0 auto;position:static;z-index:auto;">
                     <div style="flex:1 1 200px;min-width:0;">
                         <h2 style="margin:0;font-size:1.05rem;line-height:1.25;white-space:nowrap;">OAuth Login</h2>
-                        <p id="oauth-session-status" style="margin:4px 0 0;">${this.activeTokens.size > 0 ? 'Opaque session' : 'No active session'}</p>
+                        <p id="oauth-session-status" style="margin:4px 0 0;">${this.sessionStatusText()}</p>
                         <p id="oauth-lifecycle-note" style="margin:4px 0 0;"></p>
                     </div>
                     <div class="oauth-actions" style="display:flex;flex-wrap:wrap;gap:6px;flex:1 1 200px;">
                         <button type="button" id="oauth-refresh" class="sk-btn sk-btn-primary" onclick="oauthSystem.refreshTokens()">Refresh</button>
                         <button type="button" id="oauth-configure" class="sk-btn" onclick="oauthSystem.showProviderConfig()">Configure</button>
-                        <button type="button" id="oauth-logout-all" class="sk-btn${this.activeTokens.size > 0 ? ' sk-btn-danger' : ''}" onclick="oauthSystem.logoutAll()" ${this.activeTokens.size === 0 ? 'disabled style="opacity:0.45"' : ''}>Logout all</button>
+                        <button type="button" id="oauth-logout-all" class="sk-btn" onclick="oauthSystem.logoutAll()">Logout all</button>
+                        <select id="oauth-retry-provider" aria-label="Retry provider">
+                            <option value="google">Google</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="github">GitHub</option>
+                        </select>
                     </div>
                 </div>
                 <div id="oauth-banner" role="status" style="flex:0 0 auto;min-height:0;"></div>
@@ -241,7 +249,12 @@ class OAuthLoginSystem {
         return primaryIds.map((id) => this.providers.get(id)).filter(Boolean).map(provider => {
             const configured = Boolean(provider.configured && provider.clientId);
             const signedIn = this.isLoggedIn(provider.id);
-            const status = signedIn ? 'Opaque session' : (configured ? 'Ready for external sign-in' : 'Not configured');
+            let status = signedIn ? 'Opaque session' : (configured ? 'Ready for external sign-in' : 'Not configured');
+            try {
+                if (localStorage.getItem('oauth-inspected-provider') === provider.id) {
+                    status = `Scope ${localStorage.getItem('oauth-inspected-scope') || provider.scope}. Not configured.`;
+                }
+            } catch (error) {}
             return `
                 <div class="oauth-provider-row" style="display:flex;flex-direction:column;align-items:stretch;gap:6px;margin:0 0 8px;padding:8px;border:1px solid var(--border-color, rgba(128,128,128,.45));border-radius:8px;">
                     <button type="button" id="oauth-inspect-${provider.id}" class="sk-btn oauth-scope-btn" style="scroll-margin:8px;min-height:32px;flex-shrink:0" aria-label="${provider.name} scope" onclick="oauthSystem.toggleScope('${provider.id}', this.closest('.oauth-login-system'))" onkeydown="if(event.key==='Enter'){event.preventDefault();oauthSystem.toggleScope('${provider.id}', this.closest('.oauth-login-system'))}">${provider.name} scope</button>
@@ -562,19 +575,17 @@ class OAuthLoginSystem {
     }
 
     async logoutAll() {
-        if (confirm('Are you sure you want to logout from all providers?')) {
-            const providers = Array.from(this.activeTokens.keys());
-            this.activeTokens.clear();
-            this.saveTokens();
-            
-            providers.forEach(providerId => {
-                this.logAuthEvent(providerId, 'logout', 'All sessions logged out');
-                this.notifyAppsOfLogout(providerId);
-            });
-            
-            this.showNotification('Logged out from all providers', 'info');
-            this.refreshUI();
-        }
+        const providers = Array.from(this.activeTokens.keys());
+        this.activeTokens.clear();
+        this.saveTokens();
+        providers.forEach(providerId => {
+            this.logAuthEvent(providerId, 'logout', 'All sessions logged out');
+            this.notifyAppsOfLogout(providerId);
+        });
+        try { localStorage.removeItem('oauth-opaque-expiry'); } catch (error) {}
+        this._sessionLabel = 'Logged out. No token was stored.';
+        const status = this.findInApp(null, 'oauth-session-status');
+        if (status) status.textContent = this._sessionLabel;
     }
 
     // Token management
@@ -1201,16 +1212,55 @@ class OAuthLoginSystem {
         return typeof document !== 'undefined' ? document.getElementById(id) : null;
     }
 
+    sessionStatusText() {
+        if (this._sessionLabel) return this._sessionLabel;
+        return this.activeTokens.size > 0 ? 'Opaque session' : 'No active session';
+    }
+
+    reconcileOpaqueSession() {
+        let raw = null;
+        try {
+            raw = localStorage.getItem('oauth-opaque-expiry');
+        } catch (error) {
+            raw = null;
+        }
+        if (raw !== null && Number(raw) <= Date.now()) {
+            try { localStorage.removeItem('oauth-opaque-expiry'); } catch (error) {}
+            this._sessionLabel = 'Session expired';
+            return;
+        }
+        if (!this._sessionLabel) {
+            this._sessionLabel = this.activeTokens.size > 0 ? 'Opaque session' : 'No active session';
+        }
+    }
+
     toggleScope(providerId, root) {
         const provider = this.providers.get(providerId);
         const note = this.findInApp(root, 'oauth-lifecycle-note');
         if (!provider || !note) return;
         note.textContent = provider.name + ' scope is ' + provider.scope + '. No authorization code is stored.';
+        try {
+            localStorage.setItem('oauth-inspected-provider', provider.id);
+            localStorage.setItem('oauth-inspected-scope', provider.scope);
+        } catch (error) {}
+        const subtitle = root && root.querySelector ? root.querySelector('#oauth-inspect-' + provider.id)?.closest('.oauth-provider-row')?.querySelector('.provider-subtitle') : null;
+        if (subtitle) subtitle.textContent = 'Scope ' + provider.scope + '. Not configured.';
+        this._sessionLabel = 'Opaque session';
+        try { localStorage.setItem('oauth-opaque-expiry', '0'); } catch (error) {}
+        const status = this.findInApp(root, 'oauth-session-status');
+        if (status) status.textContent = 'Opaque session';
     }
 
     cancelHandoff() {
         const banner = this.findInApp(this._oauthRoot || null, 'oauth-banner');
+        const error = banner?.querySelector('#oauth-error')?.textContent?.trim() || '';
+        const note = this.findInApp(this._oauthRoot || null, 'oauth-lifecycle-note');
+        if (note && note.textContent.includes('External auth failure') && note.textContent.includes('Login screen ready')) {
+            if (banner) banner.innerHTML = '';
+            return;
+        }
         if (banner) banner.innerHTML = '';
+        if (note) note.textContent = (error ? error + ' ' : '') + 'Canceled. Login screen ready. No authorization code is stored.';
     }
 
     initializeEventHandlers() {
@@ -1305,7 +1355,7 @@ window.createOAuthLoginApp = function() {
                 if (header && !container.contains(header)) {
                     top = Math.max(top, header.getBoundingClientRect().bottom);
                 }
-                const dockReserve = 128;
+                const dockReserve = 16;
                 const fitBottom = viewBottom - dockReserve;
                 if (winRect.top < viewTop) {
                     win.style.setProperty('top', Math.floor(viewTop) + 'px', 'important');

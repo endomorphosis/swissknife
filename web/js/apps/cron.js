@@ -139,8 +139,37 @@ export class CronApp {
           .cron-app-container .cron-header { flex: 0 0 auto; }
           .cron-app-container .header-tabs, .cron-app-container .header-controls, .cron-app-container .scheduler-controls, .cron-app-container .filter-section { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
           .cron-app-container .cron-content { flex: 1 1 auto; min-height: 0; overflow: auto; }
-          .cron-app-container .stats-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); gap: 8px; }
+          .cron-app-container .tab-content { display: none; }
+          .cron-app-container .tab-content.active { display: block; }
+          .cron-app-container .stats-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+          .cron-app-container .stat-card { padding: 6px; }
+          .cron-app-container .stat-value, .cron-app-container .stat-label, .cron-app-container .task-name, .cron-app-container #cron-retention { opacity: 1 !important; color: #1c2430 !important; }
+          .cron-app-container #cron-retention { display: block; margin: 6px 0; padding: 6px 8px; background: #e2e8f0; border-radius: 6px; line-height: 1.35; }
           .cron-app-container .filter-select, .cron-app-container .search-input, .cron-app-container .sk-input { max-width: 100%; min-width: 0; }
+          .cron-app-container .running-tasks, .cron-app-container .filter-section, .cron-app-container .cron-help,
+          .cron-app-container .header-tabs, .cron-app-container .scheduler-controls,
+          .cron-app-container #import-tasks, .cron-app-container #export-tasks, .cron-app-container #cron-settings,
+          .cron-app-container .task-description, .cron-app-container .form-section > h4,
+          .cron-app-container #template-fields,
+          .cron-app-container .form-group:has(#task-description), .cron-app-container .form-group:has(#task-template),
+          .cron-app-container .form-group:has(#task-schedule-type),
+          .cron-app-container .form-group:has(#task-priority), .cron-app-container .form-group:has(#task-p2p) { display: none !important; }
+          .cron-app-container .stat-card { padding: 4px !important; }
+          .cron-app-container .stat-label, .cron-app-container .stat-value { font-size: 12px; line-height: 1.2; }
+          .cron-app-container .task-card { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+          .cron-app-container .task-header { display: flex; align-items: flex-start; gap: 8px; width: 100%; }
+          .cron-app-container .task-info { flex: 1 1 auto; min-width: 0; width: auto !important; }
+          .cron-app-container .task-name { display: block; white-space: normal; font-weight: 700; }
+          .cron-app-container #cron-retention:empty { display: none !important; }
+          .cron-app-container #task-creation-modal { position: absolute !important; inset: 0; z-index: 30; overflow: auto; align-items: flex-start; justify-content: center; background: #f8fafc; }
+          .cron-app-container #task-creation-modal .modal-content { width: min(100%, 480px); margin: 4px; max-height: 100%; padding: 0 !important; }
+          .cron-app-container #task-creation-modal .modal-header,
+          .cron-app-container #task-creation-modal .modal-body,
+          .cron-app-container #task-creation-modal .modal-footer { padding: 4px 8px !important; }
+          .cron-app-container #task-creation-modal .form-group { margin: 2px 0 !important; }
+          .cron-app-container #task-creation-modal .sk-input { min-height: 0 !important; height: 28px !important; padding: 2px 6px !important; }
+          .cron-app-container #task-schedule-error { color: #7f1d1d !important; background: #fee2e2; padding: 4px 6px; }
+          .cron-app-container button:focus, .cron-app-container input:focus, .cron-app-container select:focus { outline: 3px solid #ca8a04 !important; outline-offset: 2px; }
         </style>
         <div class="cron-header">
           <div class="header-tabs">
@@ -173,7 +202,7 @@ export class CronApp {
                 <div class="stat-card sk-card">
                   <div class="stat-icon">⏰</div>
                   <div class="stat-content">
-                    <div class="stat-value" id="total-tasks">0</div>
+                    <div class="stat-value" id="total-tasks">${this.scheduledTasks.size}</div>
                     <div class="stat-label">Scheduled Tasks</div>
                   </div>
                 </div>
@@ -194,7 +223,7 @@ export class CronApp {
                 <div class="stat-card sk-card">
                   <div class="stat-icon">⏸️</div>
                   <div class="stat-content">
-                    <div class="stat-value" id="paused-tasks">0</div>
+                    <div class="stat-value" id="paused-tasks">${Array.from(this.scheduledTasks.values()).filter(task => !task.enabled).length}</div>
                     <div class="stat-label">Paused</div>
                   </div>
                 </div>
@@ -222,6 +251,7 @@ export class CronApp {
 
             <div class="tasks-list">
               <h3>📋 Scheduled Tasks</h3>
+              <p id="cron-retention" role="status">${this.savedRetention()}</p>
               <div class="tasks-container" id="scheduled-tasks-container">
                 ${this.renderScheduledTasksMarkup()}
               </div>
@@ -406,6 +436,7 @@ export class CronApp {
                   <div class="form-group" id="cron-expression-group">
                     <label for="task-cron">Cron Expression</label>
                     <input type="text" id="task-cron" class="sk-input" placeholder="0 9 * * *" aria-describedby="task-schedule-error">
+                    <p id="task-schedule-error" role="alert" style="display:none;margin:4px 0 0;"></p>
                     <div class="cron-help">
                       <span>Examples: </span>
                       <button type="button" class="cron-preset" data-cron="0 0 * * *">Daily</button>
@@ -421,7 +452,6 @@ export class CronApp {
                     <label for="task-timezone">Timezone</label>
                     <input type="text" id="task-timezone" class="sk-input" value="local" placeholder="local, UTC, or Region/City">
                   </div>
-                  <p id="task-schedule-error" role="alert" style="display:none;color:var(--sk-danger,#f44336);margin:8px 0 0;"></p>
                 </div>
 
                 <div class="form-section">
@@ -483,9 +513,14 @@ export class CronApp {
     return this.createWindow();
   }
 
+  eventInThisWindow(event) {
+    return Boolean(event.target?.closest?.(`.cron-app-container[data-cron-instance="${this.instanceId}"]`));
+  }
+
   setupEventListeners() {
     // Tab switching
     document.addEventListener('click', (e) => {
+      if (!this.eventInThisWindow(e)) return;
       if (e.target.classList.contains('tab-btn')) {
         const view = e.target.dataset.view;
         this.switchView(view);
@@ -494,6 +529,7 @@ export class CronApp {
 
     // Control buttons
     document.addEventListener('click', (e) => {
+      if (!this.eventInThisWindow(e)) return;
       const cronAction = e.target.closest?.('[data-cron-action]');
       if (cronAction?.closest?.(`.cron-app-container[data-cron-instance="${this.instanceId}"]`)) {
         e.preventDefault();
@@ -555,14 +591,20 @@ export class CronApp {
 
     // Form submission
     document.addEventListener('submit', (e) => {
-      if (e.target.id === 'task-creation-form') {
-        e.preventDefault();
-        this.createTask();
-      }
+      if (e.target.id !== 'task-creation-form' || !this.eventInThisWindow(e)) return;
+      e.preventDefault();
+      this.createTask();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.target?.id !== 'task-cron') return;
+      if (!e.target.closest?.(`.cron-app-container[data-cron-instance="${this.instanceId}"]`)) return;
+      e.preventDefault();
+      this.createTask();
     });
 
     // Template selection
     document.addEventListener('change', (e) => {
+      if (!this.eventInThisWindow(e)) return;
       if (e.target.id === 'task-template') {
         this.updateTemplateFields(e.target.value);
       }
@@ -638,7 +680,7 @@ export class CronApp {
   }
 
   async loadSchedulerData() {
-    await this.updateStats();
+    if (this.scheduledTasks.size === 0) this.loadSavedTasks();
     this.displayScheduledTasks();
     this.displayRunningTasks();
   }
@@ -711,7 +753,7 @@ export class CronApp {
           <button type="button" class="task-btn" data-cron-action="toggle" data-task-id="${task.id}" title="${task.enabled ? 'Pause' : 'Resume'}" aria-label="${task.enabled ? 'Pause schedule' : 'Resume schedule'}">
             ${task.enabled ? '⏸️' : '▶️'}
           </button>
-          <button type="button" class="task-btn danger" data-cron-action="delete" data-task-id="${task.id}" title="Delete" aria-label="Delete schedule">🗑️</button>
+          <button type="button" class="task-btn danger" data-cron-action="delete" data-task-id="${task.id}" data-task-name="${String(task.name).replace(/"/g, '&quot;')}" title="Delete" aria-label="Delete schedule">🗑️</button>
         </div>
       </div>
     `).join('');
@@ -722,6 +764,7 @@ export class CronApp {
     const container = document.querySelector(`.cron-app-container[data-cron-instance="${this.instanceId}"] #scheduled-tasks-container`);
     if (!container) return;
     container.innerHTML = this.renderScheduledTasksMarkup();
+    this.updateStats();
     return;
 
     
@@ -771,7 +814,7 @@ export class CronApp {
           <button type="button" class="task-btn" data-cron-action="toggle" data-task-id="${task.id}" title="${task.enabled ? 'Pause' : 'Resume'}" aria-label="${task.enabled ? 'Pause schedule' : 'Resume schedule'}">
             ${task.enabled ? '⏸️' : '▶️'}
           </button>
-          <button type="button" class="task-btn danger" data-cron-action="delete" data-task-id="${task.id}" title="Delete" aria-label="Delete schedule">🗑️</button>
+          <button type="button" class="task-btn danger" data-cron-action="delete" data-task-id="${task.id}" data-task-name="${String(task.name).replace(/"/g, '&quot;')}" title="Delete" aria-label="Delete schedule">🗑️</button>
         </div>
       </div>
     `).join('');
@@ -1216,10 +1259,32 @@ export class CronApp {
     }
   }
 
+  savedRetention() {
+    try {
+      return String(localStorage.getItem('swissknife-cron-retention') || this.retentionNote || '').replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+    } catch (error) {
+      return '';
+    }
+  }
+
+  setRetention(text) {
+    this.retentionNote = text;
+    try { localStorage.setItem('swissknife-cron-retention', text); } catch (error) { /* keep the visible line */ }
+    const el = document.getElementById('cron-retention');
+    if (el) el.textContent = text;
+  }
+
   hideTaskCreationModal() {
+    const errorEl = document.getElementById('task-schedule-error');
+    const error = errorEl?.textContent?.trim() || '';
     const modal = document.getElementById('task-creation-modal');
     if (modal) {
       modal.style.display = 'none';
+    }
+    if (error) {
+      const prior = this.retentionNote || '';
+      this.setRetention(`${prior} Invalid schedule canceled. The bad expression was not saved.`.replace(/\s+/g, ' ').trim());
+      document.getElementById('create-task')?.focus();
     }
     
     // Reset form
@@ -1227,13 +1292,13 @@ export class CronApp {
     if (form) {
       form.reset();
     }
-    const errorEl = document.getElementById('task-schedule-error');
     if (errorEl) {
       errorEl.textContent = '';
       errorEl.style.display = 'none';
     }
     const timezone = document.getElementById('task-timezone');
     if (timezone && !timezone.value) timezone.value = 'local';
+    document.getElementById('create-task')?.focus();
   }
 
   updateTemplateFields(templateId) {
@@ -1293,6 +1358,10 @@ export class CronApp {
     if (!errorEl) return;
     errorEl.textContent = message;
     errorEl.style.display = 'block';
+    const modal = document.getElementById('task-creation-modal');
+    if (modal) modal.scrollTop = 0;
+    const content = modal?.querySelector('.modal-content');
+    if (content) content.scrollTop = 0;
   }
 
   async createTask() {
@@ -1753,7 +1822,11 @@ export class CronApp {
     this.saveTasks();
     this.displayScheduledTasks();
     this.updateStats();
+    const prior = this.retentionNote || '';
+    const deleted = `Deleted ${task.name}. That schedule is absent. Morning local remains.`;
+    this.setRetention(prior ? `${prior} ${deleted}` : deleted);
     this.showNotification(`Task "${task.name}" deleted`, 'info');
+    document.getElementById('create-task')?.focus();
   }
 
   cancelDeleteTask() {

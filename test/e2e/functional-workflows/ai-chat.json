@@ -91,7 +91,7 @@
           "selector": ".message.assistant .message-text"
         },
         "operator": "contains",
-        "expected": "Model: gpt2; snapshot: 607a30d783dfa663caf39e06633721c8d4cfcd7e"
+        "expected": "Model: gpt2; snapshot: 607a30d783dfa663caf39e06633721c8d4cfcd7e; reference: ipfs://bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm"
       }
     ],
     "failure_recovery": [

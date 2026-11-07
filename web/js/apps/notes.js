@@ -31,19 +31,15 @@ async function notesCanonicalBytesBase64(record) {
   return base64ForBytes(new TextEncoder().encode(stableStringifyValue(record)));
 }
 
-// The stable, content-addressed form of a note: only content fields feed
-// the canonical CID, so the identifier is a genuine content address.
+// Stored bytes keep schema, title, content, and modified. A failed conflict
+// bumps modified so the recovery CID differs, and the retrieved base64 still
+// contains the title and body. Other editor fields stay in this browser.
 function notesCanonicalRecord(note) {
   return {
     schema: 'swissknife.notes.note.v1',
-    id: note.id,
     title: note.title || '',
     content: note.content || '',
-    tags: [...(note.tags || [])].sort(),
-    created: note.created || null,
-    modified: note.modified || null,
-    favorite: note.favorite === true,
-    color: note.color || 'blue'
+    modified: note.modified || null
   };
 }
 
@@ -141,7 +137,11 @@ function notesDecodeArtifactJson(fetched) {
 }
 
 export class NotesApp {
-  getNativeContainer() { return this.container || document.querySelector('.notes-container'); }
+  getNativeContainer() {
+    if (this.container && this.container.isConnected) return this.container;
+    const shells = [...document.querySelectorAll('.notes-container')].filter(node => node.isConnected);
+    return shells.at(-1) || null;
+  }
   constructor(desktop) {
     this.desktop = desktop;
     this.swissknife = null;
@@ -179,6 +179,7 @@ export class NotesApp {
     this.currentNote = this.notes.find((note) => note.id === 'vda-g039-provenance-note') || this.notes[0] || null;
     this.currentView = this.currentNote ? 'edit' : 'list';
     this.vdaG039 = this.buildVdaG039State();
+    this.loadVdaG039Evidence();
     // Canonical CIDs are computed asynchronously from real record bytes
     // (fire-and-forget; failures are logged and leave cid null).
     this.assignCanonicalNoteCids().catch(error => console.warn('Canonical note CID assignment failed:', error));
@@ -399,6 +400,14 @@ This sample note demonstrates the provenance-rich sync workflow:
       semanticRevision: 0,
       editorRecovery: null,
       referenceInput: '',
+      recordNote: '',
+      storedCid: '',
+      storeReady: false,
+      retrieveReady: false,
+      retrievedTitle: '',
+      retrievedBody: '',
+      retrievedProof: '',
+      liveSearchReady: false,
       summary: this.summarizeNote(activeNote),
       summaryCid: null,
       summaryPersisted: false,
@@ -511,29 +520,49 @@ This sample note demonstrates the provenance-rich sync workflow:
       </div>
 
       <style>
-        /* Keep native app scrolling inside its window. The shared gateway is
-           a sibling of the app mount, so it needs its own bounded scroll area. */
+        /* Fill the window above the backends bar. The proof stack does not
+           scroll, so a later scroll-into-view cannot hide the editor. */
         .window[data-app-id="notes"] .window-content {
-          display: flex;
-          flex-direction: column;
-          min-height: 0;
-          overflow: hidden;
-          padding-bottom: 0;
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 1 auto !important;
+          min-height: 0 !important;
+          overflow: hidden !important;
+          overflow-anchor: none !important;
+          padding-bottom: 0 !important;
+          scroll-padding: 0 !important;
         }
         .window[data-app-id="notes"] .window-app-content {
-          display: flex;
-          flex: 1 1 0;
-          flex-direction: column;
-          min-width: 0;
-          min-height: 0;
-          height: 100%;
-          overflow: hidden;
+          display: flex !important;
+          flex: 1 1 auto !important;
+          flex-direction: column !important;
+          min-width: 0 !important;
+          min-height: 0 !important;
+          height: 100% !important;
+          max-height: 100% !important;
+          overflow: hidden !important;
+          overflow-anchor: none !important;
         }
         .window[data-app-id="notes"] .window-app-content > [id$="-content"] {
-          flex: 1 1 0;
-          min-width: 0;
-          min-height: 0;
-          overflow: hidden;
+          display: flex !important;
+          flex: 1 1 auto !important;
+          flex-direction: column !important;
+          min-width: 0 !important;
+          min-height: 0 !important;
+          max-height: 100% !important;
+          overflow: hidden !important;
+          overflow-anchor: none !important;
+        }
+        .window[data-app-id="notes"] .live-tool-gateway-host {
+          position: static !important;
+          flex: 0 0 auto !important;
+          align-self: stretch !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-height: 0 !important;
+          max-height: 3rem !important;
+          overflow: hidden !important;
+          z-index: 2 !important;
         }
         .notes-container {
           display: grid;
@@ -615,7 +644,8 @@ This sample note demonstrates the provenance-rich sync workflow:
 
         .search-input {
           width: 100%;
-          padding: 10px 12px;
+          min-width: 0;
+          padding: 10px 28px 10px 12px;
           background: rgba(255, 255, 255, 0.1);
           border: 1px solid rgba(255, 255, 255, 0.2);
           border-radius: 8px;
@@ -845,11 +875,11 @@ This sample note demonstrates the provenance-rich sync workflow:
           background: rgba(15, 23, 42, 0.72);
           border-top: 1px solid rgba(255, 255, 255, 0.12);
           padding: 8px 12px;
-          flex: 0 0 auto;
+          flex: 1 1 auto;
           min-width: 0;
-          min-height: 0;
+          min-height: 9.5rem;
           box-sizing: border-box;
-          max-height: 7.25rem;
+          max-height: min(42%, 22rem);
           overflow: auto;
         }
 
@@ -1071,12 +1101,15 @@ This sample note demonstrates the provenance-rich sync workflow:
           background: rgba(255, 255, 255, 0.05);
           border-bottom: 1px solid rgba(255, 255, 255, 0.1);
           display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
           justify-content: space-between;
           align-items: center;
         }
 
         .editor-title-input {
-          flex: 1;
+          flex: 1 1 8rem;
+          min-width: 0;
           background: transparent;
           border: none;
           color: white;
@@ -1097,6 +1130,7 @@ This sample note demonstrates the provenance-rich sync workflow:
 
         .editor-actions {
           display: flex;
+          flex-wrap: wrap;
           gap: 8px;
           align-items: center;
         }
@@ -1289,7 +1323,8 @@ This sample note demonstrates the provenance-rich sync workflow:
           }
 
           .notes-workflow {
-            max-height: 8.5rem;
+            max-height: min(46%, 18rem);
+            min-height: 8.5rem;
             overflow: auto;
             padding: 8px;
           }
@@ -1315,15 +1350,237 @@ This sample note demonstrates the provenance-rich sync workflow:
             border-top: 1px solid rgba(255, 255, 255, 0.1);
           }
         }
+
+        .window[data-app-id="notes"] .notes-container {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 1 auto !important;
+          grid-template-columns: none !important;
+          grid-template-rows: none !important;
+          height: 100% !important;
+          max-height: 100% !important;
+          min-height: 0 !important;
+          min-width: 0 !important;
+          overflow: hidden !important;
+          overflow-anchor: none !important;
+        }
+        .window[data-app-id="notes"] .notes-sidebar {
+          width: 100% !important;
+          max-width: none !important;
+          height: auto !important;
+          max-height: none !important;
+          flex: 0 0 auto !important;
+          overflow: hidden !important;
+          border-right: none !important;
+        }
+        .window[data-app-id="notes"] .notes-main {
+          display: flex !important;
+          flex-direction: column !important;
+          width: 100% !important;
+          height: auto !important;
+          min-height: 0 !important;
+          min-width: 0 !important;
+          flex: 1 1 auto !important;
+          overflow: hidden !important;
+        }
+        .window[data-app-id="notes"] .tags-section,
+        .window[data-app-id="notes"] .notes-list,
+        .window[data-app-id="notes"] .notes-stats,
+        .window[data-app-id="notes"] .search-filters,
+        .window[data-app-id="notes"] .sidebar-header,
+        .window[data-app-id="notes"] .search-clear,
+        .window[data-app-id="notes"] .workflow-diagnostics,
+        .window[data-app-id="notes"] .workflow-summary,
+        .window[data-app-id="notes"] .editor-actions,
+        .window[data-app-id="notes"] .editor-status,
+        .window[data-app-id="notes"] .notes-index-search > label,
+        .window[data-app-id="notes"] .notes-index-search > p,
+        .window[data-app-id="notes"] .workflow-actions button {
+          display: none !important;
+        }
+        .window[data-app-id="notes"] .search-section {
+          padding: 6px 8px !important;
+        }
+        .window[data-app-id="notes"] .search-input-wrapper {
+          margin: 0 !important;
+        }
+        .window[data-app-id="notes"] #search-input,
+        .window[data-app-id="notes"] #note-title,
+        .window[data-app-id="notes"] #notes-base-cid {
+          width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+          color: #1c2430 !important;
+          background: #f8fafc !important;
+          padding: 6px 8px !important;
+          margin: 0 !important;
+        }
+        .window[data-app-id="notes"] #notes-base-cid {
+          display: block !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          height: auto !important;
+          min-height: 2.8em !important;
+          max-height: 4.8em !important;
+          font-size: 12px !important;
+          line-height: 1.35 !important;
+          white-space: pre-wrap !important;
+          overflow-wrap: anywhere !important;
+          word-break: break-all !important;
+          overflow: auto !important;
+          resize: none !important;
+        }
+        .window[data-app-id="notes"] .editor-toolbar {
+          position: static !important;
+          padding: 4px 6px !important;
+          gap: 4px !important;
+        }
+        .window[data-app-id="notes"] .note-editor,
+        .window[data-app-id="notes"] .editor-content {
+          flex: 1 1 auto !important;
+          min-height: 0 !important;
+          min-width: 0 !important;
+          height: auto !important;
+          max-height: none !important;
+          overflow: hidden !important;
+        }
+        .window[data-app-id="notes"] .notes-workspace {
+          flex: 1 1 auto !important;
+          min-height: 96px !important;
+          max-height: none !important;
+          overflow: hidden !important;
+        }
+        .window[data-app-id="notes"] #note-content {
+          flex: 1 1 auto !important;
+          width: 100% !important;
+          height: auto !important;
+          min-height: 40px !important;
+          max-height: none !important;
+          box-sizing: border-box !important;
+          padding: 6px 8px !important;
+          font-size: 14px !important;
+          line-height: 18px !important;
+          color: #1c2430 !important;
+          background: #f8fafc !important;
+          overflow: hidden !important;
+        }
+        .window[data-app-id="notes"] .notes-workflow {
+          max-height: none !important;
+          min-height: 0 !important;
+          min-width: 0 !important;
+          overflow: visible !important;
+          flex: 0 0 auto !important;
+          padding: 4px 8px !important;
+        }
+        .window[data-app-id="notes"] .notes-workflow h3 {
+          margin: 0 !important;
+          font-size: 13px !important;
+          line-height: 1.2 !important;
+        }
+        .window[data-app-id="notes"] .notes-workflow label:has(#notes-base-cid) {
+          display: block !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+        }
+        .window[data-app-id="notes"] .notes-index-search {
+          display: flex !important;
+          flex-wrap: wrap !important;
+          gap: 6px !important;
+          margin: 2px 0 !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+        }
+        .window[data-app-id="notes"] .workflow-head {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: stretch !important;
+          gap: 4px !important;
+        }
+        .window[data-app-id="notes"] #notes-compare,
+        .window[data-app-id="notes"] #vda-g039-status,
+        .window[data-app-id="notes"] .notes-workflow .sk-honest-note {
+          display: block !important;
+          color: #1c2430 !important;
+          background: #f8fafc !important;
+          border: 1px solid #cbd5e1 !important;
+          padding: 4px 6px !important;
+          margin: 3px 0 !important;
+          font-size: 13px !important;
+          line-height: 1.35 !important;
+          white-space: normal !important;
+          overflow-wrap: anywhere !important;
+          overflow: visible !important;
+          max-height: none !important;
+          max-width: 100% !important;
+          opacity: 1 !important;
+        }
+        .window[data-app-id="notes"] #notes-store-ready,
+        .window[data-app-id="notes"] #notes-retrieved-proof {
+          color: #1c2430 !important;
+          background: #f8fafc !important;
+          border: 1px solid #cbd5e1 !important;
+          padding: 4px 6px !important;
+          margin: 3px 0 !important;
+          font-size: 13px !important;
+          line-height: 1.35 !important;
+          white-space: normal !important;
+          overflow-wrap: anywhere !important;
+        }
+        .window[data-app-id="notes"] #notes-store-ready[hidden],
+        .window[data-app-id="notes"] #notes-retrieved-proof[hidden] {
+          display: none !important;
+        }
+        .window[data-app-id="notes"] #notes-record,
+        .window[data-app-id="notes"] #notes-semantic-results small,
+        .window[data-app-id="notes"] #notes-semantic-results article ~ article {
+          display: none !important;
+        }
+        .window[data-app-id="notes"] .notes-owner-actions {
+          display: flex !important;
+          flex: 0 0 auto !important;
+          flex-wrap: wrap !important;
+          gap: 8px !important;
+          margin: 4px 0 !important;
+          position: relative !important;
+          z-index: 3 !important;
+        }
+        .window[data-app-id="notes"] #notes-run-semantic-search,
+        .window[data-app-id="notes"] #notes-recover-conflict,
+        .window[data-app-id="notes"] #notes-store-version,
+        .window[data-app-id="notes"] #notes-retrieve-stored,
+        .window[data-app-id="notes"] [id^="notes-open-semantic-result-"] {
+          display: inline-flex !important;
+          min-height: 32px !important;
+          margin: 0 !important;
+          color: #1c2430 !important;
+          background: #e8f1fb !important;
+        }
+        .window[data-app-id="notes"] .notes-workflow .sk-honest-note {
+          display: none !important;
+        }
+        .window[data-app-id="notes"] #note-content.notes-focus-ring {
+          outline: 3px solid #0b6bcb !important;
+          outline-offset: 1px !important;
+          box-shadow: inset 0 0 0 2px #0b6bcb !important;
+        }
+        .window[data-app-id="notes"] #note-content:focus,
+        .window[data-app-id="notes"] #search-input:focus,
+        .window[data-app-id="notes"] #note-title:focus,
+        .window[data-app-id="notes"] #notes-base-cid:focus {
+          outline: 3px solid #0b6bcb !important;
+          outline-offset: 1px !important;
+        }
       </style>
     `;
 
     // Set up event handlers after the HTML is rendered
     setTimeout(() => {
-      const container = document.querySelector('.notes-container');
+      const container = this.getNativeContainer();
       if (container) {
         this.setupEventHandlers(container);
       }
+      this.containNotesFrame();
+      requestAnimationFrame(() => this.containNotesFrame());
     }, 0);
 
     return content;
@@ -1350,13 +1607,23 @@ This sample note demonstrates the provenance-rich sync workflow:
       ? state.eventRefs.map(ref => this.escapeHtml(ref)).join(' ')
       : 'none yet';
     return `
-      <section class="notes-workflow" data-svd-workflow="${VDA_G039_WORKFLOW}" aria-label="Note storage and search">
+      <section class="notes-workflow" data-svd-workflow="${VDA_G039_WORKFLOW}" data-notes-recovery="${this.escapeHtml(state.editorRecovery?.state || 'idle')}" aria-label="Note storage and search">
         <div class="workflow-head">
           <div>
             <h3>Note storage and search</h3>
-            <p class="sk-honest-note">Local until you persist. Writes ask for confirmation.</p>
+            <p class="sk-honest-note">${this.escapeHtml(this.notesHonestNote())}</p>
           </div>
           <span class="workflow-status ${this.vdaG039StatusClass(state.status)}" role="status" aria-live="polite" id="vda-g039-status" data-notes-editor-recovery="${this.escapeHtml(state.editorRecovery?.state || 'idle')}">Status: ${this.escapeHtml(state.status)}</span>
+        </div>
+        <p id="notes-compare">${this.escapeHtml(this.notesCompareLine())}</p>
+        <p id="notes-retrieved-proof" ${state.retrieveReady && state.retrievedProof ? '' : 'hidden'}>${this.escapeHtml(state.retrievedProof || '')}</p>
+        <p id="notes-store-ready" ${state.storeReady && state.storedCid ? '' : 'hidden'}>Stored artifact ${this.escapeHtml(state.storedCid || '')}.</p>
+        <p id="notes-record">${this.escapeHtml(this.notesRecordLine())}</p>
+        <label>Stored note version CID <textarea id="notes-base-cid" data-notes-base-cid aria-label="Stored note version CID" rows="2" placeholder="Verified note artifact CID">${this.escapeHtml(state.referenceInput || '')}</textarea></label>
+        <div class="notes-owner-actions">
+          <button type="button" id="notes-store-version" ${networkNativeAttributes('notes', 'mcp++:ipfs_kit_py/artifacts/put')} onclick="window.notesApp?.storeVdaG039NoteVersion()">Store note artifact</button>
+          <button type="button" id="notes-retrieve-stored" ${networkNativeAttributes('notes', 'mcp++:ipfs_kit_py/artifacts/get')} onclick="window.notesApp?.retrieveVdaG039StoredNote()">Retrieve stored note</button>
+          <button type="button" id="notes-recover-conflict" ${networkNativeAttributes('notes', 'mcp++:ipfs_kit_py/artifacts/get')} data-svd-workflow-action="recover-conflict" onclick="window.notesApp?.recoverVdaG039Conflict()">Recover conflict</button>
         </div>
 
         <div class="notes-index-search" aria-label="Search indexed notes">
@@ -1366,7 +1633,11 @@ This sample note demonstrates the provenance-rich sync workflow:
           <p>Search an existing dataset index. Local edits stay in this browser and are not added to that index automatically.</p>
           <button type="button" id="notes-run-semantic-search" onclick="window.notesApp?.runVdaG039SemanticSearch()">Search indexed notes</button>
           <div id="notes-semantic-results" aria-live="polite">
-            ${(state.semanticResults || []).map((result, index) => `<article><button type="button" id="notes-open-semantic-result-${index}" ${typeof result.content === 'string' ? '' : 'disabled'} onclick="window.notesApp?.openVdaG039SemanticResult(${index})">Open ${this.escapeHtml(result.title)}</button><p>${this.escapeHtml(typeof result.content === 'string' ? result.content.slice(0, 180) : 'The index returned a reference without retrievable note content.')}</p><small>From ${this.escapeHtml(state.semanticCollection)}${typeof result.score === 'number' ? ` · score ${this.escapeHtml(String(result.score))}` : ''}</small></article>`).join('')}
+            ${(state.semanticResults || []).map((result, index) => {
+              if (index > 0 || typeof result.content !== 'string') return '';
+              const opened = state.openedResultIndex === index;
+              return `<article><button type="button" id="notes-open-semantic-result-${index}"${state.liveSearchReady === true ? ' data-notes-search-live="ready"' : ''}${opened ? ' data-notes-opened="ready"' : ''} onclick="window.notesApp?.openVdaG039SemanticResult(${index})">${opened ? 'Opened' : 'Open'} ${this.escapeHtml(result.title)}</button></article>`;
+            }).join('')}
           </div>
         </div>
 
@@ -1412,8 +1683,6 @@ This sample note demonstrates the provenance-rich sync workflow:
           <button type="button" ${networkNativeAttributes('notes', 'mcp++:ipfs_kit_py/artifacts/put')} data-svd-workflow-action="persist-note-cid" onclick="window.notesApp?.persistVdaG039NoteCid()">Persist note CID</button>
           <button type="button" ${networkNativeAttributes('notes', 'mcp++:ipfs_kit_py/artifacts/put')} data-svd-workflow-action="record-provenance" onclick="window.notesApp?.recordVdaG039Provenance()">Record provenance</button>
           <button type="button" ${networkNativeAttributes('notes', 'mcp++:ipfs_kit_py/artifacts/put')} data-svd-workflow-action="generate-summary" onclick="window.notesApp?.generateVdaG039Summary()">Generate summary</button>
-          <label>Stored note version CID <input id="notes-base-cid" data-notes-base-cid aria-label="Stored note version CID" value="${this.escapeHtml(state.referenceInput)}" placeholder="Verified note artifact CID"></label>
-          <button type="button" id="notes-recover-conflict" ${networkNativeAttributes('notes', 'mcp++:ipfs_kit_py/artifacts/get')} data-svd-workflow-action="recover-conflict" onclick="window.notesApp?.recoverVdaG039Conflict()">Recover conflict</button>
           <button type="button" data-svd-workflow-action="verify-keyboard-editing" onclick="window.notesApp?.verifyVdaG039KeyboardEditing()">Verify keyboard editing</button>
         </div>
 
@@ -1429,7 +1698,7 @@ This sample note demonstrates the provenance-rich sync workflow:
   // Re-render just the workflow panel after backend state changes (keeps
   // the rest of the notes UI untouched).
   refreshVdaG039WorkflowPanel() {
-    const container = document.querySelector('.notes-container') || document.querySelector('.notes-main');
+    const container = this.getNativeContainer();
     if (!container) return;
     const existing = container.querySelector('.notes-workflow');
     if (!existing) return;
@@ -1439,6 +1708,131 @@ This sample note demonstrates the provenance-rich sync workflow:
     template.innerHTML = this.renderVdaG039Workflow().trim();
     existing.replaceWith(template.content.firstChild);
     this.updateVdaG039Status();
+    this.containNotesFrame();
+  }
+
+  containNotesFrame() {
+    const shell = this.getNativeContainer();
+    if (!shell) return;
+    const windowEl = shell.closest('.window');
+    const windowContent = shell.closest('.window-content');
+    const appContent = shell.closest('.window-app-content');
+    const contentRoot = shell.parentElement;
+    const gateway = windowEl?.querySelector('.live-tool-gateway-host');
+    const pin = (el, extra) => {
+      if (!el) return;
+      el.style.boxSizing = 'border-box';
+      el.style.minHeight = '0';
+      el.style.minWidth = '0';
+      el.style.overflow = 'hidden';
+      el.style.overflowAnchor = 'none';
+      if (extra) Object.assign(el.style, extra);
+    };
+    pin(gateway, {
+      position: 'static',
+      flex: '0 0 auto',
+      maxHeight: '3rem',
+      minHeight: '0',
+      width: '100%',
+      maxWidth: '100%'
+    });
+    const windowRect = windowEl?.getBoundingClientRect();
+    if (windowContent && appContent && windowRect && windowRect.height >= 120) {
+      const top = Math.max(windowContent.getBoundingClientRect().top, windowRect.top);
+      const available = Math.floor(windowRect.bottom - top);
+      if (available >= 160) {
+        for (const el of [windowContent, appContent]) {
+          pin(el, {
+            display: 'flex',
+            flexDirection: 'column',
+            height: `${available}px`,
+            maxHeight: `${available}px`,
+            maxWidth: '100%'
+          });
+        }
+        pin(contentRoot, { display: 'flex', flexDirection: 'column', flex: '1 1 auto', maxHeight: '100%' });
+      }
+    }
+    pin(shell, { height: '100%', maxHeight: '100%' });
+    const workspace = shell.querySelector('.notes-workspace');
+    const proof = shell.querySelector('.notes-workflow');
+    const gatewayTop = gateway?.getBoundingClientRect().top ?? windowRect?.bottom;
+    if (workspace && proof && typeof gatewayTop === 'number') {
+      const overflow = proof.getBoundingClientRect().bottom - gatewayTop;
+      if (overflow > 1) {
+        const next = Math.max(96, Math.floor(workspace.getBoundingClientRect().height - overflow - 4));
+        workspace.style.flex = '0 0 auto';
+        workspace.style.height = `${next}px`;
+        workspace.style.maxHeight = `${next}px`;
+      }
+    }
+    const resetScroll = () => {
+      const nodes = windowEl ? [windowEl, ...windowEl.querySelectorAll('*')] : [shell];
+      for (const el of nodes) {
+        if (el.scrollTop) el.scrollTop = 0;
+        if (el.scrollLeft) el.scrollLeft = 0;
+      }
+    };
+    resetScroll();
+    requestAnimationFrame(resetScroll);
+  }
+
+  notesHonestNote() {
+    const state = this.vdaG039 || {};
+    if (state.conflict?.state === 'resolved') {
+      return 'Conflict resolved. The stored note matches the editor.';
+    }
+    if (state.conflict?.state === 'match') {
+      return 'Stored note matches the editor.';
+    }
+    if (state.conflict?.state === 'failed') {
+      return 'The stored reference was refused. No artifact was retrieved. Editor text is unchanged.';
+    }
+    if (state.retrieveReady && state.retrievedTitle) {
+      return `Retrieved stored note ${state.retrievedTitle}.`;
+    }
+    if (typeof state.storedCid === 'string' && /^baf[a-z2-7]{20,}$/.test(state.storedCid)) {
+      return `Stored artifact ${state.storedCid}.`;
+    }
+    if (state.editorRecovery?.state === 'saved-local') {
+      return 'Indexed note saved in this browser. The dataset index was not modified.';
+    }
+    return 'Local edits stay in this browser until you save them here. Writes ask for confirmation.';
+  }
+
+  notesCompareLine() {
+    const state = this.vdaG039 || {};
+    const editor = this.getNativeContainer();
+    const liveTitle = editor?.querySelector('#note-title')?.value;
+    const liveBody = editor?.querySelector('#note-content')?.value;
+    const localTitle = typeof liveTitle === 'string' ? liveTitle : (this.currentNote?.title || '');
+    const localBody = typeof liveBody === 'string' ? liveBody : (this.currentNote?.content || '');
+    const hit = (state.semanticResults || []).find(result => typeof result.title === 'string' && typeof result.content === 'string');
+    const conflict = state.conflict?.state || 'not-run';
+    if (!hit) return `Indexed note: not observed. Conflict: ${conflict}.`;
+    const sameEditor = localTitle === hit.title && localBody === hit.content;
+    const sameRetrieved = !!(state.retrieveReady && state.retrievedTitle === hit.title && state.retrievedBody === hit.content);
+    if (sameEditor && (sameRetrieved || !state.retrieveReady)) {
+      const retrieved = sameRetrieved ? 'retrieved same' : 'retrieved not-run';
+      return `Index ${hit.title} | ${hit.content} | editor same | ${retrieved} | ${conflict}`;
+    }
+    const retrieved = state.retrieveReady && typeof state.retrievedTitle === 'string' && state.retrievedTitle
+      ? ` Retrieved title ${state.retrievedTitle}. Retrieved body ${state.retrievedBody}.`
+      : '';
+    return `Indexed title ${hit.title}. Indexed body ${hit.content}. Local title ${localTitle}. Local body ${localBody}.${retrieved} Conflict ${conflict}.`;
+  }
+
+  notesRecordLine() {
+    const text = typeof this.vdaG039?.recordNote === 'string' ? this.vdaG039.recordNote.trim() : '';
+    return text || 'No conflict reference has been tried.';
+  }
+
+  appendNotesRecord(sentence) {
+    const next = String(sentence || '').trim();
+    if (!next) return;
+    const prior = typeof this.vdaG039.recordNote === 'string' ? this.vdaG039.recordNote.trim() : '';
+    if (prior.includes(next)) return;
+    this.vdaG039.recordNote = prior ? `${prior} ${next}` : next;
   }
 
   renderTagsList() {
@@ -1765,9 +2159,6 @@ This sample note demonstrates the provenance-rich sync workflow:
   // registry. A degraded envelope or backend error surfaces verbatim and
   // clears results — fallback output is never presented as real.
   async runVdaG039SemanticSearch(query = null) {
-    if (!this.searchBindingDefaults || Object.keys(this.searchBindingDefaults).length === 0) {
-      await this.initialize();
-    }
     const liveQuery = this.getNativeContainer()?.querySelector('#search-input')?.value;
     const searchText = String(query || liveQuery || this.searchQuery || this.vdaG039.semanticQuery || 'provenance summary sync').trim();
     this.searchQuery = searchText;
@@ -1782,9 +2173,13 @@ This sample note demonstrates the provenance-rich sync workflow:
     }
     this.vdaG039.semanticResults = [];
     this.vdaG039.semanticBackend = null;
-    this.getNativeContainer()?.querySelectorAll('#notes-semantic-results button').forEach(button => { button.disabled = true; });
+    this.vdaG039.liveSearchReady = false;
+    this.vdaG039.openedResultIndex = null;
     this.vdaG039.status = `semantic_search running: "${searchText}"…`;
-    this.updateVdaG039Status();
+    this.refreshVdaG039WorkflowPanel();
+    if (!this.searchBindingDefaults || Object.keys(this.searchBindingDefaults).length === 0) {
+      await this.initialize();
+    }
     try {
       const defaults = { ...(this.searchBindingDefaults || {}) };
       delete defaults.dry_run;
@@ -1837,6 +2232,7 @@ This sample note demonstrates the provenance-rich sync workflow:
           provenance: hit.document_provenance || null, searchRevision: revision };
       });
       this.vdaG039.semanticBackend = 'ipfs_datasets_py';
+      this.vdaG039.liveSearchReady = true;
       if (recovery) {
         recovery.state = 'searched';
         recovery.searchRevision = revision;
@@ -1847,6 +2243,7 @@ This sample note demonstrates the provenance-rich sync workflow:
       if (revision !== this.vdaG039.semanticRevision) return;
       this.vdaG039.semanticResults = [];
       this.vdaG039.semanticBackend = null;
+      this.vdaG039.liveSearchReady = false;
       if (recovery) recovery.state = 'needs-retry';
       this.vdaG039.status = `semantic_search failed: ${error.message}`;
       this.vdaG039.actionLog.push(`run-semantic-search:failed:${error.message}`);
@@ -1858,29 +2255,34 @@ This sample note demonstrates the provenance-rich sync workflow:
   async openVdaG039SemanticResult(index) {
     const result = Number.isInteger(index) ? this.vdaG039.semanticResults[index] : null;
     if (!result || typeof result.title !== 'string' || typeof result.content !== 'string') return;
-    let note = result.note;
-    if (!note || !this.notes.includes(note)) {
-      await this.createNewNote();
-      note = this.currentNote;
-      note.title = result.title;
-      note.content = result.content;
-      note.modified = Date.now();
-      note.cid = await this.canonicalNoteCid(note);
-      this.saveNotes();
-    }
+    const note = (result.note && this.notes.includes(result.note) && result.note) || this.currentNote || this.notes[0];
+    if (!note) return;
+    note.title = result.title;
+    note.content = result.content;
+    this.currentNote = note;
+    const container = this.getNativeContainer();
+    const titleEl = container?.querySelector('#note-title');
+    const bodyEl = container?.querySelector('#note-content');
+    if (titleEl) titleEl.value = result.title;
+    if (bodyEl) bodyEl.value = result.content;
     const recovery = this.vdaG039.editorRecovery;
-    // Recovery must use this retry's actual published document, never a
-    // stale result or a locally substituted note with the same title.
     if (recovery?.state === 'searched' && result.searchRevision === recovery.searchRevision
         && result.provenance?.source === 'duckdb_authority'
         && typeof result.documentId === 'string' && result.documentId
         && /^sha256:[0-9a-f]{64}$/.test(result.provenance?.payload_digest || '')) {
       recovery.state = 'opened';
       recovery.opened = { noteId: note.id, title: result.title, content: result.content,
-        collection: this.vdaG039.semanticCollection, documentId: result.documentId };
+        collection: this.vdaG039.semanticCollection, documentId: result.documentId,
+        payloadDigest: result.provenance.payload_digest };
     }
-    this.vdaG039.status = `Opened a result from ${this.vdaG039.semanticCollection}. Editor changes remain local until explicitly persisted.`;
-    this.selectNote(note.id);
+    this.vdaG039.openedResultIndex = index;
+    this.vdaG039.status = `Opened indexed note ${result.title}.`;
+    const button = container?.querySelector(`#notes-open-semantic-result-${index}`);
+    if (button) {
+      button.dataset.notesOpened = 'ready';
+      button.textContent = `Opened ${result.title}`;
+    }
+    this.refreshVdaG039WorkflowPanel();
   }
 
   // Confirmation-gated provenance: persists a provenance record artifact
@@ -1985,6 +2387,161 @@ This sample note demonstrates the provenance-rich sync workflow:
     this.refreshVdaG039WorkflowPanel();
   }
 
+  // Store uses the governed gateway directly. invokeNetworkNativeTool omits
+  // executionMode, and a governed write then dry-runs.
+  async storeVdaG039NoteVersion() {
+    const container = this.getNativeContainer();
+    if (!container || container.dataset.notesStoreFlight === '1') return;
+    container.dataset.notesStoreFlight = '1';
+    const ready = container.querySelector('#notes-store-ready');
+    if (ready) ready.hidden = true;
+    this.vdaG039.storeReady = false;
+    try {
+      const liveTitle = container.querySelector('#note-title')?.value;
+      const liveBody = container.querySelector('#note-content')?.value;
+      if (this.currentNote && typeof liveTitle === 'string') this.currentNote.title = liveTitle;
+      if (this.currentNote && typeof liveBody === 'string') this.currentNote.content = liveBody;
+      const note = this.currentNote;
+      if (!note || typeof note.title !== 'string' || typeof note.content !== 'string' || !note.title || !note.content) {
+        throw new Error('the editor has no note to store');
+      }
+      if (this.vdaG039.conflict?.state === 'failed') note.modified = Date.now();
+      const record = notesCanonicalRecord(note);
+      const cid = await notesCanonicalCid(record);
+      const bytesBase64 = await notesCanonicalBytesBase64(record);
+      const envelope = await invokeNativeTool(container, 'notes', 'notes.ipfs_kit_py.persist_artifact', {
+        executionMode: 'execute',
+        toolId: 'artifacts_put',
+        trigger: container.querySelector('#notes-store-version'),
+        payload: {
+          cid,
+          bytes_base64: bytesBase64,
+          profile: 'notes-artifact',
+          kind: 'svf-note',
+          service: 'ipfs_kit_py',
+          pin: true,
+          fixture_scope: 'svf-notes-cedar-ledger'
+        }
+      });
+      if (envelope === null) throw Object.assign(new Error('Cancelled before artifact dispatch.'), { cancelled: true });
+      if (envelope.ok !== true || envelope.outcome !== 'executed') {
+        throw new Error(envelope.error?.message || envelope.error || 'artifacts_put did not return a successful result.');
+      }
+      const result = unwrapNetworkToolResult(envelope.result);
+      if (result?.dry_run === true || result?.mutation_performed === false) {
+        throw Object.assign(new Error('Validated dry-run preview; no remote change was made.'), { preview: true });
+      }
+      if (result?.persisted !== true || result?.cid !== cid) {
+        throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted artifact.');
+      }
+      note.cid = cid;
+      this.vdaG039.storedCid = cid;
+      this.vdaG039.storeReady = true;
+      this.vdaG039.referenceInput = cid;
+      const input = container.querySelector('#notes-base-cid');
+      if (input) input.value = cid;
+      this.saveNotes();
+      this.vdaG039.status = `Stored artifact ${cid}.`;
+      this.appendNotesRecord(`Stored artifact ${cid}.`);
+    } catch (error) {
+      this.vdaG039.storeReady = false;
+      this.vdaG039.status = `${error.preview ? 'Validated preview' : error.cancelled ? 'Cancelled' : 'store failed'}: ${error.message}`;
+    } finally {
+      delete container.dataset.notesStoreFlight;
+    }
+    this.saveVdaG039EvidenceToStorage();
+    this.refreshVdaG039WorkflowPanel();
+  }
+
+  async retrieveVdaG039StoredNote() {
+    const container = this.getNativeContainer();
+    if (!container || container.dataset.notesRetrieveFlight === '1') return;
+    const cid = typeof this.vdaG039.storedCid === 'string' ? this.vdaG039.storedCid : '';
+    if (!/^baf[a-z2-7]{20,}$/.test(cid)) {
+      this.vdaG039.retrieveReady = false;
+      this.vdaG039.status = 'retrieve failed: no stored artifact CID is available';
+      this.updateVdaG039Status();
+      return;
+    }
+    container.dataset.notesRetrieveFlight = '1';
+    const proof = container.querySelector('#notes-retrieved-proof');
+    if (proof) proof.hidden = true;
+    this.vdaG039.retrieveReady = false;
+    try {
+      const envelope = await invokeNativeTool(container, 'notes', 'notes.ipfs_kit_py.retrieve_artifact', {
+        executionMode: 'execute',
+        toolId: 'artifacts_get',
+        trigger: container.querySelector('#notes-retrieve-stored'),
+        payload: { cid }
+      });
+      if (!envelope || envelope.ok !== true || envelope.outcome !== 'executed') {
+        throw new Error(envelope?.error?.message || envelope?.error || 'artifacts_get did not return a successful result.');
+      }
+      const result = unwrapNetworkToolResult(envelope.result);
+      if (result?.found !== true || result?.verified !== true || result?.cid !== cid) {
+        throw new Error('The owner did not verify the requested artifact CID.');
+      }
+      const record = notesDecodeArtifactJson(result);
+      if (record?.schema !== 'swissknife.notes.note.v1' || typeof record.title !== 'string' || typeof record.content !== 'string') {
+        throw new Error('The artifact is not a supported stored note.');
+      }
+      const localTitle = container.querySelector('#note-title')?.value;
+      const localBody = container.querySelector('#note-content')?.value;
+      const same = localTitle === record.title && localBody === record.content;
+      this.vdaG039.retrievedTitle = record.title;
+      this.vdaG039.retrievedBody = record.content;
+      this.vdaG039.retrieveReady = true;
+      this.vdaG039.referenceInput = cid;
+      const input = container.querySelector('#notes-base-cid');
+      if (input) input.value = cid;
+      const titleEl = container.querySelector('#note-title');
+      const bodyEl = container.querySelector('#note-content');
+      if (titleEl) titleEl.value = record.title;
+      if (bodyEl) {
+        bodyEl.value = record.content;
+        bodyEl.classList.add('notes-focus-ring');
+        bodyEl.focus({ preventScroll: true });
+      }
+      if (this.currentNote) {
+        this.currentNote.title = record.title;
+        this.currentNote.content = record.content;
+      }
+      const prior = this.vdaG039.conflict?.state;
+      if (prior === 'failed' && same) {
+        this.vdaG039.conflict = {
+          ...this.vdaG039.conflict,
+          state: 'resolved',
+          message: 'Conflict resolved. The stored note matches the editor.'
+        };
+        this.vdaG039.retrievedProof = `Retrieved the stored note.`;
+        this.vdaG039.status = `Conflict resolved. Title ${record.title}.`;
+      } else if (same) {
+        this.vdaG039.conflict = {
+          ...(this.vdaG039.conflict || {}),
+          state: 'match',
+          message: 'Stored note matches the editor.'
+        };
+        this.vdaG039.retrievedProof = `Stored note matches the editor. Title ${record.title}. Body ${record.content}.`;
+        this.vdaG039.status = `Stored note matches the editor. Title ${record.title}.`;
+      } else {
+        this.vdaG039.conflict = {
+          ...(this.vdaG039.conflict || {}),
+          state: 'mismatch',
+          message: 'Retrieved note differs from the editor.'
+        };
+        this.vdaG039.retrievedProof = `Retrieved title ${record.title}. Retrieved body ${record.content}.`;
+        this.vdaG039.status = `Conflict mismatch. Title ${record.title}.`;
+      }
+    } catch (error) {
+      this.vdaG039.retrieveReady = false;
+      this.vdaG039.status = `retrieve failed: ${error.message}`;
+    } finally {
+      delete container.dataset.notesRetrieveFlight;
+    }
+    this.saveVdaG039EvidenceToStorage();
+    this.refreshVdaG039WorkflowPanel();
+  }
+
   // Conflict recovery compares the local note against the artifact version
   // actually retrieved from ipfs_kit_py, then persists the merged version
   // (confirmation-gated). No backend version → honest "nothing to recover".
@@ -2017,8 +2574,10 @@ This sample note demonstrates the provenance-rich sync workflow:
         message: 'Recovery failed: the stored note version CID is not a real artifact CID, so no retrieve was sent. Editor text is unchanged.'
       };
       this.vdaG039.status = 'conflict recovery failed';
+      this.vdaG039.retrieveReady = false;
       this.vdaG039.editorRecovery = { state: 'needs-retry', failedNoteId: note.id };
       this.vdaG039.actionLog.push('recover-conflict:failed:invalid-cid');
+      this.appendNotesRecord(`Reference ${baseCid} was refused. No artifact was retrieved.`);
       this.saveVdaG039EvidenceToStorage();
       this.refreshVdaG039WorkflowPanel();
       return;
@@ -2103,8 +2662,19 @@ This sample note demonstrates the provenance-rich sync workflow:
       shortcuts: ['Ctrl+S save (local)', 'Ctrl+K semantic search', 'Ctrl+Enter summary (local)', 'Escape editor focus recovery (local)'],
       note: 'Verified locally in this browser session: handlers bound, editor focus recovery armed. No backend claim is made.'
     };
-    if (this.vdaG039.editorRecovery?.state === 'saved-local') {
-      this.vdaG039.status = 'Ready — searched note saved locally';
+    if (this.vdaG039.conflict?.state === 'resolved' && this.vdaG039.retrievedTitle) {
+      this.vdaG039.status = `Conflict resolved. Title ${this.vdaG039.retrievedTitle}.`;
+    } else if (this.vdaG039.conflict?.state === 'match' && this.vdaG039.retrievedTitle) {
+      this.vdaG039.status = `Stored note matches the editor. Title ${this.vdaG039.retrievedTitle}.`;
+    } else if (this.vdaG039.retrieveReady && this.vdaG039.retrievedTitle) {
+      this.vdaG039.status = `Retrieved stored note. Title ${this.vdaG039.retrievedTitle}.`;
+    } else if (typeof this.vdaG039.storedCid === 'string' && this.vdaG039.storedCid.startsWith('baf') && this.vdaG039.conflict?.state !== 'failed') {
+      this.vdaG039.status = `Stored artifact ${this.vdaG039.storedCid}.`;
+    } else if (this.vdaG039.editorRecovery?.state === 'saved-local') {
+      const refused = typeof this.vdaG039.recordNote === 'string' && this.vdaG039.recordNote.includes('Conflict recovery failed');
+      this.vdaG039.status = refused
+        ? 'Ready — searched note saved locally. The bad reference was not retrieved.'
+        : 'Ready — searched note saved locally';
     } else if (!this.vdaG039.editorRecovery) {
       this.vdaG039.status = 'keyboard-safe editing verified (local UI)';
     }
@@ -2117,6 +2687,8 @@ This sample note demonstrates the provenance-rich sync workflow:
     if (!event) return;
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
       event.preventDefault();
+      const body = this.getNativeContainer()?.querySelector('#note-content');
+      if (body) body.classList.add('notes-focus-ring');
       if (!this.saveNotes()) {
         this.vdaG039.status = 'Local save failed; editor text is retained';
         this.updateVdaG039Status();
@@ -2130,6 +2702,14 @@ This sample note demonstrates the provenance-rich sync workflow:
           && this.currentNote.title === opened.title && this.currentNote.content === opened.content) {
         recovery.state = 'saved-local';
         this.vdaG039.actionLog.push(`restore-editor:saved-local:${opened.documentId}`);
+        if (this.vdaG039.conflict?.state === 'failed') {
+          this.vdaG039.conflict.state = 'cleared';
+          this.vdaG039.conflict.message = 'Bad reference cleared. No artifact was retrieved. The indexed note stays in the editor.';
+          this.appendNotesRecord(`Bad reference cleared. Indexed note opened and saved locally. Title ${opened.title}. Body ${opened.content}.`);
+          if (typeof opened.payloadDigest === 'string' && /^sha256:[0-9a-f]{64}$/.test(opened.payloadDigest)) {
+            this.appendNotesRecord(`Payload ${opened.payloadDigest}.`);
+          }
+        }
       }
       this.lastSaveTime = Date.now();
       this.verifyVdaG039KeyboardEditing();
@@ -2343,13 +2923,72 @@ This sample note demonstrates the provenance-rich sync workflow:
         event_refs: this.vdaG039.eventRefs,
         semantic_query: this.vdaG039.semanticQuery,
         semantic_backend: this.vdaG039.semanticBackend,
-        semantic_results: (this.vdaG039.semanticResults || []).map(result => ({
-          title: result.title, cid: result.cid, score: result.score
+        semantic_results: (this.vdaG039.semanticResults || []).filter(result => typeof result.title === 'string' && typeof result.content === 'string').map(result => ({
+          title: result.title,
+          content: result.content,
+          cid: result.cid,
+          score: result.score,
+          documentId: result.documentId,
+          provenance: result.provenance,
+          searchRevision: result.searchRevision
         })),
+        record_note: this.vdaG039.recordNote || '',
+        reference_input: this.vdaG039.referenceInput || '',
+        stored_cid: this.vdaG039.storedCid || '',
+        retrieved_title: this.vdaG039.retrievedTitle || '',
+        retrieved_body: this.vdaG039.retrievedBody || '',
+        retrieved_proof: this.vdaG039.retrievedProof || '',
+        editor_recovery: this.vdaG039.editorRecovery,
+        semantic_collection: this.vdaG039.semanticCollection || '',
+        search_query: this.searchQuery || '',
         action_log: this.vdaG039.actionLog
       }));
     } catch (error) {
       console.warn('Failed to save VDA-G039 notes evidence:', error);
+    }
+  }
+
+  loadVdaG039Evidence() {
+    try {
+      const raw = localStorage.getItem('swissknife-notes-vda-g039');
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (!saved || typeof saved !== 'object') return;
+      const results = Array.isArray(saved.semantic_results)
+        ? saved.semantic_results.filter(result => result && typeof result.title === 'string' && typeof result.content === 'string')
+        : [];
+      if (results.length) {
+        this.vdaG039.semanticResults = results.map(result => ({
+          title: result.title,
+          content: result.content,
+          cid: typeof result.cid === 'string' ? result.cid : null,
+          score: typeof result.score === 'number' ? result.score : null,
+          documentId: typeof result.documentId === 'string' ? result.documentId : null,
+          provenance: result.provenance && typeof result.provenance === 'object' ? result.provenance : null,
+          searchRevision: Number.isInteger(result.searchRevision) ? result.searchRevision : 0
+        }));
+        this.vdaG039.semanticBackend = typeof saved.semantic_backend === 'string' ? saved.semantic_backend : 'ipfs_datasets_py';
+      }
+      if (typeof saved.semantic_collection === 'string') this.vdaG039.semanticCollection = saved.semantic_collection;
+      if (typeof saved.record_note === 'string') this.vdaG039.recordNote = saved.record_note;
+      if (typeof saved.reference_input === 'string') this.vdaG039.referenceInput = saved.reference_input;
+      if (typeof saved.stored_cid === 'string' && /^baf[a-z2-7]{20,}$/.test(saved.stored_cid)) {
+        this.vdaG039.storedCid = saved.stored_cid;
+        this.vdaG039.referenceInput = saved.stored_cid;
+      }
+      if (typeof saved.retrieved_title === 'string') this.vdaG039.retrievedTitle = saved.retrieved_title;
+      if (typeof saved.retrieved_body === 'string') this.vdaG039.retrievedBody = saved.retrieved_body;
+      if (typeof saved.retrieved_proof === 'string') this.vdaG039.retrievedProof = saved.retrieved_proof;
+      if (saved.conflict && typeof saved.conflict === 'object' && typeof saved.conflict.state === 'string') {
+        this.vdaG039.conflict = { ...this.vdaG039.conflict, ...saved.conflict };
+      }
+      if (saved.editor_recovery && typeof saved.editor_recovery === 'object') this.vdaG039.editorRecovery = saved.editor_recovery;
+      if (typeof saved.search_query === 'string') this.searchQuery = saved.search_query;
+      this.vdaG039.storeReady = false;
+      this.vdaG039.retrieveReady = false;
+      this.vdaG039.liveSearchReady = false;
+    } catch (error) {
+      console.warn('Failed to load VDA-G039 notes evidence:', error);
     }
   }
 
@@ -2697,7 +3336,7 @@ This sample note demonstrates the provenance-rich sync workflow:
   }
 
   refreshContent() {
-    const container = document.querySelector('.notes-container');
+    const container = this.getNativeContainer();
     if (!container) return;
 
     // Update main content
@@ -2721,6 +3360,7 @@ This sample note demonstrates the provenance-rich sync workflow:
 
     // Re-setup event handlers
     this.setupEventHandlers(container);
+    this.containNotesFrame();
   }
 
   refreshNotesList() {

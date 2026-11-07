@@ -96,6 +96,11 @@ class HuggingFaceApp {
         this.datasetTaskFilter = '';
         this.datasetSizeFilter = '';
         this.selection = null;
+        this.inferenceNote = '';
+        this.inferenceDraft = '';
+        this.reopenProof = '';
+        this.catalogDocumentBytes = null;
+        this.catalogCid = '';
         this.restoreHubState();
         this.cache = {
             models: new Map(),
@@ -136,20 +141,32 @@ class HuggingFaceApp {
               .window[data-app-id="huggingface"] .window-app-content{display:flex;flex-direction:column;flex:1 1 auto;height:100%;min-height:0;min-width:0;overflow:hidden}
               .window[data-app-id="huggingface"] .window-app-content > [id$="-content"]{display:flex;flex-direction:column;flex:1 1 auto;align-self:stretch;width:100%;min-height:0;min-width:0;overflow:hidden}
               .window[data-app-id="huggingface"] .huggingface-app{flex:1 1 auto;height:auto;min-height:0;min-width:0}
-              .huggingface-app .hf-nav-tabs{display:flex !important;flex-wrap:wrap !important;align-content:flex-start;gap:4px;overflow:visible !important;width:100%;flex:0 0 auto;max-height:none;position:static !important;z-index:auto !important}
-              .huggingface-app .hf-nav-tabs .tab-item{flex:0 0 auto !important;min-width:0 !important;max-width:none !important;overflow:hidden !important;height:36px;min-height:36px;max-height:36px;padding:4px 8px !important}
+              .huggingface-app .hf-header{padding:4px 8px !important;min-height:0 !important}
+              .huggingface-app .hf-nav-tabs{display:flex !important;flex-wrap:nowrap !important;align-content:flex-start;gap:4px;overflow-x:auto !important;width:100%;flex:0 0 auto;max-height:none;position:static !important;z-index:auto !important}
+              .huggingface-app .hf-nav-tabs .tab-item{flex:0 0 auto !important;min-width:0 !important;max-width:none !important;overflow:hidden !important;height:28px;min-height:28px;max-height:28px;padding:2px 6px !important}
+              .huggingface-app .tab-title,.huggingface-app .hf-catalog-status,.huggingface-app .hf-selection-status{display:none !important}
               .huggingface-app .hf-nav-tabs .tab-label{display:inline !important;overflow:visible !important;text-overflow:clip !important;white-space:nowrap !important;max-width:none !important;width:auto !important}
               .huggingface-app .hf-logo-text{white-space:nowrap !important}
-              .huggingface-app .model-card{overflow:visible !important;height:auto !important;max-height:none !important}
-              .huggingface-app .model-card .model-actions{display:flex !important;flex-direction:row !important;flex-wrap:wrap !important;gap:6px !important}
-              .huggingface-app .model-card .action-btn,.huggingface-app .model-card .action-btn-primary{width:auto !important;height:auto !important;min-height:36px !important;max-height:none !important;overflow:visible !important;text-indent:0 !important;font-size:13px !important;line-height:1.2 !important;white-space:nowrap !important;padding:6px 10px !important;display:inline-flex !important;align-items:center !important}
+              .huggingface-app .models-grid{display:block !important;width:100% !important;max-width:none !important}
+              .huggingface-app .model-card{overflow:visible !important;height:auto !important;max-height:none !important;width:100% !important;max-width:none !important;box-sizing:border-box;padding:8px 10px !important}
+              .huggingface-app .tab-title p{display:none !important}
+              .huggingface-app .hf-workflow{display:flex;flex-direction:column;gap:4px;margin:0 12px 6px}
+              .huggingface-app .hf-workflow #hf-selected-item,.huggingface-app .hf-workflow #results-content{margin:0;font-size:13px;line-height:1.35;overflow-wrap:anywhere;color:#e8eef7}
+              .huggingface-app #results-content:empty{display:none !important}
+              .huggingface-app .model-card .model-actions{display:flex !important;flex-direction:row !important;flex-wrap:wrap !important;gap:6px !important;width:100% !important;max-width:100% !important}
+              .huggingface-app .model-card .action-btn,.huggingface-app .model-card .action-btn-primary{width:auto !important;height:auto !important;min-height:32px !important;max-height:none !important;overflow:visible !important;text-indent:0 !important;font-size:13px !important;line-height:1.2 !important;white-space:nowrap !important;padding:4px 8px !important;display:inline-flex !important;align-items:center !important}
+              .huggingface-app .hf-download-note,.huggingface-app #hf-selected-item,.huggingface-app #hf-reopened-item{margin:0;font-size:13px;line-height:1.3;overflow-wrap:anywhere}
               .huggingface-app .model-card .action-btn-primary{background:#ff7a18 !important;color:#1a1a1a !important;opacity:1 !important}
+              .huggingface-app .model-card .action-btn-secondary{background:#3a3a3a !important;color:#c8c8c8 !important;opacity:1 !important}
               .huggingface-app .model-card-facts{display:flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;font-size:12px;line-height:1.35}
               .huggingface-app .hf-revision{display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:break-all}
               .huggingface-app{height:100%;min-height:0;max-height:100%;overflow:hidden !important;display:flex !important;flex-direction:column !important}
               .huggingface-app .hf-header,.huggingface-app .hf-nav-tabs,.huggingface-app .hf-status-bar{flex:0 0 auto;position:static !important;z-index:auto !important}
               .huggingface-app .hf-header{padding:4px 8px !important;min-height:0 !important}
-              .huggingface-app .hf-status-bar{max-height:none !important;overflow:visible !important;padding:4px 8px !important;flex-wrap:wrap;gap:4px;color:#dbeafe;background:#101b25;opacity:1;font-size:12px;line-height:1.35}
+              .huggingface-app .hf-status-bar{display:none !important}
+              .huggingface-app .model-task{display:none !important}
+              .huggingface-app .models-tab > .models-grid{padding:6px !important}
+              .huggingface-app .model-card{padding:6px 8px !important}
               .huggingface-app .hf-content{flex:1 1 0px !important;min-height:0 !important;overflow-x:hidden !important;overflow-y:auto !important;scroll-padding-top:8px;scroll-padding-bottom:8px}
               .huggingface-app .models-tab{flex:0 0 auto !important;min-height:0 !important;overflow:visible !important}
               .huggingface-app .models-tab > .models-grid{flex:0 0 auto !important;min-height:min-content !important;overflow:visible !important;grid-auto-rows:max-content;padding:12px;gap:12px}
@@ -159,20 +176,53 @@ class HuggingFaceApp {
               .huggingface-app .models-tab .tab-title p{font-size:12px}
               .huggingface-app .models-tab .tab-actions{gap:6px}
               .huggingface-app .models-tab > .hf-catalog-status,.huggingface-app .models-tab > .hf-selection-status,.huggingface-app .models-tab > #hf-selected-item{flex:0 0 auto;margin:4px 12px;overflow-wrap:anywhere}
+              .huggingface-app .hf-inline-inference{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 12px}
+              .huggingface-app .hf-inline-inference .search-input{flex:1 1 220px;min-height:32px;min-width:16em;width:100%}
+              .huggingface-app .hf-identity p,.huggingface-app .hf-identity span{display:block;margin:0;font-size:13px;line-height:1.3}
+              .huggingface-app .pagination,.huggingface-app .model-tags{display:none}
+              .huggingface-app .hf-inline-inference #results-content{flex:1 1 100%;overflow-wrap:anywhere}
               .huggingface-app .inference-method-selector{display:flex !important;flex-wrap:nowrap !important;gap:4px;max-height:36px;overflow:hidden !important}
               .huggingface-app .method-option{max-height:36px !important;padding:2px 6px !important;overflow:hidden !important}
               .huggingface-app .form-actions{position:sticky;bottom:0;z-index:3;background:#1b1b1b;padding-top:4px}
               .huggingface-app #hf-run-inference{scroll-margin-top:8px;scroll-margin-bottom:8px}
               .huggingface-app .model-identity{flex:1;min-width:0}
+              .huggingface-app #hf-reopened-item{font-size:12px;line-height:1.25}
               @media (max-width:480px){
                 .huggingface-app{max-height:min(100%,calc(100dvh - 92px))}
-                .huggingface-app .hf-header{padding:6px 8px}
-                .huggingface-app .tab-title p{display:none}
-                .huggingface-app .tab-title h2{font-size:15px;margin:0}
+                .huggingface-app .hf-header{padding:2px 6px}
+                .huggingface-app .hf-nav-tabs{flex-wrap:wrap !important;overflow:visible !important}
+                .huggingface-app .filter-container{display:flex;flex-wrap:nowrap;gap:4px}
+                .huggingface-app .filter-select{flex:1 1 0;min-width:0}
                 .huggingface-app .tab-actions{display:flex;flex-wrap:wrap;gap:4px}
                 .huggingface-app .tab-actions .hf-btn{padding:4px 8px;min-height:32px}
-                .huggingface-app .hf-status-bar .status-right{display:flex;flex-wrap:wrap}
-                .huggingface-app .model-card{padding:8px !important}
+                .huggingface-app .hf-status-bar .status-right,.huggingface-app .hf-catalog-status,.huggingface-app .hf-selection-status{display:none !important}
+                .huggingface-app .hf-header-right .hf-btn-secondary{display:none !important}
+                .huggingface-app .hf-nav-tabs .tab-item{height:24px !important;min-height:24px !important;max-height:24px !important;padding:1px 4px !important;font-size:11px !important}
+                .huggingface-app .hf-inline-inference{margin:2px 8px}
+                .huggingface-app .hf-inline-inference label{display:none !important}
+                .huggingface-app .hf-inline-inference .search-input{flex:1 1 auto;min-width:0 !important;width:auto;min-height:28px}
+                .huggingface-app .model-card{padding:4px 6px !important}
+                .huggingface-app .model-task{display:none !important}
+                .huggingface-app .model-card-facts{display:block !important;font-size:11px;line-height:1.2;margin:0}
+                .huggingface-app .hf-download-note,.huggingface-app .hf-reloaded,.huggingface-app .hf-owner-cid,.huggingface-app #hf-selected-item,.huggingface-app #hf-reopened-item{font-size:11px !important;line-height:1.15 !important;margin:0 !important;overflow-wrap:anywhere !important;word-break:normal !important}
+                .huggingface-app .hf-proof-line{display:block;word-break:normal !important;overflow-wrap:anywhere}
+                .huggingface-app .hf-status,.huggingface-app .hf-status-bar,.huggingface-app .hf-logo-icon{display:none !important}
+                .huggingface-app .hf-header{display:flex !important;flex-wrap:nowrap !important;align-items:center !important;gap:6px}
+                .huggingface-app .hf-header-left{min-width:0;flex:1 1 auto}
+                .huggingface-app .hf-header-right{flex:0 0 auto}
+                .huggingface-app .hf-header-right .hf-btn{width:auto !important;min-height:28px !important;padding:2px 8px !important}
+                .huggingface-app .hf-logo-text{font-size:14px !important}
+                .huggingface-app .hf-inline-inference{flex-wrap:wrap !important}
+                .huggingface-app .hf-inline-inference .search-input{flex:1 1 100% !important;width:100% !important;min-width:0 !important}
+                .huggingface-app #hf-run-inference{flex:0 0 auto;min-height:28px;padding:2px 8px}
+                .huggingface-app #results-content{flex:1 1 100% !important;font-size:12px !important;line-height:1.2 !important}
+                .huggingface-app .models-tab > .tab-header{padding:2px 6px !important;gap:4px !important}
+                .huggingface-app .models-tab > .models-grid{padding:2px 6px !important}
+                .huggingface-app #hf-catalog-execute-host{min-height:0 !important;min-width:0 !important}
+                .huggingface-app .tab-actions .hf-btn{min-height:28px !important;padding:2px 6px !important}
+                .huggingface-app .model-header{margin:0 !important}
+                .huggingface-app .model-name{font-size:14px;line-height:1.1}
+                .huggingface-app .model-card .action-btn{min-height:28px !important;padding:2px 6px !important}
               }
             </style>
             <!-- Header with Authentication -->
@@ -315,12 +365,19 @@ class HuggingFaceApp {
                 </div>
             </div>
 
+            <div class="hf-workflow">
+                <div class="hf-inline-inference">
+                    <label for="inference-input">Inference input</label>
+                    <input id="inference-input" aria-label="Inference input" class="search-input sk-input" value="${this.escapeCatalogStatus(this.inferenceDraft || '')}">
+                    <button type="button" id="hf-run-inference" class="hf-btn hf-btn-primary sk-btn sk-btn-primary" onclick="window.huggingFaceApp.runInference()">Run Inference</button>
+                    <div id="results-content" role="status">${this.escapeCatalogStatus(this.inferenceNote || '')}</div>
+                </div>
+            </div>
             <div class="models-grid" id="models-grid">
                 ${this.renderModelsGrid()}
             </div>
             <p class="hf-catalog-status" id="hf-catalog-status" role="status">${this.escapeCatalogStatus(this.catalogStatusText('models'))}</p>
             <p class="hf-selection-status" id="hf-selection-status" role="status">${this.escapeCatalogStatus(this.selectionStatusText())}</p>
-            ${this.selection?.id ? `<p id="hf-selected-item">${this.escapeCatalogStatus(this.selection.id)} @ ${this.escapeCatalogStatus(this.selection.sha)}</p>` : ''}
 
             ${this.models.size ? `<div class="pagination">
                 <button type="button" class="pagination-btn" onclick="window.huggingFaceApp.previousModelsPage()">← Previous</button>
@@ -355,28 +412,11 @@ class HuggingFaceApp {
                     <div class="model-identity">
                         <div class="model-name">${model.name || id}</div>
                         <div class="model-task">${model.task || model.pipeline_tag || 'Unknown'}</div>
-                        <div class="model-author">by ${model.author || 'Unknown'}</div>
                     </div>
-                    <div class="model-stats">
-                        <span class="stat-item">
-                            <span class="stat-icon">📥</span>
-                            <span class="stat-value">${this.formatNumber(model.downloads || 0)}</span>
-                        </span>
-                        <span class="stat-item">
-                            <span class="stat-icon">❤️</span>
-                            <span class="stat-value">${this.formatNumber(model.likes || 0)}</span>
-                        </span>
-                    </div>
-                </div>
-                <div class="model-info">
-                    <div class="model-card-facts">
-                        <span class="hf-revision">Revision: ${this.escapeCatalogStatus(/^[0-9a-f]{40}$/.test(model.sha || model.snapshot || '') ? (model.sha || model.snapshot) : 'not listed')}</span>
-                        <span>Size: ${this.escapeCatalogStatus(model.safetensors && model.safetensors.total ? this.formatNumber(model.safetensors.total) : (model.size || 'not listed'))}</span>
-                        <span>Compatibility: ${this.escapeCatalogStatus(model.library_name || model.pipeline_tag || model.task || 'not listed')}</span>
-                    </div>
-                    <div class="model-tags">
-                        ${(model.tags || []).slice(0, 3).map(tag => `<span class="tag">${tag}</span>`).join('')}
-                    </div>
+                    ${(Number(model.downloads) > 0 || Number(model.likes) > 0) ? `<div class="model-stats">
+                        <span class="stat-item"><span class="stat-icon">📥</span><span class="stat-value">${this.formatNumber(model.downloads || 0)}</span></span>
+                        <span class="stat-item"><span class="stat-icon">❤️</span><span class="stat-value">${this.formatNumber(model.likes || 0)}</span></span>
+                    </div>` : ''}
                 </div>
                 <div class="model-actions">
                     <button class="action-btn action-btn-primary hf-btn hf-btn-primary sk-btn sk-btn-primary" onclick="window.huggingFaceApp.loadModel('${id}')">
@@ -392,9 +432,11 @@ class HuggingFaceApp {
                         Deploy
                     </button>
                 </div>
-                <div class="model-status">
-                    <div class="status-indicator sk-status-dot is-ok status-available"></div>
-                    <span>Inference is not run from this card</span>
+                <div class="model-info">
+                    ${this.selection?.id === id ? `<p class="hf-download-note">Weight download is not supported.</p>${this.reopenProof ? `<p class="hf-reloaded">Reloaded stored selection.</p>` : ''}<p id="hf-selected-item" data-identity="${this.escapeCatalogStatus(this.identitySource || '')}" data-repository-id="${this.escapeCatalogStatus(this.selection.id)}" data-revision="${this.escapeCatalogStatus(this.selection.sha || '')}">${this.escapeCatalogStatus(this.selectedItemText())}</p>${this.reopenProof ? `<p id="hf-reopened-item">${this.reopenProof.split('; ').map((part, index, all) => `<span class="hf-proof-line">${this.escapeCatalogStatus(index < all.length - 1 ? `${part}; ` : part)}</span>`).join('')}</p>` : ''}` : ''}
+                    <div class="model-card-facts">
+                        <span>Device ${this.escapeCatalogStatus(model.device || 'cpu')}; catalog document ${this.catalogDocumentBytes == null ? 'not reported' : `${this.catalogDocumentBytes} bytes`}; compatibility ${this.escapeCatalogStatus(model.library_name || model.pipeline_tag || model.task || 'not listed')}</span>
+                    </div>
                 </div>
             </div>`;
         }
@@ -973,44 +1015,41 @@ class HuggingFaceApp {
             this.fitObserver.observe(document.body, { childList: true, subtree: true });
         }
         this.scheduleFit();
-        // Tab switching
+        if (window.__hfDocumentListeners) return;
+        window.__hfDocumentListeners = true;
+        const live = () => window.huggingFaceApp;
         document.addEventListener('click', (e) => {
+            const app = live();
+            if (!app) return;
             if (e.target.closest('.tab-item')) {
-                const tab = e.target.closest('.tab-item').dataset.tab;
-                this.switchTab(tab);
+                app.switchTab(e.target.closest('.tab-item').dataset.tab);
+            }
+            if (e.target.closest('.method-option')) {
+                app.setInferenceMethod(e.target.closest('.method-option').dataset.method);
             }
         });
-
-        // Parameter sliders
         document.addEventListener('input', (e) => {
             if (e.target.classList.contains('param-slider')) {
                 const display = e.target.nextElementSibling;
                 if (display) display.textContent = e.target.value;
             }
         });
-
-        // Inference method selection
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.method-option')) {
-                const method = e.target.closest('.method-option').dataset.method;
-                this.setInferenceMethod(method);
-            }
-        });
-
         document.addEventListener('keydown', (e) => {
+            const app = live();
+            if (!app) return;
             const tab = e.target && e.target.closest ? e.target.closest('.tab-item') : null;
             if (tab && (e.key === 'Enter' || e.key === ' ')) {
                 e.preventDefault();
-                this.switchTab(tab.dataset.tab);
+                app.switchTab(tab.dataset.tab);
                 return;
             }
             if (e.key !== 'Enter' || !e.target) return;
             if (e.target.id === 'models-search') {
                 e.preventDefault();
-                void this.searchModels();
+                void app.searchModels();
             } else if (e.target.id === 'datasets-search') {
                 e.preventDefault();
-                void this.searchDatasets();
+                void app.searchDatasets();
             }
         });
     }
@@ -1089,8 +1128,13 @@ class HuggingFaceApp {
             if (!Array.isArray(saved.rows) || saved.rows.length > 100 || !Number.isFinite(Date.parse(saved.observedAt))
                 || saved.rows.some(row => !row || !/^[a-zA-Z0-9_.:/-]{1,200}$/.test(row.id))) return false;
             this.lastNativeCatalogRows = saved.rows;
-            this.models = new Map(saved.rows.map(row => [row.id, { id: row.id, name: row.id, task: row.task || 'Unknown',
+            if (typeof saved.cid === 'string') this.catalogCid = saved.cid;
+            if (typeof saved.binary_size === 'number' && saved.binary_size >= 0) this.catalogDocumentBytes = saved.binary_size;
+            this.models = new Map(saved.rows.map(row => [row.id, { ...row, id: row.id, name: row.id, task: row.task || row.pipeline_tag || 'Unknown',
                 snapshot: /^[0-9a-f]{40}$/.test(row.snapshot || row.sha || '') ? row.snapshot || row.sha : '', author: 'Stored catalog metadata', tags: [] }]));
+            const storedRow = this.selection?.id ? saved.rows.find(row => row && row.id === this.selection.id) : null;
+            const storedRevision = storedRow?.sha || storedRow?.snapshot || '';
+            if (storedRow && storedRevision === this.selection.sha) this.identitySource = 'stored';
             this.catalogMetadata.models = { source: 'stored-native-metadata', observed_at: saved.observedAt, cache: 'stored-metadata', error: null };
             this.modelsError = '';
             return true;
@@ -1205,9 +1249,22 @@ class HuggingFaceApp {
         return current === value ? ' selected' : '';
     }
 
+    selectedItemText() {
+        if (!this.selection?.id) return '';
+        const artifact = this.catalogCid ? ` artifact ${this.catalogCid}` : '';
+        const base = `${this.selection.id} @ ${this.selection.sha || 'unavailable'}${artifact}`;
+        if (this.identitySource === 'stored') return `${base} stored catalog metadata`;
+        if (this.identitySource === 'reopened') return base;
+        if (this.identitySource === 'retrieved') return `${base} retrieved`;
+        return base;
+    }
+
     selectionStatusText() {
         if (this.selection?.id) {
-            return `Selected ${this.selection.id}; stored revision ${this.selection.sha || 'unavailable'}. No model weights have been prepared here. Inference requires a credential and an explicit request.`;
+            const prepared = this.selection.prepared_id && this.selection.prepared_id === this.selection.sha
+                ? this.selection.prepared_id
+                : 'none';
+            return `Selected ${this.selection.id} @ ${this.selection.sha || 'unavailable'}. Prepared metadata ${prepared}. Weight download is not supported.`;
         }
         return `${this.modelSearch ? `Query retained: ${this.modelSearch}. ` : ''}No card selected. Download and inference stay unavailable in this window.`;
     }
@@ -1316,17 +1373,31 @@ class HuggingFaceApp {
             if (!result || result.ok !== true || result.outcome !== 'executed') throw new Error('The native catalog read did not execute.');
             const actual = unwrapNetworkToolResult(result.result);
             if (typeof actual?.content !== 'string') throw new Error('The native catalog returned no document bytes.');
+            if (typeof actual.binary_size === 'number' && actual.binary_size >= 0) this.catalogDocumentBytes = actual.binary_size;
+            if (typeof actual.cid === 'string') this.catalogCid = actual.cid;
             const rows = JSON.parse(actual.content);
             if (!Array.isArray(rows) || rows.length > 100 || rows.some(row => !row || typeof row.id !== 'string')) throw new Error('The stored model catalog has no valid model rows.');
             this.models.clear();
             const query = this.modelSearch.toLowerCase();
             for (const row of rows) {
                 if (query && !row.id.toLowerCase().includes(query)) continue;
-                this.models.set(row.id, { ...row, name: row.id, author: row.author || 'Stored catalog', task: row.pipeline_tag || row.task || 'Unknown' });
+                this.models.set(row.id, { ...row, name: row.id, author: row.author || 'owner catalog', task: row.pipeline_tag || row.task || 'Unknown' });
             }
             const now = new Date().toISOString();
             this.lastNativeCatalogRows = rows;
-            try { localStorage.setItem('huggingface-native-catalog', JSON.stringify({ rows, observedAt: now })); } catch {}
+            try { localStorage.setItem('huggingface-native-catalog', JSON.stringify({ rows, observedAt: now, cid: this.catalogCid, binary_size: this.catalogDocumentBytes })); } catch {}
+            if (this.selection?.id) {
+                const matched = rows.find(row => row && row.id === this.selection.id);
+                const revision = matched?.sha || matched?.snapshot || '';
+                if (matched && revision === this.selection.sha) {
+                    if (this.identitySource === 'stored') {
+                        this.identitySource = 'reopened';
+                        this.reopenProof = `Stored ${this.selection.id} revision ${this.selection.sha}; owner snapshot ${revision}; artifact ${this.catalogCid}`;
+                    } else {
+                        this.identitySource = 'retrieved';
+                    }
+                }
+            }
             this.catalogMetadata.models = { source: 'Stored model catalog read through ipfs_datasets_py', observed_at: now,
                 attempted_at: now, cache: 'owner-read', cache_age_ms: 0, cache_ttl_ms: 0, stale: false, error: null };
             this.modelsError = '';
@@ -1360,7 +1431,8 @@ class HuggingFaceApp {
             this.refresh();
             return;
         }
-        this.selection = { id: model.id, sha: revision, kind: 'model', prepared_id: '' };
+        this.selection = { id: model.id, sha: revision, kind: 'model', prepared_id: this.catalogCid || revision };
+        this.identitySource = 'selected';
         this.settings.defaultModel = model.id;
         this.persistHubState();
         this.refresh();
@@ -1455,8 +1527,17 @@ class HuggingFaceApp {
         const input = document.getElementById('inference-input');
         const output = document.getElementById('results-content');
         const text = (input?.value || '').trim();
-        if (!text) { if (output) { output.setAttribute('aria-live', 'polite'); output.textContent = 'Enter text to run inference on.'; } return; }
-        if (!this.apiToken) { if (output) { output.setAttribute('aria-live', 'polite'); output.textContent = 'Inference requires a credential. No request was sent; the selected item and filters are retained.'; } return; }
+        this.inferenceDraft = input?.value || '';
+        if (!text) {
+            this.inferenceNote = 'Enter text to run inference on.';
+            if (output) { output.setAttribute('aria-live', 'polite'); output.textContent = this.inferenceNote; }
+            return;
+        }
+        if (!this.apiToken) {
+            this.inferenceNote = 'Inference requires a credential. No request was sent; the selected item and filters are retained.';
+            if (output) { output.setAttribute('aria-live', 'polite'); output.textContent = this.inferenceNote; }
+            return;
+        }
         const modelId = this.settings.defaultModel;
         if (output) output.textContent = 'Running inference...';
         try {

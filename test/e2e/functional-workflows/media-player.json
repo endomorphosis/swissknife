@@ -55,253 +55,17 @@
       },
       {
         "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
-        "selector": "#progressBar",
-        "key": "ArrowRight"
-      },
-      {
-        "op": "press",
         "selector": "#playButton",
         "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#mp-playback-identity"
+        },
+        "operator": "contains",
+        "expected": "bafkreifumhfm2a3c7noqi3qnosbwoqt2gten3at67srom7twuvsjriq2sy"
       },
       {
         "op": "assert",
@@ -323,6 +87,15 @@
       {
         "op": "click",
         "selector": "button[aria-label=\"Playlist\"]"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#mp-playback-identity"
+        },
+        "operator": "contains",
+        "expected": "bafkreifumhfm2a3c7noqi3qnosbwoqt2gten3at67srom7twuvsjriq2sy"
       },
       {
         "op": "assert",
@@ -395,6 +168,24 @@
       {
         "op": "click",
         "selector": "button[aria-label=\"Recover background audio\"]"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#mp-recovery-note"
+        },
+        "operator": "equals",
+        "expected": "recovered after Playback failed: unsupported source. Select supported media or enable browser audio, then retry."
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#mp-playback-identity"
+        },
+        "operator": "contains",
+        "expected": "bafkreifumhfm2a3c7noqi3qnosbwoqt2gten3at67srom7twuvsjriq2sy"
       },
       {
         "op": "assert",

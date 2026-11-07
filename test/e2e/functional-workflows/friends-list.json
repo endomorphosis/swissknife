@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "friends-list",
-  "description": "Add one disposable contact, reopen it, and retry a missing identity without a duplicate.",
+  "description": "Add one disposable contact, write that same record again after reopen, and retry a missing identity without a duplicate.",
   "fixture_scope": "svf-friends-412-contact",
   "backend_bindings": [
     {
@@ -11,9 +11,9 @@
       "max_duration_seconds": 60,
       "max_output_bytes": 65536,
       "result_assertion": {
-        "pointer": "/result/result/content/0/json/bytes",
-        "operator": "at_least",
-        "expected": 1
+        "pointer": "/result/result/content/0/json/kind",
+        "operator": "equals",
+        "expected": "contact did:key:zSvF412DisposableContact invite-sent-persisted not-blocked"
       }
     }
   ],
@@ -25,11 +25,16 @@
       {"op": "press", "selector": "#friend-input", "key": "Enter"},
       {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": ".friend-card[data-friend-id=\"contact-did:key:zSvF412DisposableContact\"] .friend-status"}, "operator": "contains", "expected": "Unavailable"},
       {"op": "wait_for", "selector": "[data-gateway-confirm=\"friends-list.ipfs_kit_py.persist_artifact\"]", "state": "visible", "timeout_ms": 15000},
-      {"op": "click", "selector": "[data-gateway-confirm=\"friends-list.ipfs_kit_py.persist_artifact\"]"}
+      {"op": "click", "selector": "[data-gateway-confirm=\"friends-list.ipfs_kit_py.persist_artifact\"]"},
+      {"op": "wait_for", "selector": ".friend-card[data-friend-id=\"contact-did:key:zSvF412DisposableContact\"][data-relationship-state=\"invite-sent-persisted\"]", "state": "visible", "timeout_ms": 15000}
     ],
     "persist_reopen": [
       {"op": "reopen_app"},
-      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": ".friend-card[data-friend-id=\"contact-did:key:zSvF412DisposableContact\"] .friend-status"}, "operator": "contains", "expected": "Unavailable"}
+      {"op": "click", "selector": "#reload-friend-record"},
+      {"op": "wait_for", "selector": "[data-gateway-confirm=\"friends-list.ipfs_kit_py.persist_artifact\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "[data-gateway-confirm=\"friends-list.ipfs_kit_py.persist_artifact\"]"},
+      {"op": "wait_for", "selector": "#reload-friend-record[data-reloaded=\"1\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": ".friend-card[data-friend-id=\"contact-did:key:zSvF412DisposableContact\"] .friend-record-state"}, "operator": "equals", "expected": "did:key:zSvF412DisposableContact · invite-sent-persisted · not-blocked"}
     ],
     "failure_recovery": [
       {"op": "click", "selector": "#add-friend-btn"},
@@ -39,7 +44,10 @@
       {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#friends-form-error"}, "operator": "contains", "expected": "Missing identity"},
       {"op": "fill", "selector": "#friend-input", "value": "did:key:zSvF412DisposableContact"},
       {"op": "click", "selector": "#send-friend-request"},
-      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "count", "selector": ".friend-card[data-friend-id=\"contact-did:key:zSvF412DisposableContact\"]"}, "operator": "equals", "expected": 1}
+      {"op": "wait_for", "selector": "[data-gateway-confirm=\"friends-list.ipfs_kit_py.persist_artifact\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "[data-gateway-confirm=\"friends-list.ipfs_kit_py.persist_artifact\"]"},
+      {"op": "wait_for", "selector": "#friends-recovery-note[data-owner-retry=\"1\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#friends-recovery-note"}, "operator": "equals", "expected": "That contact is already in your list. It was not duplicated."}
     ]
   }
 }

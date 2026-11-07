@@ -9,7 +9,8 @@
       {"op": "fill", "selector": "#strudel-pattern", "value": "c4 e4 g4"},
       {"op": "fill", "selector": "#strudel-tempo", "value": "100"},
       {"op": "press", "selector": "#play-button", "key": "Enter"},
-      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#strudel-status"}, "operator": "equals", "expected": "Playing c4 e4 g4 at 100 BPM in the local audio engine."}
+      {"op": "assert", "probe": {"kind": "text", "selector": "#strudel-status"}, "operator": "equals", "expected": "Playing c4 e4 g4 at 100 BPM in the local audio engine."},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "json_attribute", "selector": "#strudel-engine", "attribute": "data-engine-sample", "pointer": "/elapsed_ms", "temporal_ms": 500}, "operator": "at_least", "expected": 450}
     ],
     "persist_reopen": [
       {"op": "reopen_app"},
@@ -21,7 +22,10 @@
       {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#strudel-status"}, "operator": "contains", "expected": "Syntax error"},
       {"op": "fill", "selector": "#strudel-pattern", "value": "c4 e4 g4"},
       {"op": "press", "selector": "#play-button", "key": "Enter"},
-      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#strudel-status"}, "operator": "equals", "expected": "Playing c4 e4 g4 at 100 BPM in the local audio engine."}
+      {"op": "assert", "probe": {"kind": "value", "selector": "#strudel-pattern"}, "operator": "equals", "expected": "c4 e4 g4"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#strudel-syntax-note"}, "operator": "equals", "expected": "Corrected syntax error \")))\" is not a note. Local engine restarted c4 e4 g4 at 100 BPM."},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#strudel-status"}, "operator": "equals", "expected": "Restarted c4 e4 g4 at 100 BPM in the local audio engine after the syntax error."},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "json_attribute", "selector": "#strudel-engine", "attribute": "data-engine-sample", "pointer": "/elapsed_ms", "temporal_ms": 500}, "operator": "at_least", "expected": 450}
     ]
   }
 }

@@ -10,9 +10,9 @@
       "max_duration_seconds": 30,
       "max_output_bytes": 65536,
       "result_assertion": {
-        "pointer": "/result/result/content/0/json/cid",
+        "pointer": "/result/result/content/0/json/sha256",
         "operator": "equals",
-        "expected": "bafkreie6e3xy7rntajjyvrustikaefsnxrr3pfdz3vgiytsogvjhgfphpa"
+        "expected": "9e26ef8fc5b302538ac6929a1402164dbc63b79479dd4c8c4e4e35527315e778"
       }
     }
   ],
@@ -59,10 +59,10 @@
         "requirement_id": "result_1",
         "probe": {
           "kind": "text",
-          "selector": "#github-review-identity"
+          "selector": "#github-retrieved-content"
         },
         "operator": "equals",
-        "expected": "fixture-owner/fixture-repo \u00b7 README.md"
+        "expected": "# SwissKnife isolated repository\n\nThis README belongs to fixture-owner/fixture-repo."
       }
     ],
     "persist_reopen": [
@@ -70,14 +70,41 @@
         "op": "reopen_app"
       },
       {
+        "op": "wait_for",
+        "selector": "#github-retrieve-content",
+        "state": "visible",
+        "timeout_ms": 10000
+      },
+      {
+        "op": "click",
+        "selector": "#github-retrieve-content"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"github.ipfs_kit_py.retrieve_content\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"github.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#github-reopened-sha",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
         "op": "assert",
         "requirement_id": "persist_reopen",
         "probe": {
           "kind": "text",
-          "selector": "#github-review-identity"
+          "selector": "#github-reopened-sha"
         },
         "operator": "equals",
-        "expected": "fixture-owner/fixture-repo \u00b7 README.md"
+        "expected": "9e26ef8fc5b302538ac6929a1402164dbc63b79479dd4c8c4e4e35527315e778"
       }
     ],
     "failure_recovery": [
@@ -145,7 +172,7 @@
           "selector": "#github-review-identity"
         },
         "operator": "equals",
-        "expected": "fixture-owner/fixture-repo \u00b7 README.md"
+        "expected": "Retried fixture-owner/fixture-repo \u00b7 README.md \u00b7 bafkreie6e3xy7rntajjyvrustikaefsnxrr3pfdz3vgiytsogvjhgfphpa"
       }
     ]
   }

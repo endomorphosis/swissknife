@@ -175,6 +175,8 @@ export class CalculatorApp {
         <!-- Display -->
         <div class="calculator-display">
           <div class="display-secondary" id="display-secondary"></div>
+          <div class="calculator-retained" id="calculator-restored-history" aria-label="Restored history"></div>
+          <div class="calculator-retained" id="calculator-long-result" aria-label="Long result"></div>
           <div class="display-primary" id="display-primary">${this.currentDisplay}</div>
           <div class="display-error" id="display-error" role="alert" aria-live="polite" hidden></div>
           ${this.mode === 'programmer' ? `
@@ -312,6 +314,19 @@ export class CalculatorApp {
         }
 
         .display-error[hidden] {
+          display: none;
+        }
+
+        .calculator-retained {
+          flex: 0 0 auto;
+          font-size: 13px;
+          line-height: 16px;
+          text-align: right;
+          color: #e7fff4;
+          overflow-wrap: anywhere;
+        }
+
+        .calculator-retained:empty {
           display: none;
         }
 
@@ -954,7 +969,7 @@ export class CalculatorApp {
     if (!document.getElementById('calculator-contained-layout')) {
       const style = document.createElement('style');
       style.id = 'calculator-contained-layout';
-      style.textContent = '.calculator-container .calculator-header{padding:6px 8px}.calculator-container .calculator-display{padding:8px 12px}.calculator-container .display-primary{font-size:26px;min-height:28px}.calculator-container .calculator-body{flex:1 1 auto;min-height:0;padding:8px;overflow:hidden}.calculator-container .button-grid{min-height:0;gap:6px}.calculator-container .standard-grid{grid-template-rows:repeat(6,minmax(0,1fr))}.calculator-container .calc-btn{min-height:28px}.calculator-container .history-panel{max-height:calc(100% - 80px);overflow:auto}';
+      style.textContent = '.calculator-container .calculator-header{padding:6px 8px}.calculator-container .calculator-display{padding:8px 12px}.calculator-container .display-primary{font-size:26px;min-height:28px}.calculator-container .calculator-retained{font-size:13px;line-height:16px;flex:0 0 auto}.calculator-container .calculator-body{flex:1 1 auto;min-height:0;padding:8px;overflow:hidden}.calculator-container .button-grid{min-height:0;gap:6px}.calculator-container .standard-grid{grid-template-rows:repeat(6,minmax(0,1fr))}.calculator-container .calc-btn{min-height:28px}.calculator-container .history-panel{max-height:calc(100% - 80px);overflow:auto}';
       container.appendChild(style);
     }
   }
@@ -1536,6 +1551,12 @@ export class CalculatorApp {
     }
   }
 
+  showRetainedLine(id, text) {
+    const node = document.getElementById(id);
+    if (!node) return;
+    node.textContent = text;
+  }
+
   updateProgrammerDisplays() {
     const value = parseInt(this.currentDisplay) || 0;
     
@@ -1614,6 +1635,8 @@ export class CalculatorApp {
     this.persistHistory();
     this.updateHistoryDisplay();
     this.updateWorkflowEvidence();
+    const rawResult = String(result);
+    if (/^[0-9]{8,}$/.test(rawResult)) this.showRetainedLine('calculator-long-result', rawResult);
   }
 
   updateHistoryDisplay() {
@@ -1632,7 +1655,6 @@ export class CalculatorApp {
         <div>${this.escapeHtml(item.calculation)}</div>
         <div class="history-meta">
           <span>${new Date(item.timestamp).toLocaleTimeString()}</span>
-          <code>${this.escapeHtml(item.localRef)}</code>
         </div>
       </div>
     `;
@@ -1651,6 +1673,8 @@ export class CalculatorApp {
         this.restoredExpression = expression;
         this.clearError();
         this.updateDisplay();
+        const restored = item.dataset.calculation || `${expression} = ${result}`;
+        this.showRetainedLine('calculator-restored-history', restored);
         this.toggleHistory();
       });
     });
@@ -1871,6 +1895,8 @@ export class CalculatorApp {
         <!-- Display -->
         <div class="calculator-display">
           <div class="display-secondary" id="display-secondary"></div>
+          <div class="calculator-retained" id="calculator-restored-history" aria-label="Restored history"></div>
+          <div class="calculator-retained" id="calculator-long-result" aria-label="Long result"></div>
           <div class="display-primary" id="display-primary">${this.currentDisplay}</div>
           <div class="display-error" id="display-error" role="alert" aria-live="polite" hidden></div>
           ${this.mode === 'programmer' ? `
@@ -2008,6 +2034,19 @@ export class CalculatorApp {
         }
 
         .display-error[hidden] {
+          display: none;
+        }
+
+        .calculator-retained {
+          flex: 0 0 auto;
+          font-size: 13px;
+          line-height: 16px;
+          text-align: right;
+          color: #e7fff4;
+          overflow-wrap: anywhere;
+        }
+
+        .calculator-retained:empty {
           display: none;
         }
 

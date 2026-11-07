@@ -569,7 +569,9 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
         if (event.target !== button) return;
         if (button.hasAttribute('data-gateway-confirm') || this.workspaceBusy) return;
         event.preventDefault();
-        this.runWorkspaceOperation(window, tool, button);
+        const path = String(window.querySelector('#vibecode-workspace-path')?.value || '').trim();
+        const operation = id === 'vibecode-open-file' && this.savedArtifactNote(path) ? 'artifacts_get' : tool;
+        this.runWorkspaceOperation(window, operation, button);
       });
     }
 
@@ -593,24 +595,34 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     output?.removeAttribute('data-workspace-outcome');
     container.querySelector('#status-text')?.removeAttribute('data-workspace-outcome');
     try {
-      if (!['files_ls', 'files_read', 'files_write'].includes(toolId)) throw new Error('Unsupported workspace operation.');
+      if (!['files_ls', 'files_read', 'files_write', 'artifacts_get'].includes(toolId)) throw new Error('Unsupported workspace operation.');
       const path = String(container.querySelector('#vibecode-workspace-path')?.value || '').trim();
       if (!path.startsWith('/') || path.includes('\0') || path.split('/').includes('..')) throw new Error('Choose an absolute virtual workspace path without parent traversal.');
       const content = container.querySelector('#code-editor')?.value || '';
       const persist = toolId === 'files_write';
-      const bindingId = persist ? 'vibecode.ipfs_kit_py.persist_artifact' : 'vibecode.ipfs_kit_py.list_virtual_files';
-      const dispatchedTool = persist ? 'artifacts_put' : toolId;
+      const retrieve = toolId === 'artifacts_get';
+      const bindingId = retrieve
+        ? 'vibecode.ipfs_kit_py.retrieve_artifact'
+        : persist
+          ? 'vibecode.ipfs_kit_py.persist_artifact'
+          : 'vibecode.ipfs_kit_py.list_virtual_files';
+      const dispatchedTool = retrieve ? 'artifacts_get' : persist ? 'artifacts_put' : toolId;
       let payload;
-      if (persist) {
+      let persistedCid = '';
+      if (retrieve) {
+        const note = this.savedArtifactNote(path);
+        if (!note) throw new Error('No persisted artifact CID is available to reopen.');
+        payload = { cid: note.cid };
+      } else if (persist) {
         const clientModule = await import('../core/mcp-plus-plus-desktop-client.js');
         const { contentCidForBytes, base64ForBytes } = clientModule;
         const bytes = new TextEncoder().encode(content);
-        const cid = await contentCidForBytes(bytes);
+        persistedCid = await contentCidForBytes(bytes);
         payload = {
           path,
           content,
           fixture_scope: 'svf-vibecode-source',
-          cid,
+          cid: persistedCid,
           bytes_base64: base64ForBytes(bytes)
         };
       } else {
@@ -635,13 +647,11 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
         ? document.querySelector('.window[data-app-id="vibecode"] .window-app-content')
         : null) || liveRoot;
       const executedOutput = contentRoot?.querySelector?.('#vibecode-workspace-result') || liveOutput;
-      if (executedOutput?.setAttribute) {
-        executedOutput.style.visibility = 'visible';
-        executedOutput.setAttribute('data-workspace-outcome', 'executed');
-      }
       this.workspacePath = path;
-      const records = [response.result];
+      const records = [];
       let readContent;
+      if (typeof response?.result === 'string') readContent = response.result;
+      else records.push(response.result);
       for (let index = 0; index < records.length && index < 24; index++) {
         const record = records[index];
         if (!record || typeof record !== 'object') continue;
@@ -651,7 +661,12 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
         const parts = Array.isArray(record.content) ? record.content : [];
         for (const item of parts) {
           if (!item || typeof item !== 'object') continue;
-          if (item.json && typeof item.json === 'object') records.push(item.json);
+          if (item.json && typeof item.json === 'object') {
+            records.push(item.json);
+            if (toolId === 'artifacts_get' && typeof item.json.bytes_base64 === 'string') {
+              readContent = new TextDecoder().decode(Uint8Array.from(atob(item.json.bytes_base64), character => character.charCodeAt(0)));
+            }
+          }
           else if (item.type === 'text' && typeof item.text === 'string') {
             try { records.push(JSON.parse(item.text)); }
             catch { readContent = item.text; }
@@ -659,16 +674,28 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
         }
       }
       const editor = liveRoot?.querySelector('#code-editor');
-      if (toolId === 'files_read' && readContent !== undefined && editor) editor.value = readContent;
+      if (toolId === 'files_read' || toolId === 'artifacts_get') {
+        if (typeof readContent !== 'string' || !editor) {
+          throw new Error(typeof readContent !== 'string'
+            ? 'Remote file returned no UTF-8 content. Unsaved edits were kept.'
+            : 'Editor unavailable. Unsaved edits were kept.');
+        }
+        editor.value = readContent;
+        this.updateDiff(liveRoot);
+      }
+      if (executedOutput?.setAttribute) {
+        executedOutput.style.visibility = 'visible';
+        executedOutput.setAttribute('data-workspace-outcome', 'executed');
+      }
       if (liveOutput) {
         liveOutput.setAttribute('data-workspace-outcome', 'executed');
         const listed = toolId === 'files_ls' && response?.result !== undefined ? ` ${JSON.stringify(response.result)}` : '';
         liveOutput.textContent = toolId === 'files_write'
           ? 'Remote file saved.'
-          : (toolId === 'files_read' ? 'Remote file opened.' : `${toolId} finished.${listed}`);
+          : (toolId === 'files_read' || toolId === 'artifacts_get' ? 'Remote file opened.' : `${toolId} finished.${listed}`);
         if (toolId === 'files_write') {
           try {
-            localStorage.setItem('vibecode-remote-note', JSON.stringify({ path, content, note: 'Remote file saved.' }));
+            localStorage.setItem('vibecode-remote-note', JSON.stringify({ path, content, cid: persistedCid, note: 'Remote file saved.' }));
           } catch (_noteError) {}
           this.updateStatus(contentRoot || liveRoot || container, 'Ready');
         }
@@ -699,6 +726,17 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     try {
       const value = localStorage.getItem('vibecode-draft');
       return typeof value === 'string' ? value : null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  savedArtifactNote(path) {
+    try {
+      const note = JSON.parse(localStorage.getItem('vibecode-remote-note') || 'null');
+      if (!note || note.note !== 'Remote file saved.' || note.path !== path || typeof note.cid !== 'string') return null;
+      if (!/^bafkrei[a-z2-7]{52}$/.test(note.cid)) return null;
+      return note;
     } catch (_error) {
       return null;
     }

@@ -15,7 +15,14 @@ class GitHubApp {
         this.mcpConnection = null;
         this.accessToken = null;
         this.user = null;
-        
+        this.reviewArtifact = null;
+        this.reopenComparison = '';
+        this.retainedSha = '';
+        this.reopenedSha = '';
+        this.recoveryNote = '';
+        this.reviewSawMissingRepo = false;
+        this.reviewRetried = false;
+
         // Load saved settings
         this.loadSettings();
         
@@ -132,23 +139,34 @@ class GitHubApp {
         return `
             <div class="github-auth">
                 <style>
-                    .window[data-app-id="github"] .window-content { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding-bottom:56px; scroll-padding-bottom:64px; box-sizing:border-box; }
+                    .window[data-app-id="github"] .window-content { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding-bottom:0; box-sizing:border-box; }
                     .window[data-app-id="github"] .window-app-content { display:flex; flex-direction:column; height:100%; min-height:0; min-width:0; overflow:hidden; }
                     .window[data-app-id="github"] .window-app-content > [id$="-content"] { flex:1 1 0; min-height:0; min-width:0; overflow:hidden; }
-                    .window[data-app-id="github"] .github-auth { flex:1 1 auto; width:100%; align-self:stretch; height:100%; max-height:100%; min-height:0; box-sizing:border-box; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; display:flex !important; flex-direction:column; align-items:stretch; justify-content:flex-start; padding-bottom:128px; scroll-padding-bottom:128px; background:#0f172a; }
+                    .window[data-app-id="github"] .github-auth { flex:1 1 auto; width:100%; align-self:stretch; height:100%; max-height:100%; min-height:0; box-sizing:border-box; overflow-x:hidden; overflow-y:hidden; display:flex !important; flex-direction:column; align-items:stretch; justify-content:flex-start; padding:2px 8px 2px; background:#0f172a; font-size:13px; line-height:1.25; }
                     .window[data-app-id="github"] .github-auth .auth-container { flex:0 0 auto; min-height:0; height:auto !important; max-height:none !important; overflow:visible !important; box-sizing:border-box; width:100%; max-width:none; margin:0; display:flex; flex-direction:column; align-items:stretch; }
-                    .window[data-app-id="github"] .auth-header, .window[data-app-id="github"] .auth-header h2, .window[data-app-id="github"] .auth-header p { position:static !important; display:block !important; height:auto !important; max-height:none !important; overflow:visible !important; transform:none !important; clip:auto !important; clip-path:none !important; text-align:left !important; white-space:normal !important; line-height:1.35 !important; color:#e2e8f0 !important; margin:0 0 8px 0; }
+                    .window[data-app-id="github"] .auth-header, .window[data-app-id="github"] .auth-header h2, .window[data-app-id="github"] .auth-header p { position:static !important; display:block !important; height:auto !important; max-height:none !important; overflow:visible !important; transform:none !important; clip:auto !important; clip-path:none !important; text-align:left !important; white-space:normal !important; line-height:1.2 !important; color:#e2e8f0 !important; margin:0 0 2px 0; }
                     .window[data-app-id="github"] #github-review-panel { flex:0 0 auto; height:auto; min-height:0; width:100%; min-width:0; display:flex; flex-direction:column; align-items:stretch; position:relative; z-index:1; overflow:visible; background:transparent; }
-                    .window[data-app-id="github"] #github-review-panel .form-group { position:static !important; display:block; width:100%; margin:0 0 8px 0; }
+                    .window[data-app-id="github"] #github-review-panel .form-group { position:static !important; display:block; width:100%; margin:0 0 2px 0; }
+                    .window[data-app-id="github"] #github-review-panel .form-group label { margin:0 !important; font-size:12px; line-height:1.2; }
                     .window[data-app-id="github"] #github-repo-context,
-                    .window[data-app-id="github"] #github-file-path { width:100%; max-width:100%; box-sizing:border-box; color:CanvasText; background:Field; border:1px solid GrayText; position:static !important; }
+                    .window[data-app-id="github"] #github-file-path { width:100%; max-width:100%; box-sizing:border-box; color:CanvasText; background:Field; border:1px solid GrayText; position:static !important; padding:2px 8px !important; height:auto !important; min-height:0 !important; line-height:1.2; }
                     .window[data-app-id="github"] #github-repo-context:focus-visible,
                     .window[data-app-id="github"] #github-file-path:focus-visible,
                     .window[data-app-id="github"] #github-retrieve-content:focus-visible { outline:2px solid #58a6ff; outline-offset:2px; }
-                    .window[data-app-id="github"] #github-retrieve-content { color:#fff; background:#0969da; border:1px solid #0550ae; opacity:1; cursor:pointer; align-self:flex-start; }
-                    .window[data-app-id="github"] #github-review-identity { display:block !important; position:static !important; height:auto !important; min-height:1.4em; max-height:none !important; overflow:visible !important; color:#e2e8f0 !important; margin:8px 0; line-height:1.4; white-space:normal !important; }
-                    .window[data-app-id="github"] #github-retrieved-content { display:block !important; position:static !important; flex:0 0 auto !important; width:100%; max-width:100%; min-width:0; height:auto !important; min-height:0 !important; max-height:none !important; margin:8px 0 16px; overflow:visible !important; white-space:pre-wrap !important; overflow-wrap:anywhere !important; word-break:break-word !important; line-height:1.45 !important; color:#e2e8f0 !important; background:rgba(15,23,42,0.95); border:1px solid #334155; border-radius:6px; padding:10px 12px 20px; box-sizing:border-box; }
-                    .window[data-app-id="github"] details.github-account-setup { position:static !important; display:block !important; clear:both; width:100%; margin:12px 0 0 0 !important; transform:none !important; background:transparent !important; z-index:0; }
+                    .window[data-app-id="github"] #github-retrieve-content { color:#fff; background:#0969da; border:1px solid #0550ae; opacity:1; cursor:pointer; align-self:flex-start; padding:3px 10px; line-height:1.2; margin:0 0 2px; }
+                    .window[data-app-id="github"] #github-review-panel h3 { display:none !important; margin:0 !important; }
+                    .window[data-app-id="github"] .auth-header h2 { margin:0 0 2px; font-size:15px; }
+                    .window[data-app-id="github"] #github-review-help { margin:0 0 2px; font-size:12px; line-height:1.2; }
+                    .window[data-app-id="github"] #github-review-identity,
+                    .window[data-app-id="github"] #github-content-note,
+                    .window[data-app-id="github"] #github-reopen-compare,
+                    .window[data-app-id="github"] #github-recovery-note { display:block !important; position:static !important; height:auto !important; max-height:none !important; overflow:visible !important; color:#e2e8f0 !important; margin:0; line-height:1.25; white-space:normal !important; overflow-wrap:anywhere !important; word-break:break-word !important; }
+                    .window[data-app-id="github"] .github-sha-row { display:flex; flex-wrap:wrap; column-gap:6px; align-items:baseline; margin:0; line-height:1.25; }
+                    .window[data-app-id="github"] .github-sha-label,
+                    .window[data-app-id="github"] #github-retained-sha,
+                    .window[data-app-id="github"] #github-reopened-sha { display:inline; min-width:0; position:static !important; height:auto !important; max-height:none !important; overflow:visible !important; color:#e2e8f0 !important; margin:0; line-height:1.25; white-space:normal !important; overflow-wrap:anywhere !important; word-break:break-word !important; }
+                    .window[data-app-id="github"] #github-retrieved-content { display:block !important; position:static !important; flex:0 0 auto !important; width:100%; max-width:100%; min-width:0; height:auto !important; min-height:0 !important; max-height:none !important; margin:2px 0; overflow:visible !important; white-space:pre-wrap !important; overflow-wrap:anywhere !important; word-break:break-word !important; line-height:1.25 !important; color:#e2e8f0 !important; background:rgba(15,23,42,0.95); border:1px solid #334155; border-radius:6px; padding:2px 6px; box-sizing:border-box; }
+                    .window[data-app-id="github"] details.github-account-setup { display:none !important; }
                     .window[data-app-id="github"] details.github-account-setup > summary { position:static !important; display:list-item !important; cursor:pointer; color:#e2e8f0 !important; background:transparent !important; }
                     .window[data-app-id="github"] details.github-account-setup:not([open]) > :not(summary) { display:none !important; }
                     .window[data-app-id="github"] #github-tool-confirm-host:empty { display:none !important; height:0 !important; margin:0 !important; padding:0 !important; background:transparent !important; }
@@ -156,12 +174,12 @@ class GitHubApp {
                 <div class="auth-container" style="min-height:0">
                     <div class="auth-header">
                         <h2>🐙 GitHub Integration</h2>
-                        <p role="status">GitHub account not connected. Repository review can use the stored file below; sign-in setup is optional.</p>
+                        <p id="github-account-status" role="status">GitHub sign-in is optional. No token is stored.</p>
                     </div>
 
                     <div class="auth-method" id="github-review-panel">
                         <h3>Repository review</h3>
-                        <p>Select a repository and a known file. The identity below is that selection. Retrieve stays confirmation-bound.</p>
+                        <p id="github-review-help">Retrieve the selected file. Confirmation is required.</p>
                         <div class="form-group">
                             <label for="github-repo-context">Repository</label>
                             <input type="text" id="github-repo-context" class="sk-input" aria-label="Repository" placeholder="owner/repository" value="${this.escapeReviewText(this.reviewArtifact && this.reviewArtifact.repository)}">
@@ -172,13 +190,16 @@ class GitHubApp {
                         </div>
                         <button type="button" id="github-retrieve-content" class="btn-primary sk-btn sk-btn-primary" onclick="githubApp.retrieveSelectedContent(event)">Retrieve selected file</button>
                         <div id="github-tool-confirm-host"></div>
+                        ${typeof this.reviewArtifact?.content === 'string' ? `<pre id="github-retrieved-content">${this.escapeReviewText(this.reviewArtifact.content)}</pre>` : ''}
                         <p id="github-review-identity" role="status">${this.escapeReviewText(this.reviewIdentityText())}</p>
-                        ${typeof this.reviewArtifact?.content === 'string' ? `<p>Stored README preview; retrieve again to verify current content.</p><pre id="github-retrieved-content">${this.escapeReviewText(this.reviewArtifact.content)}</pre>` : ''}
+                        ${this.retainedSha ? '<p class="github-sha-row" id="github-retained-sha-row"><span class="github-sha-label">Retained</span><span id="github-retained-sha">' + this.escapeReviewText(this.retainedSha) + '</span></p>' : ''}
+                        ${this.reopenedSha ? '<p class="github-sha-row" id="github-reopened-sha-row"><span class="github-sha-label">Reopened</span><span id="github-reopened-sha">' + this.escapeReviewText(this.reopenedSha) + '</span></p>' : ''}
+                        ${this.recoveryNote ? `<p id="github-recovery-note">${this.escapeReviewText(this.recoveryNote)}</p>` : ''}
                         <p id="github-review-error" role="alert"></p>
                     </div>
                     
                     <details class="github-account-setup">
-                        <summary>Connect GitHub account (not connected)</summary>
+                        <summary>GitHub sign-in (optional)</summary>
                     <div class="auth-methods">
                         <div class="auth-method">
                             <h3>🔑 Personal Access Token</h3>
@@ -610,7 +631,9 @@ class GitHubApp {
     reviewIdentityText() {
         const artifact = this.reviewArtifact;
         if (!artifact || !artifact.repository || !artifact.file) return '';
-        return `${artifact.repository} · ${artifact.file}`;
+        const identity = `${artifact.repository} · ${artifact.file}`;
+        const prefix = this.reviewRetried ? 'Retried ' : '';
+        return artifact.cid ? `${prefix}${identity} · ${artifact.cid}` : `${prefix}${identity}`;
     }
 
     setReviewMessage(errorText) {
@@ -625,6 +648,7 @@ class GitHubApp {
         const file = (document.getElementById('github-file-path')?.value || '').trim();
         const ownerRepo = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository);
         if (!ownerRepo || !file) {
+            this.reviewSawMissingRepo = true;
             this.reviewArtifact = null;
             this.saveSettings();
             this.setReviewMessage('Repository not found. Select an accessible repository and retry.');
@@ -661,19 +685,32 @@ class GitHubApp {
             const cid = control?.safe_payloads?.ipfs_cat?.cid;
             if (!catalogResponse.ok || control?.status !== 'available' || typeof cid !== 'string') throw new Error('No reviewed repository artifact CID is available.');
             const result = await invokeNativeTool(surface, 'github', bindingId, {
-                executionMode: 'execute', toolId: 'ipfs_cat', payload: { cid, fixture_scope: 'svf-github-review' }, trigger
+                executionMode: 'execute', toolId: 'ipfs_cat', payload: {
+                    cid,
+                    fixture_scope: 'svf-github-review',
+                    expected_sha256: '9e26ef8fc5b302538ac6929a1402164dbc63b79479dd4c8c4e4e35527315e778'
+                }, trigger
             });
             if (result === null) throw new Error('Retrieve cancelled before dispatch.');
             if (result.ok !== true || result.outcome !== 'executed') throw new Error('The native repository retrieve failed.');
             const actual = unwrapNetworkToolResult(result.result);
-            if (actual?.cid !== cid || typeof actual.bytes_base64 !== 'string') throw new Error('The owner returned no matching repository bytes.');
+            if (actual?.cid !== cid || typeof actual.bytes_base64 !== 'string' || !/^[a-f0-9]{64}$/.test(actual.sha256 || '')) throw new Error('The owner returned no matching repository bytes.');
             const bytes = Uint8Array.from(atob(actual.bytes_base64), char => char.charCodeAt(0));
             if (await contentCidForBytes(bytes) !== cid) throw new Error('Repository artifact bytes do not match their CID.');
             const record = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
-            if (record.repository !== this.reviewArtifact.repository || record.file !== this.reviewArtifact.file || typeof record.content !== 'string') {
+            const prior = this.reviewArtifact;
+            if (record.repository !== prior.repository || record.file !== prior.file || typeof record.content !== 'string') {
                 throw new Error('The stored repository artifact does not match the selected repository and file.');
             }
-            this.reviewArtifact = { ...this.reviewArtifact, cid, content: record.content };
+            if (prior.sha256 && prior.sha256 === actual.sha256 && !this.reopenedSha) {
+                this.retainedSha = prior.sha256;
+                this.reopenedSha = actual.sha256;
+            }
+            if (this.reviewSawMissingRepo) {
+                this.reviewRetried = true;
+                this.recoveryNote = `Left missing-repo. Selected ${prior.repository} and retried.`;
+            }
+            this.reviewArtifact = { repository: prior.repository, file: prior.file, cid, content: record.content, sha256: actual.sha256 };
             let preview = surface.querySelector('#github-retrieved-content');
             if (!preview) {
                 preview = document.createElement('pre');
@@ -682,8 +719,47 @@ class GitHubApp {
                 if (anchor) anchor.after(preview);
                 else surface.querySelector('#github-review-panel')?.append(preview);
             }
-            preview.style.cssText = 'display:block;position:static;flex:0 0 auto;width:100%;height:auto;min-height:0;max-height:none;overflow:visible;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;line-height:1.45;color:#e2e8f0;background:rgba(15,23,42,0.95);border:1px solid #334155;border-radius:6px;padding:10px 12px 20px;margin:8px 0 16px;box-sizing:border-box';
+            preview.style.cssText = 'display:block;position:static;flex:0 0 auto;width:100%;max-width:100%;height:auto;min-height:0;max-height:none;overflow:visible;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;line-height:1.25;color:#e2e8f0;background:rgba(15,23,42,0.95);border:1px solid #334155;border-radius:6px;padding:2px 6px;margin:2px 0;box-sizing:border-box';
             preview.textContent = record.content;
+            let proofCursor = preview;
+            const paintLine = (id, text) => {
+                if (!text) return;
+                let node = surface.querySelector('#' + id);
+                if (!node) {
+                    node = document.createElement('p');
+                    node.id = id;
+                    proofCursor.after(node);
+                }
+                node.textContent = text;
+                proofCursor = node;
+            };
+            const paintHash = (id, label, value) => {
+                if (!value) return;
+                let node = surface.querySelector('#' + id);
+                if (!node) {
+                    const row = document.createElement('p');
+                    row.id = id + '-row';
+                    row.className = 'github-sha-row';
+                    const labelNode = document.createElement('span');
+                    labelNode.className = 'github-sha-label';
+                    labelNode.textContent = label;
+                    node = document.createElement('span');
+                    node.id = id;
+                    row.append(labelNode, node);
+                    proofCursor.after(row);
+                    proofCursor = row;
+                } else {
+                    proofCursor = node.closest('p') || node;
+                }
+                node.textContent = value;
+            };
+            paintHash('github-retained-sha', 'Retained', this.retainedSha);
+            paintHash('github-reopened-sha', 'Reopened', this.reopenedSha);
+            if (this.recoveryNote) paintLine('github-recovery-note', this.recoveryNote);
+            const help = surface.querySelector('#github-review-help');
+            if (help) help.textContent = 'Retrieve confirmed.';
+            const account = surface.querySelector('#github-account-status');
+            if (account) account.textContent = 'Repository file verified. GitHub sign-in is optional and no token is stored.';
             this.setReviewMessage('');
             if (identity) identity.textContent = this.reviewIdentityText();
             this.saveSettings();
@@ -1113,7 +1189,9 @@ class GitHubApp {
                     this.reviewArtifact = {
                         repository: String(artifact.repository),
                         file: String(artifact.file),
-                        ...(typeof artifact.content === 'string' && artifact.content.length <= 65536 ? { content: artifact.content } : {})
+                        ...(typeof artifact.cid === 'string' && /^baf[a-z2-7]{20,128}$/.test(artifact.cid) ? { cid: artifact.cid } : {}),
+                        ...(typeof artifact.content === 'string' && artifact.content.length <= 65536 ? { content: artifact.content } : {}),
+                        ...(typeof artifact.sha256 === 'string' && /^[a-f0-9]{64}$/.test(artifact.sha256) ? { sha256: artifact.sha256 } : {})
                     };
                 }
             }

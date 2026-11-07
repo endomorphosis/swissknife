@@ -11,9 +11,16 @@
       "max_duration_seconds": 30,
       "max_output_bytes": 65536,
       "result_assertion": {
-        "pointer": "/result/result/content/0/json/content",
-        "operator": "contains",
-        "expected": "gpt2"
+        "pointer": "/result/result/content/0/json",
+        "operator": "equals",
+        "expected": {
+          "binary_size": 127,
+          "cid": "bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm",
+          "content": "[{\"device\":\"cpu\",\"id\":\"gpt2\",\"model_id\":\"gpt2\",\"snapshot\":\"607a30d783dfa663caf39e06633721c8d4cfcd7e\",\"task\":\"text-generation\"}]",
+          "content_type": "text",
+          "gateway": "http://127.0.0.1:8092/ipfs/bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm",
+          "status": "success"
+        }
       }
     }
   ],
@@ -48,7 +55,7 @@
           "selector": "#hf-selected-item"
         },
         "operator": "equals",
-        "expected": "gpt2 @ 607a30d783dfa663caf39e06633721c8d4cfcd7e"
+        "expected": "gpt2 @ 607a30d783dfa663caf39e06633721c8d4cfcd7e artifact bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm"
       }
     ],
     "persist_reopen": [
@@ -56,21 +63,28 @@
         "op": "reopen_app"
       },
       {
+        "op": "press",
+        "selector": "#models-search",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#hf-reopened-item",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
         "op": "assert",
         "requirement_id": "persist_reopen",
         "probe": {
           "kind": "text",
-          "selector": "#hf-selected-item"
+          "selector": "#hf-reopened-item"
         },
         "operator": "equals",
-        "expected": "gpt2 @ 607a30d783dfa663caf39e06633721c8d4cfcd7e"
+        "expected": "Stored gpt2 revision 607a30d783dfa663caf39e06633721c8d4cfcd7e; owner snapshot 607a30d783dfa663caf39e06633721c8d4cfcd7e; artifact bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm"
       }
     ],
     "failure_recovery": [
-      {
-        "op": "click",
-        "selector": "[data-tab=\"inference\"]"
-      },
       {
         "op": "fill",
         "selector": "#inference-input",
@@ -92,8 +106,9 @@
         "expected": "requires a credential"
       },
       {
-        "op": "click",
-        "selector": "[data-tab=\"models\"]"
+        "op": "fill",
+        "selector": "#models-search",
+        "value": "gpt2"
       },
       {
         "op": "press",
@@ -102,7 +117,7 @@
       },
       {
         "op": "wait_for",
-        "selector": "#models-grid [data-model-id=\"gpt2\"]",
+        "selector": "#hf-selected-item[data-identity=\"retrieved\"]",
         "state": "visible",
         "timeout_ms": 15000
       },
@@ -114,7 +129,7 @@
           "selector": "#hf-selected-item"
         },
         "operator": "equals",
-        "expected": "gpt2 @ 607a30d783dfa663caf39e06633721c8d4cfcd7e"
+        "expected": "gpt2 @ 607a30d783dfa663caf39e06633721c8d4cfcd7e artifact bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm retrieved"
       }
     ]
   }

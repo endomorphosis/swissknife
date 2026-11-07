@@ -160,6 +160,20 @@
                 "http",
                 "libp2p"
               ]
+            },
+            {
+              "binding_id": "vibecode.ipfs_kit_py.retrieve_artifact",
+              "capability": "ipfs.kit.artifact_read",
+              "operation": "retrieve_artifact",
+              "exact_tool_candidates": [
+                "artifacts_get"
+              ],
+              "policy_class": "read",
+              "mutates_remote_state": false,
+              "transports": [
+                "http",
+                "libp2p"
+              ]
             }
           ],
           "verification": "Read operations need actual returned data and app-visible meaning. Side effects need a governed isolated operation plus readback or terminal output; dry_run is preview-only."

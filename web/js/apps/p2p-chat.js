@@ -55,11 +55,15 @@ export class P2PChatApp {
     };
     this.composeStatus = '';
     this.retainedDraft = '';
+    this.loadedComparison = '';
+    this.historyCid = '';
     this.lastPublishedKey = '';
     this.lastExchange = null;
     this.replayArmed = false;
+    this.deliveryAuditRecorded = false;
     this.remotePeerId = '';
     this.governedSendCount = 0;
+    this.publishedLines = [];
     this.restoreRetainedChat();
     
     // Friends List integration
@@ -526,18 +530,18 @@ export class P2PChatApp {
           }
           
           .control-btn {
-            padding: 10px 16px;
+            padding: 6px 10px;
             border: none;
             border-radius: 8px;
             background: var(--sk-accent, #8bd8bd);
             color: #0e1412;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
           }
           
           .control-btn:hover {
@@ -674,8 +678,8 @@ export class P2PChatApp {
             display: flex;
             flex-flow: row wrap;
             align-items: stretch;
-            gap: 8px;
-            padding: 8px 10px;
+            gap: 4px;
+            padding: 4px 8px;
             border-bottom: 1px solid var(--sk-border, #263a34);
             background: var(--sk-bg-panel, #101b18);
             position: static;
@@ -699,7 +703,7 @@ export class P2PChatApp {
           .chat-broadcast-panel label {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 2px;
             min-width: 0;
             font-size: 12px;
           }
@@ -709,6 +713,13 @@ export class P2PChatApp {
             width: 100%;
             box-sizing: border-box;
             min-width: 0;
+          }
+
+          .chat-broadcast-panel textarea {
+            height: 32px;
+            min-height: 32px;
+            max-height: 48px;
+            resize: none;
           }
 
           .chat-outbox {
@@ -724,21 +735,24 @@ export class P2PChatApp {
           .chat-outbox small { display: block; color: var(--sk-text-faint, #9eb2aa); }
 
           .chat-retained-state {
+            flex: 0 0 auto;
             margin: 0;
-            padding: 0 12px 8px;
+            padding: 4px 10px 6px;
             color: var(--sk-text-faint, #9eb2aa);
             font-size: 12px;
-            line-height: 1.4;
+            line-height: 1.3;
             overflow-wrap: anywhere;
+            word-break: break-word;
           }
 
           .chat-published-transcript {
             margin: 0;
             color: var(--sk-text, #edf7f2);
-            font-size: 13px;
-            line-height: 1.45;
-            white-space: normal;
-            overflow-wrap: anywhere;
+            font-size: 11px;
+            line-height: 1.25;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            word-break: normal;
           }
 
           .p2p-chat-toast {
@@ -768,12 +782,7 @@ export class P2PChatApp {
           }
           
           .chat-area-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--sk-border, #263a34);
-            background: var(--sk-bg-panel, #101b18);
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            display: none;
           }
           
           .current-peer-info {
@@ -810,13 +819,13 @@ export class P2PChatApp {
           }
           
           .messages-container {
-            flex: 1 1 auto;
-            min-height: 0;
-            overflow-y: auto;
-            padding: 20px;
+            flex: 0 0 auto;
+            min-height: 72px;
+            overflow-y: visible;
+            padding: 6px 10px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 6px;
             background: transparent;
           }
           
@@ -982,14 +991,19 @@ export class P2PChatApp {
           }
 
           .legacy-workflow-panel {
-            border-top: 1px solid var(--sk-border, #263a34);
-            background: var(--sk-bg-panel, #101b18);
-            padding: 14px 16px;
-            display: grid;
-            gap: 10px;
-            max-height: 42%;
-            overflow: auto;
-            flex: 0 0 auto;
+            display: none;
+          }
+
+          .chat-broadcast-panel [data-chat-history-cid] {
+            height: auto;
+            min-height: 32px;
+            max-height: 52px;
+            resize: none;
+            font-size: 11px;
+            line-height: 1.25;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-all;
           }
 
           .legacy-diagnostics summary {
@@ -1181,7 +1195,7 @@ export class P2PChatApp {
           .legacy-status-strip {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 4px;
             font-size: 11px;
             color: var(--sk-text-faint, #9eb2aa);
           }
@@ -1190,7 +1204,7 @@ export class P2PChatApp {
             border-radius: 999px;
             background: var(--sk-bg-inset, #17241f);
             border: 1px solid var(--sk-border, #263a34);
-            padding: 4px 8px;
+            padding: 2px 6px;
           }
 
           @media (max-width: 700px) {
@@ -1203,6 +1217,16 @@ export class P2PChatApp {
               max-height: 210px;
               flex: 0 0 auto;
               overflow: auto;
+            }
+
+            .message-input-area {
+              padding: 6px 8px;
+            }
+
+            .send-btn {
+              padding: 6px 10px;
+              font-size: 12px;
+              min-width: 64px;
             }
 
             .chat-header,
@@ -1228,6 +1252,16 @@ export class P2PChatApp {
 
             .peers-section h4 {
               margin: 0 8px 4px;
+            }
+
+            .peer-list {
+              display: flex;
+              flex-wrap: wrap;
+            }
+
+            .peer-list .peer-item {
+              flex: 1 1 140px;
+              min-width: 0;
             }
 
             .chat-broadcast-panel {
@@ -1267,7 +1301,7 @@ export class P2PChatApp {
           
           <div class="peers-section">
             <h4>Connected Peers (${this.peers.size})</h4>
-            <div id="${this.instanceId}-peers">
+            <div class="peer-list" id="${this.instanceId}-peers">
               ${this.renderPeersList()}
             </div>
           </div>
@@ -1291,25 +1325,22 @@ export class P2PChatApp {
             <button type="button" class="control-btn" data-chat-show-delivery onclick="window.p2pChatInstances?.['${this.instanceId}']?.showDeliveryStatus()">
               Delivery status
             </button>
-            <button type="button" class="control-btn" data-chat-workflow-action="show-migration-path" onclick="window.p2pChatInstances?.['${this.instanceId}']?.showMigrationPath()">
+            <button type="button" class="control-btn" data-chat-workflow-action="show-migration-path" ${networkNativeAttributes('p2p-chat', 'mcp++:ipfs_kit_py/dag/append')} onclick="window.p2pChatInstances?.['${this.instanceId}']?.showMigrationPath()">
               Retry / upgrade options
             </button>
-            <button class="control-btn" ${networkNativeAttributes('p2p-chat', 'mcp++:ipfs_kit_py/artifacts/put')} onclick="window.p2pChatInstances?.['${this.instanceId}']?.saveHistory()" title="Persist chat history to ipfs_kit_py (confirmation-gated)">
+            <button type="button" class="control-btn" data-chat-save-history ${networkNativeAttributes('p2p-chat', 'mcp++:ipfs_kit_py/artifacts/put')} onclick="window.p2pChatInstances?.['${this.instanceId}']?.saveHistory()" title="Persist chat history to ipfs_kit_py (confirmation-gated)">
               💾 Save History
             </button>
-            <input data-chat-history-cid aria-label="Chat history artifact CID" spellcheck="false" placeholder="Stored chat history CID">
-            <button class="control-btn" ${networkNativeAttributes('p2p-chat', 'mcp++:ipfs_kit_py/artifacts/get')} onclick="window.p2pChatInstances?.['${this.instanceId}']?.loadHistory()" title="Load chat history from an ipfs_kit_py artifact CID">
+            <textarea data-chat-history-cid readonly rows="2" aria-label="Chat history artifact CID" spellcheck="false" placeholder="Stored chat history CID">${this.escapeHtml(this.historyCid || '')}</textarea>
+            <button type="button" class="control-btn" data-chat-load-history ${networkNativeAttributes('p2p-chat', 'mcp++:ipfs_kit_py/artifacts/get')} onclick="window.p2pChatInstances?.['${this.instanceId}']?.loadHistory()" title="Load chat history from an ipfs_kit_py artifact CID">
               📂 Load History
             </button>
           </div>
-          <p class="chat-retained-state" data-chat-retained-state>${this.escapeHtml(this.retainedSummary())}</p>
-          <p class="chat-compose-status" data-chat-compose-status role="status">${this.escapeHtml(this.composeStatus || '')}</p>
-          
           <div class="messages-container" id="${this.instanceId}-messages">
-            ${this.currentChatPeer ? this.renderMessages() : this.renderEmptyChat()}
+            ${this.renderVisibleLog()}
           </div>
-          
-          ${this.currentChatPeer ? this.renderMessageInput() : ''}
+          <p class="chat-compose-status" data-chat-compose-status role="status">${this.escapeHtml(this.composeStatus || '')}</p>
+          <p class="chat-retained-state" data-chat-retained-state>${this.escapeHtml(this.retainedSummary())}</p>
           ${this.renderLegacyWorkflowPanel()}
         </div>
       </div>
@@ -1412,6 +1443,15 @@ export class P2PChatApp {
         </div>
       `;
     }).join('');
+  }
+
+  renderVisibleLog() {
+    const lines = Array.isArray(this.publishedLines) ? this.publishedLines.filter((item) => typeof item === 'string' && item) : [];
+    const comparison = typeof this.loadedComparison === 'string' ? this.loadedComparison : '';
+    if (!lines.length && !comparison) {
+      return this.currentChatPeer ? this.renderMessages() : this.renderEmptyChat();
+    }
+    return `<p class="chat-published-transcript">${this.escapeHtml([...lines, comparison].filter(Boolean).join('\n'))}</p>`;
   }
 
   renderEmptyChat() {
@@ -1647,11 +1687,59 @@ export class P2PChatApp {
     );
   }
 
+  async recordUpgradeRoute(container) {
+    // Record the chosen route and the queued draft. The next confirmed publish
+    // retries that draft; this call must not dispatch it. queued_message and
+    // route stay on this retained call. The publish receipt only carries
+    // delivery_state.
+    if (this.deliveryAuditRecorded || !container) return;
+    const queued = this.offlineQueue.map((entry) => entry.content).filter(Boolean).join(', ');
+    try {
+      const result = await invokeNativeTool(container, 'p2p-chat', 'p2p-chat.ipfs_kit_py.append_event', {
+        executionMode: 'execute',
+        toolId: 'dag_append',
+        payload: {
+          fixture_scope: 'svf-p2p-chat-classic',
+          dry_run: false,
+          event: {
+            event_type: 'p2p-chat.upgrade-route-chosen',
+            nonce: crypto.randomUUID(),
+            parents: [],
+            queued_message: queued,
+            route: 'p2p-chat-unified'
+          }
+        }
+      });
+      if (result != null) {
+        this.deliveryAuditRecorded = true;
+        this.persistRetainedChat();
+      }
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+      if (!text.includes('No declared application binding')) {
+        this.showNotification(`Upgrade route was not recorded: ${text}`, 'info');
+      }
+    }
+  }
+
   showMigrationPath() {
-    this.workflowState.migration = 'ready-for-p2p-chat-unified';
+    // Arm before any later owner call. The queued draft is retried by the
+    // next confirmed publish; choosing the route must not itself dispatch it.
     this.replayArmed = true;
+    this.workflowState.migration = 'chosen-p2p-chat-unified';
     this.recordLegacyWorkflowStep('migration');
-    this.showNotification('Native owner retry is armed for a queued draft or the last broadcast. Upgrade guidance: p2p-chat-unified.', 'info');
+    const queued = this.offlineQueue.map((entry) => entry.content).filter(Boolean).join(', ');
+    this.showNotification(
+      queued
+        ? `Upgrade route selected. Retry will publish the queued draft (${queued}) once.`
+        : 'Upgrade route selected. An identical broadcast is not dispatched again.',
+      'info'
+    );
+    void this.recordUpgradeRoute(this.getNativeContainer());
+  }
+
+  peerLabel(id) {
+    return typeof id === 'string' && id.length > 12 ? `${id.slice(0, 8)}…${id.slice(-4)}` : (id || '');
   }
 
   /**
@@ -1664,6 +1752,10 @@ export class P2PChatApp {
       app: 'p2p-chat',
       saved_at: new Date().toISOString(),
       peer_id: this.peerId,
+      remote_peer_id: this.remotePeerId || '',
+      draft: this.retainedDraft || '',
+      delivery: this.workflowState.delivery,
+      comparison: `delivery ${this.workflowState.delivery}; message ${this.retainedDraft || ''}; peers ${this.peerId} to ${this.remotePeerId || ''}`,
       conversations: Array.from(this.conversations.entries()).map(([peerId, messages]) => ({
         peer_id: peerId,
         messages: messages.map(m => ({
@@ -1672,35 +1764,37 @@ export class P2PChatApp {
         }))
       }))
     };
+    const container = this.getNativeContainer();
     try {
       const bytes = new TextEncoder().encode(stableStringifyValue(record));
       const cid = await contentCidForBytes(bytes);
-      const result = await callChatMcpTool(this, 'request_action', 'mcp++:ipfs_kit_py/artifacts/put', {
-        cid,
-        bytes_base64: base64ForBytes(bytes),
-        profile: 'p2p-chat-history',
-        kind: 'chat-history',
-        service: 'ipfs_kit_py',
-        pin: true
+      const trigger = container?.querySelector('[data-chat-save-history]') || null;
+      const result = await invokeNativeTool(container, 'p2p-chat', 'p2p-chat.ipfs_kit_py.persist_artifact', {
+        executionMode: 'execute',
+        toolId: 'artifacts_put',
+        payload: {
+          fixture_scope: 'svf-p2p-chat-classic',
+          cid,
+          bytes_base64: base64ForBytes(bytes),
+          profile: 'p2p-chat-history',
+          kind: 'chat-history',
+          service: 'ipfs_kit_py',
+          pin: true
+        },
+        trigger
       });
       if (result === null) return;
-      if (result.persisted !== true || result.cid !== cid) {
-        throw new Error(result?.error || 'ipfs_kit_py did not verify the persisted history artifact.');
+      const view = [result, result?.result, result?.result?.result, result?.result?.content?.[0]?.json, result?.result?.result?.content?.[0]?.json]
+        .find((item) => item && item.persisted === true && item.cid === cid);
+      if (!view) throw new Error('ipfs_kit_py did not verify the persisted history artifact.');
+      this.historyCid = cid;
+      const input = container?.querySelector('[data-chat-history-cid]');
+      if (input) {
+        input.value = cid;
+        input.dataset.historySaved = '1';
       }
-      let dagNote = '';
-      try {
-        const dagResult = await callChatMcpTool(this, 'request_action', 'mcp++:ipfs_kit_py/dag/append', {
-          event: {
-            event_type: 'p2p-chat.history.saved',
-            history_cid: cid,
-            peer_id: this.peerId
-          }
-        });
-        if (dagResult?.event_cid) dagNote = `; event DAG ${dagResult.event_cid}`;
-      } catch (dagError) {
-        dagNote = `; event DAG append failed: ${dagError instanceof Error ? dagError.message : String(dagError)}`;
-      }
-      this.showNotification(`History saved: ${cid}${dagNote}`, 'success');
+      this.persistRetainedChat();
+      this.showNotification(`History saved: ${cid}`, 'success');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.showNotification(`History ${error.preview ? 'preview' : 'save failed'}: ${message}`, error.preview ? 'info' : 'error');
@@ -1711,24 +1805,43 @@ export class P2PChatApp {
    * 📂 Load chat history: fetch a real history artifact live from ipfs_kit_py.
    */
   async loadHistory() {
-    const cid = this.getNativeContainer()?.querySelector('[data-chat-history-cid]')?.value.trim();
+    const container = this.getNativeContainer();
+    const cid = container?.querySelector('[data-chat-history-cid]')?.value.trim();
     if (!cid) { this.showNotification('Enter a stored chat history artifact CID.', 'info'); return; }
     try {
-      const artifact = await callChatMcpTool(this, 'request_action', 'mcp++:ipfs_kit_py/artifacts/get', { cid });
-      if (artifact === null) return;
-      if (!artifact || artifact.found !== true) {
-        throw new Error(artifact?.error || `Artifact ${cid} was not found in ipfs_kit_py.`);
-      }
+      const trigger = container?.querySelector('[data-chat-load-history]') || null;
+      const result = await invokeNativeTool(container, 'p2p-chat', 'p2p-chat.ipfs_kit_py.retrieve_artifact', {
+        executionMode: 'execute',
+        toolId: 'artifacts_get',
+        payload: { cid },
+        trigger
+      });
+      if (result === null) return;
+      const artifact = [result, result?.result, result?.result?.result, result?.result?.content?.[0]?.json, result?.result?.result?.content?.[0]?.json]
+        .find((item) => item && item.found === true && typeof item.bytes_base64 === 'string');
+      if (!artifact) throw new Error(`Artifact ${cid} was not found in ipfs_kit_py.`);
       const record = JSON.parse(new TextDecoder().decode(bytesFromBase64(artifact.bytes_base64 || '')));
       if (record.schema !== 'swissknife.p2p-chat.history.v1' || !Array.isArray(record.conversations)) throw new Error('The artifact is not a supported chat history record.');
-      const conversations = Array.isArray(record.conversations) ? record.conversations : [];
+      const conversations = record.conversations;
       for (const conv of conversations) {
         this.conversations.set(conv.peer_id, (conv.messages || []).map(m => ({
           ...m,
           timestamp: m.timestamp ? new Date(m.timestamp) : new Date()
         })));
       }
+      if (typeof record.draft === 'string') this.retainedDraft = record.draft;
+      if (typeof record.delivery === 'string') this.workflowState.delivery = record.delivery;
+      if (typeof record.peer_id === 'string' && record.peer_id) this.peerId = record.peer_id;
+      if (typeof record.remote_peer_id === 'string') this.remotePeerId = record.remote_peer_id;
+      this.loadedComparison = `delivery ${this.workflowState.delivery}; message ${this.retainedDraft}; peers ${this.peerLabel(this.peerId)} to ${this.peerLabel(this.remotePeerId)}`;
+      this.historyCid = cid;
+      const composer = container?.querySelector('[data-chat-broadcast-message]');
+      if (composer && this.retainedDraft) composer.value = this.retainedDraft;
       this.updateDisplay();
+      this.renderRetainedState();
+      this.persistRetainedChat();
+      const retained = container?.querySelector('[data-chat-retained-state]');
+      if (retained) retained.dataset.historyLoaded = '1';
       this.showNotification(`History loaded from ${cid} (${conversations.length} conversation(s))`, 'success');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -1803,9 +1916,14 @@ export class P2PChatApp {
   }
 
   retainedSummary() {
-    const peers = this.peerId && this.remotePeerId ? `${this.peerId}→${this.remotePeerId}` : (this.peerId || 'none');
+    if (this.loadedComparison) return this.loadedComparison;
+    const peers = this.peerId && this.remotePeerId ? `${this.peerLabel(this.peerId)} to ${this.peerLabel(this.remotePeerId)}` : (this.peerLabel(this.peerId) || 'none');
     const queued = this.offlineQueue.map((entry) => entry.content).filter(Boolean).join(', ');
-    return `peers ${peers}; delivery ${this.workflowState.delivery}; message ${this.retainedDraft || ''}; offline queue ${this.offlineQueue.length}${queued ? ` holding ${queued}` : ''}; migration ${this.workflowState.migration}; draft ${this.retainedDraft || ''}; sends ${this.governedSendCount || 0}`;
+    const latest = this.retainedDraft || '';
+    const earlier = (this.publishedLines || []).map((line) => String(line).split(' · ')[0].split('\n')[0]).filter((item) => item && item !== latest);
+    const kept = earlier.length ? `; kept ${earlier.join(' | ')}` : '';
+    const holding = queued ? ` holding ${queued}` : '';
+    return `delivery ${this.workflowState.delivery}; message ${latest}${kept}; peers ${peers}; offline queue ${this.offlineQueue.length}${holding}; sends ${this.governedSendCount || 0}`;
   }
 
   renderOutbox() {
@@ -1848,10 +1966,13 @@ export class P2PChatApp {
         offline: this.workflowState.offline,
         pubsub: this.workflowState.pubsub,
         draft: this.retainedDraft || '',
+        historyCid: this.historyCid || '',
         remotePeerId: this.remotePeerId || '',
         governedSendCount: this.governedSendCount || 0,
+        publishedLines: Array.isArray(this.publishedLines) ? this.publishedLines.slice(-6) : [],
         lastPublishedKey: this.lastPublishedKey || '',
         lastExchange: this.lastExchange || null,
+        deliveryAuditRecorded: this.deliveryAuditRecorded === true,
         queue: this.offlineQueue.map((entry) => ({
           content: entry.content,
           to: entry.to,
@@ -1876,9 +1997,12 @@ export class P2PChatApp {
       if (typeof saved.offline === 'string') this.workflowState.offline = saved.offline;
       if (typeof saved.pubsub === 'string') this.workflowState.pubsub = saved.pubsub;
       if (typeof saved.draft === 'string') this.retainedDraft = saved.draft;
+      if (typeof saved.historyCid === 'string') this.historyCid = saved.historyCid;
       if (typeof saved.remotePeerId === 'string') this.remotePeerId = saved.remotePeerId;
       if (Number.isInteger(saved.governedSendCount) && saved.governedSendCount >= 0) this.governedSendCount = saved.governedSendCount;
+      if (Array.isArray(saved.publishedLines)) this.publishedLines = saved.publishedLines.filter((item) => typeof item === 'string').slice(-6);
       if (typeof saved.lastPublishedKey === 'string') this.lastPublishedKey = saved.lastPublishedKey;
+      if (saved.deliveryAuditRecorded === true) this.deliveryAuditRecorded = true;
       if (saved.lastExchange && typeof saved.lastExchange.messageId === 'string' && typeof saved.lastExchange.envelope === 'string' && typeof saved.lastExchange.publishTopic === 'string') {
         this.lastExchange = {
           topic: String(saved.lastExchange.topic || ''),
@@ -1970,15 +2094,23 @@ export class P2PChatApp {
   }
 
   showPublishedBroadcast(message) {
-    const container = this.getNativeContainer()?.querySelector('.chat-broadcast-panel');
-    if (!container) return;
-    let line = container.querySelector('.chat-published-transcript');
+    if (!Array.isArray(this.publishedLines)) this.publishedLines = [];
+    if (message && this.publishedLines[this.publishedLines.length - 1] !== message) {
+      this.publishedLines.push(message);
+      if (this.publishedLines.length > 6) this.publishedLines.shift();
+    }
+    this.persistRetainedChat();
+    const messages = this.getNativeContainer()?.querySelector('.messages-container');
+    if (!messages) return;
+    messages.querySelector('.sk-empty')?.remove();
+    let line = messages.querySelector('.chat-published-transcript');
     if (!line) {
       line = document.createElement('p');
       line.className = 'chat-published-transcript';
-      container.prepend(line);
+      messages.prepend(line);
     }
-    line.textContent = message;
+    line.textContent = this.publishedLines.join('\n');
+    this.renderRetainedState();
   }
 
   async broadcastMessage() {
@@ -2066,7 +2198,6 @@ export class P2PChatApp {
       this.lastSendOutcome = { status: replayed ? 'replayed' : 'delivered', topic, at: new Date(), ack: result };
       this.workflowState.delivery = this.lastSendOutcome.status;
       this.workflowState.pubsub = 'owner-published';
-      this.workflowState.migration = 'ready-for-p2p-chat-unified';
       this.workflowState.offline = this.offlineQueue.length ? `${this.offlineQueue.length}-queued` : 'empty';
       this.composeStatus = '';
       this.renderComposeStatus();
@@ -2074,8 +2205,11 @@ export class P2PChatApp {
       this.persistRetainedChat();
       this.updateConnectionStatus();
       this.updateDisplay();
-      const queuedText = this.offlineQueue.map((entry) => entry.content).filter(Boolean).join(', ') || 'none';
-      this.showPublishedBroadcast(`${message} · peers ${shortPeer(view.sender_peer_id)}→${shortPeer(view.receiver_peer_id)} · delivery ${this.workflowState.delivery} · sends ${this.governedSendCount || 0} · offline queue ${this.offlineQueue.length} holding ${queuedText}`);
+      const peerTail = (id) => (typeof id === 'string' && id.length > 4 ? id.slice(-4) : (id || ''));
+      const queuedText = this.offlineQueue.map((entry) => entry.content).filter(Boolean).join(', ');
+      const holding = queuedText ? `holding ${queuedText}` : 'holding none';
+      const replayNote = replayed ? ' · replayed without a second send' : '';
+      this.showPublishedBroadcast(`${message} · peers ${peerTail(view.sender_peer_id)}→${peerTail(view.receiver_peer_id)} delivery ${this.workflowState.delivery} · sends ${this.governedSendCount || 0} · offline queue ${this.offlineQueue.length} ${holding}${replayNote}`);
       this.showNotification(replayed ? 'Identical broadcast replayed without a second dispatch.' : 'Broadcast delivered between distinct peers.', 'success');
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error);
@@ -2191,8 +2325,8 @@ export class P2PChatApp {
     // Update messages
     const messagesContainer = document.getElementById(`${this.instanceId}-messages`);
     if (messagesContainer) {
-      messagesContainer.innerHTML = this.currentChatPeer ? this.renderMessages() : this.renderEmptyChat();
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      messagesContainer.innerHTML = this.renderVisibleLog();
+      messagesContainer.scrollTop = 0;
     }
 
     // Update peers list

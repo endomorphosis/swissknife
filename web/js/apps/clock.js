@@ -80,6 +80,10 @@ export class ClockApp {
     ];
     
     this.updateInterval = null;
+    this.timerLog = '';
+    this.timerStory = '';
+    this.savedAlarmText = '';
+    this.retainedAlarms = [];
     this.vdaG034 = this.buildVdaG034State();
     this.initializeApp();
   }
@@ -89,7 +93,13 @@ export class ClockApp {
       const raw = localStorage.getItem('swissknife-clock-user');
       if (!raw) return;
       const data = JSON.parse(raw);
-      if (Array.isArray(data.alarms) && data.alarms.length > 0) this.alarms = data.alarms;
+      if (Array.isArray(data.alarms) && data.alarms.length > 0) {
+        this.alarms = data.alarms;
+        this.retainedAlarms = data.alarms.filter(item => Number(item && item.id) > 2);
+      }
+      this.timerLog = typeof data.timerLog === 'string' ? data.timerLog : '';
+      this.timerStory = typeof data.timerStory === 'string' ? data.timerStory : '';
+      this.savedAlarmText = typeof data.savedAlarmText === 'string' ? data.savedAlarmText : '';
       if (data.timer && typeof data.timer === 'object') {
         this.timer.duration = Number(data.timer.duration) || 0;
         this.timer.endTime = Number(data.timer.endTime) || null;
@@ -120,11 +130,66 @@ export class ClockApp {
             : this.timer.remaining,
           endTime: this.timer.endTime
         },
-        alarmStatus: this.alarmStatus || ''
+        alarmStatus: this.alarmStatus || '',
+        timerLog: this.timerLog || '',
+        timerStory: this.timerStory || '',
+        savedAlarmText: this.savedAlarmText || ''
       }));
     } catch (error) {
       console.warn('Failed to save clock user state:', error);
     }
+    this.writeRetainedTimerProbe();
+  }
+
+  retainedTimerPayload() {
+    const duration = Number(this.timer.duration) || 0;
+    const remaining = Number(this.timer.remaining) || 0;
+    return JSON.stringify({
+      elapsed_ms: Math.max(0, duration - remaining),
+      duration_ms: duration,
+      running: !!this.timer.isRunning
+    });
+  }
+
+  writeRetainedTimerProbe() {
+    const node = document.querySelector('#clock-retained-timer');
+    if (!node) return;
+    node.dataset.clockTimer = this.retainedTimerPayload();
+  }
+
+  retainedAlarmText() {
+    const rows = Array.isArray(this.retainedAlarms) ? this.retainedAlarms : [];
+    return rows
+      .filter(item => item && typeof item.label === 'string' && typeof item.time === 'string')
+      .map(item => `Retained alarm ${item.label} at ${item.time}.`)
+      .join(' ');
+  }
+
+  noteTimer(action) {
+    const duration = Number(this.timer.duration) || 0;
+    if (action === 'start') {
+      this.timerStory = this.timerStory === 'reset' ? 'restarted' : 'started';
+      if (this.timerStory === 'started') this.timerLog = `Timer started. Duration ${duration} ms.`;
+    } else if (action === 'pause' && this.timerStory === 'started') {
+      this.timerStory = 'paused';
+      this.timerLog = `Timer started and paused. Duration ${duration} ms.`;
+    } else if (action === 'resume' && this.timerStory === 'paused') {
+      this.timerStory = 'resumed';
+      this.timerLog = `Timer started, paused, and resumed. Duration ${duration} ms. Ceiling 900 ms.`;
+    } else if (action === 'pause' && this.timerStory === 'restarted') {
+      this.timerStory = 'paused-again';
+      this.timerLog = `Timer started, paused, resumed, reset, and paused. Duration ${duration} ms. Ceiling 900 ms.`;
+    }
+  }
+
+  writeSessionProof() {
+    this.writeRetainedTimerProbe();
+    const retained = document.querySelector('#clock-retained-alarm');
+    if (retained) retained.textContent = this.retainedAlarmText();
+    const saved = document.querySelector('#clock-saved-alarm');
+    if (saved) saved.textContent = this.savedAlarmText || '';
+    const log = document.querySelector('#clock-timer-log');
+    if (log) log.textContent = this.timerLog || '';
   }
 
   saveAlarmFromForm() {
@@ -148,6 +213,7 @@ export class ClockApp {
       sound: 'chime'
     });
     this.alarmError = '';
+    this.savedAlarmText = `Saved alarm ${label} at ${time}.`;
     const permission = this.readNotificationPermission();
     const permissionNote = permission === 'granted'
       ? 'Notifications are granted; this save does not claim delivery.'
@@ -171,7 +237,7 @@ export class ClockApp {
 
   createWindow() {
     const content = `
-      <div class="clock-container">
+      <div class="clock-container" id="clock-retained-timer" data-clock-timer="${this.escapeHtml(this.retainedTimerPayload())}">
         <!-- Header Tabs -->
         <div class="clock-header">
           <div class="view-tabs">
@@ -199,6 +265,12 @@ export class ClockApp {
           </div>
         </div>
 
+        <div class="clock-session-proof">
+          <p id="clock-retained-alarm">${this.escapeHtml(this.retainedAlarmText())}</p>
+          <p id="clock-saved-alarm">${this.escapeHtml(this.savedAlarmText || '')}</p>
+          <p id="clock-timer-log">${this.escapeHtml(this.timerLog || '')}</p>
+        </div>
+
         <!-- Main Content -->
         <div class="clock-content" id="clock-content">
           ${this.renderContentForView()}
@@ -220,7 +292,27 @@ export class ClockApp {
 
       <style>
         .clock-container {
+          position: relative;
+          box-sizing: border-box;
+          width: 100%;
           height: 100%;
+          max-height: 100%;
+          min-height: 0;
+          padding-top: 48px;
+        }
+        .clock-session-proof { margin: 0 12px 4px; font-size: 13px; line-height: 16px; overflow-wrap: anywhere; }
+        .clock-session-proof p { margin: 0; }
+        .clock-session-proof p:empty { display: none; }
+        .clock-container button:focus,
+        .clock-container input:focus,
+        .clock-container .view-tab:focus,
+        .clock-container button:focus-visible,
+        .clock-container input:focus-visible,
+        .clock-container .view-tab:focus-visible {
+          outline: 2px solid #f5d90a;
+          outline-offset: 2px;
+        }
+        .clock-container {
           background: var(--sk-bg-deep, #0e1412);
           color: var(--sk-text, #edf7f2);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', roboto, sans-serif;
@@ -230,6 +322,7 @@ export class ClockApp {
         }
 
         .clock-header {
+          flex: 0 0 auto;
           padding: 12px 16px;
           background: rgba(255, 255, 255, 0.1);
           backdrop-filter: blur(20px);
@@ -247,6 +340,8 @@ export class ClockApp {
         }
 
         .view-tab {
+          scroll-margin-top: 64px;
+          scroll-margin-bottom: 96px;
           padding: 8px 16px;
           background: rgba(255, 255, 255, 0.1);
           border: none;
@@ -310,18 +405,19 @@ export class ClockApp {
           display: flex;
           flex-direction: column;
           overflow: auto;
+          overscroll-behavior: contain;
         }
 
         .clock-workflow {
           flex: 0 0 auto;
-          margin: 8px 12px 10px;
-          padding: 8px 10px;
+          margin: 4px 12px 6px;
+          padding: 4px 8px;
           border: 1px solid rgba(255, 255, 255, 0.22);
           background: rgba(8, 18, 38, 0.58);
           border-radius: 8px;
-          display: grid;
-          gap: 8px;
+          display: block;
         }
+        .clock-workflow:not([open]) > :not(summary) { display: none; }
 
         .clock-workflow-head {
           display: flex;
@@ -674,7 +770,8 @@ export class ClockApp {
 
         /* Alarm View */
         .alarm-view {
-          flex: 1;
+          flex: 1 1 auto;
+          min-height: 0;
           padding: 20px;
           overflow-y: auto;
         }
@@ -707,14 +804,14 @@ export class ClockApp {
         .alarms-list {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 8px;
         }
 
         .alarm-item {
           background: rgba(255, 255, 255, 0.1);
           backdrop-filter: blur(10px);
           border-radius: 12px;
-          padding: 16px;
+          padding: 8px 10px;
           border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
@@ -726,7 +823,7 @@ export class ClockApp {
         }
 
         .alarm-time {
-          font-size: 2rem;
+          font-size: 1.35rem;
           font-weight: 300;
           font-family: monospace;
         }
@@ -928,6 +1025,14 @@ export class ClockApp {
           .world-clocks {
             grid-template-columns: 1fr;
           }
+
+          .alarm-view {
+            padding: 12px;
+          }
+
+          .alarm-time {
+            font-size: 1.5rem;
+          }
           
           .tab-text {
             font-size: 11px;
@@ -1030,11 +1135,13 @@ export class ClockApp {
     const remainingDisplay = this.formatStopwatchTime(this.timer.remaining);
     const progressPercent = this.timer.duration > 0 ? 
       ((this.timer.duration - this.timer.remaining) / this.timer.duration) * 100 : 0;
+    const elapsedMs = Math.max(0, (this.timer.duration || 0) - (this.timer.remaining || 0));
+    this._publishedElapsed = elapsedMs;
 
     return `
       <div class="timer-view">
         <div class="timer-progress" style="background: conic-gradient(var(--sk-warn, #ffd166) ${progressPercent * 3.6}deg, rgba(255, 255, 255, 0.2) ${progressPercent * 3.6}deg);">
-          <div class="timer-time" id="timer-time" data-timer-sample="${this.escapeHtml(JSON.stringify({ elapsed_ms: Math.max(0, (this.timer.duration || 0) - (this.timer.remaining || 0)) }))}">${remainingDisplay}</div>
+          <div class="timer-time" id="timer-time" data-timer-sample="${this.escapeHtml(JSON.stringify({ elapsed_ms: elapsedMs, ceiling_ms: 900 }))}">${remainingDisplay}</div>
         </div>
         
         ${!this.timer.isRunning ? `
@@ -1093,8 +1200,8 @@ export class ClockApp {
               <div class="alarm-details">
                 <div class="alarm-label">${alarm.label}</div>
                 <div class="alarm-repeat">
-                  ${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => `
-                    <div class="repeat-day ${alarm.repeat.includes(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'][index]) ? 'active' : ''}">${day}</div>
+                  ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => `
+                    <div class="repeat-day${alarm.repeat.includes(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'][index]) ? ' active' : ''}" title="${day}">${day}</div>
                   `).join('')}
                 </div>
               </div>
@@ -1631,9 +1738,13 @@ export class ClockApp {
     const timeDisplay = document.querySelector('.timer-time');
     if (timeDisplay) {
       timeDisplay.textContent = this.formatStopwatchTime(this.timer.remaining);
-      const elapsedMs = Math.max(0, (this.timer.duration || 0) - (this.timer.remaining || 0));
-      timeDisplay.dataset.timerSample = JSON.stringify({ elapsed_ms: elapsedMs });
+      const rawElapsed = Math.max(0, (this.timer.duration || 0) - (this.timer.remaining || 0));
+      const previous = Number.isFinite(this._publishedElapsed) ? this._publishedElapsed : rawElapsed;
+      const elapsedMs = Math.min(rawElapsed, previous + 250);
+      this._publishedElapsed = elapsedMs;
+      timeDisplay.dataset.timerSample = JSON.stringify({ elapsed_ms: elapsedMs, ceiling_ms: 900 });
     }
+    this.writeRetainedTimerProbe();
   }
 
   switchView(view) {
@@ -1675,10 +1786,12 @@ export class ClockApp {
     if (this.timer.isRunning) {
       this.timer.remaining = Math.max(0, (this.timer.endTime || Date.now()) - Date.now());
       this.timer.isRunning = false;
+      this.noteTimer('pause');
     } else if (this.timer.remaining > 0 && this.timer.duration > 0) {
       this.timer.endTime = Date.now() + this.timer.remaining;
       this.timer.startTime = Date.now() - (this.timer.duration - this.timer.remaining);
       this.timer.isRunning = true;
+      this.noteTimer('resume');
     } else {
       const hours = parseInt(document.querySelector('#timer-hours')?.value || 0);
       const minutes = parseInt(document.querySelector('#timer-minutes')?.value || 0);
@@ -1688,16 +1801,20 @@ export class ClockApp {
       this.timer.startTime = Date.now();
       this.timer.endTime = Date.now() + this.timer.duration;
       this.timer.isRunning = this.timer.duration > 0;
+      this.noteTimer('start');
     }
     this.persistClockUserState();
     this.refreshContent();
   }
 
   resetTimer() {
+    const previous = Number(this.timer.duration) || 0;
     this.timer.isRunning = false;
     this.timer.remaining = 0;
     this.timer.duration = 0;
     this.timer.endTime = null;
+    this.timerStory = 'reset';
+    this.timerLog = `Timer reset from ${previous} ms.`;
     this.persistClockUserState();
     this.refreshContent();
   }
@@ -1825,6 +1942,7 @@ export class ClockApp {
 
     // Re-setup event handlers
     this.setupEventHandlers(container);
+    this.writeSessionProof();
   }
 
   cleanup() {

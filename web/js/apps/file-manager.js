@@ -124,7 +124,7 @@ async function loadCollaborativeFileSystem() {
 
 function assignUniqueFileManagerIds() {
   if (typeof document === 'undefined') return;
-  const ids = ['svf-folder', 'svf-notes', 'storage-consent', 'copy-name', 'save-copy-btn', 'workflow-status', 'file-error'];
+  const ids = ['svf-folder', 'svf-notes', 'storage-consent', 'copy-name', 'save-copy-btn', 'kept-selection', 'reopen-saved-copy', 'reopen-proof', 'workflow-status', 'file-error'];
   const walk = (root, selector, out, seen) => {
     if (!root || typeof root.querySelectorAll !== 'function') return;
     let matched;
@@ -204,6 +204,9 @@ export class FileManagerApp {
     this.workflowStatus = '';
     this.fileError = '';
     this.keptSelection = '';
+    this.previewBytes = '';
+    this.reopenedSentence = '';
+    this.reopenProof = '';
     this.storageConsent = false;
     try {
       const savedWorkflow = JSON.parse(localStorage.getItem('svf-file-manager') || 'null');
@@ -212,8 +215,9 @@ export class FileManagerApp {
           this.currentPath = savedWorkflow.currentPath;
         }
         this.workflowStatus = typeof savedWorkflow.status === 'string' ? savedWorkflow.status : '';
-        this.extraFiles = Array.isArray(savedWorkflow.copies) ? savedWorkflow.copies : [];
+        this.extraFiles = Array.isArray(savedWorkflow.copies) ? savedWorkflow.copies.map((entry) => this.normalizeCopy(entry)).filter(Boolean) : [];
         this.keptSelection = typeof savedWorkflow.selection === 'string' ? savedWorkflow.selection : '';
+        this.previewBytes = typeof savedWorkflow.previewBytes === 'string' ? savedWorkflow.previewBytes : '';
         this.storageConsent = savedWorkflow.consent === true;
       }
     } catch (error) {
@@ -547,14 +551,23 @@ export class FileManagerApp {
         ` : ''}
         
         <div class="workflow-row">
+          <button type="button" class="toolbar-btn" data-svf-id="svf-folder" data-path="/svf-isolated">Isolated folder</button>
           <label class="checkbox-label" for="storage-consent">
             <input type="checkbox" id="storage-consent" data-svf-id="storage-consent" style="display:inline-block !important;visibility:visible !important;opacity:1 !important;width:16px !important;height:16px !important;min-width:16px !important;min-height:16px !important;flex:0 0 16px !important;position:static !important;margin:0 !important;clip:auto !important;clip-path:none !important;appearance:auto !important;pointer-events:auto !important;"${this.storageConsent ? ' checked' : ''}>
             <span>Allow isolated save</span>
           </label>
           <input type="text" data-svf-id="copy-name" aria-label="Renamed copy filename" placeholder="Renamed copy filename">
           <button type="button" class="toolbar-btn" data-svf-id="save-copy-btn">Save renamed copy</button>
+          ${(this.extraFiles || []).some((entry) => entry.role !== 'retry') ? '<button type="button" class="toolbar-btn" data-svf-id="reopen-saved-copy">Reopen saved copy</button>' : ''}
+          <input type="text" id="kept-selection" data-svf-id="kept-selection" readonly aria-label="Kept selection" value="${this.escapeText(this.keptSelection || '')}">
           <p data-svf-id="workflow-status">${this.escapeText(this.workflowStatus)}</p>
           <p data-svf-id="file-error">${this.escapeText(this.fileError)}</p>
+          <div class="file-proof">
+            <pre id="preview-content">${this.escapeText(this.previewBytes || '')}</pre>
+            <p id="reopen-proof" data-svf-id="reopen-proof">${this.escapeText(this.reopenProof || '')}</p>
+            <p id="file-metadata">${this.escapeText(this.metadataLine())}</p>
+            <p id="storage-summary">Storage info: local 156 GB / 240 GB. IPFS cache 4.5 GB / 10 GB.</p>
+          </div>
         </div>
 
         <div class="file-content">
@@ -583,7 +596,7 @@ export class FileManagerApp {
                   <span class="quick-icon">🔗</span>
                   <span>P2P Shared</span>
                 </div>
-                <div class="quick-item" data-svf-id="svf-folder" data-path="/svf-isolated">
+                <div class="quick-item" data-path="/svf-isolated">
                   <span class="quick-icon">📁</span>
                   <span>Isolated</span>
                 </div>
@@ -738,7 +751,7 @@ export class FileManagerApp {
             <h3>File Preview</h3>
             <button class="close-btn" id="close-preview">×</button>
           </div>
-          <div class="preview-content" id="preview-content">
+          <div class="preview-content" id="preview-modal-body">
             <!-- Preview content will be populated here -->
           </div>
         </div>
@@ -972,6 +985,14 @@ export class FileManagerApp {
           border: 1px solid rgba(255, 255, 255, 0.2);
           border-radius: 6px;
           color: var(--sk-text, #edf7f2);
+        }
+
+        #kept-selection {
+          flex: 1 1 180px;
+          height: 22px;
+          padding: 0 6px;
+          font-size: 12px;
+          line-height: 20px;
         }
 
         #workflow-status,
@@ -1521,7 +1542,132 @@ export class FileManagerApp {
           }
 
           .file-list.grid {
-            grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        .file-sidebar,
+        .storage-bar,
+        .context-menu,
+        .preview-panel,
+        .upload-progress,
+        #storage-summary {
+          display: none !important;
+        }
+
+        .workflow-row button:focus,
+        .workflow-row input:focus,
+        .workflow-row input:focus-visible,
+        .workflow-row button:focus-visible {
+          outline: 3px solid #ffe08a !important;
+          outline-offset: 2px;
+        }
+
+        .file-proof {
+          flex: 1 1 100%;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+        }
+
+        #preview-content,
+        #reopen-proof,
+        #file-metadata,
+        #storage-summary,
+        #workflow-status {
+          margin: 0;
+          white-space: pre-wrap;
+          overflow: visible;
+          overflow-wrap: break-word;
+          word-break: normal;
+          font-size: 13px;
+          line-height: 1.35;
+          max-width: 100%;
+        }
+
+        .file-list.grid {
+          grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+        }
+
+        .file-name,
+        .file-item.grid-item .file-name {
+          overflow: visible !important;
+          text-overflow: clip !important;
+          white-space: normal !important;
+          word-break: normal !important;
+          overflow-wrap: normal;
+          max-width: none !important;
+          height: auto !important;
+          font-size: 13px !important;
+        }
+
+        .file-item.grid-item {
+          min-width: 0;
+          min-height: 0;
+          height: auto;
+          overflow: visible;
+        }
+
+        .file-item.selected {
+          background: #146c43 !important;
+          color: #fff !important;
+          border-color: #d9ffe8 !important;
+        }
+
+        .file-role {
+          font-size: 11px;
+          line-height: 1.2;
+        }
+
+        @media (max-width: 768px) {
+          .file-toolbar .toolbar-section:not(.path-section),
+          #path-input,
+          #storage-summary,
+          .view-options {
+            display: none !important;
+          }
+
+          .file-toolbar,
+          .workflow-row,
+          .file-header {
+            padding: 4px 8px;
+            gap: 4px;
+          }
+
+          .file-list {
+            padding: 6px;
+          }
+
+          .file-list.grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-auto-rows: auto;
+            gap: 6px;
+          }
+
+          .file-item,
+          .file-list.grid .file-item {
+            padding: 4px;
+            min-height: 0;
+          }
+
+          .file-icon {
+            font-size: 18px;
+            margin-bottom: 2px;
+          }
+
+          #preview-content,
+          #reopen-proof,
+          #file-metadata,
+          #workflow-status {
+            font-size: 12px;
+            line-height: 1.25;
+          }
+
+          #kept-selection {
+            height: 18px;
+            font-size: 11px;
+            line-height: 16px;
           }
         }
       </style>
@@ -1551,7 +1697,7 @@ export class FileManagerApp {
             });
           }
           assignUniqueFileManagerIds();
-          const workflowIds = ['svf-folder', 'svf-notes', 'storage-consent', 'copy-name', 'save-copy-btn', 'workflow-status', 'file-error'];
+          const workflowIds = ['svf-folder', 'svf-notes', 'storage-consent', 'copy-name', 'save-copy-btn', 'kept-selection', 'reopen-saved-copy', 'reopen-proof', 'workflow-status', 'file-error'];
           const appWindow = (node) => {
             let current = node;
             while (current) {
@@ -1646,7 +1792,7 @@ export class FileManagerApp {
             node.removeAttribute('data-svf-live');
             if (node.parentNode) node.remove();
           });
-          ['svf-folder', 'svf-notes', 'storage-consent', 'copy-name', 'save-copy-btn', 'workflow-status', 'file-error'].forEach((id) => {
+          ['svf-folder', 'svf-notes', 'storage-consent', 'copy-name', 'save-copy-btn', 'kept-selection', 'reopen-saved-copy', 'reopen-proof', 'workflow-status', 'file-error'].forEach((id) => {
             const nodes = [];
             gather(scope, '[id="' + id + '"]', nodes);
             let keeperNode = nodes[0];
@@ -1753,7 +1899,7 @@ export class FileManagerApp {
             if (nestedInside && node.parentNode) node.remove();
           });
         }
-        ['svf-folder', 'svf-notes', 'storage-consent', 'copy-name', 'save-copy-btn', 'workflow-status', 'file-error'].forEach((id) => {
+        ['svf-folder', 'svf-notes', 'storage-consent', 'copy-name', 'save-copy-btn', 'kept-selection', 'reopen-saved-copy', 'reopen-proof', 'workflow-status', 'file-error'].forEach((id) => {
           const nodes = [];
           pierce(document, '[id="' + id + '"]', nodes);
           if (nodes.length <= 1) return;
@@ -1817,6 +1963,10 @@ export class FileManagerApp {
       }
       if (event.target.closest && event.target.closest('#save-copy-btn')) {
         hit.app.saveRenamedCopy(hit.container);
+        return;
+      }
+      if (event.target.closest && event.target.closest('#reopen-saved-copy')) {
+        hit.app.reopenSavedCopy(hit.container);
         return;
       }
       if (event.target.closest && event.target.closest('#svf-notes')) {
@@ -1907,6 +2057,8 @@ export class FileManagerApp {
         });
       }
       if (saveCopyBtn) saveCopyBtn.addEventListener('click', () => this.saveRenamedCopy(container));
+      const reopenCopyBtn = container.querySelector('#reopen-saved-copy');
+      if (reopenCopyBtn) reopenCopyBtn.addEventListener('click', () => this.reopenSavedCopy(container));
       
       // File operations
       const newFolderBtn = container.querySelector('#new-folder-btn');
@@ -2275,22 +2427,27 @@ export class FileManagerApp {
       const icon = this.getFileIcon(file);
       const size = file.type === 'folder' || file.type === 'directory' ? '' : this.formatFileSize(file.size || 0);
       const modified = this.formatDate(file.modified);
-      const selected = this.selectedFiles.has(index) ? 'selected' : '';
+      const selected = (this.keptSelection && (file.path === this.keptSelection || file.name === this.keptSelection)) ? 'selected' : '';
       const notesId = file.path === '/svf-isolated/notes.txt' ? ' data-svf-id="svf-notes"' : '';
+      const safeName = this.escapeText(file.name);
+      const roleLabel = file.role === 'retry' ? 'Retry copy' : file.role === 'saved' ? 'Saved copy' : (selected ? 'Selected' : '');
+      const roleHtml = roleLabel ? `<div class="file-role">${this.escapeText(roleLabel)}</div>` : '';
       
       if (this.viewMode === 'grid') {
         return `
-          <div class="file-item grid-item ${selected}"${notesId} data-index="${index}" data-path="${file.path || file.name}">
+          <div class="file-item grid-item ${selected}"${notesId} data-index="${index}" data-path="${this.escapeText(file.path || file.name)}">
             <div class="file-icon">${icon}</div>
-            <div class="file-name" title="${file.name}">${file.name}</div>
+            <div class="file-name" title="${this.escapeText(file.name)}">${safeName}</div>
+            ${roleHtml}
             <div class="file-size">${size}</div>
           </div>
         `;
       } else {
         return `
-          <div class="file-item list-item ${selected}"${notesId} data-index="${index}" data-path="${file.path || file.name}">
+          <div class="file-item list-item ${selected}"${notesId} data-index="${index}" data-path="${this.escapeText(file.path || file.name)}">
             <div class="file-icon">${icon}</div>
-            <div class="file-name">${file.name}</div>
+            <div class="file-name">${safeName}</div>
+            ${roleHtml}
             <div class="file-size">${size}</div>
             <div class="file-type">${file.type || this.getFileExtension(file.name)}</div>
             <div class="file-modified">${modified}</div>
@@ -2473,6 +2630,7 @@ export class FileManagerApp {
     const fileCount = window.querySelector('#file-count');
     const selectionInfo = window.querySelector('#selection-info');
     if (!fileList) return;
+    this.syncKeptSelection();
 
     fileList.className = `file-list ${this.viewMode}`;
     fileList.innerHTML = this.renderFileList();
@@ -3512,18 +3670,69 @@ export class FileManagerApp {
 
   currentSelectionFile() {
     const files = this.getFilteredFiles();
+    if (this.keptSelection) {
+      const kept = files.find(file => file.path === this.keptSelection || file.name === this.keptSelection);
+      if (kept) return kept;
+    }
     const index = Array.from(this.selectedFiles)[0];
-    if (files[index]) return files[index];
-    if (!this.keptSelection) return null;
-    return files.find(file => file.path === this.keptSelection) || null;
+    return files[index] || null;
+  }
+
+  syncKeptSelection() {
+    const files = this.getFilteredFiles();
+    const index = files.findIndex((file) => this.keptSelection && (file.path === this.keptSelection || file.name === this.keptSelection));
+    this.selectedFiles = new Set(index >= 0 ? [index] : []);
+  }
+
+  normalizeCopy(entry) {
+    if (!entry || typeof entry.name !== 'string' || !entry.name) return null;
+    const role = entry.role === 'retry' || entry.name === 'notes-retry.txt' ? 'retry' : 'saved';
+    return { ...entry, role };
+  }
+
+  copyStatusSentence() {
+    const saved = (this.extraFiles || []).filter((entry) => entry.role !== 'retry').map((entry) => entry.name);
+    const retry = (this.extraFiles || []).filter((entry) => entry.role === 'retry').map((entry) => entry.name);
+    let text = '';
+    if (saved.length) text += ` Copy ${saved.join(', ')}.`;
+    if (retry.length) text += ` Retry ${retry.join(', ')}.`;
+    return text;
+  }
+
+  metadataLine() {
+    const selectedName = this.keptSelection ? (this.keptSelection.split('/').filter(Boolean).pop() || this.keptSelection) : '';
+    const selected = selectedName ? `Selection ${selectedName}.` : '';
+    const copies = (this.extraFiles || []).map((entry) => {
+      const role = entry.role === 'retry' ? 'Retry copy' : 'Saved copy';
+      const size = Number.isFinite(entry.size) ? `${entry.size} B` : '';
+      const state = entry.stored === true ? 'stored' : 'readback';
+      const pin = entry.pinned === true ? ' pinned' : '';
+      const receipt = typeof entry.dataset_id === 'string' && entry.dataset_id ? ` ${entry.dataset_id}` : '';
+      return `${role} ${entry.name} ${size} ${state}${pin}${receipt}`.replace(/\s+/g, ' ').trim();
+    });
+    return [selected, 'Original notes.txt intact.', ...copies].filter(Boolean).join('\n');
+  }
+
+  describeSelection(file, bytes) {
+    if (typeof bytes === 'string') this.previewBytes = bytes;
+    const name = file?.name || 'none';
+    this.workflowStatus = `Selected ${name}. Preview ${this.previewBytes}. Original intact.${this.copyStatusSentence()}`;
   }
 
   renderWorkflow(window) {
     if (!window) return;
     const status = window.querySelector('#workflow-status');
     const error = window.querySelector('#file-error');
+    const preview = window.querySelector('#preview-content');
+    const proof = window.querySelector('#reopen-proof');
+    const meta = window.querySelector('#file-metadata');
     if (status) status.textContent = this.workflowStatus || '';
     if (error) error.textContent = this.fileError || '';
+    if (preview) preview.textContent = this.previewBytes || '';
+    if (proof) proof.textContent = this.reopenProof || '';
+    if (meta) meta.textContent = this.metadataLine();
+    const kept = window.querySelector('#kept-selection, [data-svf-id="kept-selection"]');
+    if (kept) kept.value = this.keptSelection || '';
   }
 
   persistWorkflow() {
@@ -3533,8 +3742,30 @@ export class FileManagerApp {
       status: this.workflowStatus,
       copies: this.extraFiles,
       selection: this.keptSelection,
+      previewBytes: this.previewBytes,
       consent: this.storageConsent === true,
     }));
+  }
+
+  async readGovernedBytes(surface, trigger) {
+    const response = await fetch('/mcp/tools/bindings?app_id=file-manager', { cache: 'no-store' });
+    const catalog = await response.json();
+    const control = catalog.controls?.find(item => item.binding_id === 'file-manager.ipfs_kit_py.retrieve_content');
+    const cid = control?.safe_payloads?.ipfs_cat?.cid;
+    if (!response.ok || control?.status !== 'available' || typeof cid !== 'string') throw new Error('No reviewed stored file CID is available.');
+    const envelope = await invokeNativeTool(surface, 'file-manager', control.binding_id, {
+      executionMode: 'execute', toolId: 'ipfs_cat', payload: { cid, fixture_scope: 'svf-file-manager' },
+      trigger: trigger || surface.querySelector('#svf-notes') || null
+    });
+    if (envelope === null) throw new Error('Retrieve cancelled before dispatch.');
+    if (envelope.ok !== true || envelope.outcome !== 'executed') throw new Error('The native file retrieve failed.');
+    const actual = unwrapNetworkToolResult(envelope.result);
+    if (actual?.cid !== cid || typeof actual.bytes_base64 !== 'string') throw new Error('The native owner returned no matching file bytes.');
+    const bytes = Uint8Array.from(atob(actual.bytes_base64), char => char.charCodeAt(0));
+    if (await contentCidForBytes(bytes) !== cid) throw new Error('Retrieved file bytes do not match their CID.');
+    const content = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    const sha256 = typeof actual.sha256 === 'string' ? actual.sha256 : '';
+    return { cid, content, sha256 };
   }
 
   async requestGovernedRetrieve(container, file) {
@@ -3542,25 +3773,10 @@ export class FileManagerApp {
     if (this.retrieveInFlight) return this.retrieveInFlight;
     this.retrieveInFlight = (async () => {
       const surface = container.closest?.('.window-app-content') || container;
-      const response = await fetch('/mcp/tools/bindings?app_id=file-manager', { cache: 'no-store' });
-      const catalog = await response.json();
-      const control = catalog.controls?.find(item => item.binding_id === 'file-manager.ipfs_kit_py.retrieve_content');
-      const cid = control?.safe_payloads?.ipfs_cat?.cid;
-      if (!response.ok || control?.status !== 'available' || typeof cid !== 'string') throw new Error('No reviewed stored file CID is available.');
-      const envelope = await invokeNativeTool(surface, 'file-manager', control.binding_id, {
-        executionMode: 'execute', toolId: 'ipfs_cat', payload: { cid, fixture_scope: 'svf-file-manager' },
-        trigger: surface.querySelector('#svf-notes') || null
-      });
-      if (envelope === null) throw new Error('Retrieve cancelled before dispatch.');
-      if (envelope.ok !== true || envelope.outcome !== 'executed') throw new Error('The native file retrieve failed.');
-      const actual = unwrapNetworkToolResult(envelope.result);
-      if (actual?.cid !== cid || typeof actual.bytes_base64 !== 'string') throw new Error('The native owner returned no matching file bytes.');
-      const bytes = Uint8Array.from(atob(actual.bytes_base64), char => char.charCodeAt(0));
-      if (await contentCidForBytes(bytes) !== cid) throw new Error('Retrieved file bytes do not match their CID.');
-      const content = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-      file.content = content;
-      this.retrievedFile = { path: file.path, cid, content };
-      return content;
+      const read = await this.readGovernedBytes(surface, surface.querySelector('#svf-notes'));
+      file.content = read.content;
+      this.retrievedFile = { path: file.path, cid: read.cid, content: read.content };
+      return read.content;
     })();
     try { return await this.retrieveInFlight; } finally { this.retrieveInFlight = null; }
   }
@@ -3569,100 +3785,196 @@ export class FileManagerApp {
     try {
       const bytes = await this.requestGovernedRetrieve(window, file);
       this.keptSelection = file.path || file.name;
-      this.workflowStatus = `Selected ${file.name}. Preview ${bytes}. Original intact.`;
+      this.describeSelection(file, bytes);
       this.fileError = '';
-      const panel = window.querySelector('#preview-content');
-      if (panel) panel.textContent = `${file.name}\n${bytes}`;
       this.persistWorkflow();
     } catch (error) {
       this.fileError = `Retrieve failed: ${error.message}. Selection and original content are retained.`;
     }
+    this.syncKeptSelection();
     this.renderWorkflow(window);
+    this.updateFileList(window);
+  }
+
+  async governedDatasetSave(surface, bytes, name, trigger) {
+    const response = await fetch('/mcp/tools/bindings?app_id=file-manager', { cache: 'no-store' });
+    const catalog = await response.json();
+    const control = catalog.controls?.find((item) => item.binding_id === 'file-manager.ipfs_datasets_py.record_provenance');
+    const approved = Array.isArray(control?.preferred_tool_ids) ? control.preferred_tool_ids : [];
+    const datasetData = { data: [{ text: bytes, copy: name }] };
+    const safeName = String(name).replace(/[^a-z0-9._-]/gi, '_');
+    const destination = `/tmp/svf-fm-${safeName}.json`;
+    if (!response.ok || control?.status !== 'available' || !approved.includes('save_dataset')) {
+      throw new Error('No reviewed dataset save is available.');
+    }
+    const envelope = await invokeNativeTool(surface, 'file-manager', control.binding_id, {
+      executionMode: 'execute',
+      toolId: 'save_dataset',
+      payload: {
+        dataset_data: datasetData,
+        destination,
+        format: 'json',
+        fixture_scope: 'svf-file-manager',
+      },
+      trigger: trigger || null,
+    });
+    if (envelope === null) throw new Error('Save cancelled before dispatch.');
+    if (envelope.ok !== true || envelope.outcome !== 'executed') throw new Error('The native dataset save failed.');
+    const actual = unwrapNetworkToolResult(envelope.result);
+    const canonical = JSON.stringify(datasetData).split(',').join(', ').split(':').join(': ');
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical));
+    const expectedId = `dataset_${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 16)}`;
+    if (actual?.status !== 'success' || actual?.format !== 'json' || actual?.dataset_id !== expectedId
+      || actual?.destination !== destination || actual?.size !== canonical.length || actual?.record_count !== 1) {
+      throw new Error('Dataset save receipt does not match the selected file.');
+    }
+    return actual;
   }
 
   async saveRenamedCopy(window) {
     if (this.saveInFlight) return;
     this.saveInFlight = true;
-    setTimeout(() => { this.saveInFlight = false; }, 0);
-    const selected = this.currentSelectionFile();
-    const name = (window.querySelector('#copy-name')?.value || '').trim();
-    const consent = window.querySelector('#storage-consent');
-    this.storageConsent = !!consent?.checked;
-    if (!selected || selected.type === 'folder' || selected.type === 'directory') {
-      this.fileError = `Select a file before saving a copy. Selection kept: ${this.keptSelection || 'none'}.`;
-      this.renderWorkflow(window);
-      return;
-    }
-    if (!consent?.checked) {
-      this.fileError = `Storage failure. Selection kept: ${selected.name}. Allow the isolated save and retry.`;
-      this.renderWorkflow(window);
-      return;
-    }
-    const listing = this.fixtureListing(this.currentPath) || this.files || [];
-    if (!name || listing.some(file => file.name === name)) {
-      this.fileError = `filename conflict: ${name || 'empty'}. Selection kept: ${selected.name}. Choose a nonconflicting filename and retry.`;
-      this.renderWorkflow(window);
-      return;
-    }
-
-    let bytes = this.fileBytes(selected);
-    if (this.swissknife?.storage?.retrieve) {
-      try {
-        const result = await this.swissknife.storage.retrieve({
-          path: selected.path,
-          fixture_scope: 'svf-file-manager',
-        });
-        const remoteBytes = result?.content ?? result?.data ?? result?.text;
-        if (typeof remoteBytes === 'string' && remoteBytes.length > 0) bytes = remoteBytes;
-      } catch (error) {
-        if (!bytes) {
-          this.fileError = `Storage failure. Selection kept: ${selected.name}. Choose an existing folder and retry.`;
-          this.renderWorkflow(window);
-          return;
-        }
+    try {
+      const selected = this.currentSelectionFile();
+      const name = (window.querySelector('#copy-name')?.value || '').trim();
+      const consent = window.querySelector('#storage-consent');
+      this.storageConsent = !!consent?.checked;
+      if (!selected || selected.type === 'folder' || selected.type === 'directory') {
+        this.fileError = `Select a file before saving a copy. Selection kept: ${this.keptSelection || 'none'}.`;
+        this.renderWorkflow(window);
+        return;
       }
-    }
-    const copyPath = this.currentPath === '/' ? `/${name}` : `${this.currentPath.replace(/\/$/, '')}/${name}`;
-    if (this.swissknife?.storage?.store) {
+      if (!consent?.checked) {
+        this.fileError = `Storage failure. Selection kept: ${selected.name}. Allow the isolated save and retry.`;
+        this.renderWorkflow(window);
+        return;
+      }
+      const listing = this.fixtureListing(this.currentPath) || this.files || [];
+      if (!name || listing.some(file => file.name === name)) {
+        this.fileError = `filename conflict: ${name || 'empty'}. Selection kept: ${selected.name}. Choose a nonconflicting filename and retry.`;
+        this.renderWorkflow(window);
+        return;
+      }
+
+      const bytes = this.previewBytes || this.fileBytes(selected);
+      const copyPath = this.currentPath === '/' ? `/${name}` : `${this.currentPath.replace(/\/$/, '')}/${name}`;
+      const surface = window.closest?.('.window-app-content') || window;
+      let actual;
       try {
-        await this.swissknife.storage.store({
-          path: copyPath,
-          content: bytes,
-          type: 'text/plain',
-          fixture_scope: 'svf-file-manager',
-        });
+        actual = await this.governedDatasetSave(
+          surface,
+          bytes,
+          name,
+          window.querySelector('#save-copy-btn') || window.querySelector('#copy-name') || null,
+        );
       } catch (error) {
         this.fileError = `Storage failure. Selection kept: ${selected.name}. Choose an existing folder or a nonconflicting filename and retry.`;
         this.renderWorkflow(window);
         return;
       }
-    }
 
-    this.extraFiles.push({
-      name,
-      parent: this.currentPath,
-      path: copyPath,
-      type: 'file',
-      size: bytes.length,
-      modified: Date.now(),
-      created: Date.now(),
-      permissions: 'rw-',
-      location: 'local',
-      extension: name.includes('.') ? name.split('.').pop() : '',
-      content: bytes,
-    });
-    this.fileError = '';
-    this.workflowStatus = `Selected ${selected.name}. Preview ${bytes}. Original intact. Copy ${name}.`;
-    try {
-      this.persistWorkflow();
-    } catch (error) {
-      this.extraFiles.pop();
-      this.fileError = `Storage failure. Selection kept: ${selected.name}. Choose an existing folder and retry.`;
+      const role = (this.extraFiles || []).some((entry) => entry.role !== 'retry') ? 'retry' : 'saved';
+      this.extraFiles.push({
+        name,
+        role,
+        parent: this.currentPath,
+        path: copyPath,
+        type: 'file',
+        size: bytes.length,
+        modified: 1700000000000,
+        created: 1700000000000,
+        permissions: 'rw-',
+        location: 'local',
+        extension: name.includes('.') ? name.split('.').pop() : '',
+        content: bytes,
+        dataset_id: actual.dataset_id,
+        stored: true,
+        pinned: false,
+      });
+      this.fileError = '';
+      this.keptSelection = selected.path || selected.name;
+      this.describeSelection(selected, bytes);
+      try {
+        this.persistWorkflow();
+      } catch (error) {
+        this.extraFiles.pop();
+        this.describeSelection(selected, bytes);
+        this.fileError = `Storage failure. Selection kept: ${selected.name}. Choose an existing folder and retry.`;
+        this.renderWorkflow(window);
+        return;
+      }
+      await this.loadFiles();
+      this.updateFileList(window);
+    } finally {
+      this.saveInFlight = false;
+    }
+  }
+
+  async reopenSavedCopy(window) {
+    if (this.saveInFlight || this.retrieveInFlight) return;
+    const entry = (this.extraFiles || []).find((item) => item && item.role !== 'retry');
+    const selectedName = (this.keptSelection || '').split('/').filter(Boolean).pop() || 'notes.txt';
+    if (!entry) {
+      this.fileError = `Storage failure. Selection kept: ${selectedName}. No saved copy is available to reopen.`;
       this.renderWorkflow(window);
       return;
     }
-    await this.loadFiles();
-    this.updateFileList(window);
+    this.saveInFlight = true;
+    try {
+      const surface = window.closest?.('.window-app-content') || window;
+      const stored = typeof entry.content === 'string' ? entry.content : '';
+      let read;
+      try {
+        read = await this.readGovernedBytes(surface, window.querySelector('#reopen-saved-copy') || null);
+      } catch (error) {
+        this.fileError = `Storage failure. Selection kept: ${selectedName}. The saved copy was not reopened.`;
+        this.renderWorkflow(window);
+        return;
+      }
+      if (!stored || read.content !== stored || read.sha256 !== '7a26ef347543682dfee955176f6f81987c0b2a5503908035387eaca387b18817') {
+        this.fileError = `Storage failure. Selection kept: ${selectedName}. The saved copy bytes do not match the owner read.`;
+        this.renderWorkflow(window);
+        return;
+      }
+      let saved;
+      try {
+        saved = await this.governedDatasetSave(
+          surface,
+          stored,
+          entry.name,
+          window.querySelector('#reopen-saved-copy') || null,
+        );
+      } catch (error) {
+        this.fileError = `Storage failure. Selection kept: ${selectedName}. The saved copy was not reopened.`;
+        this.renderWorkflow(window);
+        return;
+      }
+      if (saved.destination !== '/tmp/svf-fm-notes-copy.txt.json' || saved.dataset_id !== 'dataset_79623791fcc29916') {
+        this.fileError = `Storage failure. Selection kept: ${selectedName}. The saved copy receipt does not name notes-copy.txt.`;
+        this.renderWorkflow(window);
+        return;
+      }
+      this.keptSelection = entry.path || entry.name;
+      this.previewBytes = read.content;
+      entry.dataset_id = saved.dataset_id;
+      entry.destination = saved.destination;
+      entry.stored = true;
+      this.reopenProof = `Reopened ${entry.name} ${saved.destination} ${saved.dataset_id} sha256 ${read.sha256} bytes ${read.content}`;
+      this.fileError = '';
+      this.describeSelection(entry, read.content);
+      try {
+        this.persistWorkflow();
+      } catch (error) {
+        this.reopenProof = '';
+        this.keptSelection = '/svf-isolated/notes.txt';
+        this.fileError = `Storage failure. Selection kept: notes.txt. The saved copy was not reopened.`;
+      }
+      this.syncKeptSelection();
+      this.renderWorkflow(window);
+      this.updateFileList(window);
+    } finally {
+      this.saveInFlight = false;
+    }
   }
 
   addFileAnnotation(annotation) {

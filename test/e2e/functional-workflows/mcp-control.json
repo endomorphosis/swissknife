@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "mcp-control",
-  "description": "Declared read-only owner diagnostics, retained result, invalid parameters, and retry.",
+  "description": "Declared read-only owner diagnostics, retained owner receipt, invalid parameters, and retry.",
   "fixture_scope": "svf-mcp-control-diagnostic",
   "backend_bindings": [
     {
@@ -54,14 +54,17 @@
     ],
     "persist_reopen": [
       {"op": "reopen_app"},
-      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#mcp-diagnostic-ready"}, "operator": "contains", "expected": "Accelerate SDK health: healthy at "}
+      {"op": "wait_for", "selector": "#mcp-reread-health", "state": "visible", "timeout_ms": 10000},
+      {"op": "click", "selector": "#mcp-reread-health"},
+      {"op": "wait_for", "selector": "#mcp-retained-proof", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#mcp-retained-proof"}, "operator": "contains", "expected": "Retained ipfs_kit_py node_id receipt "}
     ],
     "failure_recovery": [
       {"op": "fill", "selector": "#mcp-tool-params", "value": "{"},
       {"op": "press", "selector": "#mcp-run-diagnostic", "key": "Enter"},
       {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#mcp-diagnostic-status"}, "operator": "contains", "expected": "Invalid parameters"},
       {"op": "fill", "selector": "#mcp-tool-params", "value": "{}"},
-      {"op": "click", "selector": "#mcp-run-diagnostic"},
+      {"op": "click", "selector": "#mcp-reread-health"},
       {"op": "wait_for", "selector": "#mcp-diagnostic-ready", "state": "visible", "timeout_ms": 15000},
       {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#mcp-diagnostic-status"}, "operator": "contains", "expected": "Retry succeeded"}
     ]

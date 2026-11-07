@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "accelerate-panel",
-  "description": "Run one bounded accelerate-panel inference, reopen the saved run record, then recover from an empty input without clearing the model field.",
+  "description": "Run one bounded accelerate-panel inference, reopen that saved run, reread its execution record, and read CPU hardware fit. An empty input keeps its model id, cancel reports that no cancellation exists, and a supported model and input are submitted again.",
   "fixture_scope": "svf-accelerate-panel-run",
   "backend_bindings": [
     {
@@ -14,6 +14,30 @@
         "pointer": "/result/result/result/output",
         "operator": "contains",
         "expected": "short test"
+      }
+    },
+    {
+      "binding_id": "accelerate-panel.ipfs_accelerate_py.read_job_status",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 262144,
+      "result_assertion": {
+        "pointer": "/result/result/result/read_from_execution_record",
+        "operator": "equals",
+        "expected": true
+      }
+    },
+    {
+      "binding_id": "accelerate-panel.ipfs_accelerate_py.read_hardware_profile",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 262144,
+      "result_assertion": {
+        "pointer": "/result/result/result/device",
+        "operator": "equals",
+        "expected": "cpu"
       }
     }
   ],
@@ -75,6 +99,24 @@
       },
       {
         "op": "assert",
+        "probe": {
+          "kind": "value",
+          "selector": "#accelerate-model-id"
+        },
+        "operator": "equals",
+        "expected": "gpt2"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "value",
+          "selector": "#accelerate-prompt"
+        },
+        "operator": "equals",
+        "expected": "short test"
+      },
+      {
+        "op": "assert",
         "requirement_id": "persist_reopen",
         "probe": {
           "kind": "text",
@@ -82,6 +124,53 @@
         },
         "operator": "contains",
         "expected": "short test"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#accelerate-run-record"
+        },
+        "operator": "contains",
+        "expected": "Saved run model=gpt2; state=completed; finished="
+      },
+      {
+        "op": "click",
+        "selector": "[data-action=\"read-job-status\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#accelerate-queue-status:has-text(\"job_status completed\")",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#accelerate-queue-status"
+        },
+        "operator": "contains",
+        "expected": "job_status completed"
+      },
+      {
+        "op": "click",
+        "selector": "[data-action=\"refresh-hardware\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#accelerate-hardware-status:has-text(\"hardware_profile executed\")",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#accelerate-hardware-status"
+        },
+        "operator": "contains",
+        "expected": "hardware_profile executed"
       }
     ],
     "failure_recovery": [
@@ -108,6 +197,19 @@
         },
         "operator": "contains",
         "expected": "Model ID kept: unsupported-model-svf-132"
+      },
+      {
+        "op": "click",
+        "selector": "[data-action=\"cancel-job\"]"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#accelerate-queue-status"
+        },
+        "operator": "contains",
+        "expected": "Nothing was cancelled."
       },
       {
         "op": "fill",
@@ -148,10 +250,10 @@
         "requirement_id": "failure_recovery",
         "probe": {
           "kind": "text",
-          "selector": "#accelerate-error-status"
+          "selector": "#accelerate-output"
         },
-        "operator": "equals",
-        "expected": ""
+        "operator": "contains",
+        "expected": "short test"
       }
     ]
   }

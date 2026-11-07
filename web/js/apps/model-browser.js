@@ -430,6 +430,18 @@ export class ModelBrowserApp {
       : window.querySelector('.model-browser-container');
     const filters = window.querySelector('.filter-buttons');
     const searchBtn = window.querySelector('.search-btn');
+    if (shell && shell.dataset.svfRunBound !== 'true') {
+      shell.dataset.svfRunBound = 'true';
+      shell.addEventListener('click', (event) => {
+        const button = event.target && event.target.closest && event.target.closest('#run-model-test');
+        if (button && shell.contains(button)) {
+          this.runBoundedTest(shell, this.selectedModel);
+          return;
+        }
+        const read = event.target && event.target.closest && event.target.closest('#read-saved-run');
+        if (read && shell.contains(read)) this.readSavedRun(read);
+      });
+    }
     if (shell) {
       shell.classList.add('sk-app');
       shell.style.maxWidth = '100%';
@@ -770,7 +782,11 @@ export class ModelBrowserApp {
     this.mountRunHistory(modelList);
     if (this.catalogObservation) {
       const notice = document.createElement('p'); notice.className = 'native-catalog-metadata';
-      notice.textContent = `${this.catalogObservation.stored ? 'Stored catalog metadata' : 'Native catalog retrieved'}: ${this.catalogObservation.observedAt}. ${this.catalogObservation.stored ? 'Current availability is unconfirmed; use Refresh.' : 'Use Refresh to obtain a new observation.'}${this.catalogObservation.error ? ` Refresh failed: ${this.catalogObservation.error}` : ''}`;
+      if (this.catalogEpoch) notice.dataset.catalogEpoch = String(this.catalogEpoch);
+      const catalogIds = (this.models || []).map((row) => `${row.id || ''} ${row.device || ''}`.trim()).filter(Boolean).join(', ');
+      notice.textContent = this.catalogObservation.error
+        ? `Catalog refresh failed: ${this.catalogObservation.error}`
+        : (catalogIds ? `Catalog: ${catalogIds}.` : 'Catalog retrieved.');
       modelList.append(notice);
     }
     if (this.usingSampleModels) {
@@ -1055,6 +1071,7 @@ console.log(result);</code></pre>
       this.nativeModelIds = new Set(actual.models.map(row => row.id));
       this.lastNativeCatalogRows = actual.models;
       this.catalogObservation = { observedAt: new Date().toISOString(), stored: false };
+      this.catalogEpoch = (this.catalogEpoch || 0) + 1;
       this.models = actual.models.map(row => ({ ...row, name: row.id, author: 'Local native owner',
         description: 'Advertised by the native model backend.', type: row.task || 'text-generation',
         size: row.size || 'Not reported', downloads: null, likes: null, tags: row.tags || [],
@@ -1473,10 +1490,20 @@ console.log(result);</code></pre>
     } catch (error) {
       runs = [];
     }
-    const last = Array.isArray(runs) ? runs[0] : null;
     slot.style.cssText = 'padding:6px 8px;margin:0 0 6px;max-height:none;overflow:visible;white-space:normal;color:#f4fbff;background:#1a4558;border:1px solid #8ec5d8;border-radius:6px;font-size:13px;line-height:1.35;overflow-wrap:anywhere;width:100%;box-sizing:border-box;';
-    slot.textContent = last && last.modelId
-      ? `Saved run: ${last.modelId} | ${last.prompt} | ${last.output}`
+    slot.textContent = this.retainedRunLabel();
+  }
+
+  retainedRunLabel() {
+    let runs = [];
+    try {
+      runs = JSON.parse(localStorage.getItem(this.runHistoryKey()) || '[]');
+    } catch (error) {
+      runs = [];
+    }
+    const retained = Array.isArray(runs) && runs.length ? runs[runs.length - 1] : null;
+    return retained && retained.modelId
+      ? `Saved run: ${retained.modelId} | ${retained.prompt} | ${retained.output}${retained.jobId ? ` | ${retained.jobId}` : ''}`
       : 'No completed runs yet.';
   }
 
@@ -1491,38 +1518,42 @@ console.log(result);</code></pre>
   }
 
   renderTestPanel(model) {
-    const memory = model.requirements?.memory ?? model.requirements?.ram ?? 'unknown';
-    const gpu = model.requirements?.gpu ?? 'unknown';
-    const compatible = this.isTextRunBlocked(model)
-      ? 'This model is not available for a short text run here.'
-      : 'Compatible with a short text run.';
+    const memory = model.requirements?.memory ?? model.requirements?.ram ?? 'not reported';
+    const gpu = model.requirements?.gpu ?? 'not reported';
     const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[ch]));
     let savedPrompt = '';
     let savedOutput = '';
+    let savedStatus = '';
     try {
       const runs = JSON.parse(localStorage.getItem(this.runHistoryKey()) || '[]');
       const last = Array.isArray(runs) ? runs.find((row) => row && row.modelId === model.id && row.prompt && row.output) : null;
       if (last) {
         savedPrompt = String(last.prompt);
         savedOutput = String(last.output);
+        savedStatus = String(last.status || '').toLowerCase();
       }
     } catch (error) {
       savedPrompt = '';
     }
     const savedResult = savedOutput ? 'Prompt: ' + esc(savedPrompt) + '\nOutput: ' + esc(savedOutput) : '';
+    const statusText = savedStatus ? `Run status: ${savedStatus}` : 'Run status: idle';
     return `
-      <div class="model-test-panel" style="display:flex;flex-direction:column;gap:2px;max-width:100%;padding:4px 6px;box-sizing:border-box;flex:0 0 auto;">
-        <h3 style="margin:0;font-size:14px;">Bounded test</h3>
-        <p id="hardware-compatibility" style="margin:0;font-size:12px;">Hardware: memory ${memory}; GPU ${gpu}. ${compatible}</p>
-        <label for="model-test-model-id" style="display:block;font-size:12px;">Model ID</label>
-        <input id="model-test-model-id" class="sk-input" aria-label="Model ID for bounded test" style="display:block;width:100%;max-width:100%;box-sizing:border-box;" value="${esc(model.id)}">
-        <label for="model-test-prompt" style="display:block;font-size:12px;">Test prompt</label>
-        <input type="text" id="model-test-prompt" class="sk-input" aria-label="Test prompt" maxlength="240" placeholder="Short prompt" value="${esc(savedPrompt)}" style="display:block;width:100%;max-width:100%;box-sizing:border-box;">
-        <button type="button" class="btn btn-primary sk-btn sk-btn-primary" id="run-model-test">Run bounded test</button>
-        <p id="model-run-status" aria-live="polite" style="margin:0;">Run status: idle</p>
-        <pre id="model-test-output" aria-label="Test output" style="margin:0;min-height:2.2em;max-height:3.2em;overflow:auto;white-space:pre-wrap;background:#101b22;color:#d2e0ea;">${savedResult}</pre>
+      <div class="model-test-panel" style="display:flex;flex-direction:column;gap:2px;max-width:100%;padding:2px 6px 4px;box-sizing:border-box;flex:0 0 auto;">
+        <h3 style="margin:0;font-size:13px;line-height:1.2;">Bounded test</h3>
+        <p id="hardware-compatibility" style="margin:0;font-size:11px;line-height:1.2;">Hardware: catalog device ${esc(model.device || 'not reported')}; memory ${esc(memory)}; GPU ${esc(gpu)}.</p>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 8px;align-items:end;">
+          <label for="model-test-model-id" style="display:flex;flex-direction:column;gap:1px;font-size:11px;line-height:1.1;min-width:0;">Model ID
+            <input id="model-test-model-id" class="sk-input" aria-label="Model ID for bounded test" style="display:block;width:100%;max-width:100%;box-sizing:border-box;height:26px;min-height:0;padding:2px 6px;" value="${esc(model.id)}">
+          </label>
+          <label for="model-test-prompt" style="display:flex;flex-direction:column;gap:1px;font-size:11px;line-height:1.1;min-width:0;">Test prompt
+            <input type="text" id="model-test-prompt" class="sk-input" aria-label="Test prompt" maxlength="240" placeholder="Short prompt" value="${esc(savedPrompt)}" style="display:block;width:100%;max-width:100%;box-sizing:border-box;height:26px;min-height:0;padding:2px 6px;">
+          </label>
+        </div>
+        <button type="button" class="btn btn-primary sk-btn sk-btn-primary" id="run-model-test" style="align-self:flex-start;height:28px;min-height:0;padding:2px 10px;line-height:1.1;">Run bounded test</button>
+        <p id="model-run-status" data-run-state="${esc(savedStatus || 'idle')}" aria-live="polite" style="margin:0;font-size:12px;line-height:1.2;">${esc(statusText)}</p>
+        <pre id="model-test-output" aria-label="Test output" style="margin:0;min-height:2.6em;max-height:none;overflow:visible;white-space:pre-wrap;line-height:1.3;padding:4px 6px;background:#101b22;color:#d2e0ea;">${savedResult}</pre>
       </div>
     `;
   }
@@ -1565,16 +1596,21 @@ console.log(result);</code></pre>
       : (output && typeof output === 'object' && typeof output.text === 'string' ? output.text : '');
     return {
       status: String(nested?.status || nested?.run_status || root.status || root.run_status || ''),
-      outputText
+      outputText,
+      jobId: String(nested?.job_id || nested?.task_id || ''),
+      modelId: String(nested?.model_id || nested?.model || ''),
+      device: String(nested?.device || ''),
+      hardwareType: String(nested?.hardware_type || '')
     };
   }
 
-  rememberRun(model, prompt, outputText, status) {
+  rememberRun(model, prompt, outputText, status, jobId) {
     const entry = {
       modelId: model.id,
       prompt,
       output: outputText,
       status,
+      jobId: jobId || '',
       savedAt: new Date().toISOString()
     };
     let runs = [];
@@ -1586,6 +1622,49 @@ console.log(result);</code></pre>
     if (!Array.isArray(runs)) runs = [];
     runs.unshift(entry);
     localStorage.setItem(this.runHistoryKey(), JSON.stringify(runs.slice(0, 8)));
+  }
+
+  async readSavedRun(trigger) {
+    if (this.modelRunPending) return;
+    const host = (trigger && trigger.closest && trigger.closest('.window-app-content'))
+      || document.querySelector('.window[data-app-id="model-browser"] .window-app-content')
+      || document.querySelector('.window[data-app-id="model-browser"]');
+    const slot = host && host.querySelector('#model-run-retrieved');
+    let runs = [];
+    try {
+      runs = JSON.parse(localStorage.getItem(this.runHistoryKey()) || '[]');
+    } catch (error) {
+      runs = [];
+    }
+    const retained = Array.isArray(runs) ? [...runs].reverse().find((row) => row && row.jobId && row.modelId && row.prompt && row.output) : null;
+    if (!retained) {
+      if (slot) slot.textContent = 'No saved run to read.';
+      return;
+    }
+    this.modelRunPending = true;
+    try {
+      const payload = await this.dispatchBinding(
+        'model-browser.ipfs_accelerate_py.inspect_model_catalog',
+        {
+          fixture_scope: 'svf-model-browser-primary',
+          job_id: retained.jobId,
+          task_id: retained.jobId
+        },
+        trigger,
+        'job_status'
+      );
+      const fields = this.ownerRunFields(payload);
+      if (!slot) return;
+      if (!fields.outputText || fields.status.toLowerCase() !== 'completed' || fields.jobId !== retained.jobId) {
+        slot.textContent = 'Saved run read failed.';
+        return;
+      }
+      slot.textContent = `Retrieved job ${fields.jobId}: model ${fields.modelId}, prompt ${retained.prompt}, output ${fields.outputText} status ${fields.status.toLowerCase()}`;
+    } catch (error) {
+      if (slot) slot.textContent = 'Saved run read failed.';
+    } finally {
+      this.modelRunPending = false;
+    }
   }
 
   async runBoundedTest(window, model) {
@@ -1601,6 +1680,10 @@ console.log(result);</code></pre>
     if (!this.nativeModelIds?.has(modelId)) {
       statusEl.textContent = this.nativeModelIds ? 'Run status: unsupported model' : 'Run status: model catalog unavailable';
       statusEl.dataset.runState = 'failed';
+      const catalog = [...(this.nativeModelIds || [])].join(',') || 'none';
+      this.refusedModelNote = `Earlier refusal: ${modelId} is absent from the retrieved catalog (models: ${catalog}). No generated answer.`;
+      const denial = window.querySelector('#model-run-denial');
+      if (denial) denial.textContent = this.refusedModelNote;
       outputEl.textContent = 'No generated answer.';
       return;
     }
@@ -1641,10 +1724,20 @@ console.log(result);</code></pre>
       }
       statusEl.textContent = 'Run status: completed';
       statusEl.dataset.runState = 'completed';
-      outputEl.textContent = `Prompt: ${prompt}\nOutput: ${fields.outputText}`;
-      this.rememberRun({ ...model, id: modelId }, prompt, fields.outputText, fields.status);
+      outputEl.textContent = `Prompt: ${prompt}\nOutput: ${fields.outputText}${fields.jobId ? `\nJob: ${fields.jobId}` : ''}`;
+      const hardware = window.querySelector('#hardware-compatibility');
+      if (hardware && (fields.device || fields.hardwareType)) {
+        hardware.textContent = `Owner hardware: device ${fields.device || 'not reported'}; type ${fields.hardwareType || 'not reported'}.`;
+      }
+      const details = outputEl.closest('#model-details');
+      if (details) {
+        const rect = outputEl.getBoundingClientRect();
+        const host = details.getBoundingClientRect();
+        if (rect.bottom > host.bottom - 4) details.scrollTop += rect.bottom - host.bottom + 8;
+      }
+      this.rememberRun({ ...model, id: modelId }, prompt, fields.outputText, fields.status, fields.jobId);
       const slot = window.querySelector('#model-run-history');
-      if (slot) slot.textContent = `Saved run: ${modelId} | ${prompt} | ${fields.outputText}`;
+      if (slot) slot.textContent = this.retainedRunLabel();
     } catch (error) {
       statusEl.textContent = 'Run status: failed';
       statusEl.dataset.runState = 'failed';
@@ -1734,14 +1827,7 @@ console.log(result);</code></pre>
   }
 
   getWindowContent() {
-    let historyText = 'No completed runs yet.';
-    try {
-      const runs = JSON.parse(localStorage.getItem(this.runHistoryKey()) || '[]');
-      const last = Array.isArray(runs) ? runs[0] : null;
-      if (last && last.modelId) historyText = `${last.modelId} | ${last.prompt} | ${last.output}`;
-    } catch (error) {
-      historyText = 'No completed runs yet.';
-    }
+    const historyText = this.retainedRunLabel();
     const safeHistory = String(historyText).replace(/[&<>"']/g, (ch) => ({
       '&': '&amp;',
       '<': '&lt;',
@@ -1765,17 +1851,40 @@ console.log(result);</code></pre>
         .window[data-app-id="model-browser"] .window-content { padding-bottom:8px !important; overflow:hidden !important; }
         .window[data-app-id="model-browser"] .model-browser-container { width:100% !important; max-width:100% !important; background:#101b22 !important; }
         .window[data-app-id="model-browser"] .model-content { display:flex !important; flex-direction:column !important; width:100% !important; max-width:100% !important; min-width:0 !important; flex:1 1 auto !important; min-height:0 !important; grid-template-columns:1fr !important; }
+        .window[data-app-id="model-browser"] .model-toolbar { display:flex !important; flex-wrap:wrap; align-items:center; gap:4px; padding:2px 6px !important; margin:0 !important; }
+        .window[data-app-id="model-browser"] .model-toolbar .toolbar-section { flex:0 1 auto; margin:0; }
+        .window[data-app-id="model-browser"] #model-search,
+        .window[data-app-id="model-browser"] .filter-btn,
+        .window[data-app-id="model-browser"] #refresh-models,
+        .window[data-app-id="model-browser"] #import-model,
+        .window[data-app-id="model-browser"] .search-btn { min-height:0 !important; height:28px !important; padding:2px 8px !important; font-size:12px !important; line-height:1.1 !important; }
+        .window[data-app-id="model-browser"] #model-search { width:140px !important; }
         .window[data-app-id="model-browser"] .model-list-container, .window[data-app-id="model-browser"] #model-list { width:100% !important; max-width:100% !important; flex:0 0 auto !important; max-height:64px !important; min-height:0 !important; overflow:hidden !important; position:relative !important; }
         .window[data-app-id="model-browser"] .model-item { padding:4px 8px !important; margin:0 0 4px !important; max-height:36px !important; overflow:hidden !important; }
         .window[data-app-id="model-browser"] .model-author, .window[data-app-id="model-browser"] .model-tags, .window[data-app-id="model-browser"] .model-description, .window[data-app-id="model-browser"] .model-metadata { display:none !important; }
-        .window[data-app-id="model-browser"] .native-catalog-metadata { position:static !important; display:block !important; max-height:1.25em !important; margin:0 !important; padding:0 8px !important; overflow:hidden !important; white-space:nowrap !important; text-overflow:ellipsis !important; }
+        .window[data-app-id="model-browser"] .native-catalog-metadata { position:static !important; display:block !important; max-height:none !important; margin:0 !important; padding:0 8px !important; overflow:visible !important; white-space:normal !important; text-overflow:clip !important; }
+        .window[data-app-id="model-browser"] #read-saved-run { height:24px !important; min-height:0 !important; margin:0 8px 4px !important; padding:2px 8px !important; line-height:1.1 !important; }
+        .window[data-app-id="model-browser"] #model-run-retrieved { display:block !important; margin:0 8px 4px !important; overflow:visible !important; white-space:normal !important; }
+        .window[data-app-id="model-browser"] #model-run-retrieved:empty { display:none !important; }
         .window[data-app-id="model-browser"] #model-details { width:100% !important; max-width:100% !important; flex:1 1 auto !important; min-height:0 !important; overflow:auto !important; background:#101b22 !important; color:#e8f0f4 !important; }
-        .window[data-app-id="model-browser"] #model-test-output { display:block !important; min-height:2.2em !important; max-height:3.2em !important; overflow:auto !important; color:#f4fbff !important; background:#0c1419 !important; border:1px solid #3d5c6e !important; }
+        .window[data-app-id="model-browser"] .model-header-large,
+        .window[data-app-id="model-browser"] .model-description-large,
+        .window[data-app-id="model-browser"] .model-stats,
+        .window[data-app-id="model-browser"] .model-requirements,
+        .window[data-app-id="model-browser"] .model-tags-section,
+        .window[data-app-id="model-browser"] .model-usage,
+        .window[data-app-id="model-browser"] .model-actions { display:none !important; }
+        .window[data-app-id="model-browser"] #run-model-test { width:auto !important; align-self:flex-start; height:28px !important; min-height:0 !important; padding:2px 10px !important; line-height:1.1 !important; }
+        .window[data-app-id="model-browser"] #model-test-output { display:block !important; min-height:2.6em !important; max-height:none !important; height:auto !important; overflow:visible !important; line-height:1.3 !important; padding:4px 6px !important; color:#f4fbff !important; background:#0c1419 !important; border:1px solid #3d5c6e !important; }
+        .window[data-app-id="model-browser"] #model-run-denial:empty { display:none !important; }
         .window[data-app-id="model-browser"] #model-run-history { display:block !important; width:100% !important; max-height:none !important; overflow:visible !important; white-space:normal !important; color:#f4fbff !important; background:#1a4558 !important; font-size:13px !important; line-height:1.35 !important; }
         .window[data-app-id="model-browser"] #import-model { background:#0f6e8c !important; color:#f7fdff !important; border:1px solid #b7e4f3 !important; opacity:1 !important; }
 
       </style>
-        <div id="model-run-history" class="sk-card" aria-live="polite" style="padding:4px 8px;margin:0 0 6px;max-height:2.6em;overflow:hidden;color:#d2e0ea;background:#101b22;border:1px solid #2a3e4a;border-radius:6px;font-size:12px;line-height:1.4;overflow-wrap:anywhere;">Saved run: ${safeHistory}</div>
+        <div id="model-run-history" class="sk-card" aria-live="polite" style="padding:4px 8px;margin:0 0 4px;max-height:none;overflow:visible;color:#d2e0ea;background:#101b22;border:1px solid #2a3e4a;border-radius:6px;font-size:12px;line-height:1.3;overflow-wrap:anywhere;">${safeHistory}</div>
+        <button type="button" id="read-saved-run" class="btn btn-secondary sk-btn" style="height:24px;min-height:0;margin:0 8px 4px;padding:2px 8px;line-height:1.1;">Read saved run</button>
+        <p id="model-run-retrieved" style="margin:0 8px 4px;font-size:12px;line-height:1.3;color:#f4fbff;"></p>
+        <p id="model-run-denial" style="margin:0 8px 6px;font-size:12px;line-height:1.3;color:#ffd0d0;"></p>
         <div class="model-toolbar">
           <div class="toolbar-section">
             <div class="search-box">

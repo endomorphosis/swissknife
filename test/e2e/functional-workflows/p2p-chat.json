@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "p2p-chat",
-  "description": "Publish one short legacy broadcast, reopen the retained draft, queue a later offline draft, then explicitly retry that queued draft through the consented native owner route without duplicate delivery.",
+  "description": "Publish one short legacy broadcast, reopen the retained history with its peer identity, then keep a later offline draft queued and choose the upgrade route without a second send.",
   "fixture_scope": "svf-p2p-chat-classic",
   "backend_bindings": [
     {
@@ -14,6 +14,42 @@
         "pointer": "/result/result/content/0/json/delivery_state",
         "operator": "equals",
         "expected": "delivered"
+      }
+    },
+    {
+      "binding_id": "p2p-chat.ipfs_kit_py.persist_artifact",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/persisted",
+        "operator": "equals",
+        "expected": true
+      }
+    },
+    {
+      "binding_id": "p2p-chat.ipfs_kit_py.retrieve_artifact",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/bytes_base64",
+        "operator": "contains",
+        "expected": "eyJhcHAiOiJwMnAtY2hhdCIsImNvbXBhcmlzb24iOiJkZWxpdmVyeSBkZWxpdmVyZWQ7IG1lc3NhZ2Ugc3ZmLXAycC1jbGFzc2ljLW5vdGU7IHBlZXJzIDEyRDNLb29XUlJ6dktuRExidEJkUG5yM1ltdFFZNHFHMmVESFlWcTVCZ3RmTFdpUHZ1RUcgdG8gMTJEM0tvb1dFSEw3TDRIczZOUjlzZEtDeEdkMUtqb3BIMjRvcWNMQlpZRWgyMW1hMU5R"
+      }
+    },
+    {
+      "binding_id": "p2p-chat.ipfs_kit_py.append_event",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/status",
+        "operator": "equals",
+        "expected": "recorded"
       }
     }
   ],
@@ -29,7 +65,13 @@
       {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": ".chat-published-transcript"}, "operator": "contains", "expected": "svf-p2p-classic-note · peers "}
     ],
     "persist_reopen": [
+      {"op": "click", "selector": "[data-chat-save-history]"},
+      {"op": "wait_for", "selector": "[data-gateway-confirm=\"p2p-chat.ipfs_kit_py.persist_artifact\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "[data-gateway-confirm=\"p2p-chat.ipfs_kit_py.persist_artifact\"]"},
+      {"op": "wait_for", "selector": "[data-chat-history-cid][data-history-saved=\"1\"]", "state": "visible", "timeout_ms": 15000},
       {"op": "reopen_app"},
+      {"op": "click", "selector": "[data-chat-load-history]"},
+      {"op": "wait_for", "selector": "[data-chat-retained-state][data-history-loaded=\"1\"]", "state": "visible", "timeout_ms": 15000},
       {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "[data-chat-retained-state]"}, "operator": "contains", "expected": "delivery delivered; message svf-p2p-classic-note"}
     ],
     "failure_recovery": [
@@ -37,11 +79,12 @@
       {"op": "click", "selector": "[data-chat-broadcast-submit]"},
       {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "json_attribute", "selector": "[data-chat-outbox]", "attribute": "data-chat-outbox-state", "pointer": "/queue"}, "operator": "equals", "expected": {"count": 1, "messages": [{"topic": "/swissknife/chat/g047", "text": "svf-p2p-classic-offline"}]}},
       {"op": "click", "selector": "[data-chat-workflow-action=\"show-migration-path\"]"},
+      {"op": "wait_for", "selector": "[data-gateway-confirm=\"p2p-chat.ipfs_kit_py.append_event\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "[data-gateway-confirm=\"p2p-chat.ipfs_kit_py.append_event\"]"},
       {"op": "click", "selector": "[data-chat-broadcast-submit]"},
       {"op": "wait_for", "selector": "[data-gateway-confirm=\"p2p-chat.ipfs_kit_py.exchange_peer_messages\"]", "state": "visible", "timeout_ms": 15000},
       {"op": "click", "selector": "[data-gateway-confirm=\"p2p-chat.ipfs_kit_py.exchange_peer_messages\"]"},
       {"op": "wait_for", "selector": "[data-offline-state=\"empty\"]", "state": "visible", "timeout_ms": 15000},
-      {"op": "press", "selector": "[data-chat-show-delivery]", "key": "Enter"},
       {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": ".chat-published-transcript"}, "operator": "contains", "expected": "delivery delivered · sends 2 · offline queue 0 holding none"}
     ]
   }

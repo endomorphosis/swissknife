@@ -1,28 +1,214 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "music-studio-unified",
-  "description": "Edit the active note on the two-track local demo, save and reopen it, then reject an unknown project and restore the demo without claiming playback.",
+  "description": "Edit the Drums note to C4, save and reopen it, then reject an unknown project and resume the saved note with a real browser tone.",
   "fixture_scope": "svf-music-studio-unified",
   "backend_bindings": [],
   "phases": {
     "primary_result": [
-      {"op": "wait_for", "selector": "#ums-note", "state": "visible", "timeout_ms": 10000},
-      {"op": "fill", "selector": "#ums-note", "value": "C4"},
-      {"op": "press", "selector": "#ums-note", "key": "Enter"},
-      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#ums-status"}, "operator": "contains", "expected": "Tracks: Drums, Bass · Tempo: 120 BPM · Transport: stopped · Note: C4"}
+      {
+        "op": "wait_for",
+        "selector": "#ums-note",
+        "state": "visible",
+        "timeout_ms": 10000
+      },
+      {
+        "op": "click",
+        "selector": ".play-btn"
+      },
+      {
+        "op": "click",
+        "selector": ".stop-btn"
+      },
+      {
+        "op": "fill",
+        "selector": "#ums-note",
+        "value": "C4"
+      },
+      {
+        "op": "press",
+        "selector": "#ums-note",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#ums-edited"
+        },
+        "operator": "equals",
+        "expected": "Edited note C4 on Drums."
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#ums-tracks"
+        },
+        "operator": "equals",
+        "expected": "Drums C4 · Bass c2"
+      },
+      {
+        "op": "click",
+        "selector": "#ums-enable-audio"
+      },
+      {
+        "op": "wait_ms",
+        "milliseconds": 400
+      },
+      {
+        "op": "press",
+        "selector": "#ums-enable-audio",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "#ums-playback",
+          "attribute": "data-playback-sample",
+          "pointer": "/elapsed_ms",
+          "temporal_ms": 500
+        },
+        "operator": "at_least",
+        "expected": 450
+      }
     ],
     "persist_reopen": [
-      {"op": "click", "selector": "#ums-save-project"},
-      {"op": "reopen_app"},
-      {"op": "wait_for", "selector": "#ums-status", "state": "visible", "timeout_ms": 10000},
-      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#ums-status"}, "operator": "contains", "expected": "Tracks: Drums, Bass · Tempo: 120 BPM · Transport: stopped · Note: C4"}
+      {
+        "op": "click",
+        "selector": "#ums-save-project"
+      },
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#ums-retained",
+        "state": "visible",
+        "timeout_ms": 10000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "text",
+          "selector": "#ums-retained"
+        },
+        "operator": "equals",
+        "expected": "Retained tracks Drums, Bass. Tempo 120 BPM. Note C4."
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#ums-tracks"
+        },
+        "operator": "equals",
+        "expected": "Drums C4 · Bass c2"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#ums-edited"
+        },
+        "operator": "equals",
+        "expected": "Edited note C4 on Drums."
+      }
     ],
     "failure_recovery": [
-      {"op": "fill", "selector": "#ums-project-key", "value": "missing-project"},
-      {"op": "click", "selector": "#ums-load-project"},
-      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#ums-status"}, "operator": "equals", "expected": "Invalid project. Playback did not start."},
-      {"op": "click", "selector": "#ums-use-demo"},
-      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#ums-status"}, "operator": "contains", "expected": "Tracks: Drums, Bass · Tempo: 120 BPM · Transport: stopped"}
+      {
+        "op": "fill",
+        "selector": "#ums-project-key",
+        "value": "missing-project"
+      },
+      {
+        "op": "click",
+        "selector": "#ums-load-project"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#ums-status"
+        },
+        "operator": "equals",
+        "expected": "Invalid project. Playback did not start."
+      },
+      {
+        "op": "fill",
+        "selector": "#ums-project-key",
+        "value": "local"
+      },
+      {
+        "op": "click",
+        "selector": "#ums-load-project"
+      },
+      {
+        "op": "click",
+        "selector": "#ums-enable-audio"
+      },
+      {
+        "op": "wait_ms",
+        "milliseconds": 400
+      },
+      {
+        "op": "press",
+        "selector": "#ums-enable-audio",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "#ums-playback",
+          "attribute": "data-playback-sample",
+          "pointer": "/elapsed_ms",
+          "temporal_ms": 500
+        },
+        "operator": "at_least",
+        "expected": 450
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#ums-status"
+        },
+        "operator": "contains",
+        "expected": "Transport: playing · Note: C4"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#ums-retained"
+        },
+        "operator": "equals",
+        "expected": "Retained tracks Drums, Bass. Tempo 120 BPM. Note C4."
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#ums-tracks"
+        },
+        "operator": "equals",
+        "expected": "Drums C4 · Bass c2"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "value",
+          "selector": "#ums-note"
+        },
+        "operator": "equals",
+        "expected": "C4"
+      }
     ]
   }
 }

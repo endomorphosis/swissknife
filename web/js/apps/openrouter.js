@@ -254,6 +254,8 @@ class OpenRouterApp {
         };
         this.requestHistory = [];
         this.modelStats = new Map();
+        this.playgroundPrompt = '';
+        this.playgroundOutput = '';
     }
 
     async initialize() {
@@ -279,9 +281,36 @@ class OpenRouterApp {
         <div class="openrouter-app" data-openrouter-instance="${this.instanceId}">
             <style>
               .openrouter-app{max-width:100%;box-sizing:border-box}
-              .openrouter-app .playground-layout,.openrouter-app .playground-controls,.openrouter-app .control-section,.openrouter-app .chat-layout{max-width:100%;min-width:0;box-sizing:border-box;margin-left:0;position:relative;left:auto;transform:none}
+              .openrouter-app .or-playground-tab,.openrouter-app .playground-layout{display:flex !important;flex-direction:column !important;width:100% !important;max-width:100% !important;height:auto !important;min-width:0 !important;overflow:visible !important;box-sizing:border-box}
+              .openrouter-app .playground-controls{width:100% !important;max-width:100% !important;height:auto !important;padding:2px 8px !important;overflow:visible !important;border-right:none !important;box-sizing:border-box}
+              .openrouter-app .playground-main,.openrouter-app .input-section,.openrouter-app .output-section{width:100% !important;max-width:100% !important;min-width:0 !important;flex:0 0 auto !important;box-sizing:border-box}
+              .openrouter-app .playground-main{padding:2px 8px !important}
+              .openrouter-app .or-quick-section,.openrouter-app .or-slider-group{display:none !important}
+              .openrouter-app .control-section{margin:0 !important}
+              .openrouter-app .control-section h3{margin:0 0 2px !important;padding:0 !important;border:0 !important;font-size:14px !important}
+              .openrouter-app .control-group{margin:0 0 4px !important}
+              .openrouter-app .control-group select{width:100% !important;max-width:100% !important}
+              .openrouter-app #playground-input{height:2rem !important;min-height:2rem !important;max-height:2rem !important;padding:4px !important}
+              .openrouter-app #playground-output{height:auto !important;min-height:0 !important;max-height:none !important;padding:4px 6px !important;overflow:visible !important}
+              .openrouter-app .input-section,.openrouter-app .output-section{margin:0 0 2px !important}
+              .openrouter-app .section-header{margin:0 0 2px !important}
+              .openrouter-app .section-header h3{font-size:14px !important}
+              .openrouter-app .or-retained-chat{margin:0 0 4px;font-size:13px;line-height:1.3;overflow-wrap:anywhere}
+              .openrouter-app .playground-footer{margin:0 0 2px !important}
               .openrouter-app .control-section h3{margin-left:0;padding-left:0;overflow:visible}
-              .openrouter-app .or-header{flex-wrap:wrap;align-items:center}
+              .openrouter-app{height:auto !important}
+              .openrouter-app .or-header{flex-direction:row !important;flex-wrap:nowrap;align-items:center;gap:6px !important;padding:4px 8px !important}
+              @media (max-width:480px){
+                .openrouter-app .or-header{flex-wrap:wrap !important}
+                .openrouter-app .or-header-left{flex:1 1 auto;min-width:0;max-width:100%}
+                .openrouter-app .or-header-right{flex:1 1 100%;display:flex !important;justify-content:flex-start;min-width:0;max-width:100%}
+                .openrouter-app .or-header-right .or-btn{flex:0 1 auto;max-width:100%}
+              }
+              .openrouter-app .or-logo-icon{font-size:16px !important;animation:none !important}
+              .openrouter-app .or-logo-text{font-size:15px !important}
+              .openrouter-app .or-btn{padding:4px 8px !important}
+              .openrouter-app .or-nav-tabs{flex-wrap:nowrap;padding:0 !important}
+              .openrouter-app .tab-item{min-width:0 !important;flex:1 1 auto;padding:4px 6px !important;gap:4px !important}
               .openrouter-app .or-logo-text,.openrouter-app .or-status,.openrouter-app .tab-item,.openrouter-app .tab-label{white-space:nowrap;overflow:visible;text-overflow:clip;flex:0 0 auto;max-width:none}
               .openrouter-app .or-nav-tabs{display:flex;flex-wrap:wrap;overflow:visible;max-width:100%}
               .openrouter-app .or-catalog-status{white-space:normal;overflow-wrap:anywhere;line-height:1.4}
@@ -294,10 +323,12 @@ class OpenRouterApp {
               .openrouter-app .or-modal .modal-body{flex:1 1 auto;min-height:0;overflow:auto}
               .openrouter-app .or-modal .modal-footer{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:0.5rem;overflow:visible}
               .openrouter-app .or-modal .modal-footer .or-btn{visibility:visible;opacity:1;min-height:2.25rem;position:relative}
-              .openrouter-app .or-modal #api-key-input{display:block !important;width:100% !important;box-sizing:border-box !important;min-height:2.5rem !important;padding:0.45rem 0.65rem !important;background:#fff !important;background-color:#fff !important;background-image:none !important;background-clip:border-box !important;color:#1a1a1a !important;-webkit-text-fill-color:#1a1a1a !important;border:1px solid #5c6570 !important;border-radius:6px !important;caret-color:#1a1a1a !important;opacity:1 !important;filter:none !important;box-shadow:inset 0 0 0 1px #5c6570 !important;appearance:none !important;-webkit-appearance:none !important}
-              .openrouter-app .or-modal #api-key-input::placeholder{color:#5c6570 !important;opacity:1 !important;-webkit-text-fill-color:#5c6570 !important}
+              .openrouter-app .or-modal h3,.openrouter-app .or-modal label,.openrouter-app .or-modal .modal-header,.openrouter-app .or-modal .modal-close{color:#1a1a1a !important;opacity:1 !important}
+              .openrouter-app .or-modal #openrouter-credential-ref{display:block !important;width:100% !important;box-sizing:border-box !important;min-height:2.5rem !important;padding:0.45rem 0.65rem !important;background:#fff !important;background-color:#fff !important;background-image:none !important;background-clip:border-box !important;color:#1a1a1a !important;border:1px solid #5c6570 !important;border-radius:6px !important;caret-color:#1a1a1a !important;opacity:1 !important;filter:none !important;box-shadow:inset 0 0 0 1px #5c6570 !important;appearance:none !important;-webkit-appearance:none !important}
+              .openrouter-app .or-modal #openrouter-credential-ref::placeholder{color:#6b7280 !important;opacity:1 !important;-webkit-text-fill-color:#6b7280 !important;font-style:italic !important}
               .openrouter-app .or-modal .help-text,.openrouter-app .or-modal .help-text a{color:#1a1a1a !important;opacity:1 !important}
-              .openrouter-app .or-modal #api-key-input:-webkit-autofill,.openrouter-app .or-modal #api-key-input:-webkit-autofill:focus{-webkit-text-fill-color:#1a1a1a !important;-webkit-box-shadow:0 0 0 1000px #fff inset !important;caret-color:#1a1a1a !important}
+              .openrouter-app .or-modal #openrouter-credential-ref:-webkit-autofill,.openrouter-app .or-modal #openrouter-credential-ref:-webkit-autofill:focus{-webkit-text-fill-color:#1a1a1a !important;-webkit-box-shadow:0 0 0 1000px #fff inset !important;caret-color:#1a1a1a !important}
+              .openrouter-app button:focus-visible,.openrouter-app input:focus-visible,.openrouter-app select:focus-visible,.openrouter-app textarea:focus-visible,.openrouter-app .tab-item:focus-visible{outline:3px solid #0b57d0 !important;outline-offset:2px !important}
             </style>
             <!-- Header with Authentication -->
             <div class="or-header">
@@ -591,31 +622,31 @@ class OpenRouterApp {
                         <div class="control-group">
                             <label>Model:</label>
                             <select id="playground-model" class="sk-select" onchange="window.openRouterApp.updatePlaygroundModel(event.target.value)">
-                                ${Array.from(this.models.values()).map(model => 
+                                ${this.models.size ? Array.from(this.models.values()).map(model => 
                                     `<option value="${model.id}" ${model.id === this.settings.defaultModel ? 'selected' : ''}>
                                         ${model.name}
                                     </option>`
-                                ).join('')}
+                                ).join('') : '<option value="">No provider catalog loaded</option>'}
                             </select>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group or-slider-group">
                             <label>Temperature: <span id="temp-value">${this.settings.temperature}</span></label>
                             <input type="range" min="0" max="2" step="0.1" value="${this.settings.temperature}" 
                                    onchange="window.openRouterApp.updatePlaygroundSetting('temperature', event.target.value)">
                         </div>
-                        <div class="control-group">
+                        <div class="control-group or-slider-group">
                             <label>Max Tokens: <span id="tokens-value">${this.settings.maxTokens}</span></label>
                             <input type="range" min="1" max="4096" step="1" value="${this.settings.maxTokens}" 
                                    onchange="window.openRouterApp.updatePlaygroundSetting('maxTokens', event.target.value)">
                         </div>
-                        <div class="control-group">
+                        <div class="control-group or-slider-group">
                             <label>Top P: <span id="topp-value">${this.settings.topP}</span></label>
                             <input type="range" min="0" max="1" step="0.1" value="${this.settings.topP}" 
                                    onchange="window.openRouterApp.updatePlaygroundSetting('topP', event.target.value)">
                         </div>
                     </div>
 
-                    <div class="control-section">
+                    <div class="control-section or-quick-section">
                         <h3>Quick Prompts</h3>
                         <div class="quick-prompts">
                             <button class="prompt-btn" onclick="window.openRouterApp.loadQuickPrompt('creative')">✨ Creative Writing</button>
@@ -629,12 +660,19 @@ class OpenRouterApp {
                 </div>
 
                 <div class="playground-main">
+                    ${this.retainedConversationLine()}
                     <div class="input-section">
                         <div class="section-header">
                             <h3>Input</h3>
                             <button class="or-btn or-btn-secondary or-btn-sm sk-btn" onclick="window.openRouterApp.clearPlayground()">Clear</button>
                         </div>
-                        <textarea id="playground-input" class="sk-textarea" placeholder="Enter your prompt here..."></textarea>
+                        <textarea id="playground-input" class="sk-textarea" placeholder="Enter your prompt here...">${this.escapeCatalogText(this.playgroundPrompt)}</textarea>
+                    </div>
+                    <div class="playground-footer">
+                        <button class="or-btn or-btn-primary sk-btn sk-btn-primary" onclick="window.openRouterApp.generateResponse()" id="generate-btn">
+                            <span class="btn-icon">⚡</span>
+                            Generate Response
+                        </button>
                     </div>
 
                     <div class="output-section">
@@ -645,20 +683,9 @@ class OpenRouterApp {
                                 <button class="or-btn or-btn-secondary or-btn-sm sk-btn" onclick="window.openRouterApp.saveOutput()">💾 Save</button>
                             </div>
                         </div>
-                        <div id="playground-output" class="output-content">
-                            <div class="output-placeholder">
-                                <div class="placeholder-icon">🎮</div>
-                                <div class="placeholder-text">AI Playground</div>
-                                <div class="placeholder-subtext">Enter a prompt and click Generate to see AI responses</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="playground-footer">
-                        <button class="or-btn or-btn-primary sk-btn sk-btn-primary" onclick="window.openRouterApp.generateResponse()" id="generate-btn">
-                            <span class="btn-icon">⚡</span>
-                            Generate Response
-                        </button>
+                        <div id="playground-output" class="output-content">${this.playgroundOutput
+                            ? this.escapeCatalogText(this.playgroundOutput)
+                            : `<div class="output-placeholder"><div class="placeholder-icon">🎮</div><div class="placeholder-text">AI Playground</div><div class="placeholder-subtext">Enter a prompt and click Generate to see AI responses</div></div>`}</div>
                     </div>
                 </div>
             </div>
@@ -884,9 +911,12 @@ class OpenRouterApp {
 
     checkAuthentication() {
         this.isAuthenticated = !!this.apiKey && this.apiKey.length > 0;
-        if (this.isAuthenticated) {
+        if (!this.isAuthenticated) return;
+        if (this.apiKey.startsWith('sk-')) {
             this.loadUserCredits();
+            return;
         }
+        this.credits = { balance: 0, used: 0, unavailable: 'Opaque reference saved locally. No provider request was sent.' };
     }
 
     async loadModels() {
@@ -1143,13 +1173,13 @@ class OpenRouterApp {
         modal.innerHTML = `
         <div class="modal-content" style="width:min(26rem,100%);max-height:100%;height:auto;overflow:auto;box-sizing:border-box;display:flex;flex-direction:column">
             <div class="modal-header">
-                <h3>OpenRouter API Configuration</h3>
-                <button class="modal-close" onclick="window.openRouterApp.closeModal()">&times;</button>
+                <h3 style="color:#1a1a1a;opacity:1">OpenRouter API Configuration</h3>
+                <button type="button" class="modal-close" style="color:#1a1a1a;opacity:1" onclick="window.openRouterApp.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="api-key-input">Credential reference:</label>
-                    <input type="text" id="api-key-input" class="sk-input" value="" autocomplete="off" spellcheck="false" placeholder="Opaque reference, stored locally" aria-label="OpenRouter credential reference" style="display:block !important;width:100% !important;box-sizing:border-box !important;min-height:2.5rem !important;padding:0.45rem 0.65rem !important;background:#fff !important;background-color:#fff !important;background-image:none !important;background-clip:border-box !important;color:#1a1a1a !important;-webkit-text-fill-color:#1a1a1a !important;border:1px solid #5c6570 !important;border-radius:6px !important;caret-color:#1a1a1a !important;opacity:1 !important;filter:none !important;box-shadow:inset 0 0 0 1px #5c6570 !important;appearance:none !important;-webkit-appearance:none !important">
+                    <label for="openrouter-credential-ref" style="color:#1a1a1a;opacity:1">Credential reference:</label>
+                    <input type="text" id="openrouter-credential-ref" class="sk-input" value="" autocomplete="off" spellcheck="false" placeholder="Enter an opaque reference" aria-label="OpenRouter credential reference" style="display:block !important;width:100% !important;box-sizing:border-box !important;min-height:2.5rem !important;padding:0.45rem 0.65rem !important;background:#fff !important;background-color:#fff !important;background-image:none !important;background-clip:border-box !important;color:#1a1a1a !important;border:1px solid #5c6570 !important;border-radius:6px !important;caret-color:#1a1a1a !important;opacity:1 !important;filter:none !important;box-shadow:inset 0 0 0 1px #5c6570 !important;appearance:none !important;-webkit-appearance:none !important">
                     <div class="help-text">
                         Get your API key from <a href="https://openrouter.ai/keys" target="_blank">OpenRouter Dashboard</a>
                     </div>
@@ -1157,7 +1187,7 @@ class OpenRouterApp {
             </div>
             <div class="modal-footer">
                 <button class="or-btn or-btn-secondary sk-btn" onclick="window.openRouterApp.closeModal()">Cancel</button>
-                <button class="or-btn or-btn-primary sk-btn sk-btn-primary" onclick="window.openRouterApp.saveApiKey()">Save API Key</button>
+                <button type="button" id="openrouter-save-key" class="or-btn or-btn-primary sk-btn sk-btn-primary" onclick="window.openRouterApp.saveApiKey()">Save API Key</button>
             </div>
         </div>
         `;
@@ -1167,15 +1197,43 @@ class OpenRouterApp {
         modal.querySelector('input')?.focus();
     }
 
-    saveApiKey() {
-        const input = document.getElementById('api-key-input');
-        if (input) {
-            this.apiKey = input.value.trim();
-            localStorage.setItem('openrouter_api_key', this.apiKey);
-            this.checkAuthentication();
-            this.closeModal();
-            this.updateDisplay();
+    referenceStoredNote() {
+        return this.models.size
+            ? 'API key reference stored. No request was sent.'
+            : 'API key reference stored. No provider catalog is loaded, so no request was sent.';
+    }
+
+    noteStoredReference() {
+        const note = this.referenceStoredNote();
+        this.playgroundOutput = note;
+        let changed = false;
+        for (const message of this.currentConversation?.messages || []) {
+            if (message.role === 'assistant' && String(message.content).includes('needs an API key reference')) {
+                message.content = note;
+                changed = true;
+            }
         }
+        if (changed) this.saveSettings();
+    }
+
+    saveApiKey() {
+        const prompt = document.getElementById('playground-input');
+        if (prompt) this.playgroundPrompt = prompt.value;
+        const input = document.getElementById('openrouter-credential-ref');
+        if (!input || !this.isCurrentInstance()) return;
+        const reference = input.value.trim();
+        if (!reference) return;
+        this.apiKey = reference;
+        localStorage.setItem('openrouter_api_key', this.apiKey);
+        this.checkAuthentication();
+        this.closeModal();
+        this.noteStoredReference();
+        const container = this.getContainer();
+        if (container) {
+            container.outerHTML = this.render();
+            return;
+        }
+        this.updateDisplay();
     }
 
     closeModal() {
@@ -1311,6 +1369,7 @@ class OpenRouterApp {
         if (!this.currentConversation) this.createNewConversation();
         const conversation = this.currentConversation;
         if (!this.apiKey) {
+            if (conversation.title === 'New conversation') conversation.title = text.slice(0, 80);
             conversation.messages.push({ role: 'user', content: text });
             conversation.messages.push({ role: 'assistant', content: 'OpenRouter needs an API key reference before it can send this prompt. No request was sent.' });
             this.saveSettings();
@@ -1368,8 +1427,15 @@ class OpenRouterApp {
         const output = document.getElementById('playground-output');
         const prompt = (input?.value || '').trim();
         if (!prompt) return;
+        this.playgroundPrompt = prompt;
         if (!this.apiKey) {
-            if (output) output.textContent = 'OpenRouter needs an API key reference before it can send this prompt. No request was sent.';
+            this.playgroundOutput = 'OpenRouter needs an API key reference before it can send this prompt. No request was sent.';
+            if (output) output.textContent = this.playgroundOutput;
+            return;
+        }
+        if (!this.apiKey.startsWith('sk-') || this.models.size === 0) {
+            this.playgroundOutput = this.referenceStoredNote();
+            if (output) output.textContent = this.playgroundOutput;
             return;
         }
         const model = document.getElementById('playground-model')?.value || this.settings.defaultModel;
@@ -1424,9 +1490,26 @@ class OpenRouterApp {
         if (input && prompts[kind]) input.value = prompts[kind];
     }
 
+    escapeCatalogText(value) {
+        return String(value ?? '').replace(/[&<>"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[character]);
+    }
+
+    retainedConversationLine() {
+        const messages = this.currentConversation?.messages || [];
+        const user = messages.find(message => message.role === 'user' && message.content);
+        const assistant = messages.find(message => message.role === 'assistant' && message.content);
+        const lines = [];
+        if (user) lines.push(`Stored conversation: ${user.content}`);
+        if (assistant?.content || this.playgroundOutput) lines.push(`Assistant: ${assistant?.content || this.playgroundOutput}`);
+        if (!lines.length) return '';
+        return lines.map(line => `<p class="or-retained-chat">${this.escapeCatalogText(line)}</p>`).join('');
+    }
+
     clearPlayground() {
         const input = document.getElementById('playground-input');
         const output = document.getElementById('playground-output');
+        this.playgroundPrompt = '';
+        this.playgroundOutput = '';
         if (input) input.value = '';
         if (output) output.textContent = '';
     }

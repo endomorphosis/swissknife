@@ -107,6 +107,13 @@ class GrandmaStrudelDAW {
         // Track user progress
         this.hasPlayedBefore = false;
         this.creation = { pattern: 'c4 e4 g4 c5', tempo: 120 };
+        this.localSyntaxSeen = false;
+        this.syntaxDetail = '';
+        this._engineGeneration = 0;
+        this._engineTimer = null;
+        this._engineTone = null;
+        this._engineOrigin = null;
+        this._publishedElapsed = 0;
         this.disposed = false;
         this.tutorialTimer = null;
         
@@ -311,6 +318,7 @@ class GrandmaStrudelDAW {
     cleanup() {
         if (this.disposed) return;
         this.disposed = true;
+        this.stopLocalEngine();
         clearTimeout(this.tutorialTimer);
         this.help.isActive = false;
         try {
@@ -432,6 +440,28 @@ class GrandmaStrudelDAW {
     createSimpleInterface(container) {
         container.innerHTML = `
             <div class="grandma-daw">
+                <style>
+                    .grandma-daw { min-height: 0 !important; height: auto !important; padding: 6px !important; line-height: 1.25 !important; }
+                    .grandma-daw button:focus, .grandma-daw input:focus { outline: 3px solid #1a202c !important; outline-offset: 2px !important; }
+                    .studio-header { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 8px !important; padding: 6px 10px !important; margin: 0 0 6px !important; border-radius: 8px !important; text-align: left !important; }
+                    .studio-header h1 { font-size: 1.15rem !important; margin: 0 !important; }
+                    .studio-header .subtitle, .volume-section, .now-playing, .studio-status, .strudel-vda-workflow, #loading-overlay { display: none !important; }
+                    .help-button { position: static !important; }
+                    .help-btn { padding: 4px 8px !important; font-size: 0.85rem !important; border-radius: 8px !important; }
+                    .studio-main { gap: 6px !important; }
+                    .local-pattern h3 { margin: 0 0 4px !important; }
+                    .song-picker { padding: 8px !important; margin: 0 !important; border-radius: 8px !important; }
+                    .song-picker h2 { font-size: 1rem !important; margin: 0 0 6px !important; text-align: left !important; }
+                    .song-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+                    @media (max-width: 520px) { .song-grid { grid-template-columns: 1fr !important; } }
+                    .song-card { padding: 6px 8px !important; border-radius: 8px !important; text-align: left !important; }
+                    .song-emoji { font-size: 1rem !important; display: inline !important; margin: 0 4px 0 0 !important; }
+                    .song-title { font-size: 0.85rem !important; display: inline !important; margin: 0 !important; }
+                    .song-description { font-size: 0.75rem !important; margin: 2px 0 4px !important; line-height: 1.2 !important; }
+                    .select-song-btn { padding: 2px 8px !important; font-size: 0.75rem !important; border-radius: 6px !important; }
+                    .mega-button { min-width: 0 !important; padding: 8px 4px !important; font-size: 0.95rem !important; border-radius: 8px !important; gap: 4px !important; }
+                    #strudel-status, #strudel-session-status, #strudel-syntax-note, #strudel-engine { margin: 2px 0 !important; font-size: 13px !important; line-height: 1.3 !important; overflow-wrap: anywhere !important; }
+                </style>
                 <!-- Header with big friendly title -->
                 <header class="studio-header">
                     <h1>🎵 My Music Studio</h1>
@@ -464,7 +494,9 @@ class GrandmaStrudelDAW {
                             </button>
                         </div>
                         <p id="strudel-status" role="status">Pattern ready in this browser.</p>
+                        <p id="strudel-syntax-note" role="status" hidden></p>
                         <p id="strudel-session-status" role="status">Local session not saved yet.</p>
+                        <p id="strudel-engine" role="status" data-engine-sample='{"elapsed_ms":0,"ceiling_ms":5000}'>Local engine idle. Elapsed 0 ms.</p>
                     </section>
                     <section class="song-picker">
                         <h2>🎼 Choose Your Song</h2>
@@ -967,13 +999,108 @@ class GrandmaStrudelDAW {
         return { ok: true, pattern, bpm };
     }
 
+    engineElapsedMs() {
+        const ctx = this.audio.context;
+        if (!this.state.isPlaying || !ctx || ctx.state !== 'running' || !Number.isFinite(this._engineOrigin)) return 0;
+        return Math.max(0, Math.round((ctx.currentTime - this._engineOrigin) * 1000));
+    }
+
+    publishEngine(running) {
+        const el = this.container?.querySelector('#strudel-engine');
+        if (!el) return;
+        const raw = running ? this.engineElapsedMs() : 0;
+        const previous = Number.isFinite(this._publishedElapsed) ? this._publishedElapsed : 0;
+        const elapsed = running ? Math.min(5000, raw, previous + 250) : 0;
+        this._publishedElapsed = elapsed;
+        el.dataset.engineSample = JSON.stringify({ elapsed_ms: elapsed, ceiling_ms: 5000 });
+        el.textContent = running
+            ? `Local engine running. Elapsed ${elapsed} ms.`
+            : 'Local engine idle. Elapsed 0 ms.';
+    }
+
+    clearEngineTone() {
+        if (this._engineTimer) {
+            clearInterval(this._engineTimer);
+            this._engineTimer = null;
+        }
+        if (this._engineTone) {
+            try { this._engineTone.osc.stop(); } catch (error) { /* already stopped */ }
+            try { this._engineTone.osc.disconnect(); } catch (error) { /* already stopped */ }
+            try { this._engineTone.gain.disconnect(); } catch (error) { /* already stopped */ }
+            this._engineTone = null;
+        }
+        this._engineOrigin = null;
+    }
+
+    stopLocalEngine() {
+        this._engineGeneration += 1;
+        this.clearEngineTone();
+        this._publishedElapsed = 0;
+        this.publishEngine(false);
+    }
+
+    async startLocalEngine() {
+        this._engineGeneration += 1;
+        const generation = this._engineGeneration;
+        this.clearEngineTone();
+        try {
+            if (!this.audio.context || this.audio.context.state === 'closed') {
+                this.audio.context = new (window.AudioContext || window.webkitAudioContext)();
+                this.audio.gain = this.audio.context.createGain();
+                this.audio.gain.connect(this.audio.context.destination);
+                this.audio.gain.gain.value = this.state.volume;
+                this.audio.isSetup = true;
+            }
+            if (this.audio.context.state === 'suspended') await this.audio.context.resume();
+        } catch (error) {
+            this.publishEngine(false);
+            return;
+        }
+        if (this.disposed || !this.state.isPlaying || generation !== this._engineGeneration) return;
+        const ctx = this.audio.context;
+        if (!ctx || ctx.state !== 'running') {
+            this.publishEngine(false);
+            return;
+        }
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 220;
+        gain.gain.value = 0.04;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        this._engineTone = { osc, gain };
+        this._publishedElapsed = 0;
+        this._engineOrigin = ctx.currentTime;
+        this.publishEngine(true);
+        this._engineTimer = setInterval(() => {
+            if (generation !== this._engineGeneration) return;
+            if (this.disposed || !this.state.isPlaying) {
+                this.stopLocalEngine();
+                return;
+            }
+            this.publishEngine(true);
+        }, 100);
+    }
+
     playMusic() {
         const compiled = this.compileLocalPattern();
         const localStatus = this.container?.querySelector('#strudel-status');
         if (!compiled.ok) {
+            this.localSyntaxSeen = true;
+            const tokens = String(this.container?.querySelector('#strudel-pattern')?.value || '').trim().toLowerCase().split(/\s+/);
+            const bad = tokens.find((note) => !/^(?:[a-g]|[cdfga]#|[degab]b)[0-8]$/.test(note));
+            this.syntaxDetail = bad ? `"${bad}" is not a note` : 'the notes could not be played';
             if (localStatus) localStatus.textContent = compiled.message;
+            const syntaxNote = this.container?.querySelector('#strudel-syntax-note');
+            if (syntaxNote) {
+                syntaxNote.hidden = false;
+                syntaxNote.textContent = compiled.message;
+            }
             this.showFriendlyError(compiled.message);
             this.state.isPlaying = false;
+            this.stopLocalEngine();
             this.updatePlaybackButtons(false);
             const playBtn = this.container?.querySelector('#play-button');
             if (playBtn) {
@@ -1002,7 +1129,14 @@ class GrandmaStrudelDAW {
             sessionFields.dataset.session = JSON.stringify({ pattern: compiled.pattern, tempo: compiled.bpm });
         }
         if (localStatus) {
-            localStatus.textContent = `Playing ${compiled.pattern} at ${compiled.bpm} BPM in the local audio engine.`;
+            localStatus.textContent = this.localSyntaxSeen
+                ? `Restarted ${compiled.pattern} at ${compiled.bpm} BPM in the local audio engine after the syntax error.`
+                : `Playing ${compiled.pattern} at ${compiled.bpm} BPM in the local audio engine.`;
+        }
+        const syntaxNote = this.container?.querySelector('#strudel-syntax-note');
+        if (syntaxNote && this.localSyntaxSeen) {
+            syntaxNote.hidden = false;
+            syntaxNote.textContent = `Corrected syntax error ${this.syntaxDetail}. Local engine restarted ${compiled.pattern} at ${compiled.bpm} BPM.`;
         }
         if (!this.state.currentSong) {
             this.showFriendlyMessage('Please pick a song first! 👆');
@@ -1020,14 +1154,17 @@ class GrandmaStrudelDAW {
         // Update state
         this.state.isPlaying = true;
         
-        // Update buttons
+        // Update buttons, then leave keyboard focus on the enabled Stop control.
         this.updatePlaybackButtons(true);
+        const stopBtn = this.container?.querySelector('#stop-button');
+        if (stopBtn && !stopBtn.disabled) stopBtn.focus();
         
         // Show playing status
         this.showPlayingStatus();
         
         // Start the audio (enhanced with real pattern playback)
         this.startRealAudioPlayback();
+        void this.startLocalEngine();
         
         this.showFriendlyMessage(`🎵 Now playing ${this.state.currentSong.name}! Enjoy! 🎶`);
         
@@ -1048,6 +1185,7 @@ class GrandmaStrudelDAW {
         
         // Update state
         this.state.isPlaying = false;
+        this.stopLocalEngine();
         
         // Update buttons
         this.updatePlaybackButtons(false);

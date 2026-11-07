@@ -78,6 +78,9 @@ export class TrainingManagerApp {
   let p2pSystem = null;
   let ipfsStorage = null;
   let modelServer = null;
+  let ownerExecution = null;
+  const OWNER_JOB_KEY = 'training-manager-owner-job';
+  const TRAINING_FIXTURE_SCOPE = 'svf-training-manager-g032';
   let ipfsAccelerate = null;
   let huggingFaceBackend = null;
   let capacityQueue = null;
@@ -631,8 +634,10 @@ export class TrainingManagerApp {
     if (dataset) dataset.value = saved.datasetId;
     if (model) model.value = saved.modelId;
     if (status && saved.datasetId && saved.modelId) {
-      status.textContent = `Saved configuration dataset ${saved.datasetId} and model ${saved.modelId}.`;
+      status.textContent = `Configuration dataset ${saved.datasetId} and model ${saved.modelId} remains editable.`;
     }
+    ownerExecution = readSavedOwnerJob();
+    renderOwnerSurfaces(container);
   }
 
   function validateTrainingConfiguration(event) {
@@ -648,19 +653,21 @@ export class TrainingManagerApp {
     const modelId = model.value.trim();
     dataset.value = datasetId;
     model.value = modelId;
-    const invalid = !datasetId || !modelId || datasetId.toLowerCase() === 'invalid' || modelId.toLowerCase() === 'invalid';
-    if (invalid) {
+    if (!datasetId || !modelId) {
       error.textContent = 'Invalid data: dataset and model must be non-empty owner identifiers. Configuration remains editable.';
       status.textContent = '';
       return;
     }
-    localStorage.setItem('training-manager-config', JSON.stringify({ datasetId, modelId }));
-    error.textContent = '';
-    if (!capacityQueue || capacityQueue.state === 'not_observed' || capacityQueue.availableSlots === 0) {
-      status.textContent = `Preview only for dataset ${datasetId} and model ${modelId}. No capacity has been observed, so no job was queued. Configuration remains editable.`;
+    if (datasetId.toLowerCase() === 'invalid' || modelId.toLowerCase() === 'invalid') {
+      error.textContent = `Invalid data: dataset ${datasetId} and model ${modelId} were rejected before owner dispatch. Configuration remains editable.`;
+      status.textContent = '';
       return;
     }
-    status.textContent = `Preview only for dataset ${datasetId} and model ${modelId}. Owner queue state is ${capacityQueue.state}. No training job was created.`;
+    localStorage.setItem('training-manager-config', JSON.stringify({ datasetId, modelId }));
+    if (!(error.textContent || '').startsWith('Invalid data')) error.textContent = '';
+    if (!ownerExecution) {
+      status.textContent = `Configuration dataset ${datasetId} and model ${modelId} remains editable.`;
+    }
   }
 
   function toggleTrainingDiagnostics(event) {
@@ -679,7 +686,7 @@ export class TrainingManagerApp {
         <!-- Header Toolbar -->
         <div class="training-toolbar">
           <div class="toolbar-section">
-            <button class="btn btn-primary workflow-primary" id="launch-governed-training" data-native-gateway-binding="training-manager.ipfs_accelerate_py.preview_training_task" data-native-tool-id="submit_task" data-svd-workflow="${VDA_G032_WORKFLOW}" data-svd-workflow-action="launch-governed-training" data-capability-id="ipfs.accelerate.training_preview">Preview owner task (training unavailable)</button>
+            <button class="btn btn-primary workflow-primary" id="launch-governed-training" data-native-gateway-binding="training-manager.ipfs_accelerate_py.preview_training_task" data-native-tool-id="submit_task" data-svd-workflow="${VDA_G032_WORKFLOW}" data-svd-workflow-action="launch-governed-training" data-capability-id="ipfs.accelerate.training_preview">Run bounded owner task</button>
             <button class="btn btn-primary sk-btn sk-btn-primary" id="new-training">🎯 Local Simulation</button>
             <button class="btn btn-secondary" id="import-dataset">📊 Import Dataset</button>
             <button class="btn btn-secondary" id="load-model">🧠 Load Model</button>
@@ -704,15 +711,20 @@ export class TrainingManagerApp {
           </div>
         </div>
 
-        <output id="training-owner-preview" role="status" aria-live="polite" data-preview-state="not_run">Training execution is unavailable. The owner task preview validates the real callable without queuing work.</output>
-        <pre id="training-owner-envelope"></pre>
+        <p id="training-owner-job" role="status" aria-live="polite" data-owner-status="not_run" data-owner-run="0"></p>
+        <p id="training-reopened-record" role="status" data-reopened="not_run"></p>
+        <pre id="training-owner-envelope" hidden></pre>
         <form id="training-config-form" class="training-config-strip">
           <label for="training-dataset-id">Dataset</label>
           <input id="training-dataset-id" class="sk-input" name="dataset" type="text" autocomplete="off" placeholder="Isolated dataset id">
           <label for="training-model-id">Model</label>
           <input id="training-model-id" class="sk-input" name="model" type="text" autocomplete="off" placeholder="Model id">
-          <button type="submit" class="btn btn-primary" id="validate-training-config">Validate configuration</button>
-          <button type="button" class="btn btn-secondary" id="toggle-training-diagnostics" aria-expanded="false" aria-controls="training-diagnostics">Show diagnostics</button>
+          <div class="training-config-actions">
+            <button type="submit" class="btn btn-primary" id="validate-training-config">Validate configuration</button>
+            <button type="button" class="btn btn-secondary" id="toggle-training-diagnostics" aria-expanded="false" aria-controls="training-diagnostics">Show diagnostics</button>
+            <button type="button" class="btn btn-secondary" id="read-owner-job" data-native-gateway-binding="training-manager.ipfs_accelerate_py.inspect_job_state" data-native-tool-id="get_task">Read owner record</button>
+            <button type="button" class="btn btn-primary" id="retry-bounded-owner" data-native-gateway-binding="training-manager.ipfs_accelerate_py.preview_training_task" data-native-tool-id="submit_task">Retry bounded owner task</button>
+          </div>
           <p id="training-config-error" role="alert"></p>
           <p id="training-config-status" role="status"></p>
         </form>
@@ -984,6 +996,8 @@ export class TrainingManagerApp {
   function setupEventHandlers(container) {
     // Toolbar events
     container.querySelector('#launch-governed-training').addEventListener('click', launchGovernedTrainingWorkflow);
+    container.querySelector('#retry-bounded-owner').addEventListener('click', launchGovernedTrainingWorkflow);
+    container.querySelector('#read-owner-job').addEventListener('click', readOwnerExecutionRecord);
     container.querySelector('#training-config-form').addEventListener('submit', validateTrainingConfiguration);
     container.querySelector('#toggle-training-diagnostics').addEventListener('click', toggleTrainingDiagnostics);
     container.querySelector('#new-training').addEventListener('click', showNewTrainingModal);
@@ -1017,58 +1031,190 @@ export class TrainingManagerApp {
     container.querySelector('#dataset-files').addEventListener('change', handleDatasetUpload);
   }
 
+  function ownerPrompt(datasetId, modelId) {
+    return `dataset ${datasetId} model ${modelId}`;
+  }
+
+  function readSavedOwnerJob() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(OWNER_JOB_KEY) || 'null');
+      if (!saved || typeof saved !== 'object') return null;
+      if (typeof saved.job_id !== 'string' || typeof saved.model_id !== 'string' || typeof saved.dataset_id !== 'string') return null;
+      if (saved.status !== 'completed' || saved.queue_used !== false) return null;
+      const runCount = Number(saved.run_count);
+      if (!Number.isInteger(runCount) || runCount < 1) return null;
+      return {
+        job_id: saved.job_id,
+        model_id: saved.model_id,
+        dataset_id: saved.dataset_id,
+        status: 'completed',
+        queue_used: false,
+        run_count: runCount
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  function ownerJobLine(record) {
+    return `job ${record.job_id} status ${record.status} model ${record.model_id} dataset ${record.dataset_id} queue not used checkpoint not returned`;
+  }
+
+  function renderOwnerSurfaces(container) {
+    const root = container || document.querySelector('.training-manager-container');
+    if (!root) return;
+    const job = root.querySelector('#training-owner-job');
+    const heading = root.querySelector('.jobs-panel h3');
+    if (job) {
+      if (ownerExecution) {
+        job.dataset.ownerStatus = ownerExecution.status;
+        job.dataset.ownerRun = String(ownerExecution.run_count);
+        job.textContent = ownerJobLine(ownerExecution);
+      } else {
+        job.dataset.ownerStatus = 'not_run';
+        job.dataset.ownerRun = '0';
+        job.textContent = '';
+      }
+    }
+    if (heading) heading.textContent = ownerExecution ? 'Owner execution record' : 'Training Jobs';
+    renderJobsList();
+    updateJobStats();
+  }
+
+  function unwrapOwnerPayload(envelope) {
+    if (!envelope || envelope.ok !== true || envelope.outcome !== 'executed') {
+      throw new Error(envelope?.error?.message || envelope?.error || envelope?.result?.error || 'Owner call failed.');
+    }
+    let value = envelope.result;
+    for (let depth = 0; depth < 8 && value && typeof value === 'object'; depth += 1) {
+      if (value.ok === false || value.success === false || value.isError === true || value.error) {
+        throw new Error(value.error?.message || value.error || 'Owner rejected the call.');
+      }
+      const blocks = value.content?.filter(item => item.type === 'json' && item.json && typeof item.json === 'object') || [];
+      if (blocks.length > 1) throw new Error('Owner returned ambiguous data.');
+      if (blocks.length === 1) value = blocks[0].json;
+      else if (value.result && typeof value.result === 'object') value = value.result;
+      else break;
+    }
+    return value;
+  }
+
+  function acceptedExecution(value, datasetId, modelId) {
+    const phrase = ownerPrompt(datasetId, modelId);
+    return Boolean(value
+      && value.inference_executed === true
+      && value.success === true
+      && value.simulated === false
+      && value.echo_fallback === false
+      && value.queue_used === false
+      && value.status === 'completed'
+      && value.state === 'completed'
+      && value.model_id === modelId
+      && value.model === modelId
+      && typeof value.job_id === 'string'
+      && value.task_id === value.job_id
+      && typeof value.output === 'string'
+      && value.output.includes(phrase)
+      && value.checkpoint == null);
+  }
+
   async function launchGovernedTrainingWorkflow(event) {
     event?.preventDefault?.();
     const trigger = event?.currentTarget || null;
     const container = trigger?.closest('.training-manager-container') || document.querySelector('.training-manager-container');
-    const status = container?.querySelector('#training-owner-preview');
-    const details = container?.querySelector('#training-owner-envelope');
-    if (!status) return;
-    status.dataset.previewState = 'awaiting_confirmation';
-    status.textContent = 'Review the owner task preview. Training execution remains unavailable.';
+    const error = container?.querySelector('#training-config-error');
+    const job = container?.querySelector('#training-owner-job');
+    if (!container || !job) return;
+    const datasetId = container.querySelector('#training-dataset-id')?.value?.trim() || '';
+    const modelId = container.querySelector('#training-model-id')?.value?.trim() || '';
+    if (!datasetId || !modelId || datasetId.toLowerCase() === 'invalid' || modelId.toLowerCase() === 'invalid') {
+      if (error) error.textContent = `Invalid data: dataset ${datasetId || 'empty'} and model ${modelId || 'empty'} were rejected before owner dispatch. Configuration remains editable.`;
+      return;
+    }
     try {
-      const datasetId = container.querySelector('#training-dataset-id')?.value?.trim() || '';
-      const modelId = container.querySelector('#training-model-id')?.value?.trim() || '';
       const envelope = await invokeNativeTool(container, 'training-manager', 'training-manager.ipfs_accelerate_py.preview_training_task', {
         executionMode: 'execute',
         toolId: 'submit_task',
         payload: {
           model: modelId,
-          prompt: `Validate dataset ${datasetId} and model ${modelId} only. No training operation is available; do not enqueue or execute work.`,
-          fixture_scope: 'svf-training-manager-g032',
-          dry_run: true
+          model_id: modelId,
+          input: ownerPrompt(datasetId, modelId),
+          prompt: ownerPrompt(datasetId, modelId),
+          task: 'text-generation',
+          task_type: 'inference',
+          backend: 'cpu',
+          max_new_tokens: 4,
+          max_length: 4,
+          fixture_scope: TRAINING_FIXTURE_SCOPE,
+          dry_run: false
         },
         trigger,
       });
-      if (!envelope) {
-        status.dataset.previewState = 'cancelled'; status.textContent = 'Cancelled before owner dispatch; no task or training job was created.'; return;
+      if (!envelope) return;
+      const value = unwrapOwnerPayload(envelope);
+      if (!acceptedExecution(value, datasetId, modelId)) {
+        throw new Error('Owner did not return a completed bounded execution for this dataset and model. No training checkpoint was created.');
       }
-      if (details) details.textContent = JSON.stringify(envelope, null, 2);
-      if (envelope.ok !== true || envelope.outcome !== 'executed') throw new Error(envelope.error?.message || envelope.error || envelope.result?.error || 'Owner preview failed.');
-      let value = envelope.result;
-      for (let depth = 0; depth < 8 && value && typeof value === 'object'; depth++) {
-        if (value.ok === false || value.success === false || value.isError === true || value.error) throw new Error(value.error?.message || value.error || 'Owner rejected the preview.');
-        const blocks = value.content?.filter(item => item.type === 'json' && item.json && typeof item.json === 'object') || [];
-        if (blocks.length > 1) throw new Error('Owner returned ambiguous preview data.');
-        if (blocks.length === 1) value = blocks[0].json;
-        else if (value.result && typeof value.result === 'object') value = value.result;
-        else break;
+      ownerExecution = {
+        job_id: value.job_id,
+        model_id: value.model_id,
+        dataset_id: datasetId,
+        status: 'completed',
+        queue_used: false,
+        run_count: (ownerExecution?.run_count || 0) + 1
+      };
+      localStorage.setItem(OWNER_JOB_KEY, JSON.stringify(ownerExecution));
+      localStorage.setItem('training-manager-config', JSON.stringify({ datasetId, modelId }));
+      renderOwnerSurfaces(container);
+    } catch (caught) {
+      if (!ownerExecution) {
+        job.dataset.ownerStatus = 'failed';
+        job.textContent = `Owner execution failed: ${caught instanceof Error ? caught.message : String(caught)} No training checkpoint is claimed.`;
       }
-      const ownerModel = value?.model || value?.model_id;
-      const previewOnly = value?.inference_executed === true
-        && value?.success === true
-        && value?.simulated === false
-        && value?.echo_fallback === false
-        && value?.queue_used === false
-        && ownerModel === modelId;
-      if (!previewOnly) {
-        throw new Error('Owner did not return a completed non-simulated validation for this model. No training job was created.');
+    }
+  }
+
+  async function readOwnerExecutionRecord(event) {
+    event?.preventDefault?.();
+    const trigger = event?.currentTarget || null;
+    const container = trigger?.closest('.training-manager-container') || document.querySelector('.training-manager-container');
+    const record = container?.querySelector('#training-reopened-record');
+    const saved = readSavedOwnerJob();
+    if (!record) return;
+    if (!saved) {
+      record.dataset.reopened = 'missing';
+      record.textContent = 'No owner execution record is saved to read back.';
+      return;
+    }
+    try {
+      const envelope = await invokeNativeTool(container, 'training-manager', 'training-manager.ipfs_accelerate_py.inspect_job_state', {
+        executionMode: 'execute',
+        toolId: 'get_task',
+        payload: {
+          job_id: saved.job_id,
+          task_id: saved.job_id,
+          fixture_scope: TRAINING_FIXTURE_SCOPE,
+          dry_run: false
+        },
+        trigger,
+      });
+      if (!envelope) return;
+      const value = unwrapOwnerPayload(envelope);
+      const phrase = ownerPrompt(saved.dataset_id, saved.model_id);
+      if (!value
+        || value.read_from_execution_record !== true
+        || value.job_id !== saved.job_id
+        || value.model_id !== saved.model_id
+        || value.status !== 'completed'
+        || typeof value.output !== 'string'
+        || !value.output.includes(phrase)) {
+        throw new Error('Owner readback did not match the saved execution record.');
       }
-      status.dataset.previewState = 'preview';
-      status.textContent = `Owner validated dataset ${datasetId} and model ${ownerModel} with a bounded text generation. No training job, metrics, checkpoint, or queue admission was created. ${envelope.correlation_id}; receipt ${envelope.receipt?.receipt_id || 'unavailable'}`;
-    } catch (error) {
-      status.dataset.previewState = 'failed';
-      status.textContent = `Preview failed: ${error instanceof Error ? error.message : String(error)} No training completion is claimed.`;
+      record.dataset.reopened = 'read';
+      record.textContent = `reopened job ${value.job_id} status ${value.status} model ${value.model_id} dataset ${saved.dataset_id} read from execution record checkpoint not returned`;
+    } catch (caught) {
+      record.dataset.reopened = 'failed';
+      record.textContent = `Readback failed: ${caught instanceof Error ? caught.message : String(caught)}`;
     }
   }
 
@@ -1078,10 +1224,22 @@ export class TrainingManagerApp {
     const jobsList = container.querySelector('#jobs-list');
     if (!jobsList) return;
     
+    if (ownerExecution) {
+      jobsList.replaceChildren();
+      const article = document.createElement('article');
+      article.className = 'job-item owner-execution-card';
+      const line = document.createElement('p');
+      line.className = 'owner-execution-line';
+      line.textContent = ownerJobLine(ownerExecution);
+      article.appendChild(line);
+      jobsList.appendChild(article);
+      return;
+    }
+
     if (trainingJobs.length === 0) {
       jobsList.innerHTML = `
         <div class="empty-state sk-empty">
-          <p>No training jobs yet</p>
+          <p>No owner execution record yet</p>
           <button class="btn btn-primary sk-btn sk-btn-primary" onclick="document.querySelector('#new-training').click()">
             🎯 Configure Local Simulation
           </button>
@@ -2097,10 +2255,11 @@ export class TrainingManagerApp {
     const activeJobs = trainingJobs.filter(job => ['queued', 'pending', 'running', 'paused'].includes(job.status)).length;
     const completedJobs = trainingJobs.filter(job => job.status === 'completed').length;
     const totalJobs = trainingJobs.length;
-    
+    const ownerCount = ownerExecution?.status === 'completed' ? ownerExecution.run_count : 0;
+
     document.querySelector('#active-jobs').textContent = String(activeJobs);
-    document.querySelector('#completed-jobs').textContent = String(completedJobs);
-    document.querySelector('#total-jobs').textContent = String(totalJobs);
+    document.querySelector('#completed-jobs').textContent = String(completedJobs + ownerCount);
+    document.querySelector('#total-jobs').textContent = String(totalJobs + ownerCount);
   }
 
   function formatElapsedTime(startTime) {
@@ -3365,22 +3524,34 @@ export class TrainingManagerApp {
       }
 
       .training-manager-container .training-config-strip {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
         align-items: center;
         gap: 8px;
       }
 
       .training-manager-container .training-config-strip label {
-        flex: 0 0 auto;
+        grid-column: 1;
       }
 
       .training-manager-container .training-config-strip input {
-        flex: 1 1 220px;
-        width: auto !important;
-        min-width: min(100%, 16rem) !important;
+        grid-column: 2;
+        width: 100% !important;
+        min-width: 0 !important;
         max-width: 100%;
         box-sizing: border-box;
+      }
+
+      .training-manager-container .training-config-actions,
+      .training-manager-container #training-config-error,
+      .training-manager-container #training-config-status {
+        grid-column: 1 / -1;
+      }
+
+      .training-manager-container .training-config-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
       }
 
       .training-manager-container .training-config-strip .btn {
@@ -3394,9 +3565,27 @@ export class TrainingManagerApp {
         text-overflow: unset;
       }
 
-      .training-manager-container #training-config-error,
-      .training-manager-container #training-config-status {
-        flex: 1 0 100%;
+      #training-owner-envelope {
+        display: none;
+      }
+
+      #training-owner-job,
+      #training-reopened-record,
+      .owner-execution-line {
+        display: block;
+        margin: 0;
+        padding: 6px 12px;
+        color: #1b2838;
+        background: #ffffff;
+        font-size: 13px;
+        line-height: 1.35;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+
+      #training-owner-job:empty,
+      #training-reopened-record:empty {
+        display: none;
       }
 
       .training-manager-container .training-content {

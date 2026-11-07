@@ -151,5 +151,8 @@ test('the declared recovery retries the queued draft and requires a drained queu
   assert.ok(recovery.find(step => step.op === 'wait_for' && step.selector === '[data-offline-state="empty"]'));
   assert.equal(recovery.at(-1).expected, 'delivery delivered · sends 2 · offline queue 0 holding none');
   assert.deepEqual(recovery.find(step => step.checkpoint_id === 'error_observed')?.expected, { count: 1, messages: [{ topic: '/swissknife/chat/g047', text: 'svf-p2p-classic-offline' }] });
-  assert.equal(recovery.filter(step => step.selector?.startsWith('[data-gateway-confirm=') && step.op === 'click').length, 1);
+  assert.deepEqual(recovery.filter(step => step.selector?.startsWith('[data-gateway-confirm=') && step.op === 'click').map(step => step.selector), [
+    '[data-gateway-confirm="p2p-chat.ipfs_kit_py.append_event"]',
+    '[data-gateway-confirm="p2p-chat.ipfs_kit_py.exchange_peer_messages"]',
+  ]);
 });

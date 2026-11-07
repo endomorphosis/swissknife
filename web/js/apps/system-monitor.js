@@ -51,8 +51,12 @@ export class SystemMonitorApp {
     this.lastTelemetryAt = Date.now();
     this.hasMeasuredSample = false;
     this.ownerUnavailable = false;
+    this.ownerFailureText = '';
+    this.ownerRejectionNote = '';
+    this.cpuHistoryExpanded = false;
     this.historyOrigin = 'fresh samples';
     this.observationStamp = 'unavailable';
+    this.retainedSample = false;
     // Backend (accelerate) telemetry: refreshed at most every 30s through the
     // real descriptor gateway. Until the first successful call it honestly
     // reports "not run".
@@ -60,7 +64,7 @@ export class SystemMonitorApp {
     this.telemetrySnapshot = this.createTelemetrySample();
     this.diagnosticHistory = [];
     this.diagnosticAnalysis = null;
-    this.staleThresholdMs = 5000;
+    this.staleThresholdMs = 30000;
     this.activeAlerts = [];
     
     // System data from browser APIs where available
@@ -112,14 +116,12 @@ export class SystemMonitorApp {
   persistRetainedHistory() {
     try {
       if (typeof localStorage === 'undefined') return;
-      const retained = this.diagnosticHistory.length > 0;
       localStorage.setItem('system-monitor.retained-history.v1', JSON.stringify({
         chartData: this.chartData,
         diagnosticHistory: this.diagnosticHistory,
         lastTelemetryAt: this.lastTelemetryAt,
-        historyOrigin: retained ? 'retained history' : this.historyOrigin
+        observationStamp: this.observationStamp
       }));
-      if (retained) this.historyOrigin = 'retained history';
     } catch (error) {
       /* storage unavailable; in-memory history remains */
     }
@@ -137,10 +139,50 @@ export class SystemMonitorApp {
       }
       if (Array.isArray(saved.diagnosticHistory)) this.diagnosticHistory = saved.diagnosticHistory.slice(-12);
       if (typeof saved.lastTelemetryAt === 'number') this.lastTelemetryAt = saved.lastTelemetryAt;
-      this.historyOrigin = 'retained history';
+      const kept = this.diagnosticHistory.length;
+      if (kept > 0) {
+        this.historyOrigin = kept === 1
+          ? 'retained history · 1 sample'
+          : `retained history · ${kept} samples`;
+      }
+      const last = this.diagnosticHistory[kept - 1];
+      const cpu = typeof last?.cpu === 'number' ? last.cpu : null;
+      const memory = typeof last?.memory === 'number' ? last.memory : null;
+      if (cpu !== null) {
+        this.telemetrySnapshot = {
+          ...this.telemetrySnapshot,
+          cpu,
+          memory,
+          gpu: null,
+          timestamp: typeof last.timestamp === 'number' ? last.timestamp : this.telemetrySnapshot.timestamp,
+          ownerTimestamp: typeof last.ownerTimestamp === 'string' ? last.ownerTimestamp : '',
+          measurementSource: typeof last.measurementSource === 'string' ? last.measurementSource : '',
+          utilizationUnit: typeof last.utilizationUnit === 'string' ? last.utilizationUnit : '',
+          backendState: 'ok',
+          backendError: null
+        };
+        this.backendTelemetry = {
+          state: 'ok',
+          at: this.lastTelemetryAt,
+          latencyMs: null,
+          data: { utilization: cpu, cpu_percent: cpu, memory_percent: memory, gpu_utilization: null },
+          receiptId: null,
+          correlationId: null,
+          error: null
+        };
+        this.hasMeasuredSample = true;
+        this.ownerUnavailable = false;
+        this.retainedSample = true;
+        if (typeof saved.observationStamp === 'string' && saved.observationStamp.startsWith('measured ')) {
+          this.observationStamp = saved.observationStamp;
+        } else if (typeof last.timestamp === 'number') {
+          this.observationStamp = `measured ${this.formatClock(last.timestamp)}`;
+        }
+      }
       this.updateDiagnosticAnalysis();
     } catch (error) {
       this.historyOrigin = 'fresh samples';
+      this.retainedSample = false;
     }
   }
 
@@ -243,30 +285,44 @@ export class SystemMonitorApp {
   // Calls the REAL ipfs_accelerate_py telemetry operation through the app
   // capability gateway. Cached: at most one call per 30s. Failures are stored
   // verbatim and surface in the UI, never masked.
-  async refreshBackendTelemetry(force = false) {
+  ownerFailureMessage(native) {
+    const result = native?.result;
+    const nested = result && result.owner_error && typeof result.owner_error.message === 'string'
+      ? result.owner_error.message.trim() : '';
+    const direct = result && typeof result.error === 'string' ? result.error.trim() : '';
+    const top = typeof native?.error === 'string' ? native.error.trim() : '';
+    return nested || direct || top || 'Telemetry owner failed';
+  }
+
+  async refreshBackendTelemetry(force = false, options = {}) {
     const now = Date.now();
     if (!force && this.backendTelemetry.at && (now - this.backendTelemetry.at) < 30000) return this.backendTelemetry;
     const started = Date.now();
+    const unsupported = options.unsupported === true;
     try {
       const mountedRoot = this.container;
       const container = mountedRoot?.closest('.window-app-content') || mountedRoot || document.querySelector('.window[data-app-id="system-monitor"] .window-app-content')
         || document.querySelector('.system-monitor-container');
-      const trigger = container?.querySelector('#refresh-backend-telemetry')
-        || document.querySelector('#refresh-backend-telemetry');
+      const trigger = options.trigger
+        || container?.querySelector(unsupported ? '#probe-unsupported-observation' : '#refresh-backend-telemetry')
+        || document.querySelector(unsupported ? '#probe-unsupported-observation' : '#refresh-backend-telemetry');
+      const payload = { fixture_scope: 'svf-system-monitor-live' };
+      // The workflow admits only a confirmed call with policy dry_run false.
+      // observation_probe is not an observation argument, so observe_native
+      // rejects it and the measured sample is left unchanged.
+      if (unsupported) payload.observation_probe = 'unsupported';
       const native = await invokeNativeTool(
         container,
         'system-monitor',
         'system-monitor.ipfs_accelerate_py.inspect_telemetry',
-        {
-          executionMode: 'execute',
-          toolId: 'PrometheusMetrics.generate_metrics',
-          payload: { fixture_scope: 'svf-system-monitor-live' },
-          trigger
-        }
+        { executionMode: 'execute', toolId: 'PrometheusMetrics.generate_metrics', payload, trigger }
       );
       if (mountedRoot && (!mountedRoot.isConnected || this.container !== mountedRoot)) return this.backendTelemetry;
+      if (!native) throw new Error('Telemetry confirmation was cancelled');
+      if (native.outcome === 'failed') throw new Error(this.ownerFailureMessage(native));
       const telemetry = this.readOwnerTelemetry(native);
-      const measuredAt = Date.now();
+      const ownerTimestamp = telemetry.output.timestamp;
+      const measuredAt = Date.parse(ownerTimestamp);
       this.backendTelemetry = {
         state: 'ok',
         at: measuredAt,
@@ -277,12 +333,24 @@ export class SystemMonitorApp {
         error: null
       };
       this.ownerUnavailable = false;
+      this.ownerFailureText = '';
       this.hasMeasuredSample = true;
+      const keptBefore = this.diagnosticHistory.length;
+      this.retainedSample = false;
+      this.historyOrigin = keptBefore > 0
+        ? `retained history · ${keptBefore} ${keptBefore === 1 ? 'sample' : 'samples'} · fresh sample`
+        : 'measured sample';
       const sample = this.createTelemetrySample();
       sample.timestamp = measuredAt;
+      sample.ownerTimestamp = ownerTimestamp;
+      sample.measurementSource = typeof telemetry.output.measurement_source === 'string' ? telemetry.output.measurement_source : '';
+      sample.utilizationUnit = typeof telemetry.output.utilization_unit === 'string' ? telemetry.output.utilization_unit : 'percent';
       this.telemetrySnapshot = sample;
       this.lastTelemetryAt = measuredAt;
       this.observationStamp = `measured ${this.formatClock(measuredAt)}`;
+      if (this.ownerRejectionNote) {
+        this.ownerRejectionNote = `fresh measured ${this.ownerPercentText(sample.cpu)} ${ownerTimestamp}`;
+      }
       const observationNode = document.querySelector('#observation-stamp');
       if (observationNode) observationNode.textContent = this.observationStamp;
       this.recordDiagnosticSample(sample);
@@ -298,9 +366,17 @@ export class SystemMonitorApp {
       const message = error instanceof Error ? error.message : String(error);
       this.backendTelemetry = { state: 'error', at: Date.now(), latencyMs: Date.now() - started, data: null, error: message };
       this.ownerUnavailable = true;
-      this.observationStamp = 'unavailable';
+      this.ownerFailureText = message;
+      this.ownerRejectionNote = 'unavailable';
+      if (!this.hasMeasuredSample) this.observationStamp = 'unavailable';
     }
+    this.collapseBackendDisclosure();
     return this.backendTelemetry;
+  }
+
+  collapseBackendDisclosure() {
+    const dock = document.querySelector('.window[data-app-id="system-monitor"] [data-testid="backend-status-disclosure"]');
+    if (dock) dock.open = false;
   }
 
   recordDiagnosticSample(sample) {
@@ -308,14 +384,18 @@ export class SystemMonitorApp {
       || (typeof sample.memory === 'number' && sample.memory > this.alertThresholds.memory)
       ? 'alert'
       : 'nominal';
-    this.diagnosticHistory.push(this.createDiagnosticRecord(
+    const record = this.createDiagnosticRecord(
       `live-sample-${sample.sequence}`,
       sample.timestamp,
       sample.cpu,
       sample.memory,
       sample.gpu,
       state
-    ));
+    );
+    record.ownerTimestamp = typeof sample.ownerTimestamp === 'string' ? sample.ownerTimestamp : '';
+    record.measurementSource = typeof sample.measurementSource === 'string' ? sample.measurementSource : '';
+    record.utilizationUnit = typeof sample.utilizationUnit === 'string' ? sample.utilizationUnit : '';
+    this.diagnosticHistory.push(record);
     if (this.diagnosticHistory.length > 12) {
       this.diagnosticHistory.shift();
     }
@@ -372,6 +452,124 @@ export class SystemMonitorApp {
       staleAfterMs: this.staleThresholdMs,
       recovery: 'Refresh live telemetry to replace stale data and keep diagnostic summaries current.'
     };
+  }
+
+  staleStateLabel() {
+    const stale = this.getStaleDataState();
+    const kept = this.diagnosticHistory.length;
+    if (stale.state === 'stale-data' && kept > 0) {
+      const noun = kept === 1 ? 'sample' : 'samples';
+      return `stale-data · ${kept} ${noun} kept`;
+    }
+    if (this.ownerUnavailable) return 'unavailable';
+    return stale.state;
+  }
+
+  observedLabel() {
+    const clocks = this.diagnosticHistory
+      .filter(row => typeof row.timestamp === 'number')
+      .map(row => this.formatClock(row.timestamp));
+    if (this.ownerUnavailable) {
+      const kept = this.diagnosticHistory.length;
+      const noun = kept === 1 ? 'sample' : 'samples';
+      const clock = clocks.length ? `retained measured ${clocks[0]} · ` : '';
+      return `stale · unavailable · ${clock}${kept} ${noun} kept`;
+    }
+    if (clocks.length === 1) return `${this.retainedSample ? 'retained' : 'fresh'} measured ${clocks[0]}`;
+    if (clocks.length > 1) return `retained measured ${clocks[0]} · fresh measured ${clocks[clocks.length - 1]}`;
+    return 'stale';
+  }
+
+  ownerCpuRows() {
+    return this.diagnosticHistory.filter(row => typeof row.cpu === 'number' && typeof row.ownerTimestamp === 'string' && row.ownerTimestamp);
+  }
+
+  cpuRowRole(index, count) {
+    if (count === 1) return this.retainedSample ? 'retained' : 'measured';
+    if (index === 0) return 'retained';
+    if (count === 2) return 'fresh';
+    if (index === count - 1) return 'recovered';
+    return 'reopened';
+  }
+
+  seriesCaption() {
+    const rows = this.ownerCpuRows();
+    const prefix = this.cpuHistoryExpanded ? 'CPU history expanded · ' : 'CPU history · ';
+    const at = row => `${this.ownerPercentText(row.cpu)} ${row.ownerTimestamp}`;
+    if (rows.length === 0) return `${prefix}no measured CPU samples yet`;
+    return prefix + rows.map((row, index) => `${this.cpuRowRole(index, rows.length)} ${at(row)}`).join(' · ');
+  }
+
+  ownerPercentText(value) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return 'n/a';
+    return `${value}%`;
+  }
+
+  appendBrokenIso(parent, iso) {
+    const text = typeof iso === 'string' ? iso : '';
+    const matched = /^(.*T\d{2}:\d{2}:\d{2}(?:\.\d+)?)([+-]\d{2}:\d{2}|Z)$/.exec(text);
+    if (!matched) {
+      parent.append(text);
+      return;
+    }
+    parent.append(matched[1], document.createElement('wbr'), matched[2]);
+  }
+
+  writeSeriesCaption(node) {
+    if (!node) return;
+    const rows = this.ownerCpuRows();
+    const prefix = this.cpuHistoryExpanded ? 'CPU history expanded · ' : 'CPU history · ';
+    node.replaceChildren();
+    node.append(prefix);
+    if (rows.length === 0) {
+      node.append('no measured CPU samples yet');
+      return;
+    }
+    rows.forEach((row, index) => {
+      if (index > 0) node.append(' · ');
+      node.append(`${this.cpuRowRole(index, rows.length)} ${this.ownerPercentText(row.cpu)} `);
+      this.appendBrokenIso(node, row.ownerTimestamp);
+    });
+  }
+
+  writeFailureStatus(node) {
+    if (!node) return;
+    const note = this.ownerRejectionNote || '';
+    node.classList.toggle('owner-failure-visible', note.length > 0);
+    node.replaceChildren();
+    if (!note) return;
+    const iso = typeof this.telemetrySnapshot?.ownerTimestamp === 'string' ? this.telemetrySnapshot.ownerTimestamp : '';
+    if (iso && note.includes(iso)) {
+      const index = note.indexOf(iso);
+      node.append(note.slice(0, index));
+      this.appendBrokenIso(node, iso);
+      const after = note.slice(index + iso.length);
+      if (after) node.append(after);
+      return;
+    }
+    node.append(note);
+  }
+
+  writeCpuObservationMeta(node) {
+    if (!node) return;
+    const sample = this.telemetrySnapshot || {};
+    const source = typeof sample.measurementSource === 'string' && sample.measurementSource
+      ? sample.measurementSource
+      : 'source not measured';
+    const unit = typeof sample.utilizationUnit === 'string' && sample.utilizationUnit
+      ? sample.utilizationUnit
+      : 'percent';
+    const stale = this.getStaleDataState();
+    const age = this.hasMeasuredSample
+      ? `${Math.max(0, Math.round(stale.ageMs / 1000))}s · ${stale.state}`
+      : 'unavailable';
+    node.replaceChildren();
+    if (typeof sample.cpu === 'number' && Number.isFinite(sample.cpu)) node.append(`${this.ownerPercentText(sample.cpu)} · `);
+    node.append(`unit ${unit} · ${source} · stale age ${age}`);
+    if (typeof sample.ownerTimestamp === 'string' && sample.ownerTimestamp) {
+      node.append(' · ');
+      this.appendBrokenIso(node, sample.ownerTimestamp);
+    }
   }
 
   getAccessibleSummaryText() {
@@ -491,10 +689,16 @@ export class SystemMonitorApp {
             <span class="status-icon">🌐</span>
             <span class="status-text">Network: <span id="network-status">n/a</span></span>
           </div>
-          <div class="status-item">
-            <span class="status-icon">⏱️</span>
-            <span class="status-text">Observed: <span id="uptime-status">stale</span></span>
+          <div class="status-item observation-status">
+            <div class="status-text" id="cpu-series-caption">${this.seriesCaption()}</div>
+            <div class="status-text" id="owner-failure-status">${this.ownerRejectionNote}</div>
           </div>
+        </div>
+
+        <div class="monitor-toolbar" id="monitor-toolbar">
+          <button id="refresh-backend-telemetry" type="button">Refresh metrics</button>
+          <button id="probe-unsupported-observation" type="button">Check owner availability</button>
+          <button id="expand-cpu-history" type="button" aria-expanded="false">CPU history</button>
         </div>
 
         <!-- Main Content Area -->
@@ -520,7 +724,35 @@ export class SystemMonitorApp {
         .window[data-app-id="system-monitor"] .window-app-content > [id$="-content"] { display:flex; flex-direction:column; flex:1 1 0px; align-self:stretch; width:100%; min-height:0; min-width:0; overflow:hidden; }
         .window[data-app-id="system-monitor"] .system-monitor-container { flex:1 1 0px; height:auto; min-height:0; min-width:0; }
         .window[data-app-id="system-monitor"] .live-tool-gateway-host { flex:0 0 auto; min-height:0; max-height:88px; overflow:auto; position:relative; z-index:6; background:var(--sk-bg2,#101b18); }
-        .system-monitor-container > .monitor-header, .system-monitor-container > .status-bar { flex:0 0 auto; }
+        .window[data-app-id="system-monitor"] .observation-status { display:flex; flex-direction:column; align-items:stretch; gap:4px; flex:1 0 100%; min-width:100%; white-space:normal; overflow-wrap:normal; word-break:normal; }
+        .window[data-app-id="system-monitor"] #cpu-series-caption,
+        .window[data-app-id="system-monitor"] #owner-failure-status { display:block; width:100%; max-width:100%; white-space:normal; overflow-wrap:normal; word-break:normal; line-height:1.35; font-size:12px; color:#edf7f2; }
+        .window[data-app-id="system-monitor"] #owner-failure-status.owner-failure-visible { color:#1c1406; background:#f3d48a; border-radius:4px; padding:2px 6px; }
+        .window[data-app-id="system-monitor"] .monitor-controls { display:none; }
+        .window[data-app-id="system-monitor"] #cpu-observation-meta,
+        .window[data-app-id="system-monitor"] #network-observation-meta,
+        .window[data-app-id="system-monitor"] #gpu-observation-meta { opacity:1; color:#d5e6de; font-size:12px; line-height:1.35; white-space:normal; overflow-wrap:normal; word-break:normal; }
+        .window[data-app-id="system-monitor"] .monitor-toolbar { flex:0 0 auto; display:flex; flex-wrap:wrap; gap:6px; padding:6px 12px; background:#101b18; position:relative; z-index:5; }
+        .window[data-app-id="system-monitor"] .monitor-toolbar button { position:static; min-height:32px; padding:6px 10px; background:#17352c; color:#edf7f2; border:1px solid #3d6b5e; border-radius:6px; font-size:12px; line-height:1.2; white-space:normal; overflow-wrap:normal; word-break:normal; }
+        .window[data-app-id="system-monitor"] button:focus-visible { outline:2px solid #5eead4; outline-offset:2px; }
+        .window[data-app-id="system-monitor"] [data-testid="backend-status-disclosure"]:not([open]) { position:absolute; width:1px; height:1px; margin:0; padding:0; overflow:hidden; clip-path:inset(50%); }
+        .window[data-app-id="system-monitor"] [data-testid="backend-status-disclosure"][open] { position:relative; width:auto; height:auto; max-height:112px; overflow:auto; clip-path:none; }
+        @media (max-width: 768px) {
+          .window[data-app-id="system-monitor"] .monitor-controls { display:none; }
+          .window[data-app-id="system-monitor"] .monitor-header { min-width:0; overflow:hidden; }
+          .window[data-app-id="system-monitor"] .view-tabs { min-width:0; }
+        }
+        .window[data-app-id="system-monitor"] .chart-canvas { display:block; width:100%; height:100%; }
+        .window[data-app-id="system-monitor"] .chart-container { height:64px; overflow:hidden; }
+        .window[data-app-id="system-monitor"] .chart-container.chart-empty { height:22px; }
+        .window[data-app-id="system-monitor"] .metric-card { overflow-wrap:normal; word-break:normal; }
+        @media (min-width: 769px) {
+          .window[data-app-id="system-monitor"] .monitor-content > .overview-content { height:100%; }
+          .window[data-app-id="system-monitor"] .overview-content > .overview-grid { height:100%; grid-auto-rows:1fr; }
+          .window[data-app-id="system-monitor"] .overview-grid > .metric-card { height:100%; min-height:0; }
+          .window[data-app-id="system-monitor"] .chart-container { height:72px; }
+        }
+        .system-monitor-container > .monitor-header, .system-monitor-container > .status-bar, .system-monitor-container > .monitor-toolbar { flex:0 0 auto; }
         .system-monitor-container > .monitor-content { flex:1 1 0px; min-height:0; overflow-y:auto; overflow-x:hidden; }
         .system-monitor-container {
           height: 100%;
@@ -1117,6 +1349,8 @@ export class SystemMonitorApp {
             align-items: stretch;
           }
           .chart-container { height: 56px; }
+          .window[data-app-id="system-monitor"] .chart-container { height: 52px; }
+          .window[data-app-id="system-monitor"] .chart-container.chart-empty { height: 22px; }
           .metric-card { padding: 8px; }
           .metric-value { font-size: 18px; }
           .vda-workflow-grid { grid-template-columns: 1fr; }
@@ -1154,10 +1388,6 @@ export class SystemMonitorApp {
   renderOverviewContent() {
     return `
       <div class="overview-content">
-        <div class="telemetry-actions">
-          <button id="refresh-backend-telemetry" class="btn btn-small sk-btn">Refresh backend telemetry</button>
-          <button id="ipfs-node-refresh" class="btn btn-small sk-btn">Query IPFS node</button>
-        </div>
         <div class="overview-grid">
           <div class="metric-card">
             <div class="metric-header">
@@ -1167,7 +1397,7 @@ export class SystemMonitorApp {
               </div>
               <span class="metric-value" id="cpu-metric">n/a</span>
             </div>
-            <div class="metric-subtitle">${this.systemInfo.cpuModel}</div>
+            <div class="metric-subtitle" id="cpu-observation-meta">source not measured · unit percent · stale age unavailable</div>
             <div class="progress-bar">
               <div class="progress-fill progress-cpu" id="cpu-progress" style="width: 0%"></div>
             </div>
@@ -1201,7 +1431,7 @@ export class SystemMonitorApp {
               </div>
               <span class="metric-value" id="gpu-metric">n/a</span>
             </div>
-            <div class="metric-subtitle">${this.systemInfo.gpuModel}</div>
+            <div class="metric-subtitle" id="gpu-observation-meta">${this.systemInfo.gpuModel} · stale age unavailable</div>
             <div class="progress-bar">
               <div class="progress-fill progress-gpu" id="gpu-progress" style="width: 0%"></div>
             </div>
@@ -1218,7 +1448,7 @@ export class SystemMonitorApp {
               </div>
               <span class="metric-value" id="network-metric">n/a</span>
             </div>
-            <div class="metric-subtitle">↓ <span id="download-speed">n/a</span> ↑ <span id="upload-speed">n/a</span></div>
+            <div class="metric-subtitle" id="network-observation-meta">no throughput sample · stale age unavailable</div>
             <div class="progress-bar">
               <div class="progress-fill progress-network" id="network-progress" style="width: 0%"></div>
             </div>
@@ -1322,7 +1552,7 @@ export class SystemMonitorApp {
           </div>
           <div class="vda-workflow-card" data-svd-vda-marker="stale-data">
             <span class="vda-workflow-label">Stale-data guard</span>
-            <strong id="vda-stale-state">${stale.state}</strong>
+            <strong id="vda-stale-state">${this.staleStateLabel()}</strong>
             <div id="observation-stamp">${this.observationStamp}</div>
             <div>Age ${Math.round(stale.ageMs / 1000)}s. Stale after ${Math.round(stale.staleAfterMs / 1000)}s. ${stale.recovery}</div>
           </div>
@@ -1702,7 +1932,19 @@ export class SystemMonitorApp {
     bindClick('#refresh-backend-telemetry', async () => {
       await this.refreshBackendTelemetry(true);
       if (!container.isConnected || this.container !== container) return;
-      this.updateSystemMetrics(); this.updateVdaG041WorkflowDisplay(); this.updateBackendTelemetryCard();
+      this.updateSystemMetrics(); this.updateVdaG041WorkflowDisplay(); this.updateBackendTelemetryCard(); this.updateStatusBar(); this.updateCharts();
+    });
+    bindClick('#expand-cpu-history', () => {
+      this.cpuHistoryExpanded = true;
+      const button = container.querySelector('#expand-cpu-history');
+      if (button) button.setAttribute('aria-expanded', 'true');
+      this.updateStatusBar();
+    });
+    bindClick('#probe-unsupported-observation', async () => {
+      const trigger = container.querySelector('#probe-unsupported-observation');
+      await this.refreshBackendTelemetry(true, { unsupported: true, trigger });
+      if (!container.isConnected || this.container !== container) return;
+      this.updateSystemMetrics(); this.updateVdaG041WorkflowDisplay(); this.updateBackendTelemetryCard(); this.updateStatusBar(); this.updateCharts();
     });
     bindClick('#ipfs-node-refresh', () => this.queryIpfsNode());
     
@@ -1791,7 +2033,10 @@ export class SystemMonitorApp {
     const downloadSpeed = document.querySelector('#download-speed');
     const uploadSpeed = document.querySelector('#upload-speed');
 
-    if (cpuMetric) cpuMetric.textContent = this.formatMetric(cpu, '%');
+    if (cpuMetric) cpuMetric.textContent = this.ownerPercentText(cpu);
+    this.writeCpuObservationMeta(document.querySelector('#cpu-observation-meta'));
+    const networkMeta = document.querySelector('#network-observation-meta');
+    if (networkMeta) networkMeta.textContent = 'no throughput sample · stale age unavailable';
     if (memoryMetric) memoryMetric.textContent = this.formatMetric(memory, '%');
     if (gpuMetric) gpuMetric.textContent = this.formatMetric(gpu, '%');
     if (networkMetric) networkMetric.textContent = this.formatMetric(network, ' MB/s');
@@ -1819,16 +2064,23 @@ export class SystemMonitorApp {
     const uptimeStatus = document.querySelector('#uptime-status');
 
     const sample = this.telemetrySnapshot;
-    if (cpuStatus) cpuStatus.textContent = this.formatMetric(sample.cpu, '%');
+    if (cpuStatus) cpuStatus.textContent = this.ownerPercentText(sample.cpu);
     if (memoryStatus) memoryStatus.textContent = this.formatMetric(sample.memory, '%');
     if (gpuStatus) gpuStatus.textContent = this.formatMetric(sample.gpu, '%');
     if (networkStatus) networkStatus.textContent = this.formatMetric(sample.network, ' MB/s');
 
-    const stale = this.getStaleDataState();
-    const ageLabel = `${stale.state === 'fresh' ? 'fresh' : 'stale'} ${Math.round(stale.ageMs / 1000)}s`;
-    if (uptimeStatus) uptimeStatus.textContent = ageLabel;
+    const label = this.observedLabel();
+    if (uptimeStatus) uptimeStatus.textContent = label;
     const detailedUptime = document.querySelector('#detailed-uptime');
-    if (detailedUptime) detailedUptime.textContent = ageLabel;
+    if (detailedUptime) detailedUptime.textContent = label;
+    const origin = document.querySelector('#history-origin-status');
+    if (origin) origin.textContent = this.historyOrigin;
+    const count = document.querySelector('#sample-count-status');
+    if (count) count.textContent = `${this.diagnosticHistory.length} samples retained`;
+    const caption = document.querySelector('#cpu-series-caption');
+    if (caption) this.writeSeriesCaption(caption);
+    const failure = document.querySelector('#owner-failure-status');
+    if (failure) this.writeFailureStatus(failure);
   }
 
   updateVdaG041WorkflowDisplay() {
@@ -1850,7 +2102,7 @@ export class SystemMonitorApp {
     setText('#vda-history-summary', `${latestHistory.label ? `Latest sample at ${this.formatClock(latestHistory.timestamp)}` : 'No samples observed yet'}. ${latestHistory.sampleCid ? 'Persisted' : 'Not persisted'}.`);
     setText('#vda-analysis-risk', `${analysis.risk} risk / ${analysis.trend} trend`);
     setText('#vda-analysis-summary', `Average CPU ${this.formatMetric(analysis.averageCpu, '%')}, memory ${this.formatMetric(analysis.averageMemory, '%')}, GPU ${this.formatMetric(analysis.averageGpu, '%')}. ${analysis.recommendation}`);
-    setText('#vda-stale-state', stale.state);
+    setText('#vda-stale-state', this.staleStateLabel());
     setText('#vda-alert-state', alert ? alert.severity : 'info');
     setText('#vda-accessible-summary', accessibleSummary);
     setText('#vda-history-origin', this.historyOrigin);
@@ -1917,7 +2169,7 @@ export class SystemMonitorApp {
     }
   }
 
-  initChart(canvasId, data, color) {
+  initChart(canvasId, data, color, labels = null) {
     let node = document.getElementById(canvasId);
     if (!node) return;
 
@@ -1935,64 +2187,91 @@ export class SystemMonitorApp {
     const canvas = node;
     const ctx = typeof canvas.getContext === 'function' ? canvas.getContext('2d') : null;
     if (!ctx) return;
+    const numeric = (Array.isArray(data) ? data : []).filter(value => typeof value === 'number' && !Number.isNaN(value));
+    canvas.parentElement?.classList.toggle('chart-empty', numeric.length === 0);
 
     const rect = canvas.getBoundingClientRect();
-    // Avoid setting NaN dimensions in rare cases where rect is 0 during reflow
-    const width = Math.max(1, Math.floor(rect.width || canvas.clientWidth || 0));
-    const height = Math.max(1, Math.floor(rect.height || canvas.clientHeight || 0));
+    const width = Math.floor(rect.width || canvas.clientWidth || 0);
+    const height = Math.floor(rect.height || canvas.clientHeight || 0);
+    // A zero rect during the first reflow would bake a 1px bitmap and hide the line.
+    if (width < 8 || height < 8) {
+      const tries = Number(canvas.dataset.layoutTries || 0);
+      if (tries < 8) {
+        canvas.dataset.layoutTries = String(tries + 1);
+        setTimeout(() => this.initChart(canvasId, data, color, labels), 50);
+      }
+      return;
+    }
+    canvas.dataset.layoutTries = '0';
     canvas.width = width;
     canvas.height = height;
 
-    this.drawChart(ctx, data, color, canvas.width, canvas.height);
+    this.drawChart(ctx, data, color, canvas.width, canvas.height, canvasId, labels);
   }
 
-  drawChart(ctx, data, color, width, height) {
+  drawChart(ctx, data, color, width, height, canvasId, labels = null) {
     ctx.clearRect(0, 0, width, height);
 
     // Only real observed values are drawn; nulls (unmeasurable) break the
     // line instead of being plotted as zero.
     const points = data.filter(value => typeof value === 'number' && !Number.isNaN(value));
-    if (points.length < 2) {
+    if (points.length === 0) {
+      const label = canvasId === 'gpu-chart' ? 'utilization unavailable'
+        : canvasId === 'network-chart' ? 'no throughput sample'
+        : 'No measured samples yet';
       ctx.fillStyle = '#a8bbb2';
-      ctx.font = '12px sans-serif';
-      ctx.fillText(points.length === 0 ? 'No measured samples yet' : 'One measured sample', 12, Math.max(16, height / 2));
+      ctx.font = '11px sans-serif';
+      ctx.fillText(label, 8, Math.max(14, Math.min(16, height - 4)));
       return;
     }
-
-    const padding = 10;
-    const chartWidth = width - padding * 2;
-    const chartHeight = height - padding * 2;
-    const maxValue = Math.max(...points, 100);
-
+    const top = 14;
+    const usable = Math.max(8, height - top - 6);
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    const span = Math.max(max - min, 4);
+    const lo = ((min + max) / 2) - span / 2;
+    const xAt = index => points.length === 1 ? 16 : 8 + (index / (data.length - 1)) * Math.max(8, width - 16);
+    const yAt = value => top + usable - ((value - lo) / span) * usable;
+    const coords = [];
+    data.forEach((value, index) => {
+      if (typeof value !== 'number' || Number.isNaN(value)) return;
+      coords.push({ x: xAt(index), y: yAt(value) });
+    });
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.beginPath();
-
-    let penDown = false;
-    data.forEach((value, index) => {
-      if (typeof value !== 'number' || Number.isNaN(value)) {
-        penDown = false;
-        return;
-      }
-      const x = padding + (index / (data.length - 1)) * chartWidth;
-      const y = padding + chartHeight - (value / maxValue) * chartHeight;
-
-      if (!penDown) {
-        ctx.moveTo(x, y);
-        penDown = true;
-      } else {
-        ctx.lineTo(x, y);
-      }
+    coords.forEach((point, index) => index === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y));
+    if (coords.length > 1) ctx.stroke();
+    coords.forEach(point => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 3.5, 0, Math.PI * 2);
+      ctx.fill();
     });
-
-    ctx.stroke();
-    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#edf7f2';
+    ctx.font = '10px sans-serif';
+    const marks = Array.isArray(labels) && labels.length === coords.length ? labels : null;
+    if (marks) {
+      marks.forEach((label, index) => {
+        const last = index === marks.length - 1;
+        ctx.textAlign = index === 0 ? 'left' : last ? 'right' : 'center';
+        const x = index === 0 ? 4 : last ? width - 4 : coords[index].x;
+        ctx.fillText(label, x, 11);
+      });
+      ctx.textAlign = 'left';
+    } else if (coords.length === 1) ctx.fillText('Retained sample', 28, 11);
+    else {
+      ctx.fillText('retained', 8, 11);
+      ctx.fillText('fresh', Math.max(52, width - 36), 11);
+    }
   }
 
   _redrawOverviewCharts() {
     const sample = this.telemetrySnapshot || {};
     const series = (key) => (typeof sample[key] === 'number' ? this.chartData[key] : []);
-    this.initChart('cpu-chart', series('cpu'), '#60a5fa');
+    const cpuRows = this.ownerCpuRows();
+    const cpuLabels = cpuRows.map(row => this.ownerPercentText(row.cpu));
+    this.initChart('cpu-chart', series('cpu'), '#60a5fa', cpuLabels);
     this.initChart('memory-chart', series('memory'), '#34d399');
     this.initChart('gpu-chart', series('gpu'), '#fbbf24');
     this.initChart('network-chart', series('network'), '#a78bfa');
@@ -2198,11 +2477,16 @@ export class SystemMonitorApp {
     const tputEl = document.querySelector('#accel-telemetry-tput');
     const backend = this.backendTelemetry || { state: 'not-run' };
     if (stateEl) {
-      stateEl.textContent = backend.state === 'ok'
-        ? 'ok'
-        : `unavailable: ${backend.error || backend.state || 'not run'}`;
+      stateEl.textContent = this.retainedSample
+        ? 'retained sample'
+        : backend.state === 'ok'
+          ? 'ok'
+          : 'unavailable';
     }
-    if (utilEl) utilEl.textContent = this.formatMetric(backend.data?.utilization, '%');
+    if (utilEl) {
+      const measured = typeof backend.data?.utilization === 'number' ? backend.data.utilization : this.telemetrySnapshot?.cpu;
+      utilEl.textContent = this.ownerPercentText(measured);
+    }
     if (tputEl) tputEl.textContent = this.formatMetric(backend.data?.throughput, '');
   }
 

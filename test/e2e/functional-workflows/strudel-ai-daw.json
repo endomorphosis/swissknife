@@ -12,12 +12,35 @@
         "value": "note(\"c3 e3 g3\").sound(\"sine\").cpm(120)"
       },
       {
+        "op": "fill",
+        "selector": "#bpm-input",
+        "value": "132"
+      },
+      {
         "op": "click",
         "selector": "#new-pattern"
       },
       {
+        "op": "assert",
+        "probe": {"kind": "value", "selector": "#strudel-code-editor"},
+        "operator": "contains",
+        "expected": "note(\"c2 ~ c2 ~\")"
+      },
+      {
         "op": "click",
         "selector": "#undo-btn"
+      },
+      {
+        "op": "assert",
+        "probe": {"kind": "value", "selector": "#strudel-code-editor"},
+        "operator": "equals",
+        "expected": "note(\"c3 e3 g3\").sound(\"sine\").cpm(120)"
+      },
+      {
+        "op": "assert",
+        "probe": {"kind": "value", "selector": "#bpm-input"},
+        "operator": "equals",
+        "expected": "132"
       },
       {
         "op": "press",
@@ -28,11 +51,11 @@
         "op": "assert",
         "requirement_id": "result_1",
         "probe": {
-          "kind": "value",
-          "selector": "#strudel-code-editor"
+          "kind": "text",
+          "selector": "#project-retention"
         },
         "operator": "equals",
-        "expected": "note(\"c3 e3 g3\").sound(\"sine\").cpm(120)"
+        "expected": "Undo applied from the local history stack. Restored reason new-pattern, active pattern main, tempo 132, and editable code note(\"c3 e3 g3\").sound(\"sine\").cpm(120)."
       }
     ],
     "persist_reopen": [
@@ -43,11 +66,23 @@
         "op": "assert",
         "requirement_id": "persist_reopen",
         "probe": {
-          "kind": "value",
-          "selector": "#strudel-code-editor"
+          "kind": "text",
+          "selector": "#project-retention"
         },
         "operator": "equals",
+        "expected": "track:main tempo:132 source:note(\"c3 e3 g3\").sound(\"sine\").cpm(120)"
+      },
+      {
+        "op": "assert",
+        "probe": {"kind": "value", "selector": "#strudel-code-editor"},
+        "operator": "equals",
         "expected": "note(\"c3 e3 g3\").sound(\"sine\").cpm(120)"
+      },
+      {
+        "op": "assert",
+        "probe": {"kind": "value", "selector": "#bpm-input"},
+        "operator": "equals",
+        "expected": "132"
       }
     ],
     "failure_recovery": [

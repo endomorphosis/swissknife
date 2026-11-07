@@ -167,6 +167,8 @@ class MCPControlApp {
         this.libp2pBrowserDefaultsLoading = false;
         this.libp2pBrowserDefaultsPromise = null;
         this.lastDiagnostic = null;
+        this.retainedDiagnostic = null;
+        this.reopenedObservation = null;
         this.diagnosticHadInvalidParams = false;
         
         // Initialize common server templates
@@ -280,6 +282,7 @@ class MCPControlApp {
 
     async render() {
         await this.refreshLibp2pBrowserDefaults({ silent: true });
+        this.scheduleContainMcpFrame();
         return `
             <div class="mcp-control-app enhanced">
                 ${this.renderLibp2pBrowserStyles()}
@@ -575,18 +578,21 @@ class MCPControlApp {
 
                 .mcp-control-app.enhanced {
                     box-sizing: border-box;
+                    display: flex;
+                    flex-direction: column;
                     min-height: 0;
-                    max-height: calc(100vh - 96px);
-                    overflow: auto;
+                    height: 100%;
+                    max-height: 100%;
+                    overflow: hidden;
+                }
+
+                .mcp-control-app .mcp-header,
+                .mcp-control-app .mcp-content {
+                    display: none;
                 }
 
                 .mcp-control-app .mcp-content {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                    min-height: 0;
-                    flex: 1 1 auto;
-                    overflow: auto;
+                    display: none;
                 }
 
                 .mcp-control-app .mcp-sidebar {
@@ -602,20 +608,27 @@ class MCPControlApp {
                 }
 
                 .mcp-owner-diagnostics {
-                    padding: 8px;
+                    padding: 4px 6px;
                     border: 1px solid var(--sk-border, #263a34);
                     border-radius: 8px;
                     background: var(--sk-card, #17241f);
                     color: var(--sk-text, #edf7f2);
                     display: grid;
-                    gap: 6px;
+                    gap: 2px;
                     min-height: 0;
-                    overflow: auto;
+                    overflow: hidden;
+                    font-size: 12px;
                 }
 
-                .mcp-owner-diagnostics h3 {
+                .mcp-owner-diagnostics h3,
+                .mcp-owner-diagnostics label {
                     margin: 0;
-                    font-size: 16px;
+                    font-size: 13px;
+                }
+
+                .mcp-owner-diagnostics select,
+                .mcp-owner-diagnostics textarea {
+                    font-size: 12px;
                 }
 
                 #mcp-gateway-confirm-host {
@@ -633,14 +646,29 @@ class MCPControlApp {
                     z-index: 5 !important;
                 }
 
-                #mcp-tool-schema,
-                #mcp-diagnostic-status,
-                #mcp-diagnostic-ready {
-                    white-space: pre-wrap;
-                    word-break: break-word;
-                    margin: 0;
+                #mcp-tool-schema {
+                    display: none;
                 }
 
+                #mcp-diagnostic-status,
+                #mcp-diagnostic-ready,
+                #mcp-reopened-proof,
+                #mcp-retained-proof,
+                #mcp-retained-owners,
+                #mcp-schema-lines,
+                #mcp-dataset-result {
+                    white-space: pre-wrap;
+                    overflow-wrap: anywhere;
+                    word-break: break-word;
+                    margin: 0;
+                    font-size: 11px;
+                    line-height: 1.25;
+                }
+
+                .mcp-control-app button:focus,
+                .mcp-control-app select:focus,
+                .mcp-control-app textarea:focus,
+                .mcp-control-app input:focus,
                 .mcp-control-app button:focus-visible,
                 .mcp-control-app select:focus-visible,
                 .mcp-control-app textarea:focus-visible,
@@ -1413,8 +1441,9 @@ class MCPControlApp {
 
             // Load connection history
             this.connectionHistory = JSON.parse(localStorage.getItem('mcp-connection-history') || '[]');
+            this.retainedDiagnostic = this.readRetainedDiagnostic(localStorage.getItem('mcp-control-retained-diagnostic'));
             const storedDiagnostic = JSON.parse(localStorage.getItem('mcp-control-last-diagnostic') || 'null');
-            this.lastDiagnostic = storedDiagnostic && typeof storedDiagnostic.summary === 'string' ? storedDiagnostic : null;
+            this.lastDiagnostic = storedDiagnostic && typeof storedDiagnostic.health === 'string' ? storedDiagnostic : null;
         } catch (error) {
             console.warn('Failed to load saved MCP data:', error);
         }
@@ -2427,39 +2456,196 @@ class MCPControlApp {
 
     describeDeclaredOwnerSchema() {
         return MCP_CONTROL_DECLARED_DIAGNOSTICS.map(entry =>
-            entry.owner + ' / ' + entry.toolId + ' / ' + entry.policyClass
+            'Schema ' + entry.owner + ' tool ' + entry.toolId + ' policy ' + entry.policyClass + ' transport ' + entry.transports
         ).join('\n');
     }
 
+    readRetainedDiagnostic(raw) {
+        try {
+            const stored = JSON.parse(raw || 'null');
+            if (!stored || stored.schema !== 'swissknife.mcp-control-retained-diagnostic.v1') return null;
+            if (!Array.isArray(stored.observations) || stored.observations.length !== 3) return null;
+            return stored;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    diagnosticHealthLine(record) {
+        return record && typeof record.health === 'string' ? record.health : '';
+    }
+
+    retainedOwnerLines(record) {
+        const observations = record && Array.isArray(record.observations) ? record.observations : [];
+        return observations.map(item => {
+            const owner = item && item.owner || '';
+            const tool = item && item.tool || '';
+            const receipt = item && item.receipt_id || '';
+            let result = 'observed';
+            if (owner === 'ipfs_accelerate_py') result = (item.status || 'healthy') + (item.timestamp ? ' at ' + item.timestamp : '');
+            else if (owner === 'ipfs_kit_py') result = item.node_id || 'node';
+            else if (Number.isInteger(item.category_count) && item.category_count > 0) result = item.category_count + ' categories';
+            return 'Retained ' + owner + ' ' + tool + ' receipt ' + receipt + ' result ' + result;
+        }).filter(line => line.includes(' receipt ') && !line.includes(' receipt  '));
+    }
+
+    retainedProofLines(record) {
+        const lines = this.retainedOwnerLines(record);
+        const selected = record && record.selectedOwner;
+        if (selected) {
+            const match = lines.filter(line => line.startsWith('Retained ' + selected + ' '));
+            if (match.length) return match;
+        }
+        return lines.filter(line => line.startsWith('Retained ipfs_accelerate_py '));
+    }
+
+    retainedCompanionLines(record) {
+        const proof = new Set(this.retainedProofLines(record));
+        return this.retainedOwnerLines(record).filter(line => !proof.has(line));
+    }
+
+    reopenedProofLine() {
+        const item = this.reopenedObservation;
+        if (!item || !item.receipt_id || !item.owner) return '';
+        let result = 'observed';
+        if (item.owner === 'ipfs_accelerate_py') result = (item.status || 'healthy') + (item.timestamp ? ' at ' + item.timestamp : '');
+        else if (item.owner === 'ipfs_kit_py') result = item.node_id || 'node';
+        else if (Number.isInteger(item.category_count) && item.category_count > 0) result = item.category_count + ' categories';
+        return 'Reopened ' + item.owner + ' ' + (item.tool || '') + ' receipt ' + item.receipt_id + ' result ' + result;
+    }
+
+    schemaLines(record) {
+        const observations = record && Array.isArray(record.observations) ? record.observations : [];
+        return observations.map(item => {
+            const entry = MCP_CONTROL_DECLARED_DIAGNOSTICS.find(row => row.owner === item.owner);
+            return 'Schema ' + (item.owner || '') + ' ' + (item.tool || '')
+                + ' transport ' + (entry ? entry.transports : '')
+                + ' correlation ' + (item.correlation_id || 'none');
+        });
+    }
+
+    datasetResultLine(record) {
+        const observations = record && Array.isArray(record.observations) ? record.observations : [];
+        const datasets = observations.find(item => item && item.owner === 'ipfs_datasets_py');
+        if (!datasets || !Number.isInteger(datasets.category_count) || datasets.category_count < 1) return '';
+        const preview = Array.isArray(datasets.category_preview) ? datasets.category_preview : [];
+        const names = preview.filter(row => row && typeof row.name === 'string' && Number.isInteger(row.count))
+            .slice(0, 4)
+            .map(row => row.name + ' (' + row.count + ')')
+            .join(', ');
+        return 'Dataset categories: ' + datasets.category_count + ' records' + (names ? '; ' + names : '');
+    }
+
+    scheduleContainMcpFrame() {
+        if (typeof window === 'undefined') return;
+        if (!this._containBound) {
+            this._containBound = true;
+            window.addEventListener('resize', () => this.containMcpFrame());
+        }
+        setTimeout(() => this.containMcpFrame(), 0);
+        setTimeout(() => this.containMcpFrame(), 400);
+    }
+
+    containMcpFrame() {
+        const shell = document.querySelector('.window[data-app-id="mcp-control"] .mcp-control-app')
+            || document.querySelector('.mcp-control-app');
+        if (!shell || !shell.isConnected) return;
+        const windowEl = shell.closest('.window');
+        const windowContent = shell.closest('.window-content');
+        const appContent = shell.closest('.window-app-content');
+        const pin = (el, extra) => {
+            if (!el) return;
+            el.style.boxSizing = 'border-box';
+            el.style.minHeight = '0';
+            el.style.minWidth = '0';
+            el.style.overflow = 'hidden';
+            if (extra) Object.assign(el.style, extra);
+        };
+        const windowRect = windowEl && windowEl.getBoundingClientRect();
+        if (windowContent && appContent && windowRect && windowRect.height >= 120) {
+            const top = Math.max(windowContent.getBoundingClientRect().top, windowRect.top);
+            const available = Math.floor(windowRect.bottom - top);
+            if (available >= 160) {
+                for (const el of [windowContent, appContent]) {
+                    pin(el, {
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: available + 'px',
+                        maxHeight: available + 'px',
+                        maxWidth: '100%'
+                    });
+                }
+            }
+        }
+        pin(shell, { display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%' });
+        const diagnostic = shell.querySelector('.mcp-owner-diagnostics');
+        if (diagnostic) {
+            diagnostic.style.flex = '1 1 auto';
+            diagnostic.style.minHeight = '0';
+            diagnostic.style.overflowY = 'hidden';
+            diagnostic.style.overflowX = 'hidden';
+        }
+        const resetScroll = () => {
+            const nodes = windowEl ? [windowEl, ...windowEl.querySelectorAll('*')] : [shell];
+            for (const el of nodes) {
+                if (el.scrollTop) el.scrollTop = 0;
+                if (el.scrollLeft) el.scrollLeft = 0;
+            }
+        };
+        resetScroll();
+    }
+
     renderOwnerDiagnostics() {
-        const saved = this.lastDiagnostic;
-        const statusText = saved && typeof saved.statusText === 'string' && saved.statusText
-            ? saved.statusText
-            : (saved && typeof saved.summary === 'string' ? 'Diagnostic executed for declared owners' : 'No diagnostic run yet');
-        const ready = saved && typeof saved.summary === 'string'
-            ? '<div id="mcp-diagnostic-ready">' + this.escapeHtml(saved.summary) + '</div>'
+        const retained = this.retainedDiagnostic;
+        const latest = this.lastDiagnostic;
+        const parametersText = latest && typeof latest.parametersText === 'string' && latest.parametersText
+            ? latest.parametersText
+            : (retained && typeof retained.parametersText === 'string' && retained.parametersText ? retained.parametersText : '{}');
+        const statusText = latest && typeof latest.statusText === 'string' && latest.statusText
+            ? latest.statusText
+            : (retained ? 'Diagnostic executed for declared owners' : 'No diagnostic run yet');
+        const health = this.diagnosticHealthLine(latest) || this.diagnosticHealthLine(retained);
+        const ready = health ? '<div id="mcp-diagnostic-ready">' + this.escapeHtml(health) + '</div>' : '';
+        const retainedLines = this.retainedProofLines(retained);
+        const companionLines = this.retainedCompanionLines(retained);
+        const retainedBlock = retainedLines.length
+            ? '<pre id="mcp-retained-proof">' + this.escapeHtml(retainedLines.join('\n')) + '</pre>'
             : '';
-        const options = MCP_CONTROL_DECLARED_DIAGNOSTICS.map(entry =>
-            '<option value="' + this.escapeHtml(entry.owner) + '">' + this.escapeHtml(entry.owner) + '</option>'
-        ).join('');
-        const first = MCP_CONTROL_DECLARED_DIAGNOSTICS[0];
+        const companionBlock = companionLines.length
+            ? '<pre id="mcp-retained-owners">' + this.escapeHtml(companionLines.join('\n')) + '</pre>'
+            : '';
+        const schema = this.schemaLines(retained);
+        const schemaBlock = schema.length ? '<pre id="mcp-schema-lines">' + this.escapeHtml(schema.join('\n')) + '</pre>' : '';
+        const reopenedLine = this.reopenedProofLine();
+        const reopenedBlock = reopenedLine ? '<pre id="mcp-reopened-proof">' + this.escapeHtml(reopenedLine) + '</pre>' : '';
+        const selectedOwner = retained && typeof retained.selectedOwner === 'string' ? retained.selectedOwner : '';
+        const selectedEntry = MCP_CONTROL_DECLARED_DIAGNOSTICS.find(entry => entry.owner === selectedOwner) || MCP_CONTROL_DECLARED_DIAGNOSTICS[0];
+        const options = MCP_CONTROL_DECLARED_DIAGNOSTICS.map(entry => {
+            const selected = entry.owner === selectedEntry.owner ? ' selected' : '';
+            return '<option value="' + this.escapeHtml(entry.owner) + '"' + selected + '>' + this.escapeHtml(entry.owner) + '</option>';
+        }).join('');
         return [
             '<section class="mcp-owner-diagnostics" aria-label="Owner diagnostics">',
             '<h3>Owner diagnostics</h3>',
             '<div class="mcp-diagnostic-actions">',
             '<button type="button" id="mcp-refresh-discovery" class="btn-secondary sk-btn" aria-label="Refresh discovery" onclick="mcpControlApp.refreshOwnerDiscovery()">Refresh discovery</button>',
             '<button type="button" id="mcp-run-diagnostic" class="btn-primary sk-btn sk-btn-primary" aria-label="Run diagnostic" onclick="mcpControlApp.runOwnerDiagnostic(event)" onkeydown="mcpControlApp.onDiagnosticActivateKey(event)">Run diagnostic</button>',
+            '<button type="button" id="mcp-reread-health" class="btn-secondary sk-btn" aria-label="Reread health" onclick="mcpControlApp.rereadRetainedHealth(event)">Reread health</button>',
             '<div id="mcp-gateway-confirm-host"></div>',
             '</div>',
             '<label for="mcp-owner-select">Owner</label>',
             '<select id="mcp-owner-select" class="sk-select" aria-label="Owner" onchange="mcpControlApp.onOwnerDiagnosticChanged()">' + options + '</select>',
             '<label for="mcp-tool-select">Tool</label>',
-            '<select id="mcp-tool-select" class="sk-select" aria-label="Tool"><option value="' + this.escapeHtml(first.toolId) + '">' + this.escapeHtml(first.toolId) + '</option></select>',
+            '<select id="mcp-tool-select" class="sk-select" aria-label="Tool"><option value="' + this.escapeHtml(selectedEntry.toolId) + '">' + this.escapeHtml(selectedEntry.toolId) + '</option></select>',
             '<label for="mcp-tool-params">Parameters</label>',
-            '<textarea id="mcp-tool-params" class="sk-textarea" rows="2" aria-label="Parameters">{}</textarea>',
+            '<textarea id="mcp-tool-params" class="sk-textarea" rows="1" aria-label="Parameters">' + this.escapeHtml(parametersText) + '</textarea>',
             '<pre id="mcp-tool-schema">' + this.escapeHtml(this.describeDeclaredOwnerSchema()) + '</pre>',
             '<p id="mcp-diagnostic-status">' + this.escapeHtml(statusText) + '</p>',
             '<div id="mcp-diagnostic-detail">' + ready + '</div>',
+            reopenedBlock,
+            retainedBlock,
+            companionBlock,
+            schemaBlock,
             '</section>'
         ].join('');
     }
@@ -2490,7 +2676,15 @@ class MCPControlApp {
         this.runOwnerDiagnostic(event);
     }
 
-    runOwnerDiagnostic(event) {
+    rereadRetainedHealth(event) {
+        const ownerSelect = document.getElementById('mcp-owner-select');
+        const owner = ownerSelect && ownerSelect.value;
+        const entry = MCP_CONTROL_DECLARED_DIAGNOSTICS.find(item => item.owner === owner)
+            || MCP_CONTROL_DECLARED_DIAGNOSTICS[0];
+        return this.runOwnerDiagnostic(event, [entry]);
+    }
+
+    runOwnerDiagnostic(event, entries) {
         if (this._diagnosticRunning) return;
         const scopeCarrier = event && event.currentTarget && event.currentTarget.closest
             ? event.currentTarget
@@ -2516,8 +2710,9 @@ class MCPControlApp {
             if (status) status.textContent = 'Invalid parameters; tool remains ' + toolId;
             return;
         }
+        this._diagnosticTrigger = event && event.currentTarget ? event.currentTarget : null;
         this._diagnosticRunning = true;
-        const pending = this.executeDeclaredDiagnostics(parameters);
+        const pending = this.executeDeclaredDiagnostics(parameters, entries);
         if (pending && typeof pending.finally === 'function') {
             pending.finally(() => { this._diagnosticRunning = false; });
         } else {
@@ -2671,7 +2866,8 @@ class MCPControlApp {
     async dispatchDeclaredDiagnostic(entry, parameters) {
         const payload = await this.qualifiedDiagnosticPayload(entry, parameters);
         const scoped = this._diagnosticScope || null;
-        const trigger = (scoped && scoped.querySelector('#mcp-run-diagnostic'))
+        const trigger = (this._diagnosticTrigger && this._diagnosticTrigger.isConnected && this._diagnosticTrigger)
+            || (scoped && scoped.querySelector('#mcp-run-diagnostic'))
             || document.getElementById('mcp-run-diagnostic');
         const container = scoped
             || (trigger && trigger.closest && trigger.closest('.window-app-content'))
@@ -2688,17 +2884,19 @@ class MCPControlApp {
         });
     }
 
-    async executeDeclaredDiagnostics(parameters) {
+    async executeDeclaredDiagnostics(parameters, entries) {
+        const list = Array.isArray(entries) && entries.length ? entries : MCP_CONTROL_DECLARED_DIAGNOSTICS;
         const status = document.getElementById('mcp-diagnostic-status');
         const toolSelect = document.getElementById('mcp-tool-select');
         const retainedTool = toolSelect ? toolSelect.value : '';
-        const proofs = [];
         const observations = [];
         const oldReady = document.getElementById('mcp-diagnostic-ready');
         if (oldReady) oldReady.remove();
+        const oldProof = document.getElementById('mcp-retained-proof');
+        if (oldProof) oldProof.remove();
         if (status) status.textContent = 'Running declared owner diagnostics';
         try {
-            for (const entry of MCP_CONTROL_DECLARED_DIAGNOSTICS) {
+            for (const entry of list) {
                 const result = await this.dispatchDeclaredDiagnostic(entry, parameters);
                 const proof = this.readDiagnosticProof(result);
                 if (!proof.receiptId || proof.blocked) {
@@ -2706,27 +2904,146 @@ class MCPControlApp {
                 }
                 const value = this.readDiagnosticValue(entry, result);
                 observations.push({ owner: entry.owner, tool: entry.toolId, ...value, receipt_id: proof.receiptId, correlation_id: proof.correlationId });
-                proofs.push(value.summary + '\n' + entry.owner + ' ' + entry.toolId + ' receipt ' + proof.receiptId + ' correlation ' + (proof.correlationId || 'none'));
             }
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             if (status) status.textContent = 'Owner outage: ' + message + '; tool remains ' + retainedTool;
             return;
         }
-        const summary = MCP_CONTROL_DECLARED_DIAGNOSTICS.map(entry => entry.toolId).join(' ') + '\n' + proofs.join('\n');
+        const freshAccelerate = observations.find(item => item.owner === 'ipfs_accelerate_py' && typeof item.summary === 'string');
+        const healthSummary = freshAccelerate
+            ? freshAccelerate.summary
+            : (this.lastDiagnostic && typeof this.lastDiagnostic.health === 'string' ? this.lastDiagnostic.health : '');
+        if (!healthSummary) {
+            if (status) status.textContent = 'Owner outage: Accelerate SDK health observation is missing; tool remains ' + retainedTool;
+            return;
+        }
+        const shownParameters = JSON.stringify(parameters);
+        const paramsInput = document.getElementById('mcp-tool-params');
+        if (paramsInput) paramsInput.value = shownParameters;
+        const ownerSelect = document.getElementById('mcp-owner-select');
+        const covered = list.map(entry => entry.owner + ' ' + entry.toolId).join(', ');
         const statusText = this.diagnosticHadInvalidParams
-            ? 'Retry succeeded for declared owners'
-            : 'Diagnostic executed for declared owners';
-        this.lastDiagnostic = { schema: 'swissknife.mcp-control-owner-diagnostic.v1', summary, observations, statusText };
+            ? 'Retry succeeded for ' + covered + '; parameters ' + shownParameters
+            : 'Diagnostic executed for ' + covered + '; parameters ' + shownParameters;
+        const slim = observations.map(item => ({
+            owner: item.owner,
+            tool: item.tool,
+            receipt_id: item.receipt_id,
+            correlation_id: item.correlation_id || '',
+            node_id: item.node_id || '',
+            status: item.status || '',
+            timestamp: item.timestamp || '',
+            category_count: Array.isArray(item.categories) ? item.categories.length : 0,
+            category_preview: Array.isArray(item.categories)
+                ? item.categories.slice(0, 4).map(row => ({ name: row.name, count: row.count }))
+                : []
+        }));
+        const previous = this.retainedDiagnostic && Array.isArray(this.retainedDiagnostic.observations)
+            ? this.retainedDiagnostic.observations : [];
+        const merged = [];
+        for (const entry of MCP_CONTROL_DECLARED_DIAGNOSTICS) {
+            const fresh = slim.find(item => item.owner === entry.owner);
+            const older = previous.find(item => item.owner === entry.owner);
+            if (fresh) merged.push(fresh);
+            else if (older) merged.push(older);
+        }
+        const selectedOnly = list.length === 1;
+        if (selectedOnly && !this.reopenedObservation) {
+            this.reopenedObservation = slim[0] || null;
+        }
+        this.lastDiagnostic = {
+            schema: 'swissknife.mcp-control-owner-diagnostic.v1',
+            health: healthSummary,
+            statusText,
+            parametersText: shownParameters
+        };
+        // A selected-tool reread keeps the first receipt as Reopened and
+        // refreshes only that owner. Health stays on the accelerate run.
+        this.retainedDiagnostic = {
+            schema: 'swissknife.mcp-control-retained-diagnostic.v1',
+            health: healthSummary,
+            observations: merged,
+            parametersText: shownParameters,
+            selectedOwner: ownerSelect ? ownerSelect.value : 'ipfs_kit_py',
+            selectedTool: retainedTool
+        };
         try {
             localStorage.setItem('mcp-control-last-diagnostic', JSON.stringify(this.lastDiagnostic));
+            localStorage.setItem('mcp-control-retained-diagnostic', JSON.stringify(this.retainedDiagnostic));
         } catch (error) {
             console.warn('Failed to retain MCP diagnostic:', error);
         }
-        const detail = document.getElementById('mcp-diagnostic-detail');
-        if (detail) detail.innerHTML = '<div id="mcp-diagnostic-ready">' + this.escapeHtml(summary) + '</div>';
+        const section = status && status.closest ? status.closest('.mcp-owner-diagnostics') : document.querySelector('.mcp-owner-diagnostics');
+        this.paintDiagnosticProof(section);
         if (status) status.textContent = statusText;
         this.diagnosticHadInvalidParams = false;
+        this.scheduleContainMcpFrame();
+    }
+
+    paintDiagnosticProof(section) {
+        if (!section) return;
+        const statusNode = section.querySelector('#mcp-diagnostic-status');
+        const health = this.diagnosticHealthLine(this.lastDiagnostic) || this.diagnosticHealthLine(this.retainedDiagnostic);
+        let detail = section.querySelector('#mcp-diagnostic-detail');
+        if (!detail) {
+            detail = document.createElement('div');
+            detail.id = 'mcp-diagnostic-detail';
+            if (statusNode) statusNode.insertAdjacentElement('afterend', detail);
+            else section.appendChild(detail);
+        }
+        detail.textContent = '';
+        if (health) {
+            const ready = document.createElement('div');
+            ready.id = 'mcp-diagnostic-ready';
+            ready.textContent = health;
+            detail.appendChild(ready);
+        }
+        const reopenedText = this.reopenedProofLine();
+        let reopenedNode = section.querySelector('#mcp-reopened-proof');
+        if (reopenedText) {
+            if (!reopenedNode) {
+                reopenedNode = document.createElement('pre');
+                reopenedNode.id = 'mcp-reopened-proof';
+                detail.insertAdjacentElement('afterend', reopenedNode);
+            }
+            reopenedNode.textContent = reopenedText;
+        }
+        const retainedLines = this.retainedProofLines(this.retainedDiagnostic);
+        let retainedNode = section.querySelector('#mcp-retained-proof');
+        if (retainedLines.length) {
+            if (!retainedNode) {
+                retainedNode = document.createElement('pre');
+                retainedNode.id = 'mcp-retained-proof';
+                const anchor = reopenedNode || detail;
+                anchor.insertAdjacentElement('afterend', retainedNode);
+            }
+            retainedNode.textContent = retainedLines.join('\n');
+        }
+        const companionLines = this.retainedCompanionLines(this.retainedDiagnostic);
+        let companionNode = section.querySelector('#mcp-retained-owners');
+        if (companionLines.length) {
+            if (!companionNode) {
+                companionNode = document.createElement('pre');
+                companionNode.id = 'mcp-retained-owners';
+                const anchor = retainedNode || reopenedNode || detail;
+                anchor.insertAdjacentElement('afterend', companionNode);
+            }
+            companionNode.textContent = companionLines.join('\n');
+        }
+        const schema = this.schemaLines(this.retainedDiagnostic);
+        let schemaNode = section.querySelector('#mcp-schema-lines');
+        if (schema.length) {
+            if (!schemaNode) {
+                schemaNode = document.createElement('pre');
+                schemaNode.id = 'mcp-schema-lines';
+                const anchor = companionNode || retainedNode || reopenedNode || detail;
+                anchor.insertAdjacentElement('afterend', schemaNode);
+            }
+            schemaNode.textContent = schema.join('\n');
+        }
+        const datasetNode = section.querySelector('#mcp-dataset-result');
+        if (datasetNode) datasetNode.remove();
     }
 
     showNotification(message, type = 'info') {

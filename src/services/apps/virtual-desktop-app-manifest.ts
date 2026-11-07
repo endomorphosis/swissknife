@@ -257,7 +257,7 @@ const NETWORK_NATIVE_KIT_OPERATIONS: Readonly<Record<string, readonly string[]>>
   'neural-network-designer': ['artifact_write', 'artifact_read'],
   'mcp-plus-plus': ['artifact_write'],
   'ipfs-explorer': ['artifact_write'],
-  'vibecode': ['artifact_write'],
+  'vibecode': ['artifact_write', 'artifact_read'],
   'notes': ['artifact_write', 'artifact_read', 'event_append'],
   'cinema': ['artifact_write'],
 };

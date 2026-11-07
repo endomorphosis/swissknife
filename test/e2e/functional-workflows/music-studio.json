@@ -14,7 +14,7 @@
       {"op": "click", "selector": "#classic-stop"},
       {"op": "click", "selector": "#classic-save"},
       {"op": "press", "selector": "#classic-track-name", "key": "Enter"},
-      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#music-studio-workflow-status"}, "operator": "equals", "expected": "Local classic project ready. No remote render."}
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#music-studio-workflow-status"}, "operator": "equals", "expected": "Played, stopped, and saved locally. Enter confirmed. No remote render."}
     ],
     "persist_reopen": [
       {"op": "reopen_app"},
@@ -27,7 +27,7 @@
       {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#music-studio-recovery"}, "operator": "contains", "expected": "Invalid project"},
       {"op": "fill", "selector": "#classic-project-json", "value": "{\"schema\":\"swissknife.music-studio.classic-project.v1\",\"track_name\":\"Midnight Lead\",\"tempo\":96,\"instrument\":\"lead\"}"},
       {"op": "click", "selector": "#classic-open-project"},
-      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "value", "selector": "#classic-track-name"}, "operator": "equals", "expected": "Midnight Lead"}
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#music-studio-workflow-status"}, "operator": "equals", "expected": "Opened a valid classic project locally. No remote render."}
     ]
   }
 }

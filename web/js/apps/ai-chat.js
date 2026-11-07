@@ -1596,7 +1596,18 @@ export class AIChatApp {
 
   scrollTranscript(position = 'end') {
     const messages = this.getContainer()?.querySelector('.chat-messages');
-    if (messages) messages.scrollTop = position === 'start' ? 0 : messages.scrollHeight;
+    if (!messages) return;
+    if (position === 'start' || messages.scrollHeight <= messages.clientHeight + 1) {
+      messages.scrollTop = 0;
+      return;
+    }
+    const last = [...messages.querySelectorAll('.message')].reverse().find(node => !node.classList.contains('typing'));
+    if (!last) {
+      messages.scrollTop = messages.scrollHeight;
+      return;
+    }
+    const top = last.getBoundingClientRect().top - messages.getBoundingClientRect().top + messages.scrollTop;
+    messages.scrollTop = Math.max(0, top - 8);
   }
 
   loadStoredConversations() {
@@ -1704,7 +1715,7 @@ export class AIChatApp {
 
   appendCitations(text, context) {
     const reference = context?.reference;
-    if (reference?.status === 'available') return `Stored reference facts:\nModel: ${reference.model_id}; snapshot: ${reference.snapshot}\nTask: ${reference.task}\nDevice: ${reference.device}\nReferences: [Stored reference](ipfs://${reference.cid})\n\nModel continuation (${this.selectedModel}; separate from retrieved facts):\n${text}`;
+    if (reference?.status === 'available') return `Stored reference facts:\nModel: ${reference.model_id}; snapshot: ${reference.snapshot}; reference: ipfs://${reference.cid}\nTask: ${reference.task}\nDevice: ${reference.device}\nReferences: [Stored reference](ipfs://${reference.cid})\n\nModel continuation (${this.selectedModel}; separate from retrieved facts):\n${text}`;
     const names = [];
     for (const [key, value] of Object.entries(context || {})) {
       if (value?.status !== 'available') continue;

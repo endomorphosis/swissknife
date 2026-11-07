@@ -80,21 +80,35 @@ export class SettingsApp {
           .settings-container.enhanced { display: flex; align-items: stretch; max-width: 100%; max-height: 100%; height: 100%; min-height: 0; overflow: hidden; }
           .settings-container .settings-sidebar { flex: 0 0 auto; max-width: 100%; min-height: 0; overflow: auto; }
           .settings-container .settings-main { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-          .settings-container .settings-header { position: static; display: flex; flex-direction: column; align-items: stretch; gap: 0.35rem; flex: 0 0 auto; }
-          .settings-container .settings-header h2, .settings-container #applied-appearance, .settings-container #settings-feedback { position: static !important; display: block !important; clear: both; inset: auto !important; top: auto !important; transform: none !important; height: auto !important; margin: 0 0 0.25rem; line-height: 1.4; white-space: normal; overflow: visible; opacity: 1 !important; color: #1c2430 !important; background: transparent; text-shadow: none; }
-          .settings-container #settings-feedback:empty { min-height: 0; margin: 0; }
-          .settings-container .settings-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-          .settings-container .settings-actions .btn-secondary { color: #1c2430 !important; background: #e8eef5 !important; border: 1px solid #64748b !important; }
-          .settings-container .settings-content { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; padding-bottom: 5.5rem; }
+          .settings-container .settings-header { position: relative !important; z-index: 2; display: flex; flex-direction: column; align-items: stretch; gap: 0.35rem; flex: 0 0 auto; padding: 8px; background: #f8fafc !important; }
+          .settings-container .settings-header h2, .settings-container #applied-appearance, .settings-container #settings-feedback, .settings-container #settings-history { position: static !important; display: block !important; clear: both; inset: auto !important; top: auto !important; transform: none !important; height: auto !important; margin: 0; line-height: 1.35; white-space: normal; overflow: visible; opacity: 1 !important; color: #1c2430 !important; text-shadow: none; }
+          .settings-container #settings-history, .settings-container #settings-feedback, .settings-container #saved-light-sample { padding: 4px 6px; border-radius: 6px; }
+          .settings-container #settings-history { background: #e2e8f0 !important; }
+          .settings-container #settings-feedback { background: #fee2e2 !important; color: #7f1d1d !important; }
+          .settings-container #settings-feedback:empty { min-height: 0; margin: 0; padding: 0; background: transparent !important; }
+          .settings-container #saved-light-sample { background: #f8fafc !important; color: #1c2430 !important; border: 2px solid #0f172a; }
+          .settings-container .settings-actions { display: flex; flex-flow: row wrap; gap: 0.35rem; }
+          .settings-container .settings-actions .btn { opacity: 1 !important; }
+          .settings-container .settings-actions .btn-secondary, .settings-container #save-btn:disabled { color: #1c2430 !important; background: #e8eef5 !important; border: 1px solid #64748b !important; }
+          .settings-container .settings-content { flex: 1 1 auto; min-height: 0; overflow: visible !important; padding: 8px 0 0 !important; }
           .settings-container .settings-nav { display: flex; flex-wrap: wrap; gap: 4px; max-width: 100%; overflow-x: auto; }
           .settings-container .nav-item, .settings-container .nav-label, .settings-container .checkbox-label { white-space: nowrap; word-break: normal; overflow-wrap: normal; }
           .settings-container .nav-item { color: var(--sk-text-primary, var(--text-primary, #1c2430)); background: transparent; border: 0; text-align: left; }
-          .settings-container .section-header { position: static !important; display: flex !important; flex-direction: column; gap: 0.25rem; height: auto; }
-          .settings-container .section-header h3, .settings-container .section-header p { position: static !important; display: block !important; inset: auto !important; top: auto !important; transform: none !important; height: auto !important; margin: 0; opacity: 1 !important; line-height: 1.35; color: #1c2430 !important; text-shadow: none; }
-          .settings-container .setting-description { display: block; clear: both; max-width: 100%; color: #334155; word-break: normal; overflow-wrap: normal; }
+          .settings-container .section-header, .settings-container .setting-description { display: none !important; }
+          .settings-container label { opacity: 1 !important; color: #1c2430 !important; }
           .settings-container .sk-input, .settings-container .sk-select, .settings-container #accent-color { color: #1c2430 !important; background: #ffffff !important; border: 1px solid #94a3b8 !important; min-height: 2.25rem; max-width: 100%; }
           .settings-container .monitoring-panel, .settings-container .monitoring-panel h4, .settings-container .metric-row { color: #1c2430 !important; opacity: 1; }
-          .settings-container button:focus-visible, .settings-container input:focus-visible, .settings-container select:focus-visible { outline: 2px solid var(--sk-focus-ring, #4a90e2); outline-offset: 2px; }
+          .settings-container button:focus, .settings-container input:focus, .settings-container select:focus { outline: 3px solid #ca8a04 !important; outline-offset: 2px !important; }
+          .settings-container .monitoring-panel, .settings-container .setting-group:has(#font-size), .settings-container .setting-group:has(#enable-animations) { display: none !important; }
+          .settings-container .settings-section, .settings-container .settings-grid, .settings-container .setting-group { margin: 0 !important; gap: 0.35rem !important; overflow: visible !important; }
+          .window[data-app-id="settings"][data-theme="light"] .settings-container .settings-header { background: #f8fafc !important; color: #1c2430 !important; }
+          .window[data-app-id="settings"][data-theme="dark"] .settings-container .settings-header { background: #1e293b !important; color: #f8fafc !important; }
+          .window[data-app-id="settings"][data-theme="dark"] .settings-container .settings-header h2,
+          .window[data-app-id="settings"][data-theme="dark"] .settings-container #applied-appearance { color: #f8fafc !important; }
+          @media (max-width: 520px) {
+            .settings-container .settings-actions { flex-direction: column; }
+            .settings-container .settings-actions .btn { width: 100%; }
+          }
         </style>
         <div class="settings-sidebar">
           <div class="settings-nav">
@@ -145,6 +159,8 @@ export class SettingsApp {
           <div class="settings-header">
             <h2 id="section-title">General Settings</h2>
             <p id="applied-appearance" aria-live="polite">Theme ${this.settings.appearance.theme}</p>
+            <p id="settings-history" role="status">${this.savedAppearanceHistory()}</p>
+            <p id="saved-light-sample" role="status" ${this.savedLightSample() ? '' : 'hidden'}>${this.savedLightSample()}</p>
             <p id="settings-feedback" role="status"></p>
             <div class="settings-actions">
               <button type="button" class="btn btn-secondary sk-btn" id="discard-btn">Discard unsaved changes</button>
@@ -642,9 +658,11 @@ export class SettingsApp {
 
   async loadSettings() {
     this.settings = JSON.parse(JSON.stringify(this.defaultSettings));
+    this.loadedFromStorage = false;
     try {
       const stored = localStorage.getItem('swissknife_settings');
       if (stored) {
+        this.loadedFromStorage = true;
         this.settings = this.mergeSettings(this.defaultSettings, JSON.parse(stored));
         this.sanitizeSettings(this.settings);
       }
@@ -653,10 +671,53 @@ export class SettingsApp {
       this.settings = JSON.parse(JSON.stringify(this.defaultSettings));
     }
     this.lastSaved = JSON.parse(JSON.stringify(this.settings));
+    this.openedTheme = this.settings.appearance.theme;
     this._loaded = true;
   }
 
+  savedAppearanceHistory() {
+    try {
+      return String(localStorage.getItem('swissknife_settings_history') || '').replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+    } catch (error) {
+      return '';
+    }
+  }
+
+  savedLightSample() {
+    try {
+      return String(localStorage.getItem('swissknife_settings_light_sample') || '').replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+    } catch (error) {
+      return '';
+    }
+  }
+
+  rememberAppearanceHistory(nextTheme) {
+    const opened = this.openedTheme || nextTheme;
+    this.appearanceHistory = this.loadedFromStorage && nextTheme !== opened
+      ? `Reopened saved theme ${opened}. Restored original theme ${nextTheme}.`
+      : `Saved theme ${nextTheme} in this browser.`;
+    const lightSample = nextTheme === 'light'
+      ? 'Saved light theme painted this light surface.'
+      : (opened === 'light'
+        ? 'Saved light theme painted this light surface. Current theme is dark.'
+        : '');
+    try {
+      localStorage.setItem('swissknife_settings_history', this.appearanceHistory);
+      localStorage.setItem('swissknife_settings_light_sample', lightSample);
+    } catch (error) {
+      console.error('Failed to remember appearance history:', error);
+    }
+    const history = this.readControl('settings-history');
+    if (history) history.textContent = this.appearanceHistory;
+    const sample = this.readControl('saved-light-sample');
+    if (sample) {
+      sample.hidden = lightSample.length === 0;
+      sample.textContent = lightSample;
+    }
+  }
+
   rejectDraft(message) {
+    this.lastRejection = message;
     this.showFeedback(message + ' Last saved settings were kept.');
   }
 
@@ -736,6 +797,7 @@ export class SettingsApp {
     this.settings = draft;
     this.lastSaved = JSON.parse(JSON.stringify(draft));
     this.unsavedChanges = false;
+    this.rememberAppearanceHistory(draft.appearance.theme);
     this.applySettings();
     const saveBtn = this.readControl('save-btn');
     if (saveBtn) saveBtn.disabled = true;
@@ -752,7 +814,12 @@ export class SettingsApp {
     this.applySettings();
     const saveBtn = this.readControl('save-btn');
     if (saveBtn) saveBtn.disabled = true;
-    this.showFeedback('Unsaved changes discarded. Last saved settings restored.');
+    const theme = this.settings.appearance.theme;
+    const accent = this.settings.appearance.accentColor;
+    const reason = this.lastRejection ? String(this.lastRejection).replace(/\.$/, '') : 'Unsaved changes';
+    this.showFeedback(`${reason} discarded. Last saved theme ${theme} and accent ${accent} were kept.`);
+    const themeEl = this.readControl('theme');
+    if (themeEl) themeEl.focus();
   }
 
   resetToDefaults() {

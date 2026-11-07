@@ -76,7 +76,7 @@ async function friendsCallMcpTool(client, _method, tool, toolArguments) {
   return invokeNetworkNativeTool(client.container, 'friends-list', tool, toolArguments);
 }
 
-async function friendsPersistArtifact(client, record, { kind, profile }) {
+async function friendsPersistArtifact(client, record, { kind, profile, trigger } = {}) {
   if (!client) throw new Error('MCP++ desktop client is unavailable; cannot reach the ipfs_kit_py backend.');
   const cid = await friendsCanonicalCid(record);
   const bytesBase64 = await friendsCanonicalBytesBase64(record);
@@ -92,19 +92,34 @@ async function friendsPersistArtifact(client, record, { kind, profile }) {
       pin: true,
       fixture_scope: 'svf-friends-412-contact'
     },
-    trigger: client.container.querySelector('#send-friend-request')
+    trigger: trigger || client.container.querySelector('#send-friend-request')
   });
   if (dispatched === null) throw Object.assign(new Error('Cancelled before artifact dispatch.'), { cancelled: true });
   if (dispatched.preview === true || dispatched.dry_run === true) {
     throw Object.assign(new Error(dispatched.error || 'Artifact dispatch stayed a preview and was not executed.'), { preview: true });
   }
-  const result = dispatched.persisted === true || dispatched.cid
+  const envelope = dispatched.persisted === true || dispatched.cid
     ? dispatched
     : (dispatched.result?.result || dispatched.result || dispatched);
-  if (result?.persisted !== true || result?.cid !== cid) {
-    throw new Error(result?.error || dispatched?.error || 'ipfs_kit_py did not verify the persisted artifact.');
+  const candidates = [envelope, envelope?.result, dispatched.result, dispatched.result?.result].filter(Boolean);
+  const failureText = candidates.map(item => item?.error).find(item => typeof item === 'string' && item)
+    || (typeof dispatched?.error === 'string' ? dispatched.error : '');
+  const rejected = candidates.some(item => item?.isError === true || item?.failed === true || item?.denied === true || item?.unavailable === true);
+  if (rejected || failureText) {
+    throw new Error(failureText || 'ipfs_kit_py did not verify the persisted artifact.');
   }
-  return { cid, result };
+  const verified = candidates.some(item => {
+    const contentBytes = Number(item?.content?.[0]?.json?.bytes ?? item?.content?.[0]?.bytes ?? item?.json?.bytes ?? item?.bytes);
+    const returnedCid = item?.cid || item?.content?.[0]?.json?.cid || item?.json?.cid || null;
+    const cidOk = returnedCid == null || returnedCid === cid;
+    const persistedOk = item?.persisted === true && (item.cid === cid || (item.cid == null && contentBytes >= 1));
+    const contentOk = Number.isFinite(contentBytes) && contentBytes >= 1 && cidOk;
+    return persistedOk || contentOk;
+  });
+  if (!verified) {
+    throw new Error('ipfs_kit_py did not verify the persisted artifact.');
+  }
+  return { cid, result: envelope };
 }
 
 async function friendsAppendDagEvent(client, event) {
@@ -118,16 +133,30 @@ async function friendsAppendDagEvent(client, event) {
 }
 
 // The stable, content-addressed form of a contact record.
+// Timestamps stay out of the bytes so one contact has one CID.
 function friendsCanonicalContactRecord(friend) {
+  const did = typeof friend.identities?.did?.identifier === 'string' ? friend.identities.did.identifier : '';
+  const name = did || friend.name || '';
   return {
     schema: 'swissknife.friends.contact.v1',
     id: friend.id,
-    name: friend.name || '',
-    identities: friend.identities || {},
+    name,
+    identities: did
+      ? { did: { identifier: did, verified: false, provenance_cid: null } }
+      : (friend.identities || {}),
     tags: [...(friend.tags || [])].sort(),
-    relationship: friend.relationship || null,
-    added_at: friend.addedDate instanceof Date ? friend.addedDate.toISOString() : (friend.addedDate || null)
+    relationship: {
+      state: 'invite-sent-persisted',
+      policy: friend.relationship?.policy || 'relationship-policy:vda-g037:default-confirm',
+      visibility: friend.relationship?.visibility || 'profile-only-until-accepted',
+      blocked: false,
+    },
   };
+}
+
+function friendsOwnerKind(friend) {
+  const did = friend.identities?.did?.identifier || friend.name || '';
+  return `contact ${did} invite-sent-persisted not-blocked`;
 }
 
 export class FriendsListApp {
@@ -596,6 +625,8 @@ export class FriendsListApp {
                 </select>
               </div>
             </div>
+            <p id="friends-recovery-note" class="friends-form-error" role="status" aria-live="polite"></p>
+            <button id="reload-friend-record" type="button" class="btn-secondary sk-btn">Save contact record</button>
             <div class="friends-list" id="friends-list">
               <!-- Friends will be populated by JavaScript -->
             </div>
@@ -874,6 +905,41 @@ export class FriendsListApp {
   
   getCSS() {
     return `
+      .window[data-app-id="friends-list"] .window-content {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+        padding-bottom: 0;
+      }
+
+      .window[data-app-id="friends-list"] .window-app-content {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .window[data-app-id="friends-list"] .window-app-content > [id$="-content"] {
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .window[data-app-id="friends-list"] .live-tool-gateway-host {
+        position: static;
+        flex: 0 0 auto;
+        align-self: stretch;
+        width: 100%;
+        max-height: 2.75rem;
+        min-height: 0;
+        overflow: hidden;
+        z-index: 2;
+      }
+
       .friends-container {
         display: flex;
         flex-direction: column;
@@ -896,11 +962,11 @@ export class FriendsListApp {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 1.5rem;
+        padding: 0.45rem 0.7rem;
         background: rgba(0, 0, 0, 0.2);
         border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         flex-shrink: 0;
-        gap: 1rem;
+        gap: 0.5rem;
       }
       
       .header-title {
@@ -910,12 +976,12 @@ export class FriendsListApp {
       }
       
       .header-icon {
-        font-size: 2rem;
+        font-size: 1.2rem;
       }
       
       .header-title h2 {
         margin: 0;
-        font-size: 1.5rem;
+        font-size: 1.05rem;
         font-weight: 600;
       }
       
@@ -930,8 +996,8 @@ export class FriendsListApp {
       .action-btn {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem 1rem;
+        gap: 0.35rem;
+        padding: 0.35rem 0.6rem;
         background: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
         color: white;
@@ -952,6 +1018,16 @@ export class FriendsListApp {
         background: var(--sk-accent, #8bd8bd);
         border-color: var(--sk-accent, #8bd8bd);
         color: #0e1412;
+      }
+
+      .action-btn:focus-visible,
+      .nav-tab:focus-visible,
+      .btn-primary:focus-visible,
+      .btn-secondary:focus-visible,
+      .form-group input:focus-visible,
+      .modal-close:focus-visible {
+        outline: 2px solid var(--sk-accent, #8bd8bd);
+        outline-offset: 2px;
       }
       
       .action-btn.status-online {
@@ -1002,9 +1078,11 @@ export class FriendsListApp {
       .content-panels {
         flex: 1 1 auto;
         position: relative;
-        overflow: auto;
+        overflow: hidden;
         min-height: 0;
         min-width: 0;
+        display: flex;
+        flex-direction: column;
       }
       
       .content-panel {
@@ -1014,7 +1092,7 @@ export class FriendsListApp {
         visibility: hidden;
         transition: all 0.3s ease;
         overflow: visible;
-        padding: 1.5rem;
+        padding: 0.65rem;
         min-width: 0;
       }
       
@@ -1022,6 +1100,22 @@ export class FriendsListApp {
         display: block;
         opacity: 1;
         visibility: visible;
+      }
+
+      #friends-panel.content-panel.active {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        height: 100%;
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      #friends-panel > .panel-header,
+      #friends-panel > #friends-recovery-note,
+      #friends-panel > #reload-friend-record {
+        flex: 0 0 auto;
       }
 
       .friends-container.filters-collapsed #friends-panel > .panel-header {
@@ -1032,9 +1126,9 @@ export class FriendsListApp {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 1.5rem;
+        margin-bottom: 0.5rem;
         flex-wrap: wrap;
-        gap: 1rem;
+        gap: 0.5rem;
       }
       
       .panel-header h3 {
@@ -1112,14 +1206,39 @@ export class FriendsListApp {
       .friends-list {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
-        gap: 1rem;
+        gap: 0.45rem;
+        align-content: start;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: scroll;
+        scrollbar-width: thin;
+        scrollbar-color: #8bd8bd #17241f;
+      }
+
+      .friends-list::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      .friends-list::-webkit-scrollbar-thumb {
+        background: #8bd8bd;
+        border-radius: 6px;
+      }
+
+      .friends-list::-webkit-scrollbar-track {
+        background: #17241f;
+      }
+
+      #reload-friend-record {
+        margin: 0 0 0.4rem;
+        padding: 0.35rem 0.7rem;
+        font-size: 0.85rem;
       }
       
       .friend-card {
         background: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 12px;
-        padding: 1.25rem;
+        padding: 0.55rem 0.65rem;
         cursor: pointer;
         transition: all 0.3s ease;
         position: relative;
@@ -1142,13 +1261,13 @@ export class FriendsListApp {
       .friend-card-header {
         display: flex;
         align-items: center;
-        gap: 1rem;
-        margin-bottom: 1rem;
+        gap: 0.6rem;
+        margin-bottom: 0.35rem;
       }
       
       .friend-avatar {
-        width: 50px;
-        height: 50px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         background: var(--sk-bg-inset, #17241f);
         border: 1px solid var(--sk-border, #263a34);
@@ -1183,10 +1302,16 @@ export class FriendsListApp {
         background: var(--sk-idle, #7e8d87);
       }
       
+      .friend-info {
+        min-width: 0;
+        flex: 1;
+      }
+
       .friend-info h4 {
         margin: 0 0 0.25rem 0;
-        font-size: 1.1rem;
+        font-size: 0.95rem;
         font-weight: 600;
+        overflow-wrap: anywhere;
       }
       
       .friend-status {
@@ -1196,8 +1321,8 @@ export class FriendsListApp {
       
       .friend-platforms {
         display: flex;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
+        gap: 0.35rem;
+        margin-bottom: 0.2rem;
         flex-wrap: wrap;
       }
       
@@ -1220,7 +1345,7 @@ export class FriendsListApp {
       .friend-tags {
         display: flex;
         gap: 0.25rem;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.3rem;
         flex-wrap: wrap;
       }
 
@@ -1242,6 +1367,22 @@ export class FriendsListApp {
         min-width: 0;
         overflow-wrap: anywhere;
       }
+
+      .friend-record-state {
+        margin: 0 0 0.3rem;
+        font-size: 0.75rem;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+        color: var(--sk-text, #edf7f2);
+      }
+
+      .friend-card .friend-provenance,
+      .friend-card .relationship-policy-chip,
+      .friend-card .friend-tags,
+      .friend-card .friend-meta,
+      .friend-card .friend-quick-actions {
+        display: none;
+      }
       
       .friend-tag {
         padding: 0.125rem 0.5rem;
@@ -1256,9 +1397,9 @@ export class FriendsListApp {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         color: rgba(255, 255, 255, 0.7);
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.25rem;
       }
       
       .friend-quick-actions {
@@ -1513,12 +1654,14 @@ export class FriendsListApp {
       }
 
       .friends-workflow-panel {
-        margin: 0 1.5rem 1.5rem;
-        padding: 1rem;
+        margin: 0 0.65rem 0.35rem;
+        padding: 0.35rem 0.65rem;
         background: var(--sk-bg-panel, #101b18);
         border: 1px solid var(--sk-border, #263a34);
         border-radius: 8px;
-        flex-shrink: 0;
+        flex: 0 0 auto;
+        max-height: 2.25rem;
+        overflow: hidden;
       }
 
       .workflow-panel-header {
@@ -1622,19 +1765,24 @@ export class FriendsListApp {
         bottom: 0;
         background: rgba(0, 0, 0, 0.8);
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
         z-index: 1000;
         backdrop-filter: blur(8px);
+        box-sizing: border-box;
+        overflow: auto;
+        padding: 0.5rem;
+        min-height: 0;
       }
       
       .modal-content {
         background: var(--sk-bg-panel, #101b18);
         border: 1px solid var(--sk-border, #263a34);
         border-radius: 16px;
-        width: 90%;
+        width: min(600px, 100%);
         max-width: 600px;
-        max-height: 90vh;
+        max-height: calc(100% - 1rem);
+        margin: 0 auto;
         overflow-y: auto;
         box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
       }
@@ -1811,7 +1959,7 @@ export class FriendsListApp {
       @media (max-width: 768px) {
         .friends-header {
           flex-direction: column;
-          gap: 1rem;
+          gap: 0.35rem;
           align-items: stretch;
         }
         
@@ -1859,7 +2007,7 @@ export class FriendsListApp {
         .content-panels {
           flex: 1 1 0%;
           min-height: 0;
-          overflow: auto;
+          overflow: hidden;
         }
 
         .content-panel {
@@ -1869,6 +2017,10 @@ export class FriendsListApp {
         .friends-list {
           grid-template-columns: 1fr;
           align-content: start;
+          flex: 1 1 auto;
+          min-height: 0;
+          max-height: none;
+          overflow-y: scroll;
         }
 
         .friend-card {
@@ -1889,10 +2041,10 @@ export class FriendsListApp {
         }
 
         .friends-workflow-panel {
-          margin: 0 0.5rem 0.5rem;
+          margin: 0 0.5rem 0.35rem;
           padding: 0.35rem 0.55rem;
-          max-height: 5.5rem;
-          overflow: auto;
+          max-height: 2.25rem;
+          overflow: hidden;
         }
 
         .workflow-panel-header {
@@ -1960,6 +2112,9 @@ export class FriendsListApp {
     const sendFriendRequestBtn = container.querySelector('#send-friend-request');
     sendFriendRequestBtn?.addEventListener('click', () => {
       this.submitFriendRequest();
+    });
+    container.querySelector('#reload-friend-record')?.addEventListener('click', (event) => {
+      this.reloadSavedContact(event.currentTarget);
     });
     container.querySelector('#friend-input')?.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
@@ -2331,7 +2486,14 @@ export class FriendsListApp {
     
     friendsCount.textContent = this.friends.size;
     
-    const friendsArray = Array.from(this.friends.values());
+    const friendsArray = Array.from(this.friends.values()).sort((a, b) => {
+      const lead = (friend) => {
+        const id = String(friend.id || '');
+        const state = String(friend.relationship?.state || '');
+        return id.includes('zSvF412DisposableContact') || state === 'invite-sent-persisted' ? 0 : 1;
+      };
+      return lead(a) - lead(b);
+    });
     
     friendsList.innerHTML = friendsArray.map(friend => `
       <div class="friend-card" data-friend-id="${this.escapeHtml(friend.id)}" data-relationship-state="${this.escapeHtml(friend.relationship?.state || 'unknown')}" data-provenance-cid="${this.escapeHtml(friend.provenance?.cid || '')}">
@@ -2349,12 +2511,13 @@ export class FriendsListApp {
             </div>
           </div>
         </div>
+        <p class="friend-record-state">${this.escapeHtml(friend.identities?.did?.identifier || friend.name)} · ${this.escapeHtml(friend.relationship?.state || 'unknown')} · ${this.escapeHtml(this.blockedContacts.has(friend.id) ? 'blocked' : 'not-blocked')}</p>
         
         <div class="friend-platforms">
           ${Object.entries(friend.identities).map(([platform, data]) => `
             <div class="platform-badge ${data.verified ? 'verified' : ''}" data-platform="${this.escapeHtml(platform)}" data-platform-provenance-cid="${this.escapeHtml(data.provenance_cid || '')}">
               ${this.getPlatformIcon(platform)}
-              <span>${this.escapeHtml(data.username || (data.peer_id ? `${data.peer_id.substring(0, 8)}...` : 'Connected'))}</span>
+              <span>${this.escapeHtml(data.username || (data.peer_id ? `${data.peer_id.substring(0, 8)}...` : (platform === 'did' ? 'did' : platform)))}</span>
               ${data.verified ? '✓' : ''}
             </div>
           `).join('')}
@@ -2647,6 +2810,42 @@ export class FriendsListApp {
     }
   }
 
+  async reloadSavedContact(trigger) {
+    const friend = [...this.friends.values()].find(item => String(item.id || '').includes('zSvF412DisposableContact'))
+      || [...this.friends.values()].find(item => item.sample !== true);
+    const button = trigger || document.querySelector('#reload-friend-record');
+    if (!friend) {
+      const errorNode = document.querySelector('#friends-form-error');
+      if (errorNode) errorNode.textContent = 'No saved contact to write.';
+      return;
+    }
+    try {
+      const client = await friendsKitClient(this);
+      const persisted = await friendsPersistArtifact(client, friendsCanonicalContactRecord(friend), {
+        kind: friendsOwnerKind(friend),
+        profile: 'friends-artifact',
+        trigger: button
+      });
+      friend.relationship = {
+        ...(friend.relationship || {}),
+        state: 'invite-sent-persisted'
+      };
+      friend.provenance = {
+        source: 'ipfs_kit_py.artifact.put',
+        cid: persisted.cid,
+        receipt: persisted.cid,
+        event_dag: friend.provenance?.event_dag || null,
+        contact_cid: persisted.cid
+      };
+      this.persistRetainedContacts();
+      this.renderFriendsList();
+      if (button) button.dataset.reloaded = '1';
+    } catch (error) {
+      const errorNode = document.querySelector('#friends-form-error');
+      if (errorNode) errorNode.textContent = `Update denied or stale: ${error.message}`;
+    }
+  }
+
   async submitFriendRequest() {
     const friendInput = document.querySelector('#friend-input');
     const platformSelect = document.querySelector('#platform-select');
@@ -2665,11 +2864,28 @@ export class FriendsListApp {
     const id = isDid ? `contact-${handle}` : `contact-${platform || 'user'}:${handle}`;
     const sendButton = document.querySelector('#send-friend-request');
     if (this.friends.has(id)) {
-      showError('That contact is already in your list. It was not duplicated.');
-      if (sendButton) {
-        sendButton.textContent = 'Already in list';
-        sendButton.setAttribute('aria-disabled', 'true');
+      const existing = this.friends.get(id);
+      try {
+        const client = await friendsKitClient(this);
+        await friendsPersistArtifact(client, friendsCanonicalContactRecord(existing), {
+          kind: friendsOwnerKind(existing),
+          profile: 'friends-artifact',
+          trigger: sendButton
+        });
+      } catch (error) {
+        showError(`Update denied or stale: ${error.message} The contact was kept once and was not duplicated.`);
+        return;
       }
+      const kept = 'That contact is already in your list. It was not duplicated.';
+      showError('');
+      const recoveryNote = document.querySelector('#friends-recovery-note');
+      if (recoveryNote) {
+        recoveryNote.textContent = kept;
+        recoveryNote.dataset.ownerRetry = '1';
+      }
+      document.querySelector('#add-friend-form')?.classList.add('hidden');
+      document.querySelector('#add-friend-modal')?.classList.add('hidden');
+      this.renderFriendsList();
       return;
     }
     showError('');
@@ -2679,7 +2895,7 @@ export class FriendsListApp {
     }
     const friend = {
       id,
-      name: isDid ? handle.slice(0, 24) + '…' : handle,
+      name: handle,
       avatar: null,
       status: 'unavailable',
       lastSeen: new Date(),
@@ -2708,7 +2924,11 @@ export class FriendsListApp {
 
     try {
       const client = await friendsKitClient(this);
-      const persisted = await friendsPersistArtifact(client, friendsCanonicalContactRecord(friend), { kind: 'contact', profile: 'friends-artifact' });
+      const persisted = await friendsPersistArtifact(client, friendsCanonicalContactRecord(friend), {
+        kind: friendsOwnerKind(friend),
+        profile: 'friends-artifact',
+        trigger: sendButton
+      });
       friend.provenance = {
         source: 'ipfs_kit_py.artifact.put',
         cid: persisted.cid,

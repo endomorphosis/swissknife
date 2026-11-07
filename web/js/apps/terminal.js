@@ -412,6 +412,8 @@ export class TerminalApp {
 
   async executeCommand() {
     const command = this.input.value.trim();
+    const recalled = this.pendingHistoryRecall != null && command === this.pendingHistoryRecall;
+    this.pendingHistoryRecall = null;
     if (!command) return;
 
     this.commandHistory.push(command);
@@ -429,6 +431,7 @@ export class TerminalApp {
     }
 
     this.addOutput(`swissknife@desktop:${this.currentDirectory}$ ${command}`, 'command');
+    if (recalled) this.addOutput(`recalled from history: ${command}`, 'info');
     this.input.value = '';
 
     try {
@@ -824,8 +827,10 @@ export class TerminalApp {
     
     if (this.historyIndex === this.commandHistory.length) {
       this.input.value = '';
+      this.pendingHistoryRecall = null;
     } else {
       this.input.value = this.commandHistory[this.historyIndex];
+      this.pendingHistoryRecall = this.input.value;
     }
   }
 

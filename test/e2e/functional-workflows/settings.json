@@ -16,13 +16,19 @@
       {"op": "click", "selector": ".nav-item[data-section=\"appearance\"]"},
       {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "value", "selector": "#theme"}, "operator": "equals", "expected": "light"},
       {"op": "select", "selector": "#theme", "value": "dark"},
-      {"op": "press", "selector": "#save-btn", "key": "Enter"}
+      {"op": "press", "selector": "#save-btn", "key": "Enter"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#settings-history"}, "operator": "equals", "expected": "Reopened saved theme light. Restored original theme dark."},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#applied-appearance"}, "operator": "equals", "expected": "Theme dark"}
     ],
     "failure_recovery": [
       {"op": "fill", "selector": "#accent-color", "value": "not-a-color"},
       {"op": "press", "selector": "#save-btn", "key": "Enter"},
       {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#settings-feedback"}, "operator": "contains", "expected": "Invalid"},
-      {"op": "click", "selector": "#discard-btn"},
+      {"op": "press", "selector": "#discard-btn", "key": "Enter"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#settings-history"}, "operator": "equals", "expected": "Reopened saved theme light. Restored original theme dark."},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#saved-light-sample"}, "operator": "equals", "expected": "Saved light theme painted this light surface. Current theme is dark."},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#applied-appearance"}, "operator": "equals", "expected": "Theme dark"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#settings-feedback"}, "operator": "equals", "expected": "Invalid accent color discarded. Last saved theme dark and accent #4a90e2 were kept."},
       {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "value", "selector": "#accent-color"}, "operator": "equals", "expected": "#4a90e2"}
     ]
   }

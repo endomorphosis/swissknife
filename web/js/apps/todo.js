@@ -32,7 +32,14 @@ TodoApp.prototype.createWindowConfig = function() {
             .todo-app {
                 background: var(--sk-bg-deep, #0e1412);
                 color: var(--sk-text, #edf7f2);
+                height: auto;
+                min-height: 0;
+                overflow: visible;
             }
+            .todo-app .todos-view,
+            .todo-app .todo-main,
+            .todo-app .todo-list { min-height: 0; }
+            .todo-app .todo-list { overflow-y: auto; }
             .todo-app .todo-header,
             .todo-app .header-controls,
             .todo-app .status-bar {
@@ -51,12 +58,17 @@ TodoApp.prototype.createWindowConfig = function() {
             .todo-app .todo-main,
             .todo-app .todos-view,
             .todo-app .goals-view,
-            .todo-app .graph-view,
+            .todo-app .graph-view {
+                flex: 1 1 auto;
+                min-height: 0;
+                overflow: hidden;
+            }
             .todo-app .todo-list,
             .todo-app .goals-content,
             .todo-app .graph-content {
                 min-height: 0;
                 overflow-x: hidden;
+                overflow-y: auto;
             }
             .todo-app .todo-item-row,
             .todo-app .todo-item-title {
@@ -70,9 +82,16 @@ TodoApp.prototype.createWindowConfig = function() {
                 background: var(--sk-bg-panel, #101b18);
                 border: 1px solid var(--sk-border, #263a34);
                 border-radius: 6px;
-                padding: 12px;
-                margin-bottom: 8px;
+                padding: 6px 8px;
+                margin-bottom: 4px;
             }
+            .todo-app .todo-item-meta,
+            .todo-app .voice-hint,
+            .todo-app .voice-todo-btn,
+            .todo-app .status-right { display: none; }
+            .todo-app .todo-dependency,
+            .todo-app .todo-state { font-size: 12px; line-height: 1.3; overflow-wrap: anywhere; }
+            .todo-app .todo-state { margin: 6px 0 0; }
             .todo-app .todo-item.is-completed {
                 opacity: 0.7;
             }
@@ -124,10 +143,13 @@ TodoApp.prototype.createWindowConfig = function() {
                 font-size: 11px;
                 color: var(--sk-text-faint, #9eb2aa);
             }
+            .todo-app button:focus,
+            .todo-app input:focus,
+            .todo-app select:focus,
             .todo-app button:focus-visible,
             .todo-app input:focus-visible,
             .todo-app select:focus-visible {
-                outline: 2px solid var(--sk-accent, #8bd8bd);
+                outline: 3px solid #ffe08a;
                 outline-offset: 2px;
             }
             .todo-app .todo-error {
@@ -142,8 +164,9 @@ TodoApp.prototype.createWindowConfig = function() {
             }
             @media (max-width: 900px) {
                 .todo-app .quick-add-row {
-                    grid-template-columns: minmax(0, 1fr);
+                    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
                 }
+                .todo-app .new-todo-input { grid-column: 1 / -1; }
             }
             @media (max-width: 640px) {
                 .todo-app .todo-header {
@@ -160,8 +183,9 @@ TodoApp.prototype.createWindowConfig = function() {
                     justify-content: flex-start;
                 }
                 .todo-app .quick-add-row {
-                    grid-template-columns: minmax(0, 1fr);
+                    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
                 }
+                .todo-app .new-todo-input { grid-column: 1 / -1; }
                 .todo-app .quick-add-row select,
                 .todo-app .quick-add-row button,
                 .todo-app .new-goal-input,
@@ -171,12 +195,11 @@ TodoApp.prototype.createWindowConfig = function() {
                 }
             }
         </style>
-        <div class="todo-app sk-app" style="height: 100%; display: flex; flex-direction: column;">
+        <div class="todo-app sk-app" style="height: auto; display: flex; flex-direction: column;">
             <!-- Header -->
-            <div class="todo-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--sk-border, #263a34); background: var(--sk-bg-panel, #101b18);">
+            <div class="todo-header" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--sk-border, #263a34); background: var(--sk-bg-panel, #101b18);">
                 <div class="header-left">
-                    <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: var(--sk-text, #edf7f2);">📋 Todo & Goals</h2>
-                    <span style="font-size: 12px; color: var(--sk-text-faint, #9eb2aa);">Plain Text Goal Management</span>
+                    <h2 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--sk-text, #edf7f2);">📋 Todo & Goals</h2>
                 </div>
                 <div class="header-controls">
                     <button class="voice-todo-btn sk-btn" id="voice-todo-btn" onclick="window.todoApp.startVoiceInput()" style="margin-right: 8px; font-size: 12px;">🎤 Voice</button>
@@ -191,8 +214,8 @@ TodoApp.prototype.createWindowConfig = function() {
                 <!-- Todos View -->
                 <div class="todos-view" id="todos-view" style="width: 100%; display: flex; flex-direction: column;">
                     <!-- Quick Add -->
-                    <div class="quick-add" style="padding: 16px; background: var(--sk-bg-panel, #101b18); border-bottom: 1px solid var(--sk-border, #263a34);">
-                        <div class="quick-add-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <div class="quick-add" style="padding: 8px; background: var(--sk-bg-panel, #101b18); border-bottom: 1px solid var(--sk-border, #263a34);">
+                        <div class="quick-add-row" style="display: flex; gap: 8px;">
                             <input type="text" class="new-todo-input sk-input" aria-label="New todo title" placeholder="Add a todo" style="flex: 1;">
                             <select class="todo-priority sk-select" aria-label="Priority">
                                 <option value="low">💡 Low</option>
@@ -205,18 +228,23 @@ TodoApp.prototype.createWindowConfig = function() {
                             </select>
                             <button type="button" class="add-todo-btn sk-btn sk-btn-primary">Add Todo</button>
                         </div>
-                        <div class="voice-hint">
-                            💡 Voice commands: "Add todo: [task]" | "Mark [task] complete" | "Set [task] priority high"
-                        </div>
+                        <p id="todo-state" class="todo-state">Tasks none. Stored in this browser only.</p>
                         <div class="todo-error" role="alert" hidden></div>
                     </div>
 
                     <!-- Todo List -->
-                    <div class="todo-list" style="flex: 1; overflow-y: auto; padding: 16px;">
+                    <div class="todo-list" style="flex: 1; overflow-y: auto; padding: 8px;">
                         <div class="todo-categories">
+                            <div class="todo-category" id="completed-todos">
+                                <h3 class="sk-section-head" style="color: var(--sk-idle, #7c8f87); margin: 0 0 4px 0; font-size: 13px; display: flex; align-items: center;">
+                                    ✅ Completed
+                                    <span class="count-badge sk-badge" style="margin-left: 8px; background: var(--sk-idle, #7c8f87); color: #0e1412;">0</span>
+                                </h3>
+                                <div class="todos-container completed-container"></div>
+                            </div>
                             <!-- Urgent Todos -->
-                            <div class="todo-category" id="urgent-todos">
-                                <h3 class="sk-section-head" style="color: var(--sk-err, #ff6b6b); margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
+                            <div class="todo-category" id="urgent-todos" style="margin-top: 8px;">
+                                <h3 class="sk-section-head" style="color: var(--sk-err, #ff6b6b); margin: 0 0 4px 0; font-size: 13px; display: flex; align-items: center;">
                                     ⚡ Urgent Tasks
                                     <span class="count-badge sk-badge" style="margin-left: 8px; background: var(--sk-err, #ff6b6b); color: #0e1412;">0</span>
                                 </h3>
@@ -224,8 +252,8 @@ TodoApp.prototype.createWindowConfig = function() {
                             </div>
 
                             <!-- High Priority Todos -->
-                            <div class="todo-category" id="high-todos" style="margin-top: 20px;">
-                                <h3 class="sk-section-head" style="color: var(--sk-warn, #ffd166); margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
+                            <div class="todo-category" id="high-todos" style="margin-top: 8px;">
+                                <h3 class="sk-section-head" style="color: var(--sk-warn, #ffd166); margin: 0 0 4px 0; font-size: 13px; display: flex; align-items: center;">
                                     🔥 High Priority
                                     <span class="count-badge sk-badge" style="margin-left: 8px; background: var(--sk-warn, #ffd166); color: #0e1412;">0</span>
                                 </h3>
@@ -233,8 +261,8 @@ TodoApp.prototype.createWindowConfig = function() {
                             </div>
 
                             <!-- Medium Priority Todos -->
-                            <div class="todo-category" id="medium-todos" style="margin-top: 20px;">
-                                <h3 class="sk-section-head" style="color: var(--sk-accent, #8bd8bd); margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
+                            <div class="todo-category" id="medium-todos" style="margin-top: 8px;">
+                                <h3 class="sk-section-head" style="color: var(--sk-accent, #8bd8bd); margin: 0 0 4px 0; font-size: 13px; display: flex; align-items: center;">
                                     📋 Medium Priority  
                                     <span class="count-badge sk-badge" style="margin-left: 8px; background: var(--sk-accent, #8bd8bd); color: #0e1412;">0</span>
                                 </h3>
@@ -242,22 +270,14 @@ TodoApp.prototype.createWindowConfig = function() {
                             </div>
 
                             <!-- Low Priority Todos -->
-                            <div class="todo-category" id="low-todos" style="margin-top: 20px;">
-                                <h3 class="sk-section-head" style="color: var(--sk-ok, #5ee3a1); margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
+                            <div class="todo-category" id="low-todos" style="margin-top: 8px;">
+                                <h3 class="sk-section-head" style="color: var(--sk-ok, #5ee3a1); margin: 0 0 4px 0; font-size: 13px; display: flex; align-items: center;">
                                     💡 Low Priority
                                     <span class="count-badge sk-badge" style="margin-left: 8px; background: var(--sk-ok, #5ee3a1); color: #0e1412;">0</span>
                                 </h3>
                                 <div class="todos-container low-container"></div>
                             </div>
 
-                            <!-- Completed Todos -->
-                            <div class="todo-category" id="completed-todos" style="margin-top: 20px;">
-                                <h3 class="sk-section-head" style="color: var(--sk-idle, #7c8f87); margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center;">
-                                    ✅ Completed
-                                    <span class="count-badge sk-badge" style="margin-left: 8px; background: var(--sk-idle, #7c8f87); color: #0e1412;">0</span>
-                                </h3>
-                                <div class="todos-container completed-container"></div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -304,11 +324,13 @@ TodoApp.prototype.loadTodos = function() {
         var savedTodos = localStorage.getItem('swissknife-todos');
         var savedGoals = localStorage.getItem('swissknife-goals');
 
-        this.todos = savedTodos ? JSON.parse(savedTodos) : (previousTodos.length ? previousTodos : this.getDefaultTodos());
-        this.goals = savedGoals ? JSON.parse(savedGoals) : (previousGoals.length ? previousGoals : this.getDefaultGoals());
+        this.todos = savedTodos ? JSON.parse(savedTodos) : previousTodos.slice();
+        this.goals = savedGoals ? JSON.parse(savedGoals) : previousGoals.slice();
+        this._reloaded = savedTodos !== null && savedTodos !== '';
         this._storageError = '';
     } catch (error) {
         console.error('Failed to load todos:', error);
+        this._reloaded = false;
         this.todos = previousTodos.length ? previousTodos : this.getDefaultTodos();
         this.goals = previousGoals.length ? previousGoals : this.getDefaultGoals();
         this._storageError = 'Local storage is unavailable. Existing tasks were kept.';
@@ -610,6 +632,27 @@ TodoApp.prototype.renderTodos = function() {
         staleEmpty.remove();
     }
     this.renderDependsOptions();
+    var state = document.getElementById('todo-state');
+    if (state) state.textContent = this.taskStateText();
+};
+
+TodoApp.prototype.taskStateText = function() {
+    var parts = [];
+    for (var i = 0; i < this.todos.length; i++) {
+        var todo = this.todos[i];
+        var bit = 'id ' + todo.id + ' ' + todo.text + (todo.completed ? ' completed' : ' open');
+        if (todo.dependsOnId) {
+            var dep = null;
+            for (var j = 0; j < this.todos.length; j++) {
+                if (this.todos[j].id === todo.dependsOnId) dep = this.todos[j];
+            }
+            if (dep) bit += ' depends on id ' + dep.id + ' ' + dep.text + (dep.completed ? ' completed' : ' open');
+        }
+        parts.push(bit);
+    }
+    var head = this._reloaded ? 'Reloaded ' : 'Tasks ';
+    if (!parts.length) return head + 'none. Stored in this browser only.';
+    return head + parts.join('; ') + '. Stored in this browser only.';
 };
 
 TodoApp.prototype.createTodoElement = function(todo) {
@@ -786,8 +829,7 @@ TodoApp.prototype.updateCounts = function() {
     var totalGoals = document.querySelector('.total-goals');
     
     if (totalTodos) {
-        var activeTodos = this.todos.filter(function(t) { return !t.completed; }).length;
-        totalTodos.textContent = activeTodos;
+        totalTodos.textContent = String(this.todos.length);
     }
     if (totalGoals) {
         totalGoals.textContent = this.goals.length;
@@ -826,10 +868,10 @@ TodoApp.prototype.dependencyText = function(todo) {
         if (this.todos[i].id === todo.dependsOnId) dep = this.todos[i];
     }
     if (!dep) {
-        return 'Dependency id ' + todo.dependsOnId + ' is missing. Stored in this browser only.';
+        return 'Dependency id ' + todo.dependsOnId + ' is missing.';
     }
     var state = dep.completed ? 'completed' : 'open';
-    return 'Depends on ' + dep.text + ' (id ' + dep.id + ', ' + state + '). This task is id ' + todo.id + '. Stored in this browser only.';
+    return 'Depends on ' + dep.text + ', ' + state + '.';
 };
 
 TodoApp.prototype.escapeHtml = function(value) {

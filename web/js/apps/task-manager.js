@@ -62,6 +62,9 @@ export class TaskManagerApp {
       <div class="task-manager-container">
         <style>
           .task-manager-container { display: flex; flex-direction: column; max-height: calc(100vh - 188px); min-height: 0; min-width: 0; overflow: hidden; }
+          .task-manager-container .task-manager-header,
+          .task-manager-container .header-tabs,
+          .task-manager-container .header-controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
           .task-manager-container .processes-toolbar { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; min-width: 0; }
           .task-manager-container .search-section { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; flex: 1 1 12rem; }
           .task-manager-container .action-section { display: flex; flex-wrap: wrap; gap: 8px; position: static; flex: 0 1 auto; }
@@ -73,32 +76,30 @@ export class TaskManagerApp {
           .task-manager-container .processes-table { width: 100%; border-collapse: collapse; }
           .task-manager-container .processes-table th,
           .task-manager-container .processes-table td { white-space: nowrap; padding: 4px 8px; }
+          .task-manager-container .processes-table td.sk-empty { white-space: normal; }
           .task-manager-container .task-source-status { margin: 0 0 8px; }
           .task-manager-container .task-source-when { white-space: nowrap; }
-          @media (max-width: 520px) {
-            .task-manager-container { max-height: calc(100vh - 240px); }
+          @media (max-width: 768px) {
+            .task-manager-container { max-height: calc(100vh - 220px); }
             .task-manager-container .action-section { flex: 1 1 100%; }
             .task-manager-container .action-section .action-btn { flex: 1 1 7.5rem; }
-            .task-manager-container .processes-table { table-layout: fixed; }
-            .task-manager-container .processes-table th,
-            .task-manager-container .processes-table td { white-space: normal; padding: 4px 3px; font-size: 12px; }
-            .task-manager-container .processes-table th:nth-child(1),
-            .task-manager-container .processes-table td:nth-child(1) { width: 1.6rem; }
-            .task-manager-container .processes-table th:nth-child(3),
-            .task-manager-container .processes-table td:nth-child(3) { width: 2.5rem; }
-            .task-manager-container .processes-table th:nth-child(4),
-            .task-manager-container .processes-table td:nth-child(4) { width: 2.4rem; }
-            .task-manager-container .processes-table th:nth-child(5),
-            .task-manager-container .processes-table td:nth-child(5) { width: 3.2rem; }
-            .task-manager-container .processes-table th:nth-child(6),
-            .task-manager-container .processes-table td:nth-child(6) { width: 4.2rem; }
-            .task-manager-container .processes-table th:nth-child(7),
-            .task-manager-container .processes-table td:nth-child(7) { width: 5.6rem; white-space: normal; }
-            .task-manager-container .process-actions .action-btn.small { padding: 2px 4px; min-width: 2.4rem; line-height: 1.2; white-space: normal; }
+            .task-manager-container .processes-table thead { display: none; }
+            .task-manager-container .processes-table,
+            .task-manager-container .processes-table tbody,
+            .task-manager-container .processes-table tr,
+            .task-manager-container .processes-table td { display: block; width: auto; }
+            .task-manager-container .processes-table tr { margin: 0 0 8px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.12); }
+            .task-manager-container .processes-table td { white-space: normal; padding: 2px 0; font-size: 13px; line-height: 1.3; }
+            .task-manager-container .process-name { font-weight: 600; }
+            .task-manager-container .process-actions .action-btn.small { display: inline-block; margin: 2px 6px 0 0; }
+            .task-manager-container .status-badge { position: static; }
           }
+          .task-manager-container button:focus,
+          .task-manager-container input:focus,
+          .task-manager-container select:focus,
           .task-manager-container button:focus-visible,
           .task-manager-container input:focus-visible,
-          .task-manager-container select:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+          .task-manager-container select:focus-visible { outline: 3px solid #ffe08a; outline-offset: 2px; }
         </style>
         <div class="task-manager-header">
           <div class="header-tabs">
@@ -138,8 +139,10 @@ export class TaskManagerApp {
                 </select>
               </div>
               <div class="action-section">
-                <button class="action-btn sk-btn" id="refresh-processes">🔄 Refresh</button>
-                <button class="action-btn danger sk-btn sk-btn-danger" id="kill-selected" disabled>⚠️ End Task</button>
+                <button type="button" class="action-btn sk-btn" id="refresh-processes">🔄 Refresh</button>
+                <button type="button" class="action-btn sk-btn" id="open-second-app">Open Clock</button>
+                <button type="button" class="action-btn sk-btn" id="close-open-app">Close Clock</button>
+                <button type="button" class="action-btn danger sk-btn sk-btn-danger" id="kill-selected" disabled>⚠️ End Task</button>
               </div>
             </div>
             
@@ -637,6 +640,14 @@ export class TaskManagerApp {
         push(el.id || title, title, el.classList.contains('minimized'));
       });
     }
+    const names = processes.map((process) => process.name).sort();
+    const previous = Array.isArray(this.lastOpenNames) ? this.lastOpenNames : [];
+    const remembered = this.readRememberedClosedNames();
+    const stillClosed = [...(this.lastClosedNames || []), ...remembered].filter((name) => !names.includes(name));
+    const newlyClosed = previous.filter((name) => !names.includes(name));
+    this.lastClosedNames = [...new Set([...stillClosed, ...newlyClosed])];
+    this.rememberClosedNames(this.lastClosedNames);
+    this.lastOpenNames = names;
     this.sourceObservedAt = new Date().toISOString();
     this.sourceState = (wins || processes.length > 0) ? 'current' : 'unavailable';
     return processes;
@@ -645,17 +656,31 @@ export class TaskManagerApp {
   displayProcesses(processes) {
     const tbody = document.getElementById('processes-list');
     if (!tbody) return;
-    if (!processes.length) {
+    const query = (document.getElementById('process-search')?.value || '').trim();
+    const visible = query
+      ? processes.filter((process) => process.name.toLowerCase().includes(query.toLowerCase()) || String(process.pid).includes(query))
+      : processes;
+    const openNames = (this.processes || []).map((process) => process.name).filter(Boolean).sort();
+    const closedNames = (this.lastClosedNames || []).filter((name) => !openNames.includes(name));
+    const summary = `${query ? `matching ${query}` : 'all desktop apps'} · open ${openNames.join(', ') || 'none'}${closedNames.length ? ` · closed ${closedNames.join(', ')}` : ''} · host CPU and memory n/a`;
+    const summaryRow = () => {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 7;
+      td.className = 'sk-empty';
+      return { tr, td };
+    };
+    if (!visible.length) {
       const when = this.sourceObservedAt || 'pending';
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="7" class="sk-empty">No matching desktop applications · observed ${when}. Host CPU and memory: n/a (not exposed by browser).</td>
-        </tr>
-      `;
+      tbody.textContent = '';
+      const { tr, td } = summaryRow();
+      td.textContent = `No matching desktop applications · ${summary} · observed ${when}.`;
+      tr.appendChild(td);
+      tbody.appendChild(tr);
       return;
     }
 
-    tbody.innerHTML = processes.map(process => `
+    tbody.innerHTML = visible.map(process => `
       <tr data-pid="${process.pid}">
         <td><input type="checkbox" class="process-checkbox" name="process-select" value="${process.pid}" aria-label="Select ${process.name}"></td>
         <td class="process-name">${process.name}</td>
@@ -671,6 +696,10 @@ export class TaskManagerApp {
         </td>
       </tr>
     `).join('');
+    const { tr, td } = summaryRow();
+    td.textContent = `Showing ${visible.length} · ${summary}`;
+    tr.appendChild(td);
+    tbody.prepend(tr);
   }
 
   displayProcessError() {
@@ -1168,6 +1197,16 @@ export class TaskManagerApp {
       refreshBtn.addEventListener('click', () => this.refreshProcesses());
     }
 
+    const openSecondBtn = document.getElementById('open-second-app');
+    if (openSecondBtn) {
+      openSecondBtn.addEventListener('click', () => this.openSecondApp());
+    }
+
+    const closeOpenedBtn = document.getElementById('close-open-app');
+    if (closeOpenedBtn) {
+      closeOpenedBtn.addEventListener('click', () => this.closeOpenedApp());
+    }
+
     const killBtn = document.getElementById('kill-selected');
     if (killBtn) {
       killBtn.addEventListener('click', () => this.killSelectedProcesses());
@@ -1264,6 +1303,58 @@ export class TaskManagerApp {
   refreshProcesses() {
     this.loadProcesses();
     this.showNotification('Process list refreshed', 'success');
+  }
+
+  readRememberedClosedNames() {
+    try {
+      const raw = sessionStorage.getItem('svf-task-manager-closed-names');
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed)
+        ? parsed.filter((name) => typeof name === 'string' && name.length > 0 && name.length <= 120)
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  rememberClosedNames(names) {
+    try {
+      sessionStorage.setItem('svf-task-manager-closed-names', JSON.stringify(names));
+    } catch {
+      /* this instance still keeps lastClosedNames */
+    }
+  }
+
+  focusOwnWindow() {
+    const own = document.querySelector('.window[data-app-id="task-manager"]');
+    const desktop = this.desktop || window.desktop || window.__swissknifeDesktop || window.swissknifeDesktop;
+    if (own && typeof desktop?.focusWindow === 'function') desktop.focusWindow(own);
+  }
+
+  async openSecondApp() {
+    const icon = document.querySelector('.desktop-icons .icon[data-app="clock"]');
+    if (!icon) return;
+    icon.click();
+    const deadline = Date.now() + 8000;
+    while (Date.now() < deadline) {
+      const clock = document.querySelector('.window[data-app-id="clock"]');
+      if (clock && !clock.querySelector('.window-loading')) break;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    // Clock's launch focuses its window over this toolbar. Raise Task Manager
+    // after that launch settles so the in-app Close Clock control can be hit.
+    this.focusOwnWindow();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    this.focusOwnWindow();
+    await this.loadProcesses();
+  }
+
+  async closeOpenedApp() {
+    const close = document.querySelector('.window[data-app-id="clock"] .window-control.close');
+    if (close) close.click();
+    const search = document.getElementById('process-search');
+    if (search) search.value = '';
+    await this.loadProcesses();
   }
 
   killSelectedProcesses() {

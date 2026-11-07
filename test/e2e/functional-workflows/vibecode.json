@@ -15,6 +15,18 @@
         "operator": "equals",
         "expected": "bafkreih7nrg7wdbr2kmedje3eftehh7imcdfb4ft27aeg567pq6ggc46mm"
       }
+    },
+    {
+      "binding_id": "vibecode.ipfs_kit_py.retrieve_artifact",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/bytes_base64",
+        "operator": "equals",
+        "expected": "ZGVmIG1hcmtlcl9mbigpOgogICAgcmV0dXJuICJTVkYxNTItUlVOIgo="
+      }
     }
   ],
   "phases": {
@@ -69,6 +81,16 @@
         "op": "reopen_app"
       },
       {
+        "op": "click",
+        "selector": "#vibecode-open-file"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-workspace-outcome=\"executed\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
         "op": "assert",
         "requirement_id": "persist_reopen",
         "probe": {
@@ -107,6 +129,26 @@
       {
         "op": "click",
         "selector": "#save-file-btn"
+      },
+      {
+        "op": "click",
+        "selector": "#vibecode-write-file"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"vibecode.ipfs_kit_py.persist_artifact\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"vibecode.ipfs_kit_py.persist_artifact\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-workspace-outcome=\"executed\"]",
+        "state": "visible",
+        "timeout_ms": 15000
       },
       {
         "op": "assert",

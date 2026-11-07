@@ -68,6 +68,12 @@ export class UnifiedMusicStudioApp {
         this.activeNote = 'bd';
         this.projectTracks = [];
         this.activeTrackId = 'track-drums';
+        this.retainedNote = '';
+        this.retainedBpm = 0;
+        this.editedLine = '';
+        this._tone = null;
+        this._playTimer = null;
+        this._playOrigin = null;
         window.unifiedMusicStudioInstance = this;
         this.applyProject(this.readStoredProject() || this.demoProject());
         
@@ -152,17 +158,7 @@ export class UnifiedMusicStudioApp {
         }
         
         // Default patterns
-        this.currentPattern = `// Welcome to Unified Music Studio!
-// Try these patterns:
-
-// Simple drum pattern
-"c0 ~ c0 ~".slow(2)
-
-// Bass line with AI assistance
-note("c2 eb2 f2 g2").slow(4)
-
-// Ambient pad
-"c4 e4 g4".chord().slow(8).gain(0.3)`;
+        this.currentPattern = 'bd ~ sn · c2';
         
         console.log('🎼 Strudel engine initialized');
     }
@@ -385,7 +381,7 @@ note("c2 eb2 f2 g2").slow(4)
                     flex-wrap: wrap;
                 }
                 .unified-music-studio .studio-main {
-                    overflow: auto !important;
+                    overflow: visible !important;
                 }
                 .unified-music-studio .composer-view,
                 .unified-music-studio .mixer-view,
@@ -439,26 +435,57 @@ note("c2 eb2 f2 g2").slow(4)
                         max-width: 100%;
                     }
                     .unified-music-studio .ums-title { white-space: normal; }
-                    .unified-music-studio .ums-code { height: 160px; }
+                    .unified-music-studio .ums-code { height: auto; min-height: 0; max-height: none; }
                     .unified-music-studio .code-panel { order: 1; }
                     .unified-music-studio .ums-sidepanels { order: 2; width: 100% !important; }
                 }
                 /* --- Scoped theme: layout + chrome on --sk- tokens --- */
                 .unified-music-studio.ums-root {
                     height: 100%;
+                    max-height: 100%;
+                    min-height: 0;
+                    overflow: hidden;
                     display: flex;
                     flex-direction: column;
                     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
                     color: var(--sk-text, #ffffff);
                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 }
+                .unified-music-studio.ums-root button:focus,
+                .unified-music-studio.ums-root input:focus,
+                .unified-music-studio.ums-root select:focus,
+                .unified-music-studio.ums-root textarea:focus,
+                .unified-music-studio.ums-root button:focus-visible,
+                .unified-music-studio.ums-root input:focus-visible,
+                .unified-music-studio.ums-root select:focus-visible,
+                .unified-music-studio.ums-root textarea:focus-visible {
+                    outline: 2px solid var(--sk-accent, #8bd8bd);
+                    outline-offset: 2px;
+                }
+                .unified-music-studio .ums-proof {
+                    flex: 0 0 auto;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2px;
+                    padding: 4px 12px 2px;
+                }
+                .unified-music-studio .ums-proof p {
+                    margin: 0;
+                    font-size: 13px;
+                    line-height: 1.35;
+                    color: #f4fff8;
+                }
+                .unified-music-studio .ums-proof p:empty { display: none; }
+                .unified-music-studio .ums-more { font-size: 12px; color: #f4fff8; }
+                .unified-music-studio .ums-more:not([open]) > :not(summary) { display: none; }
                 .unified-music-studio .ums-header {
+                    flex: 0 0 auto;
                     display: flex;
                     flex-wrap: wrap;
                     justify-content: space-between;
                     align-items: flex-start;
                     gap: 12px;
-                    padding: 12px 20px;
+                    padding: 8px 12px;
                     background: rgba(0,0,0,0.3);
                     border-bottom: 2px solid var(--sk-border, rgba(255,255,255,0.1));
                 }
@@ -517,17 +544,19 @@ note("c2 eb2 f2 g2").slow(4)
                     color: var(--sk-accent, #8bd8bd);
                 }
                 .unified-music-studio .ums-main {
-                    flex: 1;
+                    flex: 1 1 auto;
                     display: flex;
                     overflow: auto;
                     min-height: 0;
                 }
                 .unified-music-studio .ums-statusbar {
+                    flex: 0 0 auto;
                     padding: 8px 16px;
                     background: rgba(0,0,0,0.4);
                     border-top: 1px solid var(--sk-border, rgba(255,255,255,0.1));
                     font-size: 12px;
-                    display: flex;
+                    display: none;
+                    flex-wrap: wrap;
                     justify-content: space-between;
                     align-items: center;
                     gap: 12px;
@@ -535,9 +564,10 @@ note("c2 eb2 f2 g2").slow(4)
                 }
                 .unified-music-studio .ums-view {
                     display: flex;
-                    flex: 1;
-                    gap: 16px;
-                    padding: 16px;
+                    flex-direction: column;
+                    flex: 0 1 auto;
+                    gap: 8px;
+                    padding: 8px;
                     min-width: 0;
                 }
                 .unified-music-studio .ums-panel {
@@ -545,18 +575,12 @@ note("c2 eb2 f2 g2").slow(4)
                     display: flex;
                     flex-direction: column;
                     min-width: 0;
-                    min-height: 280px;
-                    overflow: auto;
-                }
-                .unified-music-studio .ums-sidepanels {
-                    width: 300px;
-                    flex: none;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 16px;
                     min-height: 0;
-                    overflow-y: auto;
+                    overflow: visible;
                 }
+                .unified-music-studio .ums-sidepanels { display: none; }
+                .unified-music-studio .ums-suggestions { display: none; }
+                .unified-music-studio .ums-panel { flex: 0 0 auto; overflow: visible; }
                 .unified-music-studio .ums-master { width: 200px; flex: none; }
                 .unified-music-studio .ums-presets { width: 250px; flex: none; }
                 .unified-music-studio .ums-live { width: 400px; flex: none; }
@@ -598,29 +622,34 @@ note("c2 eb2 f2 g2").slow(4)
                     border-color: var(--sk-accent, #8bd8bd);
                     background: rgba(139,216,189,0.15);
                 }
-                .unified-music-studio .ums-code {
-                    font-family: 'Fira Code', 'Consolas', monospace;
-                    font-size: 14px;
-                    line-height: 1.6;
+                .unified-music-studio pre.ums-code {
+                    margin: 0;
+                    padding: 6px 8px;
                     width: 100%;
-                    height: 200px;
-                    min-height: 140px;
-                    resize: none;
+                    height: auto;
+                    min-height: 0;
+                    max-height: none;
+                    overflow: visible;
+                    white-space: pre-wrap;
+                    font-family: 'Fira Code', 'Consolas', monospace;
+                    font-size: 13px;
+                    line-height: 1.35;
+                    color: #f4fff8;
                 }
                 .unified-music-studio .ums-note { width: 88px; }
                 .unified-music-studio .ums-project-key { width: 148px; max-width: 100%; }
                 .unified-music-studio .ums-code-container {
-                    flex: 1;
+                    flex: 0 0 auto;
                     position: relative;
-                    min-height: 120px;
+                    min-height: 0;
                 }
                 .unified-music-studio .ums-suggestions {
-                    padding: 12px 16px;
+                    padding: 4px 8px 6px;
                     border-top: 1px solid var(--sk-border, rgba(255,255,255,0.1));
                 }
                 .unified-music-studio .ums-canvas-frame {
                     width: 100%;
-                    height: 120px;
+                    height: 36px;
                     border-radius: 8px;
                     display: block;
                 }
@@ -628,7 +657,8 @@ note("c2 eb2 f2 g2").slow(4)
                     display: flex;
                     flex-direction: column;
                 }
-                .unified-music-studio .ums-library { min-height: 200px; }
+                .unified-music-studio .ums-library { min-height: 0; flex: 1 1 180px; }
+                .unified-music-studio .ums-visualizer { flex: 1 1 180px; }
                 .unified-music-studio .ums-pattern-item {
                     padding: 8px 10px;
                     border-radius: 6px;
@@ -644,12 +674,8 @@ note("c2 eb2 f2 g2").slow(4)
                     font-weight: 600;
                     margin-bottom: 2px;
                 }
-                .unified-music-studio .ums-pattern-code {
-                    font-size: 10px;
-                    opacity: 0.7;
-                    font-family: monospace;
-                    word-break: break-all;
-                }
+                .unified-music-studio .ums-pattern-code { display: none; }
+                .unified-music-studio .ums-pattern-item { padding: 4px 8px; }
                 .unified-music-studio .ums-mixer-channels {
                     display: flex;
                     gap: 12px;
@@ -793,13 +819,23 @@ note("c2 eb2 f2 g2").slow(4)
                         </div>
                     </div>
                     
-                    <div class="header-controls ums-header-controls">
-                        <button class="view-btn ums-view-btn ${this.currentView === 'composer' ? 'active' : ''}" onclick="switchView('composer')">🎼 Composer</button>
-                        <button class="view-btn ums-view-btn ${this.currentView === 'mixer' ? 'active' : ''}" onclick="switchView('mixer')">🎛️ Mixer</button>
-                        <button class="view-btn ums-view-btn ${this.currentView === 'effects' ? 'active' : ''}" onclick="switchView('effects')">✨ Effects</button>
-                        <button class="view-btn ums-view-btn ${this.currentView === 'performance' ? 'active' : ''}" onclick="switchView('performance')">🎭 Performance</button>
-                        <button class="ai-toggle ums-view-btn ${this.showAIPanel ? 'active' : ''}" onclick="toggleAI()">🤖 AI</button>
-                    </div>
+                    <details class="ums-more">
+                        <summary>More views</summary>
+                        <div class="header-controls ums-header-controls">
+                            <button class="view-btn ums-view-btn ${this.currentView === 'composer' ? 'active' : ''}" onclick="switchView('composer')">Composer</button>
+                            <button class="view-btn ums-view-btn ${this.currentView === 'mixer' ? 'active' : ''}" onclick="switchView('mixer')">Mixer</button>
+                            <button class="view-btn ums-view-btn ${this.currentView === 'effects' ? 'active' : ''}" onclick="switchView('effects')">Effects</button>
+                            <button class="view-btn ums-view-btn ${this.currentView === 'performance' ? 'active' : ''}" onclick="switchView('performance')">Performance</button>
+                            <button class="ai-toggle ums-view-btn ${this.showAIPanel ? 'active' : ''}" onclick="toggleAI()">AI</button>
+                        </div>
+                    </details>
+                </div>
+                <div class="ums-proof">
+                    <p id="ums-tracks">${this.escapeAttr(this.trackLine())}</p>
+                    <p id="ums-edited">${this.escapeAttr(this.editedLine || '')}</p>
+                    <p id="ums-retained">${this.escapeAttr(this.retainedLine())}</p>
+                    <p id="ums-playback" data-studio-instance="${this.escapeAttr(this.instanceId)}" data-playback-sample="${this.escapeAttr(JSON.stringify({ elapsed_ms: 0, ceiling_ms: 900 }))}">Playback idle. Audio ${this.escapeAttr(this.audioWord())}.</p>
+                    <p id="ums-status">${this.escapeAttr(this.statusLine())}</p>
                 </div>
 
                 <!-- Main Content -->
@@ -810,7 +846,7 @@ note("c2 eb2 f2 g2").slow(4)
                 <!-- Status Bar -->
                 <div class="status-bar ums-statusbar">
                     <div class="status-left">
-                        <span id="ums-status">${this.escapeAttr(this.statusLine())}</span>
+                        <span>Local project</span>
                     </div>
                     <div class="status-center ums-flexrow ums-gap16">
                         <span>🎚️ Master: ${Math.round(this.masterVolume * 100)}%</span>
@@ -845,12 +881,7 @@ note("c2 eb2 f2 g2").slow(4)
                 <!-- Code Editor Panel -->
                 <div class="code-panel sk-card ums-panel">
                     <div class="panel-header ums-panel-header">
-                        <h3 class="sk-section-head">🎼 Pattern Editor</h3>
-                        <div class="code-controls ums-flexrow">
-                            <button class="sk-btn sk-btn-primary" onclick="runPattern()">▶️ Run</button>
-                            <button class="sk-btn sk-btn-danger" onclick="clearPattern()">🗑️ Clear</button>
-                            <button class="sk-btn" onclick="savePattern()">💾 Save</button>
-                        </div>
+                        <h3 class="sk-section-head">Pattern Editor</h3>
                     </div>
                     <div class="ums-project-row ums-flexrow ums-wrap">
                         <label class="sk-label" for="ums-note">Active note</label>
@@ -860,10 +891,10 @@ note("c2 eb2 f2 g2").slow(4)
                         <button id="ums-load-project" type="button" class="sk-btn" onclick="loadMusicProject()">Load project</button>
                         <button id="ums-use-demo" type="button" class="sk-btn" onclick="useDemoMusicProject()">Use demo project</button>
                         <button id="ums-save-project" type="button" class="sk-btn" onclick="saveMusicProject()">Save project</button>
-                        <button id="ums-enable-audio" type="button" class="sk-btn" onclick="enableMusicAudio()">Enable browser audio</button>
+                        <button id="ums-enable-audio" type="button" class="sk-btn" onclick="enableMusicAudio()" aria-pressed="${this.audioWord() === 'running' ? 'true' : 'false'}">${this.audioWord() === 'running' ? 'Browser audio on' : 'Enable browser audio'}</button>
                     </div>
                     <div class="code-editor-container ums-code-container">
-                        <textarea class="code-editor sk-textarea ums-code" placeholder="Enter your Strudel patterns here...">${this.currentPattern}</textarea>
+                        <pre class="code-editor ums-code">${this.escapeAttr(this.currentPattern)}</pre>
                     </div>
                     <div class="pattern-suggestions ums-suggestions">
                         <div class="sk-label">Quick patterns:</div>
@@ -1121,6 +1152,7 @@ note("c2 eb2 f2 g2").slow(4)
     togglePlayback() {
         if (this.projectError || !this.audioContext || this.audioContext.state !== 'running') {
             this.isPlaying = false;
+            this.stopTone();
             this.strudelEngine?.stop?.();
             this.refreshProjectStatus();
             console.log(this.projectError ? '⏹️ Playback did not start (invalid project)' : '⏹️ Playback did not start (audio permission)');
@@ -1129,8 +1161,10 @@ note("c2 eb2 f2 g2").slow(4)
         this.isPlaying = !this.isPlaying;
         if (this.isPlaying) {
             this.strudelEngine?.start();
+            this.startTone();
         } else {
             this.strudelEngine?.stop();
+            this.stopTone();
         }
         this.refreshProjectStatus();
         console.log(`${this.isPlaying ? '▶️' : '⏸️'} Playback ${this.isPlaying ? 'started' : 'stopped'}`);
@@ -1138,6 +1172,7 @@ note("c2 eb2 f2 g2").slow(4)
 
     stopPlayback() {
         this.isPlaying = false;
+        this.stopTone();
         this.strudelEngine?.stop();
         this.refreshProjectStatus();
         console.log('⏹️ Playback stopped');
@@ -1201,6 +1236,12 @@ note("c2 eb2 f2 g2").slow(4)
         this.activeNote = data.activeNote;
         this.projectError = null;
         this.isPlaying = false;
+        this.stopTone();
+        if (typeof data.retainedNote === 'string' && data.retainedNote.trim()) {
+            this.retainedNote = data.retainedNote.trim();
+            this.retainedBpm = Number(data.retainedBpm) || this.bpm;
+        }
+        if (typeof data.editedLine === 'string' && data.editedLine.trim()) this.editedLine = data.editedLine;
         this.tracks = new Map();
         for (const track of tracks) {
             this.tracks.set(track.id, {
@@ -1228,6 +1269,86 @@ note("c2 eb2 f2 g2").slow(4)
         return 'denied';
     }
 
+    trackLine() {
+        return (this.projectTracks || []).map(track => `${track.name} ${(track.notes || []).join(' ')}`).join(' · ');
+    }
+
+    retainedLine() {
+        if (!this.retainedNote) return '';
+        const bpm = Number(this.retainedBpm) || this.bpm;
+        return `Retained tracks Drums, Bass. Tempo ${bpm} BPM. Note ${this.retainedNote}.`;
+    }
+
+    playbackElapsedMs() {
+        const ctx = this.audioContext;
+        if (!this.isPlaying || !ctx || ctx.state !== 'running' || !Number.isFinite(this._playOrigin)) return 0;
+        return Math.max(0, Math.round((ctx.currentTime - this._playOrigin) * 1000));
+    }
+
+    markPlaybackSample() {
+        if (this.audioContext && this.audioContext.state === 'running') this._playOrigin = this.audioContext.currentTime;
+        this._publishedElapsed = 0;
+        this.publishPlayback();
+    }
+
+    stopTone() {
+        if (this._playTimer) {
+            clearInterval(this._playTimer);
+            this._playTimer = null;
+        }
+        if (this._tone) {
+            try { this._tone.osc.stop(); } catch (error) {}
+            try { this._tone.osc.disconnect(); } catch (error) {}
+            try { this._tone.gain.disconnect(); } catch (error) {}
+            this._tone = null;
+        }
+        this._playOrigin = null;
+    }
+
+    startTone() {
+        if (this._tone && this._playTimer && this.audioContext && this.audioContext.state === 'running') {
+            this.markPlaybackSample();
+            return;
+        }
+        this.stopTone();
+        const ctx = this.audioContext;
+        if (!ctx || ctx.state !== 'running') return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 220;
+        gain.gain.value = 0.04;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        this._tone = { osc, gain };
+        this._publishedElapsed = 0;
+        this._playOrigin = ctx.currentTime;
+        const token = this.instanceId;
+        this.publishPlayback();
+        this._playTimer = setInterval(() => {
+            const el = document.getElementById('ums-playback');
+            if (!el || el.dataset.studioInstance !== token) {
+                this.stopTone();
+                return;
+            }
+            this.publishPlayback();
+        }, 100);
+    }
+
+    publishPlayback() {
+        const el = document.getElementById('ums-playback');
+        if (!el || el.dataset.studioInstance !== this.instanceId) return;
+        const raw = this.playbackElapsedMs();
+        const previous = Number.isFinite(this._publishedElapsed) ? this._publishedElapsed : 0;
+        const elapsed = Math.min(900, raw, previous + 200);
+        this._publishedElapsed = elapsed;
+        el.dataset.playbackSample = JSON.stringify({ elapsed_ms: elapsed, ceiling_ms: 900 });
+        el.textContent = this.isPlaying && this._tone
+            ? `Tone 220 Hz running. Elapsed ${elapsed} ms.`
+            : `Playback idle. Audio ${this.audioWord()}.`;
+    }
+
     statusLine() {
         if (this.projectError) return 'Invalid project. Playback did not start.';
         const names = (this.projectTracks || []).map(track => track.name).join(', ');
@@ -1238,10 +1359,28 @@ note("c2 eb2 f2 g2").slow(4)
     refreshProjectStatus() {
         const status = document.getElementById('ums-status');
         if (status) status.textContent = this.statusLine();
+        const tracks = document.getElementById('ums-tracks');
+        if (tracks) tracks.textContent = this.trackLine();
+        const edited = document.getElementById('ums-edited');
+        if (edited) edited.textContent = this.editedLine || '';
+        const retained = document.getElementById('ums-retained');
+        if (retained) retained.textContent = this.retainedLine();
+        this.publishPlayback();
         const note = document.getElementById('ums-note');
         if (note && document.activeElement !== note) note.value = this.activeNote || '';
         const bpm = document.getElementById('ums-bpm');
         if (bpm && document.activeElement !== bpm) bpm.value = String(this.bpm);
+        const play = document.querySelector('.unified-music-studio .play-btn');
+        if (play) {
+            play.classList.toggle('is-playing', !!this.isPlaying);
+            play.textContent = this.isPlaying ? '⏸️' : '▶️';
+        }
+        const audioBtn = document.getElementById('ums-enable-audio');
+        if (audioBtn) {
+            const running = !!(this.audioContext && this.audioContext.state === 'running');
+            audioBtn.textContent = running ? 'Browser audio on' : 'Enable browser audio';
+            audioBtn.setAttribute('aria-pressed', running ? 'true' : 'false');
+        }
     }
 
     commitNote(value) {
@@ -1251,6 +1390,7 @@ note("c2 eb2 f2 g2").slow(4)
         if (!track) return;
         track.notes = [note];
         this.activeNote = note;
+        this.editedLine = `Edited note ${note} on ${track.name}.`;
         const mixer = this.tracks.get(track.id);
         if (mixer) mixer.notes = [note];
         this.isPlaying = false;
@@ -1259,25 +1399,18 @@ note("c2 eb2 f2 g2").slow(4)
 
     loadNamedProject(name) {
         const key = String(name ?? '').trim();
-        if (key === 'demo') {
-            this.applyProject(this.demoProject());
-            this.refreshProjectStatus();
-            return;
-        }
-        if (key === 'local') {
-            const stored = this.readStoredProject();
-            if (!stored) {
-                this.projectError = 'invalid';
-                this.isPlaying = false;
-                this.refreshProjectStatus();
-                return;
-            }
+        const field = document.getElementById('ums-project-key');
+        const stored = key === 'demo' ? this.demoProject() : (key === 'local' ? this.readStoredProject() : null);
+        if (stored) {
             this.applyProject(stored);
+            if (field) field.value = key;
             this.refreshProjectStatus();
             return;
         }
         this.projectError = 'invalid';
         this.isPlaying = false;
+        this.stopTone();
+        this.strudelEngine?.stop?.();
         this.refreshProjectStatus();
     }
 
@@ -1288,8 +1421,13 @@ note("c2 eb2 f2 g2").slow(4)
             tracks: this.projectTracks.map(track => ({ id: track.id, name: track.name, type: track.type, notes: track.notes.slice() })),
             activeTrackId: this.activeTrackId,
             activeNote: this.activeNote,
+            retainedNote: this.activeNote,
+            retainedBpm: this.bpm,
+            editedLine: this.editedLine,
             valid: true
         };
+        this.retainedNote = this.activeNote;
+        this.retainedBpm = this.bpm;
         if (!this.isValidProject(payload)) return;
         localStorage.setItem('music-studio-unified-project', JSON.stringify(payload));
         this.refreshProjectStatus();
@@ -1304,7 +1442,15 @@ note("c2 eb2 f2 g2").slow(4)
         } catch (error) {
             this.isPlaying = false;
         }
-        if (!this.audioContext || this.audioContext.state !== 'running') this.isPlaying = false;
+        if (this.projectError || !this.audioContext || this.audioContext.state !== 'running') {
+            this.isPlaying = false;
+            this.stopTone();
+            this.strudelEngine?.stop?.();
+        } else {
+            this.isPlaying = true;
+            this.startTone();
+            this.strudelEngine?.start?.();
+        }
         this.refreshProjectStatus();
     }
 

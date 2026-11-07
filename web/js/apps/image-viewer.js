@@ -26,6 +26,62 @@ function bytesFromBase64(b64) {
   return bytes;
 }
 
+function rotateRight(value, bits) {
+  return ((value >>> bits) | (value << (32 - bits))) >>> 0;
+}
+
+// Synchronous so a reopened PNG can show its content hash on the first paint.
+function sha256HexBytes(bytes) {
+  const rounds = new Uint32Array([
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+  ]);
+  const bitLength = bytes.length * 8;
+  const zeroPad = (56 - ((bytes.length + 1) % 64) + 64) % 64;
+  const data = new Uint8Array(bytes.length + 1 + zeroPad + 8);
+  data.set(bytes);
+  data[bytes.length] = 0x80;
+  const view = new DataView(data.buffer);
+  view.setUint32(data.length - 8, Math.floor(bitLength / 0x100000000));
+  view.setUint32(data.length - 4, bitLength >>> 0);
+  let h0 = 0x6a09e667, h1 = 0xbb67ae85, h2 = 0x3c6ef372, h3 = 0xa54ff53a;
+  let h4 = 0x510e527f, h5 = 0x9b05688c, h6 = 0x1f83d9ab, h7 = 0x5be0cd19;
+  const words = new Uint32Array(64);
+  for (let offset = 0; offset < data.length; offset += 64) {
+    for (let index = 0; index < 16; index += 1) words[index] = view.getUint32(offset + index * 4);
+    for (let index = 16; index < 64; index += 1) {
+      const small = rotateRight(words[index - 15], 7) ^ rotateRight(words[index - 15], 18) ^ (words[index - 15] >>> 3);
+      const large = rotateRight(words[index - 2], 17) ^ rotateRight(words[index - 2], 19) ^ (words[index - 2] >>> 10);
+      words[index] = (words[index - 16] + small + words[index - 7] + large) >>> 0;
+    }
+    let a = h0, b = h1, c = h2, d = h3, e = h4, f = h5, g = h6, h = h7;
+    for (let index = 0; index < 64; index += 1) {
+      const upper = rotateRight(e, 6) ^ rotateRight(e, 11) ^ rotateRight(e, 25);
+      const choice = (e & f) ^ (~e & g);
+      const first = (h + upper + choice + rounds[index] + words[index]) >>> 0;
+      const lower = rotateRight(a, 2) ^ rotateRight(a, 13) ^ rotateRight(a, 22);
+      const majority = (a & b) ^ (a & c) ^ (b & c);
+      const second = (lower + majority) >>> 0;
+      h = g; g = f; f = e; e = (d + first) >>> 0; d = c; c = b; b = a; a = (first + second) >>> 0;
+    }
+    h0 = (h0 + a) >>> 0; h1 = (h1 + b) >>> 0; h2 = (h2 + c) >>> 0; h3 = (h3 + d) >>> 0;
+    h4 = (h4 + e) >>> 0; h5 = (h5 + f) >>> 0; h6 = (h6 + g) >>> 0; h7 = (h7 + h) >>> 0;
+  }
+  return [h0, h1, h2, h3, h4, h5, h6, h7].map(value => value.toString(16).padStart(8, '0')).join('');
+}
+
+function pngSha256Hex(url) {
+  const prefix = 'data:image/png;base64,';
+  if (!String(url || '').startsWith(prefix)) return '';
+  return sha256HexBytes(bytesFromBase64(String(url).slice(prefix.length)));
+}
+
 function imageBytesBase64(value) {
   if (!value || typeof value !== 'object') return '';
   if (typeof value.bytes_base64 === 'string' && value.bytes_base64) return value.bytes_base64;
@@ -132,6 +188,10 @@ export class ImageViewerApp {
     this.panX = 0;
     this.panY = 0;
     this.rotation = 0;
+    this.lastRetrievalError = '';
+    this.recoveredAfter = '';
+    this.cidFieldValue = '';
+    this.pngSha256 = '';
     this.editMode = false;
     this.sidebarVisible = true;
     this.filters = {
@@ -182,8 +242,12 @@ export class ImageViewerApp {
           <div class="toolbar-section">
             <button class="toolbar-btn primary-action" id="open-files-btn" type="button" title="Open image files" aria-label="Open image files">Open</button>
             <button class="toolbar-btn" id="retrieve-cid-btn" type="button" data-native-gateway-binding="image-viewer.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat" data-action="retrieve-cid-image" aria-label="Retrieve CID-backed image">Retrieve CID</button>
-            <input type="text" id="iv-cid-field" class="iv-cid-input" aria-label="Artifact CID" placeholder="bafy…" spellcheck="false">
+            <input type="text" id="iv-cid-field" class="iv-cid-input" aria-label="Artifact CID" placeholder="bafkrei…" spellcheck="false" value="${escapeHTML(this.cidFieldValue || '')}">
             <input type="text" id="iv-fixture-scope" class="iv-cid-input" aria-label="Fixture scope" placeholder="svf-image-viewer-cid" spellcheck="false">
+            <span id="iv-active-cid" class="iv-active-cid">${escapeHTML(this.currentImage?.cid && !String(this.currentImage.cid).startsWith('local') ? this.currentImage.cid : '')}</span>
+            <span id="iv-last-error" class="iv-last-error">${escapeHTML(this.lastRetrievalError || '')}</span>
+            <span id="iv-recovery-note" class="iv-recovery-note">${this.recoveredAfter ? `recovered after ${escapeHTML(this.recoveredAfter)}` : ''}</span>
+            <span id="iv-png-sha256" class="iv-png-sha256">${escapeHTML(this.pngSha256 || '')}</span>
             <label class="iv-governed-check" style="margin:0"><input type="checkbox" id="iv-retrieve-consent" aria-label="Confirm governed retrieve"><span>Confirm retrieve</span></label>
             <input type="file" id="image-file-input" accept="image/*" multiple hidden>
           </div>
@@ -198,9 +262,11 @@ export class ImageViewerApp {
             <button class="toolbar-btn" id="zoom-in-btn" type="button" aria-label="Zoom in">Zoom +</button>
             <button class="toolbar-btn" id="fit-screen-btn" type="button" aria-label="Fit image to viewer">Fit</button>
             <button class="toolbar-btn" id="pan-demo-btn" type="button" data-svd-workflow-action="apply-zoom-pan" aria-label="Apply zoom and pan state">Pan</button>
+            <span id="pan-readout" class="zoom-level">${this.panX}, ${this.panY}</span>
           </div>
           <div class="toolbar-section">
             <button class="toolbar-btn" id="rotate-left-btn" type="button" aria-label="Rotate left">Rotate -</button>
+            <span id="rotation-readout" class="zoom-level">${this.rotation}°</span>
             <button class="toolbar-btn" id="rotate-right-btn" type="button" aria-label="Rotate right">Rotate +</button>
             <button class="toolbar-btn" id="edit-mode-btn" type="button" aria-label="Edit" aria-pressed="${this.editMode ? 'true' : 'false'}">Edit</button>
             <button class="toolbar-btn" id="sidebar-toggle-btn" type="button" aria-label="Toggle sidebar">Sidebar</button>
@@ -307,6 +373,7 @@ export class ImageViewerApp {
           src="${escapeHTML(image.url)}"
           alt="${escapeHTML(image.altText)}"
           data-cid="${escapeHTML(image.cid)}"
+          data-pixel-source="${String(image.url).startsWith('data:image/png;base64,') ? 'png' : 'original'}"
           data-alt-text-state="${escapeHTML(this.vdaG038.altTextState)}"
           style="transform: translate(${this.panX}px, ${this.panY}px) rotate(${this.rotation}deg) scale(${this.zoomLevel}); ${filterStyle}"
         >
@@ -329,7 +396,7 @@ export class ImageViewerApp {
     const published = this.readPublishedIndex();
     return `
       <section class="sidebar-section image-workflow" data-svd-workflow="${escapeHTML(state.workflowId)}" aria-label="VDA-G038 Image Viewer workflow">
-        <details class="iv-diagnostics"${state.retrievalState === 'failed' ? ' open' : ''}>
+        <details class="iv-diagnostics"${state.retrievalState === 'failed' || this.lastRetrievalError ? ' open' : ''}>
         <summary>Diagnostics</summary>
         <div class="section-header">
           <h4>VDA-G038 Workflow</h4>
@@ -391,6 +458,11 @@ export class ImageViewerApp {
   renderStyles() {
     return `
       <style>
+        .window[data-app-id="image-viewer"] .window-content { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding-bottom:8px; }
+        .window[data-app-id="image-viewer"] .window-app-content { display:flex; flex-direction:column; flex:1 1 0px; min-height:0; min-width:0; overflow:hidden; }
+        .window[data-app-id="image-viewer"] .window-app-content > [id$="-content"] { display:flex; flex-direction:column; flex:1 1 0px; align-self:stretch; width:100%; min-height:0; min-width:0; overflow:hidden; }
+        .window[data-app-id="image-viewer"] .image-viewer-container { flex:1 1 0px; height:auto; max-height:none; min-height:0; }
+        .window[data-app-id="image-viewer"] .live-tool-gateway-host { flex:0 0 auto; min-height:0; max-height:2.75rem; overflow:auto; position:relative; z-index:6; }
         .image-viewer-container {
           height: 100%;
           min-height: 0;
@@ -433,6 +505,7 @@ export class ImageViewerApp {
           align-items: center;
           gap: 6px;
           min-width: 0;
+          flex-wrap: wrap;
         }
         button.toolbar-btn,
         button.action-btn,
@@ -779,12 +852,36 @@ export class ImageViewerApp {
           margin-top: 4px;
         }
         .image-toolbar .iv-cid-input {
-          width: 9.5rem;
+          width: min(100%, 36rem);
           max-width: 100%;
           margin-top: 0;
-          flex: 1 1 8rem;
-          min-width: 0;
+          flex: 1 1 12rem;
+          min-width: 12rem;
+          font-size: 11px;
         }
+        .iv-active-cid,
+        .iv-last-error {
+          flex: 1 1 100%;
+          min-width: 0;
+          overflow-wrap: anywhere;
+          font-size: 11px;
+          line-height: 1.35;
+        }
+        .iv-last-error:empty,
+        .iv-active-cid:empty,
+        .iv-recovery-note:empty,
+        .iv-png-sha256:empty { display: none; }
+        .iv-last-error { color: #fecaca; }
+        .iv-recovery-note,
+        .iv-png-sha256 {
+          flex: 1 1 100%;
+          min-width: 0;
+          overflow-wrap: anywhere;
+          font-size: 11px;
+          line-height: 1.3;
+        }
+        .iv-recovery-note { color: #99f6e4; }
+        .iv-png-sha256 { color: #cbd5e1; font-family: ui-monospace, SFMono-Regular, monospace; }
         .empty-state,
         .welcome-screen {
           color: #cbd5e1;
@@ -793,50 +890,77 @@ export class ImageViewerApp {
         }
         @media (max-width: 700px) {
           .image-viewer-container {
+            height: 100%;
             max-height: 100%;
-            overflow: auto;
-            padding-bottom: 72px;
+            overflow: hidden;
+            padding-bottom: 0;
             box-sizing: border-box;
           }
           .image-toolbar,
           .actions-panel {
             align-items: stretch;
-            flex-direction: column;
+            flex: 0 0 auto;
+            gap: 4px;
+            padding: 4px 6px;
           }
+          .image-toolbar { flex-direction: column; }
           .actions-panel {
-            flex-shrink: 0;
-            padding-bottom: 12px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            position: relative;
+            z-index: 2;
+            background: #1f2937;
+            overflow: visible;
+            padding-bottom: 6px;
+          }
+          .actions-panel .action-btn,
+          button.toolbar-btn {
+            min-height: 28px;
+            padding: 4px 6px;
+            font-size: 11px;
           }
           .image-content {
+            flex: 1 1 auto;
+            min-height: 0;
             flex-direction: column;
-            overflow: visible;
+            overflow: hidden;
           }
           .image-display {
             order: -1;
-            flex: 0 1 auto;
-            min-height: 140px;
-            max-height: 32vh;
+            flex: 0 0 auto;
+            min-height: 72px;
+            max-height: 96px;
           }
           .image-sidebar {
             order: 1;
             width: 100%;
             max-width: 100%;
             min-width: 0;
+            flex: 1 1 auto;
+            min-height: 0;
             max-height: none;
+            overflow: auto;
             border-right: 0;
             border-bottom: 1px solid #374151;
+            position: relative;
+            z-index: 1;
           }
-          .workflow-actions {
-            grid-template-columns: 1fr;
-          }
+          .sidebar-section:has(.image-info),
+          .sidebar-section:has(.editing-tools) { display: none; }
+          .image-list { padding: 4px 6px; }
+          .image-list-item { padding: 4px 6px; margin-bottom: 4px; }
+          .section-header { padding: 4px 8px; }
+          .workflow-actions { grid-template-columns: 1fr; }
           .toolbar-section {
             flex-wrap: wrap;
             width: 100%;
+            gap: 4px;
           }
           .image-toolbar .iv-cid-input {
             width: 100%;
             flex: 1 1 100%;
             max-width: 100%;
+            min-width: 0;
           }
         }
       </style>
@@ -927,6 +1051,10 @@ export class ImageViewerApp {
     }
     const zoomLevel = container.querySelector('#zoom-level');
     if (zoomLevel) zoomLevel.textContent = `${Math.round(this.zoomLevel * 100)}%`;
+    const rotationReadout = container.querySelector('#rotation-readout');
+    if (rotationReadout) rotationReadout.textContent = `${this.rotation}°`;
+    const panReadout = container.querySelector('#pan-readout');
+    if (panReadout) panReadout.textContent = `${this.panX}, ${this.panY}`;
     const zoomMarkers = container.querySelectorAll('[data-zoom-state]');
     zoomMarkers.forEach(marker => marker.setAttribute('data-zoom-state', this.vdaG038.zoomPanState));
   }
@@ -984,6 +1112,33 @@ export class ImageViewerApp {
    * from a blob URL. Retrieval time is measured, never fabricated. Backend
    * failures surface verbatim — never a fixture gallery entry.
    */
+  decodedPngDataUrl(mime, encoded) {
+    return new Promise(resolve => {
+      const probe = new Image();
+      const timer = setTimeout(() => resolve(null), 4000);
+      const finish = (value) => { clearTimeout(timer); resolve(value); };
+      probe.onload = () => {
+        try {
+          const width = probe.naturalWidth;
+          const height = probe.naturalHeight;
+          if (!width || !height) { finish(null); return; }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const context = canvas.getContext('2d');
+          if (!context) { finish(null); return; }
+          context.drawImage(probe, 0, 0, width, height);
+          const png = canvas.toDataURL('image/png');
+          finish(png.startsWith('data:image/png;base64,') ? png : null);
+        } catch {
+          finish(null);
+        }
+      };
+      probe.onerror = () => finish(null);
+      probe.src = `data:${mime};base64,${encoded}`;
+    });
+  }
+
   async retrieveCidImage(presetCid = null, trigger = null) {
     const root = this.container();
     const fieldCid = root?.querySelector('#iv-cid-field')?.value?.trim() || '';
@@ -995,6 +1150,7 @@ export class ImageViewerApp {
       this.refreshContent();
       return;
     }
+    this.cidFieldValue = presetCid || fieldCid;
     const cid = presetCid || fieldCid || await this.promptForCid(
       'Retrieve CID image',
       'Enter the CID of an image artifact stored in ipfs_kit_py. Its real bytes will be fetched and added to the gallery.'
@@ -1043,7 +1199,11 @@ export class ImageViewerApp {
         this.appendWorkflowLog(this.vdaG038.lastRetrievedInfo);
       } else if (bytes.length > 0) {
         const mime = guessImageMime(artifact, bytes);
-        const url = `data:${mime};base64,${encoded}`;
+        // The workflow records content bytes only for a PNG data URL. Draw the
+        // owner bytes once and keep that exact PNG for reopen.
+        const pngUrl = await this.decodedPngDataUrl(mime, encoded);
+        if (!pngUrl) throw new Error('Decoded image could not be retained as PNG bytes.');
+        const url = pngUrl;
         const image = {
           name: artifact.name || artifact.filename || `cid-${cid.slice(0, 12)}`,
           url,
@@ -1062,6 +1222,10 @@ export class ImageViewerApp {
         this.currentImage = image;
         this.rememberRetrievedImage(image);
         this.measureImageDimensions(image);
+        if (this.lastRetrievalError) this.recoveredAfter = this.lastRetrievalError;
+        this.lastRetrievalError = '';
+        this.cidFieldValue = cid;
+        this.pngSha256 = pngSha256Hex(url);
         this.vdaG038.retrievalState = 'retrieved';
         this.vdaG038.lastRetrievedCid = cid;
         this.vdaG038.gatewayStatus = `${toolId} ${correlationId}`;
@@ -1075,6 +1239,8 @@ export class ImageViewerApp {
       this.vdaG038.retrievalState = 'failed';
       this.vdaG038.gatewayStatus = `${toolId} ${correlationId} error`;
       this.vdaG038.lastRetrievedInfo = message;
+      this.lastRetrievalError = `retrieval failed for ${cid}`;
+      this.recoveredAfter = '';
       this.appendWorkflowLog(`retrieval failed for ${cid}: ${message}; ${toolId} ${correlationId}`);
     }
     this.refreshContent();
@@ -1260,11 +1426,10 @@ export class ImageViewerApp {
 
 
   applyZoomPan() {
-    this.zoomLevel = 1.45;
     this.panX = 28;
     this.panY = -18;
     this.vdaG038.zoomPanState = 'zoomed-panned';
-    this.appendWorkflowLog('zoom/pan set locally: 145% at 28,-18 (local view state only)');
+    this.appendWorkflowLog(`zoom/pan set locally: ${Math.round(this.zoomLevel * 100)}% at 28,-18 (local view state only)`);
     this.updateImageDisplay();
   }
 
@@ -1471,6 +1636,7 @@ export class ImageViewerApp {
         this.currentImageIndex = restored;
         this.currentImage = this.images[restored];
       }
+      this.pngSha256 = pngSha256Hex(this.currentImage?.url || '');
     } catch (error) {
       console.warn('Could not load stored images:', error);
     }

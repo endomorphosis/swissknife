@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "notes",
-  "description": "Edit and locally save the known note, search the separately prepared existing dataset collection, open its actual matching document, and reopen exact text. After a bad conflict reference, clear it, repeat the native search, open the newly returned document and save it locally before observing recovery. Local edits do not create or update the dataset index.",
+  "description": "Edit the known note, search the existing dataset collection, store that note as a real ipfs_kit_py artifact, and retrieve it after reopen so the compare line shows a match. A bad conflict reference is refused, then the editor stores a new artifact and retrieves those bytes so the compare line shows the conflict resolved.",
   "fixture_scope": "svf-notes-cedar-ledger",
   "backend_bindings": [
     {
@@ -11,9 +11,33 @@
       "max_duration_seconds": 30,
       "max_output_bytes": 65536,
       "result_assertion": {
-        "pointer": "/result/result/content/0/json/results/0/document/metadata/title",
+        "pointer": "/result/result/content/0/json/results/0/document/metadata/content",
+        "operator": "equals",
+        "expected": "cedar-ledger semantic phrase for notebook search"
+      }
+    },
+    {
+      "binding_id": "notes.ipfs_kit_py.persist_artifact",
+      "mode": "isolated_mutation",
+      "consent": "ui_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/cid",
+        "operator": "not_equals",
+        "expected": "absent"
+      }
+    },
+    {
+      "binding_id": "notes.ipfs_kit_py.retrieve_artifact",
+      "mode": "read",
+      "consent": "not_required",
+      "max_duration_seconds": 30,
+      "max_output_bytes": 65536,
+      "result_assertion": {
+        "pointer": "/result/result/content/0/json/bytes_base64",
         "operator": "contains",
-        "expected": "SVF cedar-ledger note"
+        "expected": "Y2VkYXItbGVkZ2VyIHNlbWFudGljIHBo"
       }
     }
   ],
@@ -30,11 +54,6 @@
         "value": "cedar-ledger semantic phrase for notebook search"
       },
       {
-        "op": "press",
-        "selector": "#note-content",
-        "key": "Control+s"
-      },
-      {
         "op": "fill",
         "selector": "#search-input",
         "value": "cedar-ledger semantic phrase for notebook search"
@@ -45,7 +64,7 @@
       },
       {
         "op": "wait_for",
-        "selector": "#notes-open-semantic-result-0",
+        "selector": "#notes-open-semantic-result-0[data-notes-search-live=\"ready\"]",
         "state": "visible",
         "timeout_ms": 15000
       },
@@ -55,7 +74,36 @@
       },
       {
         "op": "wait_for",
-        "selector": "#note-title[value=\"SVF cedar-ledger note\"]",
+        "selector": "#notes-open-semantic-result-0[data-notes-opened=\"ready\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#notes-open-semantic-result-0"
+        },
+        "operator": "equals",
+        "expected": "Opened SVF cedar-ledger note"
+      },
+      {
+        "op": "click",
+        "selector": "#notes-store-version"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm='notes.ipfs_kit_py.persist_artifact']",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm='notes.ipfs_kit_py.persist_artifact']"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#notes-store-ready",
         "state": "visible",
         "timeout_ms": 15000
       },
@@ -67,7 +115,10 @@
       {
         "op": "assert",
         "requirement_id": "result_1",
-        "probe": { "kind": "value", "selector": "#note-content" },
+        "probe": {
+          "kind": "value",
+          "selector": "#note-content"
+        },
         "operator": "equals",
         "expected": "cedar-ledger semantic phrase for notebook search"
       }
@@ -77,14 +128,24 @@
         "op": "reopen_app"
       },
       {
+        "op": "click",
+        "selector": "#notes-retrieve-stored"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#notes-retrieved-proof",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
         "op": "assert",
         "requirement_id": "persist_reopen",
         "probe": {
-          "kind": "value",
-          "selector": "#note-content"
+          "kind": "text",
+          "selector": "#notes-compare"
         },
         "operator": "equals",
-        "expected": "cedar-ledger semantic phrase for notebook search"
+        "expected": "Index SVF cedar-ledger note | cedar-ledger semantic phrase for notebook search | editor same | retrieved same | match"
       }
     ],
     "failure_recovery": [
@@ -109,17 +170,8 @@
       },
       {
         "op": "fill",
-        "selector": "#notes-base-cid",
-        "value": ""
-      },
-      {
-        "op": "fill",
         "selector": "#search-input",
         "value": "cedar-ledger semantic phrase for notebook search"
-      },
-      {
-        "op": "click",
-        "selector": "#notes-run-semantic-search"
       },
       {
         "op": "wait_for",
@@ -133,18 +185,46 @@
       },
       {
         "op": "wait_for",
-        "selector": "#note-title[value=\"SVF cedar-ledger note\"]",
+        "selector": "#notes-open-semantic-result-0[data-notes-opened=\"ready\"]",
         "state": "visible",
         "timeout_ms": 15000
       },
       {
-        "op": "press",
-        "selector": "#note-content",
-        "key": "Control+s"
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#notes-open-semantic-result-0"
+        },
+        "operator": "equals",
+        "expected": "Opened SVF cedar-ledger note"
+      },
+      {
+        "op": "click",
+        "selector": "#notes-store-version"
       },
       {
         "op": "wait_for",
-        "selector": "#vda-g039-status[data-notes-editor-recovery=\"saved-local\"]",
+        "selector": "[data-gateway-confirm='notes.ipfs_kit_py.persist_artifact']",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm='notes.ipfs_kit_py.persist_artifact']"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#notes-store-ready",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "#notes-retrieve-stored"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#notes-retrieved-proof",
         "state": "visible",
         "timeout_ms": 15000
       },
@@ -152,11 +232,29 @@
         "op": "assert",
         "requirement_id": "failure_recovery",
         "probe": {
-          "kind": "value",
-          "selector": "#note-content"
+          "kind": "text",
+          "selector": "#notes-compare"
         },
         "operator": "equals",
-        "expected": "cedar-ledger semantic phrase for notebook search"
+        "expected": "Index SVF cedar-ledger note | cedar-ledger semantic phrase for notebook search | editor same | retrieved same | resolved"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#vda-g039-status"
+        },
+        "operator": "equals",
+        "expected": "Status: Conflict resolved. Title SVF cedar-ledger note."
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "value",
+          "selector": "#notes-base-cid"
+        },
+        "operator": "not_equals",
+        "expected": "unavailable-note-version"
       }
     ]
   }

@@ -77,8 +77,8 @@ export class UnifiedP2PChatApp {
     this.conversations = new Map();
     this.offlineMessages = new Map();
     this.messageHistory = new Map();
-    this.currentChatPeer = DEFAULT_PEERS[0].id;
-    this.selectedConversation = DEFAULT_PEERS[0].id;
+    this.currentChatPeer = 'peer-casey-g030';
+    this.selectedConversation = 'peer-casey-g030';
     this.chatMode = 'online';
     this.notifications = [];
     this.receipts = [];
@@ -107,6 +107,8 @@ export class UnifiedP2PChatApp {
       receipt: null,
     };
     this.draft = '';
+    this.offlineNotice = 'No offline message is waiting.';
+    this.offlineState = 'idle';
     this.isInitialized = false;
     // Backend persistence state: no backend writes happen until the user
     // explicitly confirms them, and no receipts exist until real delivery
@@ -297,23 +299,8 @@ export class UnifiedP2PChatApp {
         sample: true,
       },
     ]);
-    this.conversations.set('peer-bob-g030', [
-      {
-        id: 'msg-bob-g030-queued',
-        from: this.peerId,
-        to: 'peer-bob-g030',
-        content: 'Queued offline delivery will replay when Bob reconnects.',
-        timestamp: now - 120000,
-        type: 'text',
-        encrypted: true,
-        offline: true,
-        delivered: false,
-        sample: true,
-      },
-    ]);
-    // The sample Bob message stays in the conversation view only; the
-    // offline queue itself starts empty and fills only from real user
-    // "Queue offline" actions.
+    // Bob starts with an empty thread. A seeded queued banner is not a
+    // delivery, and recovery must not leave it beside the retried message.
   }
 
   async loadMessageHistory() {
@@ -332,6 +319,11 @@ export class UnifiedP2PChatApp {
       }
       const storedReceipts = history.__meta?.receipts;
       this.receipts = Array.isArray(storedReceipts) ? storedReceipts.filter(receipt => receipt && receipt.receipt_id) : [];
+      const storedPeer = history.__meta?.selected_peer;
+      if (typeof storedPeer === 'string' && this.peers.has(storedPeer)) {
+        this.selectedConversation = storedPeer;
+        this.currentChatPeer = storedPeer;
+      }
       if (this.receipts.length === 0) {
         for (const messages of this.conversations.values()) {
           for (const message of messages) {
@@ -358,7 +350,7 @@ export class UnifiedP2PChatApp {
   async saveMessageHistory() {
     try {
       const historyObj = Object.fromEntries(this.conversations);
-      historyObj.__meta = { receipts: this.receipts };
+      historyObj.__meta = { receipts: this.receipts, selected_peer: this.selectedConversation };
       localStorage.setItem('p2p-chat-history', JSON.stringify(historyObj));
     } catch (error) {
       this.notifications.push(`History persistence skipped: ${messageFromError(error)}`);
@@ -386,7 +378,6 @@ export class UnifiedP2PChatApp {
           <aside class="conversation-panel">
             <label class="search-label" for="${this.instanceId}-search">Search conversations</label>
             <input id="${this.instanceId}-search" class="conversation-search" type="search" placeholder="Search peers" aria-label="Search conversations" value="">
-            <div class="peer-meta sk-honest-note" style="padding: 0 12px 8px;">Local sample peers — this roster is not discovered from the network.</div>
             <div class="mode-tabs" role="tablist" aria-label="Delivery mode">
               <button type="button" class="${this.chatMode === 'online' ? 'active' : ''}" data-chat-action="switch-mode" data-mode="online">Online</button>
               <button type="button" class="${this.chatMode === 'offline' ? 'active' : ''}" data-chat-action="switch-mode" data-mode="offline">Offline</button>
@@ -412,7 +403,7 @@ export class UnifiedP2PChatApp {
         <footer class="p2p-chat-status" role="status" aria-live="polite">
           <span>${this.peers.size} peers</span>
           <span>${this.countOfflineMessages()} offline queued</span>
-          <span>${this.receipts.length} receipts</span>
+          <span id="p2p-receipt-account">${escapeHtml(this.receiptAccount())}</span>
         </footer>
       </div>
     `;
@@ -423,7 +414,10 @@ export class UnifiedP2PChatApp {
       <style>
         .unified-p2p-chat-app {
           height: 100%;
+          width: 100%;
+          max-width: 100%;
           max-height: 100%;
+          min-width: 0;
           min-height: 0;
           overflow: hidden;
           display: flex;
@@ -581,7 +575,7 @@ export class UnifiedP2PChatApp {
           grid-template-columns: 34px minmax(0, 1fr) auto;
           gap: 8px;
           align-items: center;
-          padding: 6px 10px;
+          padding: 4px 10px;
           border: 0;
           border-top: 1px solid rgba(255,255,255,0.08);
           border-radius: 0;
@@ -622,6 +616,29 @@ export class UnifiedP2PChatApp {
           color: #b9c7c0;
           font-size: 12px;
           line-height: 1.4;
+        }
+        #p2p-offline-status {
+          flex: 0 0 auto;
+          margin: 0;
+          padding: 4px 10px 0;
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+        #p2p-selected-peer {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          margin: -1px;
+          padding: 0;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+        .unified-p2p-chat-app button:focus,
+        .unified-p2p-chat-app textarea:focus {
+          outline: 2px solid #f8fafc;
+          outline-offset: 2px;
         }
         .status-chip {
           border-radius: 999px;
@@ -665,10 +682,14 @@ export class UnifiedP2PChatApp {
         }
         .unified-p2p-chat-app .message {
           display: flex;
+          flex: 0 0 auto;
           margin-bottom: 10px;
           min-width: 0;
           max-width: 100%;
           background: transparent;
+          opacity: 1;
+          transform: none;
+          animation: none;
         }
         .message.outbound {
           justify-content: flex-end;
@@ -684,11 +705,18 @@ export class UnifiedP2PChatApp {
           word-break: break-word;
         }
         .unified-p2p-chat-app .message-text,
-        .unified-p2p-chat-app .message-meta {
+        .unified-p2p-chat-app .message-meta,
+        .unified-p2p-chat-app .message-ack {
           min-width: 0;
           max-width: 100%;
           overflow-wrap: anywhere;
           word-break: break-word;
+        }
+        .unified-p2p-chat-app .message-ack {
+          margin-top: 4px;
+          color: #f8fffb;
+          font-size: 12px;
+          line-height: 1.35;
         }
         .message.outbound .message-bubble {
           background: #0f766e;
@@ -759,15 +787,31 @@ export class UnifiedP2PChatApp {
         @media (max-width: 760px) {
           .unified-p2p-chat-app {
             min-height: 0;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
           }
           .p2p-chat-layout {
-            grid-template-columns: 1fr;
-            grid-template-rows: minmax(0, 112px) minmax(0, 1fr) auto;
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-rows: 112px minmax(0, 1fr) auto;
+            width: 100%;
+            min-width: 0;
+          }
+          .conversation-item[data-peer-id="peer-casey-g030"] {
+            display: none;
+          }
+          .conversation-panel .search-label,
+          .conversation-panel .conversation-search,
+          .conversation-panel .sk-honest-note,
+          .conversation-panel .mode-tabs {
+            display: none;
           }
           .conversation-panel {
             grid-column: 1;
             grid-row: 1;
+            height: 112px;
             max-height: 112px;
+            overflow: hidden;
             border-right: 0;
             border-bottom: 1px solid rgba(255,255,255,0.1);
           }
@@ -785,9 +829,8 @@ export class UnifiedP2PChatApp {
             flex: 1 1 auto;
           }
           .chat-peer-header .peer-meta {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: normal;
+            overflow: visible;
           }
           .chat-peer-header .secondary-action {
             width: auto;
@@ -796,8 +839,29 @@ export class UnifiedP2PChatApp {
           }
           .messages-container {
             flex: 1 1 auto;
-            min-height: 72px;
-            padding: 10px 12px 12px;
+            min-height: 96px;
+            min-width: 0;
+            max-width: 100%;
+            overflow-x: hidden;
+            padding: 8px 10px 10px;
+          }
+          .message-bubble {
+            padding: 6px 8px;
+          }
+          .message {
+            margin-bottom: 0;
+          }
+          .conversation-search,
+          .message-input {
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+          }
+          .message,
+          .message-bubble {
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
           }
           .message-input {
             min-height: 36px;
@@ -816,7 +880,7 @@ export class UnifiedP2PChatApp {
             overflow-y: hidden;
           }
           .conversation-list {
-            overflow-y: scroll;
+            overflow: hidden;
           }
           .unified-p2p-chat-app .message-meta {
             display: block;
@@ -844,15 +908,18 @@ export class UnifiedP2PChatApp {
 
   renderConversationsList() {
     return Array.from(this.peers.values()).map(peer => {
-      const messages = this.conversations.get(peer.id) || [];
+      const messages = (this.conversations.get(peer.id) || []).filter(message => message && !message.sample && !(message.offline && !message.delivered));
       const lastMessage = messages[messages.length - 1];
       const queued = (this.offlineMessages.get(peer.id) || []).length;
+      const preview = lastMessage
+        ? `${lastMessage.content}${lastMessage.delivered ? ' · delivered' : ''}`
+        : 'No messages yet';
       return `
         <button type="button" class="conversation-item ${this.selectedConversation === peer.id ? 'active' : ''}" data-chat-action="select-conversation" data-peer-id="${escapeHtml(peer.id)}" aria-label="${escapeHtml(peer.name)}, ${escapeHtml(peer.status)}">
           <span class="avatar">${escapeHtml(peer.avatar)}</span>
           <span>
             <strong class="peer-name">${escapeHtml(peer.name)}</strong>
-            <span class="peer-meta">${escapeHtml(lastMessage?.content || 'No messages yet')}</span>
+            <span class="peer-meta">${escapeHtml(preview)}</span>
           </span>
           <span class="status-chip ${escapeHtml(peer.status)}">${escapeHtml(peer.status)}${queued ? ` +${queued}` : ''}</span>
         </button>
@@ -860,27 +927,42 @@ export class UnifiedP2PChatApp {
     }).join('');
   }
 
+  recoveredDeliveries() {
+    if (this.recoveryState !== 'recovered-after-reconnect') return [];
+    const extras = [];
+    for (const [peerId, thread] of this.conversations) {
+      if (peerId === this.selectedConversation) continue;
+      for (const message of thread || []) {
+        if (message && message.recoveredAt && message.delivered && !message.sample && typeof message.content === 'string') extras.push(message);
+      }
+    }
+    return extras;
+  }
+
   renderChatArea() {
     const peer = this.peers.get(this.selectedConversation) || DEFAULT_PEERS[0];
-    const messages = this.conversations.get(peer.id) || [];
+    const messages = (this.conversations.get(peer.id) || []).filter(message => message && !message.sample && !(message.offline && !message.delivered));
+    const visible = messages;
     return `
       <div class="chat-peer-header">
         <div>
           <strong>${escapeHtml(peer.name)}</strong>
+          <input id="p2p-selected-peer" readonly aria-label="Selected peer" value="${escapeHtml(peer.id)}">
           <div class="peer-meta">${escapeHtml(peer.status)} · trust ${escapeHtml(peer.trust)}</div>
         </div>
         <button type="button" class="secondary-action" data-chat-action="activate-audio-fallback" data-svd-workflow-action="activate-audio-fallback" aria-label="Activate audio fallback">Audio fallback</button>
       </div>
-      <div class="messages-container">
-        ${messages.length ? messages.map(message => this.renderMessage(message)).join('') : '<div class="sk-empty">No messages yet — send the first pubsub message below.</div>'}
+      <p id="p2p-offline-status" class="peer-meta" role="status" data-offline-state="${escapeHtml(this.offlineState || 'idle')}">${escapeHtml(this.offlineNotice)}</p>
+      <div class="messages-container" data-message-count="${messages.length}">
+        ${visible.length ? visible.map(message => this.renderMessage(message)).join('') : '<div class="sk-empty">No messages yet — send the first message below.</div>'}
       </div>
       <div class="message-input-area">
         <div class="message-input-row">
           <textarea class="message-input" data-chat-draft rows="2" aria-label="Message draft" placeholder="Write a message">${escapeHtml(this.draft)}</textarea>
-          <button type="button" class="send-button primary-action" data-chat-action="send-pubsub" data-svd-workflow-action="publish-pubsub-message">Send pubsub message</button>
+          <button type="button" class="send-button primary-action" data-chat-action="send-pubsub" data-svd-workflow-action="publish-pubsub-message">Send message</button>
           <button type="button" class="secondary-action" data-chat-action="queue-offline" data-svd-workflow-action="queue-offline-delivery">Queue offline</button>
         </div>
-        <div class="peer-meta sk-honest-note">Offline queue stays in this browser until you confirm a backend write.</div>
+        <div class="peer-meta sk-honest-note">${escapeHtml(this.composerNote())}</div>
       </div>
     `;
   }
@@ -898,14 +980,10 @@ export class UnifiedP2PChatApp {
             : 'unsent';
     const peerName = this.peers.get(outbound ? message.to : message.from)?.name || (outbound ? 'You' : 'Peer');
     return `
-      <div class="message ${outbound ? 'outbound' : 'inbound'}" data-message-id="${escapeHtml(String(message.id))}" data-message-receipt="${escapeHtml(message.receipt || '')}"${message.delivery === 'delivered' || message.delivery === 'owner-published' ? ' data-pubsub-acknowledged="true"' : ''}>
+      <div class="message ${outbound ? 'outbound' : 'inbound'}" style="opacity:1;transform:none;animation:none" data-message-id="${escapeHtml(String(message.id))}" data-receiver-peer="${escapeHtml(message.receiver_peer_id || '')}" data-message-receipt="${escapeHtml(message.receipt || '')}"${message.delivery === 'delivered' || message.delivery === 'owner-published' ? ' data-pubsub-acknowledged="true"' : ''}>
         <div class="message-bubble">
           <div class="message-text">${escapeHtml(message.content)}</div>
-          <div class="message-meta">
-            ${escapeHtml(peerName)} · ${deliveryLabel}
-            ${escapeHtml(new Date(message.timestamp).toLocaleTimeString())}
-            ${message.sample ? ' local sample' : ''}
-          </div>
+          <div class="message-meta">${escapeHtml(`${peerName} · ${deliveryLabel}`)}</div>
         </div>
       </div>
     `;
@@ -1016,6 +1094,7 @@ export class UnifiedP2PChatApp {
     contentElement.style.display = 'flex';
     contentElement.style.flexDirection = 'column';
     contentElement.innerHTML = await this.render();
+    this.pinLatestMessage();
   }
 
   async init(contentElement) {
@@ -1027,6 +1106,14 @@ export class UnifiedP2PChatApp {
     const root = document.querySelector(`[data-unified-p2p-chat-instance="${cssEscape(this.instanceId)}"]`);
     if (!root) return;
     root.outerHTML = await this.render();
+    this.pinLatestMessage();
+  }
+
+  pinLatestMessage() {
+    const root = document.querySelector(`[data-unified-p2p-chat-instance="${cssEscape(this.instanceId)}"]`);
+    const thread = root?.querySelector('.messages-container');
+    if (!thread) return;
+    thread.scrollTop = 0;
   }
 
   currentDraft() {
@@ -1073,6 +1160,7 @@ export class UnifiedP2PChatApp {
     if (!peerId || !this.peers.has(peerId)) return;
     this.selectedConversation = peerId;
     this.currentChatPeer = peerId;
+    void this.saveMessageHistory();
     const messages = this.conversations.get(peerId) || [];
     messages.forEach(message => {
       if (message.from !== this.peerId) message.read = true;
@@ -1105,22 +1193,20 @@ export class UnifiedP2PChatApp {
 
   async invokeConfirmedSend(content, peerId) {
     let toolResult = null;
+    let messageId = '';
+    let topic = '';
     try {
       const container = this.getNativeContainer();
       const trigger = container?.querySelector('[data-chat-action="send-pubsub"].send-button') || null;
-      const messageId = crypto.randomUUID();
-      const message = stableStringifyValue({
-        message_id: messageId,
-        nonce: crypto.randomUUID(),
-        text: content,
-      });
+      messageId = crypto.randomUUID();
+      topic = persistedPubsubTopic();
       toolResult = await invokeNativeTool(container, APP_ID, 'p2p-chat-unified.ipfs_kit_py.exchange_peer_messages', {
         executionMode: 'execute',
         toolId: 'ipfs_pubsub_publish',
         payload: {
-          topic: persistedPubsubTopic(),
+          topic,
           message_id: messageId,
-          message,
+          message: content,
           dry_run: false,
           fixture_scope: 'svf-p2p-chat-g030',
         },
@@ -1160,6 +1246,10 @@ export class UnifiedP2PChatApp {
     message.delivered = toolResult.delivered === true || (toolResult.accepted === true && toolResult.delivery_state === 'delivered');
     message.delivery = message.delivered ? 'delivered' : 'owner-published';
     message.ack = toolResult;
+    message.message_id = messageId;
+    message.topic = topic;
+    message.shared_ack = true;
+    this.noteOwnerDelivery(message, toolResult);
     const receiptId = `p2pchat-pubsub-${message.id}`;
     this.recordReceipt('pubsub', message.delivery, message.cid, receiptId);
     message.receipt = receiptId;
@@ -1240,6 +1330,12 @@ export class UnifiedP2PChatApp {
       delivered: false,
       moderation,
     });
+    message.message_id = crypto.randomUUID();
+    message.nonce = crypto.randomUUID();
+    message.topic = persistedPubsubTopic();
+    message.canonical = content;
+    this.offlineNotice = `Offline: ${content} is queued and not delivered.`;
+    this.offlineState = 'queued';
     message.cid = await this.realContentCid({
       schema: 'swissknife.p2p-chat.message.v1',
       id: message.id,
@@ -1252,7 +1348,6 @@ export class UnifiedP2PChatApp {
       moderation_context: moderation,
     });
     await this.storeOfflineMessage(message);
-    this.appendMessage(peer.id, message);
     this.selectedConversation = peer.id;
     this.recoveryState = 'queued-for-reconnect';
     this.recordReceipt('offline', 'queued', message.cid, `p2pchat-offline-${message.id}`);
@@ -1290,28 +1385,75 @@ export class UnifiedP2PChatApp {
     }
     const replayed = [];
     const stillQueued = [];
+    const container = this.getNativeContainer();
+    const trigger = container?.querySelector('[data-chat-action="recover-offline"]') || null;
     for (const message of queued) {
+      if (message.sample) {
+        stillQueued.push(message);
+        continue;
+      }
       try {
-        const ack = await this.libp2p?.publish?.(PUBSUB_TOPIC, {
-          ...message,
-          topic: PUBSUB_TOPIC,
-          recovered_at: Date.now(),
+        if (!message.message_id || !message.nonce) {
+          message.message_id = message.message_id || crypto.randomUUID();
+          message.nonce = message.nonce || crypto.randomUUID();
+        }
+        const topic = /^svf\.pubsub\.[0-9a-f]{32}$/.test(message.topic || '') ? message.topic : persistedPubsubTopic();
+        message.topic = topic;
+        message.canonical = message.canonical || message.content;
+        let toolResult = await invokeNativeTool(container, APP_ID, 'p2p-chat-unified.ipfs_kit_py.exchange_peer_messages', {
+          executionMode: 'execute',
+          toolId: 'ipfs_pubsub_publish',
+          payload: {
+            topic,
+            message_id: message.message_id,
+            message: message.content,
+            dry_run: false,
+            fixture_scope: 'svf-p2p-chat-g030',
+          },
+          trigger,
         });
+        if (toolResult === null) {
+          message.delivered = false;
+          message.offline = true;
+          message.delivery = 'recovery-cancelled';
+          this.backendStatus = 'Offline retry cancelled before dispatch. The unsent message is still queued.';
+          stillQueued.push(message);
+          continue;
+        }
+        toolResult = pubsubExchange(toolResult);
+        const delivered = toolResult?.accepted === true && toolResult?.delivery_state === 'delivered';
+        if (!delivered) {
+          const ownerError = toolResult?.error || toolResult?.result?.error || toolResult?.owner_error?.message;
+          message.delivered = false;
+          message.offline = true;
+          message.delivery = 'recovery-failed';
+          message.ack = toolResult;
+          this.backendStatus = typeof ownerError === 'string' ? ownerError : 'Offline retry was not delivered. The message is still queued.';
+          stillQueued.push(message);
+          continue;
+        }
         message.delivered = true;
         message.offline = false;
-        message.delivery = 'recovered';
-        message.ack = ack === undefined
-          ? { acknowledged: 'none', note: 'Transport resolved without an acknowledgment payload.' }
-          : ack;
+        message.delivery = 'delivered';
+        message.ack = toolResult;
         message.recoveredAt = Date.now();
-        this.recordReceipt('recovery', 'replayed', message.cid, `p2pchat-recovery-${message.id}`);
+        this.noteOwnerDelivery(message, toolResult);
+        const visible = this.conversations.get(peerId) || [];
+        if (!visible.some(item => item && item.id === message.id)) this.appendMessage(peerId, message);
+        this.offlineNotice = `Delivered one retry of ${message.content}.`;
+        this.offlineState = 'delivered';
+        this.recordReceipt('recovery', toolResult.replayed === true ? 'replayed' : 'delivered', message.cid, `p2pchat-recovery-${message.id}`);
         message.receipt = `p2pchat-recovery-${message.id}`;
+        this.backendStatus = 'Offline message delivered on retry with the same message id.';
         replayed.push(message);
       } catch (error) {
+        message.delivered = false;
+        message.offline = true;
         message.delivery = 'recovery-failed';
         message.ack = { acknowledged: 'error', error: messageFromError(error) };
         this.recordReceipt('recovery', 'failed', message.cid, `p2pchat-recovery-${message.id}`);
         this.notifications.push(`Recovery publish failed for ${message.id}; still queued: ${messageFromError(error)}`);
+        this.backendStatus = `Recovery publish failed; still queued: ${messageFromError(error)}`;
         stillQueued.push(message);
       }
     }
@@ -1319,6 +1461,11 @@ export class UnifiedP2PChatApp {
     if (replayed.length > 0) {
       const peer = this.peers.get(peerId);
       if (peer) peer.status = 'online';
+    }
+    if (replayed.length > 0 && stillQueued.length === 0) {
+      const thread = (this.conversations.get(peerId) || []).filter(message => message && !message.sample);
+      this.conversations.set(peerId, thread);
+      this.draft = '';
     }
     this.recoveryState = stillQueued.length === 0
       ? 'recovered-after-reconnect'
@@ -1578,6 +1725,28 @@ export class UnifiedP2PChatApp {
 
   countOfflineMessages() {
     return Array.from(this.offlineMessages.values()).reduce((total, messages) => total + messages.length, 0);
+  }
+
+  receiptAccount() {
+    const tally = { pubsub: 0, offline: 0, recovery: 0 };
+    for (const receipt of this.receipts) {
+      if (receipt && Object.prototype.hasOwnProperty.call(tally, receipt.kind)) tally[receipt.kind] += 1;
+    }
+    return `${tally.pubsub} sent, ${this.countOfflineMessages()} still queued, ${tally.recovery} recovered`;
+  }
+
+  composerNote() {
+    if (this.recoveryState === 'recovered-after-reconnect') return 'Offline retry confirmed. Nothing is queued.';
+    if (this.countOfflineMessages() > 0) return 'Queued locally until Recover is confirmed.';
+    return 'No offline message is waiting.';
+  }
+
+  noteOwnerDelivery(message, toolResult) {
+    if (!message || !toolResult || typeof toolResult !== 'object') return;
+    if (typeof toolResult.receiver_peer_id === 'string') message.receiver_peer_id = toolResult.receiver_peer_id;
+    if (typeof toolResult.message_sha256 === 'string') message.message_sha256 = toolResult.message_sha256;
+    if (typeof toolResult.delivery_state === 'string') message.delivery_state = toolResult.delivery_state;
+    if (message.receiver_peer_id) this.connectionStatus = 'connected';
   }
 
   describeRecovery() {

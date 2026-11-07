@@ -53,6 +53,21 @@
         "selector": "#undo-btn"
       },
       {
+        "op": "wait_for",
+        "selector": "#project-meta[data-project-width=\"64\"][data-project-height=\"48\"][data-layer-names=\"Background\"][data-edit-action=\"Load image\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#project-meta"
+        },
+        "operator": "contains",
+        "expected": "Load image"
+      },
+      {
         "op": "click",
         "selector": "#redo-btn"
       },
@@ -63,6 +78,15 @@
         "timeout_ms": 15000
       },
       {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#project-meta"
+        },
+        "operator": "contains",
+        "expected": "Brush stroke"
+      },
+      {
         "op": "click",
         "selector": "#save-btn"
       },
@@ -71,6 +95,15 @@
         "selector": "[data-project-storage-state=\"saved\"]",
         "state": "visible",
         "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "figure[data-saved-project-output] figcaption"
+        },
+        "operator": "contains",
+        "expected": "64×48"
       },
       {
         "op": "assert",
@@ -161,7 +194,7 @@
         "op": "assert",
         "checkpoint_id": "error_image_retained",
         "retained_from": {
-          "primary_result": 11,
+          "primary_result": 15,
           "persist_reopen": 6
         },
         "probe": {
@@ -213,7 +246,7 @@
         "op": "assert",
         "checkpoint_id": "recovery_image_retained",
         "retained_from": {
-          "primary_result": 11,
+          "primary_result": 15,
           "persist_reopen": 6
         },
         "probe": {

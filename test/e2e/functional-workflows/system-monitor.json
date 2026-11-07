@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "system-monitor",
-  "description": "Refresh measured telemetry, reopen retained chart history, then recover an unavailable owner observation through the declared inspect_telemetry binding.",
+  "description": "Refresh measured telemetry through the declared inspect_telemetry binding, reopen the saved sample as retained history, record the owner rejection of an unsupported observation argument without a new sample, then confirm a second refresh that records a newer sample. Policy and help text are not the error.",
   "fixture_scope": "svf-system-monitor-live",
   "backend_bindings": [
     {
@@ -19,21 +19,36 @@
   ],
   "phases": {
     "primary_result": [
-      {"op": "wait_for", "selector": "#refresh-btn", "state": "visible", "timeout_ms": 5000},
-      {"op": "press", "selector": "#refresh-btn", "key": "Enter"},
-      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#gpu-metric"}, "operator": "equals", "expected": "n/a"}
-    ],
-    "persist_reopen": [
-      {"op": "reopen_app"},
-      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#vda-history-origin"}, "operator": "contains", "expected": "retained"}
-    ],
-    "failure_recovery": [
-      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#accel-telemetry-state"}, "operator": "contains", "expected": "unavailable"},
       {"op": "click", "selector": "#refresh-backend-telemetry"},
       {"op": "wait_for", "selector": "[data-gateway-confirm=\"system-monitor.ipfs_accelerate_py.inspect_telemetry\"]", "state": "visible", "timeout_ms": 15000},
       {"op": "click", "selector": "[data-gateway-confirm=\"system-monitor.ipfs_accelerate_py.inspect_telemetry\"]"},
-      {"op": "wait_ms", "milliseconds": 3000},
-      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#observation-stamp"}, "operator": "contains", "expected": "measured"}
+      {"op": "wait_for", "selector": "#cpu-metric:has-text(\"%\")", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "#expand-cpu-history"},
+      {"op": "press", "selector": "#expand-cpu-history", "key": "ArrowDown"},
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#cpu-metric"}, "operator": "not_equals", "expected": "n/a"}
+    ],
+    "persist_reopen": [
+      {"op": "reopen_app"},
+      {"op": "click", "selector": "#refresh-backend-telemetry"},
+      {"op": "wait_for", "selector": "[data-gateway-confirm=\"system-monitor.ipfs_accelerate_py.inspect_telemetry\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "[data-gateway-confirm=\"system-monitor.ipfs_accelerate_py.inspect_telemetry\"]"},
+      {"op": "wait_for", "selector": "#cpu-series-caption:has-text(\"fresh\")", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "#expand-cpu-history"},
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#cpu-series-caption"}, "operator": "contains", "expected": "fresh"}
+    ],
+    "failure_recovery": [
+      {"op": "click", "selector": "#probe-unsupported-observation"},
+      {"op": "wait_for", "selector": "[data-gateway-confirm=\"system-monitor.ipfs_accelerate_py.inspect_telemetry\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "[data-gateway-confirm=\"system-monitor.ipfs_accelerate_py.inspect_telemetry\"]"},
+      {"op": "wait_for", "selector": "#owner-failure-status:has-text(\"unavailable\")", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#owner-failure-status"}, "operator": "contains", "expected": "unavailable"},
+      {"op": "click", "selector": "#refresh-backend-telemetry"},
+      {"op": "wait_for", "selector": "[data-gateway-confirm=\"system-monitor.ipfs_accelerate_py.inspect_telemetry\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "[data-gateway-confirm=\"system-monitor.ipfs_accelerate_py.inspect_telemetry\"]"},
+      {"op": "wait_for", "selector": "#owner-failure-status:has-text(\"fresh measured\")", "state": "visible", "timeout_ms": 15000},
+      {"op": "click", "selector": "#expand-cpu-history"},
+      {"op": "press", "selector": "#expand-cpu-history", "key": "ArrowDown"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#owner-failure-status"}, "operator": "contains", "expected": "fresh measured"}
     ]
   }
 }

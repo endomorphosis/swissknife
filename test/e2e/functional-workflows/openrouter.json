@@ -20,7 +20,7 @@
       {"op": "wait_for", "selector": ".conversations-list .or-conversation", "state": "visible", "timeout_ms": 5000},
       {"op": "click", "selector": ".conversations-list .or-conversation"},
       {"op": "wait_for", "selector": ".or-message-assistant .or-message-content", "state": "visible", "timeout_ms": 5000},
-      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": ".or-message-assistant .or-message-content"}, "operator": "contains", "expected": "No request was sent"}
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": ".or-message-user .or-message-content"}, "operator": "equals", "expected": "Say hi"}
     ],
     "failure_recovery": [
       {"op": "click", "selector": ".tab-item[data-tab=\"playground\"]"},
@@ -29,8 +29,11 @@
       {"op": "click", "selector": "#generate-btn"},
       {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#playground-output"}, "operator": "contains", "expected": "No request was sent"},
       {"op": "click", "selector": "#openrouter-connect"},
-      {"op": "wait_for", "selector": ".or-modal h3", "state": "visible", "timeout_ms": 5000},
-      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": ".or-modal h3"}, "operator": "equals", "expected": "OpenRouter API Configuration"}
+      {"op": "wait_for", "selector": "#openrouter-credential-ref", "state": "visible", "timeout_ms": 5000},
+      {"op": "fill", "selector": "#openrouter-credential-ref", "value": "svf-opaque-ref"},
+      {"op": "click", "selector": "#openrouter-save-key"},
+      {"op": "wait_for", "selector": ".or-status.authenticated", "state": "visible", "timeout_ms": 5000},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": ".or-status"}, "operator": "contains", "expected": "Key set"}
     ]
   }
 }
