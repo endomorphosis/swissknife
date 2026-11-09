@@ -34,6 +34,8 @@
       {"op": "wait_for", "selector": "[data-gateway-confirm=\"friends-list.ipfs_kit_py.persist_artifact\"]", "state": "visible", "timeout_ms": 15000},
       {"op": "click", "selector": "[data-gateway-confirm=\"friends-list.ipfs_kit_py.persist_artifact\"]"},
       {"op": "wait_for", "selector": "#reload-friend-record[data-reloaded=\"1\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#friends-listed-count"}, "operator": "equals", "expected": "1 listed contact for did:key:zSvF412DisposableContact"},
+      {"op": "press", "selector": "#reload-friend-record", "key": "Escape"},
       {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": ".friend-card[data-friend-id=\"contact-did:key:zSvF412DisposableContact\"] .friend-record-state"}, "operator": "equals", "expected": "did:key:zSvF412DisposableContact · invite-sent-persisted · not-blocked"}
     ],
     "failure_recovery": [
@@ -47,6 +49,13 @@
       {"op": "wait_for", "selector": "[data-gateway-confirm=\"friends-list.ipfs_kit_py.persist_artifact\"]", "state": "visible", "timeout_ms": 15000},
       {"op": "click", "selector": "[data-gateway-confirm=\"friends-list.ipfs_kit_py.persist_artifact\"]"},
       {"op": "wait_for", "selector": "#friends-recovery-note[data-owner-retry=\"1\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "fill", "selector": "#friends-search", "value": "zzzz-no-contact"},
+      {"op": "wait_for", "selector": "#friends-empty-state", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#friends-empty-state"}, "operator": "contains", "expected": "No matching contacts"},
+      {"op": "click", "selector": "#clear-empty-filter-btn"},
+      {"op": "wait_for", "selector": ".friend-card[data-friend-id=\"contact-did:key:zSvF412DisposableContact\"]", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#friends-listed-count"}, "operator": "equals", "expected": "1 listed contact for did:key:zSvF412DisposableContact"},
+      {"op": "press", "selector": "#reload-friend-record", "key": "Escape"},
       {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#friends-recovery-note"}, "operator": "equals", "expected": "That contact is already in your list. It was not duplicated."}
     ]
   }

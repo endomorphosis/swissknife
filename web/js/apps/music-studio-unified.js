@@ -71,11 +71,20 @@ export class UnifiedMusicStudioApp {
         this.retainedNote = '';
         this.retainedBpm = 0;
         this.editedLine = '';
+        this.loadedLine = '';
+        this.rejectionLine = '';
         this._tone = null;
         this._playTimer = null;
         this._playOrigin = null;
+        this._elapsedBase = 0;
         window.unifiedMusicStudioInstance = this;
-        this.applyProject(this.readStoredProject() || this.demoProject());
+        const storedProject = this.readStoredProject();
+        if (storedProject) {
+            this.applyProject(storedProject, false);
+            this.rememberLoaded(storedProject, 'local');
+        } else {
+            this.applyProject(this.demoProject(), false);
+        }
         
         // P2P collaboration
         this.collaborationSession = null;
@@ -364,6 +373,11 @@ export class UnifiedMusicStudioApp {
     async render() {
         return `
             <style>
+                .window[data-app-id="music-studio-unified"] .window-content,
+                .window[data-app-id="music-studio-unified"] .window-app-content {
+                    display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden;
+                }
+                .window[data-app-id="music-studio-unified"] .window-app-content > * { flex: 1 1 auto; min-height: 0; }
                 .unified-music-studio,
                 .unified-music-studio * {
                     box-sizing: border-box;
@@ -451,16 +465,20 @@ export class UnifiedMusicStudioApp {
                     color: var(--sk-text, #ffffff);
                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 }
-                .unified-music-studio.ums-root button:focus,
-                .unified-music-studio.ums-root input:focus,
-                .unified-music-studio.ums-root select:focus,
-                .unified-music-studio.ums-root textarea:focus,
-                .unified-music-studio.ums-root button:focus-visible,
-                .unified-music-studio.ums-root input:focus-visible,
-                .unified-music-studio.ums-root select:focus-visible,
-                .unified-music-studio.ums-root textarea:focus-visible {
-                    outline: 2px solid var(--sk-accent, #8bd8bd);
+                .unified-music-studio.ums-root button:is(:focus, :focus-visible),
+                .unified-music-studio.ums-root input:is(:focus, :focus-visible),
+                .unified-music-studio.ums-root select:is(:focus, :focus-visible),
+                .unified-music-studio.ums-root textarea:is(:focus, :focus-visible) {
+                    outline: 3px solid #0b6bcb;
                     outline-offset: 2px;
+                    box-shadow: 0 0 0 2px #f7fbff;
+                }
+                .unified-music-studio .sk-transport-btn.is-playing {
+                    outline: none;
+                    box-shadow: none;
+                    background: #12352c;
+                    border-color: #8bd8bd;
+                    color: #f7fffb;
                 }
                 .unified-music-studio .ums-proof {
                     flex: 0 0 auto;
@@ -565,7 +583,7 @@ export class UnifiedMusicStudioApp {
                 .unified-music-studio .ums-view {
                     display: flex;
                     flex-direction: column;
-                    flex: 0 1 auto;
+                    flex: 1 1 auto;
                     gap: 8px;
                     padding: 8px;
                     min-width: 0;
@@ -580,7 +598,7 @@ export class UnifiedMusicStudioApp {
                 }
                 .unified-music-studio .ums-sidepanels { display: none; }
                 .unified-music-studio .ums-suggestions { display: none; }
-                .unified-music-studio .ums-panel { flex: 0 0 auto; overflow: visible; }
+                .unified-music-studio .ums-panel { flex: 1 1 auto; min-height: 0; overflow: hidden; }
                 .unified-music-studio .ums-master { width: 200px; flex: none; }
                 .unified-music-studio .ums-presets { width: 250px; flex: none; }
                 .unified-music-studio .ums-live { width: 400px; flex: none; }
@@ -639,10 +657,11 @@ export class UnifiedMusicStudioApp {
                 .unified-music-studio .ums-note { width: 88px; }
                 .unified-music-studio .ums-project-key { width: 148px; max-width: 100%; }
                 .unified-music-studio .ums-code-container {
-                    flex: 0 0 auto;
+                    flex: 1 1 auto;
                     position: relative;
-                    min-height: 0;
+                    min-height: 72px;
                 }
+                .unified-music-studio #ums-rejected { color: #fde68a; }
                 .unified-music-studio .ums-suggestions {
                     padding: 4px 8px 6px;
                     border-top: 1px solid var(--sk-border, rgba(255,255,255,0.1));
@@ -834,7 +853,9 @@ export class UnifiedMusicStudioApp {
                     <p id="ums-tracks">${this.escapeAttr(this.trackLine())}</p>
                     <p id="ums-edited">${this.escapeAttr(this.editedLine || '')}</p>
                     <p id="ums-retained">${this.escapeAttr(this.retainedLine())}</p>
-                    <p id="ums-playback" data-studio-instance="${this.escapeAttr(this.instanceId)}" data-playback-sample="${this.escapeAttr(JSON.stringify({ elapsed_ms: 0, ceiling_ms: 900 }))}">Playback idle. Audio ${this.escapeAttr(this.audioWord())}.</p>
+                    <p id="ums-loaded">${this.escapeAttr(this.loadedLine || '')}</p>
+                    <p id="ums-rejected">${this.escapeAttr(this.rejectionLine || '')}</p>
+                    <p id="ums-playback" data-studio-instance="${this.escapeAttr(this.instanceId)}" data-playback-sample="${this.escapeAttr(JSON.stringify({ elapsed_ms: this.playbackElapsedMs() }))}">Playback idle. Audio ${this.escapeAttr(this.audioWord())}.</p>
                     <p id="ums-status">${this.escapeAttr(this.statusLine())}</p>
                 </div>
 
@@ -1228,7 +1249,12 @@ export class UnifiedMusicStudioApp {
         }
     }
 
-    applyProject(data) {
+    rememberLoaded(data, key) {
+        const names = data.tracks.map(track => track.name).filter(Boolean).join(', ');
+        this.loadedLine = `Loaded project ${key}. Tracks ${names}. Tempo ${data.bpm} BPM. Note ${data.activeNote}.`;
+    }
+
+    applyProject(data, resetElapsed = false) {
         const tracks = data.tracks.map(track => ({ id: track.id, name: track.name, type: track.type, notes: track.notes.slice() }));
         this.projectTracks = tracks;
         this.bpm = data.bpm;
@@ -1237,6 +1263,11 @@ export class UnifiedMusicStudioApp {
         this.projectError = null;
         this.isPlaying = false;
         this.stopTone();
+        if (resetElapsed) this._elapsedBase = 0;
+        else {
+            const resume = Number(data.resumeElapsedMs);
+            this._elapsedBase = Number.isFinite(resume) && resume > 0 ? Math.round(resume) : 0;
+        }
         if (typeof data.retainedNote === 'string' && data.retainedNote.trim()) {
             this.retainedNote = data.retainedNote.trim();
             this.retainedBpm = Number(data.retainedBpm) || this.bpm;
@@ -1280,14 +1311,15 @@ export class UnifiedMusicStudioApp {
     }
 
     playbackElapsedMs() {
+        const base = Number(this._elapsedBase) || 0;
         const ctx = this.audioContext;
-        if (!this.isPlaying || !ctx || ctx.state !== 'running' || !Number.isFinite(this._playOrigin)) return 0;
-        return Math.max(0, Math.round((ctx.currentTime - this._playOrigin) * 1000));
+        if (!this.isPlaying || !ctx || ctx.state !== 'running' || !Number.isFinite(this._playOrigin)) return base;
+        const live = Math.max(0, Math.round((ctx.currentTime - this._playOrigin) * 1000));
+        return base + live;
     }
 
     markPlaybackSample() {
         if (this.audioContext && this.audioContext.state === 'running') this._playOrigin = this.audioContext.currentTime;
-        this._publishedElapsed = 0;
         this.publishPlayback();
     }
 
@@ -1322,7 +1354,6 @@ export class UnifiedMusicStudioApp {
         gain.connect(ctx.destination);
         osc.start();
         this._tone = { osc, gain };
-        this._publishedElapsed = 0;
         this._playOrigin = ctx.currentTime;
         const token = this.instanceId;
         this.publishPlayback();
@@ -1333,17 +1364,15 @@ export class UnifiedMusicStudioApp {
                 return;
             }
             this.publishPlayback();
-        }, 100);
+        }, 50);
     }
 
     publishPlayback() {
         const el = document.getElementById('ums-playback');
         if (!el || el.dataset.studioInstance !== this.instanceId) return;
-        const raw = this.playbackElapsedMs();
-        const previous = Number.isFinite(this._publishedElapsed) ? this._publishedElapsed : 0;
-        const elapsed = Math.min(900, raw, previous + 200);
+        const elapsed = this.playbackElapsedMs();
         this._publishedElapsed = elapsed;
-        el.dataset.playbackSample = JSON.stringify({ elapsed_ms: elapsed, ceiling_ms: 900 });
+        el.dataset.playbackSample = JSON.stringify({ elapsed_ms: elapsed });
         el.textContent = this.isPlaying && this._tone
             ? `Tone 220 Hz running. Elapsed ${elapsed} ms.`
             : `Playback idle. Audio ${this.audioWord()}.`;
@@ -1365,6 +1394,10 @@ export class UnifiedMusicStudioApp {
         if (edited) edited.textContent = this.editedLine || '';
         const retained = document.getElementById('ums-retained');
         if (retained) retained.textContent = this.retainedLine();
+        const loaded = document.getElementById('ums-loaded');
+        if (loaded) loaded.textContent = this.loadedLine || '';
+        const rejected = document.getElementById('ums-rejected');
+        if (rejected) rejected.textContent = this.rejectionLine || '';
         this.publishPlayback();
         const note = document.getElementById('ums-note');
         if (note && document.activeElement !== note) note.value = this.activeNote || '';
@@ -1402,12 +1435,14 @@ export class UnifiedMusicStudioApp {
         const field = document.getElementById('ums-project-key');
         const stored = key === 'demo' ? this.demoProject() : (key === 'local' ? this.readStoredProject() : null);
         if (stored) {
-            this.applyProject(stored);
+            this.applyProject(stored, this.rejectionLine.length > 0);
+            this.rememberLoaded(stored, key);
             if (field) field.value = key;
             this.refreshProjectStatus();
             return;
         }
         this.projectError = 'invalid';
+        this.rejectionLine = 'Invalid project. Playback did not start.';
         this.isPlaying = false;
         this.stopTone();
         this.strudelEngine?.stop?.();
@@ -1424,6 +1459,7 @@ export class UnifiedMusicStudioApp {
             retainedNote: this.activeNote,
             retainedBpm: this.bpm,
             editedLine: this.editedLine,
+            resumeElapsedMs: Math.max(0, Math.round(this.playbackElapsedMs())),
             valid: true
         };
         this.retainedNote = this.activeNote;
@@ -1452,6 +1488,11 @@ export class UnifiedMusicStudioApp {
             this.strudelEngine?.start?.();
         }
         this.refreshProjectStatus();
+        const audioBtn = document.getElementById('ums-enable-audio');
+        if (audioBtn && typeof audioBtn.focus === 'function') {
+            try { audioBtn.focus({ focusVisible: true }); }
+            catch (error) { audioBtn.focus(); }
+        }
     }
 
     updateMasterVolume(volume) {

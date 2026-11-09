@@ -343,6 +343,38 @@
     
     // Attach event listeners
     attachTrackEventListeners();
+    placeStudioFrame();
+  }
+
+  function placeStudioFrame(retry) {
+    const frame = document.querySelector('.window[data-app-id="music-studio"]');
+    if (!frame) return;
+    const viewportHeight = document.documentElement.clientHeight || window.innerHeight || 0;
+    const viewportWidth = document.documentElement.clientWidth || window.innerWidth || 0;
+    const taskbarEl = document.getElementById('taskbar');
+    const taskbarTop = taskbarEl && taskbarEl.getBoundingClientRect ? taskbarEl.getBoundingClientRect().top : viewportHeight - 48;
+    const margin = viewportWidth <= 760 ? 8 : 16;
+    const height = Math.max(320, Math.floor(taskbarTop - margin - 4));
+    frame.style.boxSizing = 'border-box';
+    frame.style.setProperty('top', `${margin}px`, 'important');
+    frame.style.setProperty('height', `${height}px`, 'important');
+    frame.style.setProperty('max-height', `${height}px`, 'important');
+    frame.style.minHeight = '0';
+    const content = frame.querySelector('.window-content');
+    if (content) {
+      content.style.setProperty('overflow-y', 'auto', 'important');
+      content.style.setProperty('max-height', '100%', 'important');
+      content.style.setProperty('padding-bottom', '0px', 'important');
+    }
+    const scroller = frame.querySelector('.studio-content') || content;
+    const track = frame.querySelector('.track-item') || frame.querySelector('#tracks-list');
+    if (track && scroller && typeof scroller.scrollTop === 'number') {
+      const scrollerBox = scroller.getBoundingClientRect();
+      const limit = Math.min(taskbarTop - 8, scrollerBox.bottom - 2);
+      const box = track.getBoundingClientRect();
+      if (box.bottom > limit) scroller.scrollTop += Math.ceil(box.bottom - limit);
+    }
+    if (retry !== true) requestAnimationFrame(() => placeStudioFrame(true));
   }
 
   function updateCollaboratorsList() {
@@ -464,10 +496,12 @@
           <button type="button" class="btn btn-secondary" id="classic-stop" aria-label="Stop">Stop</button>
           <button type="button" class="btn btn-warning" id="classic-save" aria-label="Save classic project">Save</button>
         </div>
-        <p id="classic-reopen-summary">${escapeHtml(classicProject.trackName)} | ${classicProject.tempo} | ${escapeHtml(classicProject.instrument)}</p>
-        <p id="classic-transport-state">${classicPlayed && classicStopped ? 'Played and stopped' : 'Idle'}${classicEnterConfirmed ? '. Enter confirmed' : ''}</p>
-        <p id="music-studio-workflow-status">${escapeHtml(classicProject.status)}</p>
-
+        <div class="classic-proof">
+          <p id="classic-reopen-summary">${escapeHtml(classicProject.trackName)} | ${classicProject.tempo} | ${escapeHtml(classicProject.instrument)}</p>
+          <p id="classic-transport-state">${classicPlayed && classicStopped ? 'Played and stopped' : 'Idle'}${classicEnterConfirmed ? '. Enter confirmed' : ''}</p>
+          <p id="music-studio-workflow-status">${escapeHtml(classicProject.status)}</p>
+          ${renderClassicWorkflowPanel()}
+        </div>
         <!-- Main Studio Interface -->
         <div class="studio-content">
           <!-- Tracks Panel -->
@@ -507,8 +541,6 @@
                 <button class="btn btn-drum" data-drum="hihat">🥁 Hi-Hat</button>
               </div>
             </div>
-
-            ${renderClassicWorkflowPanel()}
           </div>
 
           <!-- Collaboration Panel -->
@@ -736,8 +768,19 @@
           overflow: visible;
         }
 
+        .classic-proof {
+          flex: 0 0 auto;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          margin: 0;
+          padding: 8px 12px 4px;
+          background: #0f172a;
+          color: #f8fafc;
+        }
+
         .studio-diagnostics {
-          margin: 0 16px 16px;
+          margin: 4px 0 8px;
           max-height: none;
           overflow: visible;
           flex: 0 0 auto;
@@ -745,11 +788,19 @@
           min-width: 0;
         }
 
+        .studio-diagnostics summary {
+          display: block;
+          margin: 0;
+          padding: 4px 0;
+          line-height: 1.35;
+          color: #f8fafc;
+        }
+
         .studio-diagnostics textarea {
           width: 100%;
-          height: 6.5rem;
-          min-height: 4.5rem;
-          max-height: 8rem;
+          height: 2.6rem;
+          min-height: 2.6rem;
+          max-height: 2.6rem;
           box-sizing: border-box;
           white-space: pre-wrap;
           overflow-wrap: anywhere;
@@ -790,18 +841,45 @@
         #classic-reopen-summary,
         #classic-transport-state,
         #music-studio-workflow-status {
-          margin: 0 8px 6px;
+          display: block;
+          position: relative;
+          z-index: 1;
+          margin: 0;
+          padding: 0;
           font-size: 13px;
+          line-height: 1.35;
+          color: #f8fafc;
+          background: transparent;
           word-break: break-word;
         }
         
-        .tracks-list, .collaborators-list {
+        .tracks-list {
+          flex: 0 0 auto;
+          min-height: 108px;
+          overflow: visible;
+          position: relative;
+          z-index: 1;
+          padding: 4px 8px 8px;
+          scroll-margin-bottom: 16px;
+        }
+
+        .collaborators-list {
           flex: 1 1 0;
           min-height: 0;
           overflow-y: auto;
           position: relative;
           z-index: 0;
           padding: 8px;
+        }
+
+        @media (max-width: 800px) {
+          .studio-toolbar { padding: 4px 8px; gap: 4px; }
+          .classic-transport { padding: 4px; }
+          .classic-proof { padding: 4px 8px 2px; }
+          .studio-diagnostics textarea { height: 2.6rem; min-height: 2.6rem; max-height: 2.6rem; }
+          .panel-header { padding: 4px 8px; }
+          .tracks-list { min-height: 0; }
+          .track-item { padding: 4px 6px; margin: 0; }
         }
         
         .track-item {
@@ -839,7 +917,8 @@
         .track-controls {
           display: flex;
           gap: 4px;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
+          flex: 0 0 auto;
         }
 
         .track-volume-label {
@@ -848,10 +927,15 @@
           font-weight: 650;
         }
 
+        .window[data-app-id="music-studio"] button:focus,
         .window[data-app-id="music-studio"] button:focus-visible,
+        .window[data-app-id="music-studio"] input:focus,
         .window[data-app-id="music-studio"] input:focus-visible,
+        .window[data-app-id="music-studio"] select:focus,
         .window[data-app-id="music-studio"] select:focus-visible,
+        .window[data-app-id="music-studio"] textarea:focus,
         .window[data-app-id="music-studio"] textarea:focus-visible,
+        .window[data-app-id="music-studio"] summary:focus,
         .window[data-app-id="music-studio"] summary:focus-visible {
           outline: 2px solid #facc15 !important;
           outline-offset: 2px !important;
@@ -1030,6 +1114,8 @@
             flex-direction: column;
             overflow-x: hidden;
             overflow-y: auto;
+            padding-bottom: 72px;
+            scroll-padding-bottom: 72px;
           }
 
           .tracks-panel, .instruments-panel, .collaboration-panel {

@@ -68,6 +68,16 @@
         "expected": "Load image"
       },
       {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "#main-canvas",
+          "attribute": "data-canvas-pixels-sha256"
+        },
+        "operator": "equals",
+        "expected": "9fdb6b885b647934503a0738caad55ff72c56f47726e06b09332fd606ebafc11"
+      },
+      {
         "op": "click",
         "selector": "#redo-btn"
       },
@@ -85,6 +95,16 @@
         },
         "operator": "contains",
         "expected": "Brush stroke"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "#main-canvas",
+          "attribute": "data-canvas-pixels-sha256"
+        },
+        "operator": "not_equals",
+        "expected": "9fdb6b885b647934503a0738caad55ff72c56f47726e06b09332fd606ebafc11"
       },
       {
         "op": "click",
@@ -157,6 +177,36 @@
         },
         "operator": "equals",
         "expected": 64
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-saved-project-image]",
+          "attribute": "data-png-bytes"
+        },
+        "operator": "equals",
+        "expected": "1552"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-saved-project-image]",
+          "attribute": "data-layer-names"
+        },
+        "operator": "equals",
+        "expected": "Background, Layer 2"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": "[data-saved-project-image]",
+          "attribute": "data-png-sha256"
+        },
+        "operator": "equals",
+        "expected": "b4b41fd8eff7b94b373b50d8ad54c5830ae696c6af5622bb8864ac5950136d33"
       }
     ],
     "failure_recovery": [
@@ -194,7 +244,7 @@
         "op": "assert",
         "checkpoint_id": "error_image_retained",
         "retained_from": {
-          "primary_result": 15,
+          "primary_result": 17,
           "persist_reopen": 6
         },
         "probe": {
@@ -246,7 +296,7 @@
         "op": "assert",
         "checkpoint_id": "recovery_image_retained",
         "retained_from": {
-          "primary_result": 15,
+          "primary_result": 17,
           "persist_reopen": 6
         },
         "probe": {

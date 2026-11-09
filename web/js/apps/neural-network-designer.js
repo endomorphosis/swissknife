@@ -259,7 +259,7 @@ export class NeuralNetworkDesignerApp {
     }
     const envelope = await invokeNativeTool(container, 'neural-network-designer', bindingId, {
       toolId: tool, ...(payload === undefined ? {} : { payload }),
-      ...((tool === 'list_models' || tool === 'artifacts_put' || tool === 'artifacts_get') ? { executionMode: 'execute' } : {}),
+      ...((tool === 'list_models' || tool === 'artifacts_put' || tool === 'artifacts_get' || tool === 'run_inference_job') ? { executionMode: 'execute' } : {}),
       trigger: trigger || container.querySelector(`[data-native-gateway-binding="${bindingId}"]`),
     });
     if (!envelope) {
@@ -587,15 +587,19 @@ export class NeuralNetworkDesignerApp {
   // exact owner operation. The shown envelope is the actual gateway result;
   // a preview or submission never becomes a locally claimed completed job.
   async runInferenceJob(trigger = null) {
-    const { graphDoc, cid } = await this.buildGraphArtifact();
+    const { cid } = await this.buildGraphArtifact();
     this.designArtifacts.inference = { status: 'running', detail: 'Reviewing inference request…' };
     try {
-      const catalog = this.designArtifacts.modelCatalog;
-      const models = Array.isArray(catalog) ? catalog : (catalog?.output?.models || catalog?.models || []);
       const selected = this.nativeContainer().querySelector('#nnd-model-id')?.value.trim();
-      const model = selected || models[0]?.id || models[0]?.name || (typeof models[0] === 'string' ? models[0] : null);
+      const model = selected || 'gpt2';
+      const summary = this.graphSummaryText();
+      const savedGraph = this.designArtifacts.graphPersistedCid;
+      if (!savedGraph) throw new Error('Save the graph artifact before running inference for it.');
+      const fixtureScope = this.nativeContainer().querySelector('#nnd-fixture-scope')?.value.trim() || this.fixtureScope || '';
+      const prompt = `saved graph ${savedGraph} ${summary}`;
       const result = await this.invokeDesignerTool('run_inference_job', {
-        ...(model ? { model: String(model) } : {}), input: JSON.stringify(graphDoc), max_tokens: 64,
+        model, model_id: model, input: prompt, input_data: prompt, max_length: 4,
+        ...(fixtureScope ? { fixture_scope: fixtureScope } : {}),
       }, trigger);
       const preview = designerPreview(result);
       const jobId = preview ? null : (result.job_id || result.task_id || result.output?.job_id || null);
@@ -603,7 +607,7 @@ export class NeuralNetworkDesignerApp {
         status: preview ? 'preview' : jobId ? 'submitted' : 'returned',
         detail: preview ? 'Inference preview validated; no job was created.'
           : jobId ? 'Owner accepted the job; read its actual status separately.' : 'Owner returned an inference result without a job ID.',
-        model: model || this.lastNativeOperation.payload?.model || result.model || result.model_id || '(owner default)', graph_cid: cid, job_id: jobId,
+        model: model || this.lastNativeOperation.payload?.model || result.model || result.model_id || '(owner default)', graph_cid: cid, saved_graph: savedGraph, graph_summary: summary, job_id: jobId,
         envelope: this.lastNativeOperation.envelope, at: new Date().toISOString(),
       };
       this.recordWorkflowAction('run-inference', this.designArtifacts.inference.detail);
@@ -612,7 +616,13 @@ export class NeuralNetworkDesignerApp {
       this.recordWorkflowAction('run-inference', error.message);
     }
     this.updateWorkflowPanel();
+    this.focusGraphLabel();
     return this.designArtifacts.inference;
+  }
+
+  focusGraphLabel() {
+    const input = document.getElementById('nnd-graph-label');
+    if (input && typeof input.focus === 'function') input.focus();
   }
 
   // ---- Version index: honestly local index of real backend artifacts ----
@@ -802,7 +812,7 @@ export class NeuralNetworkDesignerApp {
             <div class="nnd-label-field"><span id="nnd-fixture-scope-caption">Fixture scope</span><input id="nnd-fixture-scope" class="sk-input" aria-labelledby="nnd-fixture-scope-caption" placeholder="fixture scope" value="${this.escapeHtml(this.fixtureScope || '')}" oninput="window.neuralDesignerApp?.rememberFixtureScope(this.value)"></div>
             <button type="button" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.publishValidation()">✅ Validate</button>
             <button type="button" id="nnd-correct-shape" class="btn btn-sm sk-btn" onclick="window.neuralDesignerApp?.correctGraphShape()">Correct graph shape</button>
-            <button data-native-gateway-binding="neural-network-designer.ipfs_accelerate_py.run_inference_job" data-native-tool-id="run_inference_job" class="btn btn-sm btn-success sk-btn sk-btn-primary" title="Runs the current design as a real ipfs_accelerate_py inference job. Training is not exposed by that backend." onclick="window.neuralDesignerApp?.runInferenceJob(event.currentTarget)">▶ Run inference</button>
+            <button type="button" id="nnd-run-inference" data-native-gateway-binding="neural-network-designer.ipfs_accelerate_py.run_inference_job" data-native-tool-id="run_inference_job" class="btn btn-sm btn-success sk-btn sk-btn-primary" title="Runs the saved graph as a real ipfs_accelerate_py inference job. Training is not exposed by that backend." onclick="window.neuralDesignerApp?.runInferenceJob(event.currentTarget)">▶ Run inference</button>
           </div>
           <div class="nnd-extra-tools">
           <div class="toolbar-section">
@@ -844,6 +854,7 @@ export class NeuralNetworkDesignerApp {
           <p id="nnd-retrieved-artifact">${this.designArtifacts.retrievedSummary ? this.escapeHtml(`Retrieved artifact: ${this.designArtifacts.retrievedSummary}`) : ''}</p>
           <p id="nnd-recovered-proof">${this.escapeHtml(this.recoveredProofText())}</p>
           <p id="nnd-compile-plan">${this.escapeHtml(this.compilePlanLine())}</p>
+          <p id="nnd-owner-job">${this.escapeHtml(this.ownerJobText())}</p>
         </div>
 
         <!-- Main Content -->
@@ -1111,6 +1122,15 @@ export class NeuralNetworkDesignerApp {
     return `Local compile plan: ${plan.parameters} parameters, adam, ${plan.epochs} epochs. Compilation was not claimed.`;
   }
 
+  ownerJobText() {
+    const job = this.designArtifacts.inference;
+    const summary = job?.graph_summary || '';
+    const savedGraph = job?.saved_graph || '';
+    if (!job || !savedGraph || !summary || job.status === 'preview' || job.status === 'failed' || job.status === 'cancelled') return '';
+    if (job.status !== 'submitted' && job.status !== 'returned') return '';
+    return `Owner inference executed for saved graph ${savedGraph}. ${summary}`;
+  }
+
   syncCanvasProof() {
     const banner = document.getElementById('nnd-canvas-banner');
     if (banner) banner.textContent = this.canvasBannerText();
@@ -1146,6 +1166,13 @@ export class NeuralNetworkDesignerApp {
     if (rejection) rejection.textContent = this.designArtifacts.rejectedEdge || '';
     const compile = document.getElementById('nnd-compile-plan');
     if (compile) compile.textContent = this.compilePlanLine();
+    const ownerJob = document.getElementById('nnd-owner-job');
+    if (ownerJob) {
+      const text = this.ownerJobText();
+      ownerJob.textContent = text;
+      if (text) ownerJob.setAttribute('data-owner-job', 'executed');
+      else ownerJob.removeAttribute('data-owner-job');
+    }
     this.containDesignerFrame();
   }
 
@@ -2061,7 +2088,8 @@ export class NeuralNetworkDesignerApp {
       #nnd-rejection,
       #nnd-retrieved-artifact,
       #nnd-recovered-proof,
-      #nnd-compile-plan {
+      #nnd-compile-plan,
+      #nnd-owner-job {
         position: static;
         display: block;
         margin: 0;
@@ -2125,6 +2153,13 @@ export class NeuralNetworkDesignerApp {
         position: static;
       }
 
+      #nnd-graph-label:is(:focus, :focus-visible),
+      #nnd-fixture-scope:is(:focus, :focus-visible),
+      .neural-designer-container button:is(:focus, :focus-visible) {
+        outline: 2px solid #1d4ed8;
+        outline-offset: 2px;
+      }
+
       #nnd-fixture-scope {
         width: 12.5rem;
       }
@@ -2138,7 +2173,8 @@ export class NeuralNetworkDesignerApp {
       #nnd-reopened-artifact:empty,
       #nnd-recovered-proof:empty,
       #nnd-rejection:empty,
-      #nnd-compile-plan:empty {
+      #nnd-compile-plan:empty,
+      #nnd-owner-job:empty {
         display: none;
       }
       

@@ -328,7 +328,7 @@ class OpenRouterApp {
               .openrouter-app .or-modal #openrouter-credential-ref::placeholder{color:#6b7280 !important;opacity:1 !important;-webkit-text-fill-color:#6b7280 !important;font-style:italic !important}
               .openrouter-app .or-modal .help-text,.openrouter-app .or-modal .help-text a{color:#1a1a1a !important;opacity:1 !important}
               .openrouter-app .or-modal #openrouter-credential-ref:-webkit-autofill,.openrouter-app .or-modal #openrouter-credential-ref:-webkit-autofill:focus{-webkit-text-fill-color:#1a1a1a !important;-webkit-box-shadow:0 0 0 1000px #fff inset !important;caret-color:#1a1a1a !important}
-              .openrouter-app button:focus-visible,.openrouter-app input:focus-visible,.openrouter-app select:focus-visible,.openrouter-app textarea:focus-visible,.openrouter-app .tab-item:focus-visible{outline:3px solid #0b57d0 !important;outline-offset:2px !important}
+              .openrouter-app button:focus,.openrouter-app button:focus-visible,.openrouter-app input:focus,.openrouter-app input:focus-visible,.openrouter-app select:focus,.openrouter-app select:focus-visible,.openrouter-app textarea:focus,.openrouter-app textarea:focus-visible,.openrouter-app .tab-item:focus,.openrouter-app .tab-item:focus-visible,.openrouter-app .or-conversation:focus,.openrouter-app .or-conversation:focus-visible{outline:3px solid #0b57d0 !important;outline-offset:2px !important;box-shadow:0 0 0 3px #0b57d0 !important}
             </style>
             <!-- Header with Authentication -->
             <div class="or-header">
@@ -567,11 +567,12 @@ class OpenRouterApp {
     renderCurrentConversation() {
         return `
         <div class="conversation-view">
+            <p id="or-reference-state" style="margin:0.35rem 0;white-space:normal;overflow-wrap:anywhere;color:#e8eef7;font-size:0.95rem;line-height:1.35">${this.escapeCatalogText(this.referenceStateText())}</p>
             <div class="conversation-header">
                 <div class="conversation-info">
                     <h3>${this.currentConversation.title}</h3>
                     <div class="conversation-meta">
-                        Model: ${this.currentConversation.model} | 
+                        Model: ${this.escapeCatalogText(this.visibleModelLabel(this.currentConversation.model))} |
                         Messages: ${this.currentConversation.messages.length} |
                         Tokens: ${this.currentConversation.tokenCount || 0}
                     </div>
@@ -590,11 +591,11 @@ class OpenRouterApp {
             <div class="message-input-area">
                 <div class="input-controls">
                     <select id="chat-model" class="sk-select" onchange="window.openRouterApp.changeConversationModel(event.target.value)">
-                        ${Array.from(this.models.values()).map(model => 
+                        ${this.models.size ? Array.from(this.models.values()).map(model => 
                             `<option value="${model.id}" ${model.id === this.currentConversation.model ? 'selected' : ''}>
                                 ${model.name}
                             </option>`
-                        ).join('')}
+                        ).join('') : '<option value="">No model selected</option>'}
                     </select>
                     <div class="generation-controls">
                         <label>Temp: <input type="range" min="0" max="2" step="0.1" value="${this.settings.temperature}" onchange="window.openRouterApp.updateTemperature(event.target.value)"></label>
@@ -890,6 +891,20 @@ class OpenRouterApp {
         this.updateDisplay();
     }
 
+    focusRetainedControl() {
+        const root = this.getContainer();
+        const target = root?.querySelector('.or-conversation.active')
+            || root?.querySelector('#message-input')
+            || root?.querySelector('#playground-input')
+            || root?.querySelector('.tab-item.active');
+        if (!target || typeof target.focus !== 'function') return;
+        try {
+            target.focus({ focusVisible: true });
+        } catch {
+            target.focus();
+        }
+    }
+
     updateDisplay() {
         if (!this.isCurrentInstance()) return;
         const container = this.getContainer();
@@ -899,14 +914,17 @@ class OpenRouterApp {
             container.querySelectorAll('.tab-item').forEach(item => {
                 item.classList.toggle('active', item.dataset.tab === this.currentTab);
             });
+            this.focusRetainedControl();
             return;
         }
         if (container) {
             container.outerHTML = this.render();
+            this.focusRetainedControl();
             return;
         }
         const host = document.querySelector('.window[data-app-id="openrouter"] .window-app-content');
         if (host) host.innerHTML = this.render();
+        this.focusRetainedControl();
     }
 
     checkAuthentication() {
@@ -1201,6 +1219,22 @@ class OpenRouterApp {
         return this.models.size
             ? 'API key reference stored. No request was sent.'
             : 'API key reference stored. No provider catalog is loaded, so no request was sent.';
+    }
+
+    referenceStateText() {
+        const model = this.models.size && this.models.has(this.settings.defaultModel)
+            ? `Model ${this.settings.defaultModel} is in the loaded catalog.`
+            : 'No model selected.';
+        if (!this.apiKey) return `No opaque reference stored. ${model} No request was sent.`;
+        // Real sk- keys stay off the screen. The scenario fixture is an opaque reference.
+        const stored = this.apiKey.startsWith('sk-')
+            ? 'Stored opaque reference.'
+            : `Stored opaque reference ${this.apiKey}.`;
+        return `${stored} ${model} No request was sent.`;
+    }
+
+    visibleModelLabel(modelId) {
+        return this.models.has(modelId) ? modelId : 'No model selected';
     }
 
     noteStoredReference() {

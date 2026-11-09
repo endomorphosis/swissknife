@@ -427,7 +427,10 @@ export function readElementObservation(element, probe) {
     const attribute = element.getAttribute(probe.attribute);
     if (attribute === null) throw new Error('MISSING_OBSERVATION');
     if (attribute.length > 1048576) throw new Error('OBSERVATION_BOUND_EXCEEDED');
-    const parsed = JSON.parse(attribute), pending = [parsed];
+    let parsed;
+    try { parsed = JSON.parse(attribute); }
+    catch (error) { if (!(error instanceof SyntaxError)) throw error; parsed = attribute; }
+    const pending = [parsed];
     let objects = 0;
     while (pending.length) {
       const value = pending.pop();

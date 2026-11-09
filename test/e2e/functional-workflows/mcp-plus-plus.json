@@ -41,10 +41,11 @@
       {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "[data-owner-error]"}, "operator": "contains", "expected": "Invalid identity"},
       {"op": "assert", "probe": {"kind": "value", "selector": "#mcppp-owner-identity"}, "operator": "equals", "expected": "invalid-identity"},
       {"op": "click", "selector": "[data-action=\"refresh-owner-descriptor\"]"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#mcppp-owner-identity"}, "operator": "not_equals", "expected": "invalid-identity"},
+      {"op": "press", "selector": "#mcppp-owner-identity", "key": "Enter"},
       {"op": "wait_for", "selector": "[data-owner-observation]", "state": "visible", "timeout_ms": 15000},
       {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "[data-owner-observation]"}, "operator": "contains", "expected": "Transport http"},
-      {"op": "assert", "probe": {"kind": "text", "selector": "[data-owner-observation]"}, "operator": "contains", "expected": "identity refreshed"},
-      {"op": "assert", "probe": {"kind": "value", "selector": "#mcppp-owner-identity"}, "operator": "not_equals", "expected": "invalid-identity"}
+      {"op": "assert", "probe": {"kind": "text", "selector": "[data-owner-observation]"}, "operator": "contains", "expected": "identity refreshed"}
     ]
   }
 }

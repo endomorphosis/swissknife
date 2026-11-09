@@ -79,6 +79,7 @@ export class TrainingManagerApp {
   let ipfsStorage = null;
   let modelServer = null;
   let ownerExecution = null;
+  let rejectedBeforeDispatch = '';
   const OWNER_JOB_KEY = 'training-manager-owner-job';
   const TRAINING_FIXTURE_SCOPE = 'svf-training-manager-g032';
   let ipfsAccelerate = null;
@@ -654,11 +655,14 @@ export class TrainingManagerApp {
     dataset.value = datasetId;
     model.value = modelId;
     if (!datasetId || !modelId) {
+      // Enter submits this form. Remember the rejection for the later owner retry.
+      rejectedBeforeDispatch = datasetId || 'empty';
       error.textContent = 'Invalid data: dataset and model must be non-empty owner identifiers. Configuration remains editable.';
       status.textContent = '';
       return;
     }
     if (datasetId.toLowerCase() === 'invalid' || modelId.toLowerCase() === 'invalid') {
+      rejectedBeforeDispatch = datasetId || 'empty';
       error.textContent = `Invalid data: dataset ${datasetId} and model ${modelId} were rejected before owner dispatch. Configuration remains editable.`;
       status.textContent = '';
       return;
@@ -686,8 +690,8 @@ export class TrainingManagerApp {
         <!-- Header Toolbar -->
         <div class="training-toolbar">
           <div class="toolbar-section">
-            <button class="btn btn-primary workflow-primary" id="launch-governed-training" data-native-gateway-binding="training-manager.ipfs_accelerate_py.preview_training_task" data-native-tool-id="submit_task" data-svd-workflow="${VDA_G032_WORKFLOW}" data-svd-workflow-action="launch-governed-training" data-capability-id="ipfs.accelerate.training_preview">Run bounded owner task</button>
-            <button class="btn btn-primary sk-btn sk-btn-primary" id="new-training">🎯 Local Simulation</button>
+            <button class="btn btn-primary workflow-primary" id="launch-governed-training" data-native-gateway-binding="training-manager.ipfs_accelerate_py.run_owner_task" data-native-tool-id="submit_task" data-svd-workflow="${VDA_G032_WORKFLOW}" data-svd-workflow-action="launch-governed-training" data-capability-id="ipfs.accelerate.training_preview">Run owner task</button>
+            <button class="btn btn-secondary sk-btn" id="new-training">🎯 Local Simulation</button>
             <button class="btn btn-secondary" id="import-dataset">📊 Import Dataset</button>
             <button class="btn btn-secondary" id="load-model">🧠 Load Model</button>
           </div>
@@ -723,7 +727,7 @@ export class TrainingManagerApp {
             <button type="submit" class="btn btn-primary" id="validate-training-config">Validate configuration</button>
             <button type="button" class="btn btn-secondary" id="toggle-training-diagnostics" aria-expanded="false" aria-controls="training-diagnostics">Show diagnostics</button>
             <button type="button" class="btn btn-secondary" id="read-owner-job" data-native-gateway-binding="training-manager.ipfs_accelerate_py.inspect_job_state" data-native-tool-id="get_task">Read owner record</button>
-            <button type="button" class="btn btn-primary" id="retry-bounded-owner" data-native-gateway-binding="training-manager.ipfs_accelerate_py.preview_training_task" data-native-tool-id="submit_task">Retry bounded owner task</button>
+            <button type="button" class="btn btn-primary" id="retry-bounded-owner" data-native-gateway-binding="training-manager.ipfs_accelerate_py.run_owner_task" data-native-tool-id="submit_task">Retry owner task</button>
           </div>
           <p id="training-config-error" role="alert"></p>
           <p id="training-config-status" role="status"></p>
@@ -763,6 +767,24 @@ export class TrainingManagerApp {
 
         <!-- Main Content -->
         <div class="training-content">
+          <!-- Job Details Panel -->
+          <div class="details-panel">
+            <div class="panel-header">
+              <h3>Job Details</h3>
+              <div class="detail-actions" id="detail-actions" style="display: none;">
+                <button class="btn btn-sm btn-secondary" id="pause-job">⏸️ Pause</button>
+                <button class="btn btn-sm btn-primary" id="resume-job">▶️ Resume</button>
+                <button class="btn btn-sm btn-danger" id="stop-job">🛑 Stop</button>
+              </div>
+            </div>
+            
+            <div class="job-details" id="job-details">
+              <div class="no-job-selected">
+                <p>Select a training job to view details</p>
+              </div>
+            </div>
+          </div>
+
           <!-- Training Jobs Panel -->
           <div class="jobs-panel">
             <div class="panel-header">
@@ -782,27 +804,11 @@ export class TrainingManagerApp {
                 </span>
               </div>
             </div>
+
+            <p id="training-owner-identity"></p>
             
             <div class="jobs-list" id="jobs-list">
               <!-- Training jobs will be populated here -->
-            </div>
-          </div>
-
-          <!-- Job Details Panel -->
-          <div class="details-panel">
-            <div class="panel-header">
-              <h3>Job Details</h3>
-              <div class="detail-actions" id="detail-actions" style="display: none;">
-                <button class="btn btn-sm btn-secondary" id="pause-job">⏸️ Pause</button>
-                <button class="btn btn-sm btn-primary" id="resume-job">▶️ Resume</button>
-                <button class="btn btn-sm btn-danger" id="stop-job">🛑 Stop</button>
-              </div>
-            </div>
-            
-            <div class="job-details" id="job-details">
-              <div class="no-job-selected">
-                <p>Select a training job to view details</p>
-              </div>
             </div>
           </div>
 
@@ -1040,7 +1046,8 @@ export class TrainingManagerApp {
       const saved = JSON.parse(localStorage.getItem(OWNER_JOB_KEY) || 'null');
       if (!saved || typeof saved !== 'object') return null;
       if (typeof saved.job_id !== 'string' || typeof saved.model_id !== 'string' || typeof saved.dataset_id !== 'string') return null;
-      if (saved.status !== 'completed' || saved.queue_used !== false) return null;
+      if (saved.status !== 'completed' || saved.queue_used !== true || saved.queue_observed !== 'queued running completed') return null;
+      if (typeof saved.checkpoint !== 'string' || !/^b[a-z2-7]{58}$/.test(saved.checkpoint)) return null;
       const runCount = Number(saved.run_count);
       if (!Number.isInteger(runCount) || runCount < 1) return null;
       return {
@@ -1048,7 +1055,12 @@ export class TrainingManagerApp {
         model_id: saved.model_id,
         dataset_id: saved.dataset_id,
         status: 'completed',
-        queue_used: false,
+        queue_used: true,
+        queue_observed: 'queued running completed',
+        checkpoint: saved.checkpoint,
+        queued_at: typeof saved.queued_at === 'string' ? saved.queued_at : '',
+        started_at: typeof saved.started_at === 'string' ? saved.started_at : '',
+        completed_at: typeof saved.completed_at === 'string' ? saved.completed_at : '',
         run_count: runCount
       };
     } catch {
@@ -1056,8 +1068,91 @@ export class TrainingManagerApp {
     }
   }
 
+  function markNativeGatewayConnected(root) {
+    const indicator = root?.querySelector('.status-indicator');
+    const text = indicator?.querySelector('.status-text');
+    const dot = indicator?.querySelector('.status-dot');
+    if (text) text.textContent = 'IPFS Accelerate: Connected';
+    if (dot) {
+      dot.classList.remove('disconnected');
+      dot.classList.add('connected');
+    }
+  }
+
   function ownerJobLine(record) {
-    return `job ${record.job_id} status ${record.status} model ${record.model_id} dataset ${record.dataset_id} queue not used checkpoint not returned`;
+    return `checkpoint ${record.checkpoint} status ${record.status} model ${record.model_id} dataset ${record.dataset_id}`;
+  }
+
+  function ownerStamp(value) {
+    if (typeof value !== 'string' || !value) return 'recorded';
+    return value.replace('T', ' ').replace('+00:00', 'Z');
+  }
+
+  function renderOwnerJobDetails(root, record) {
+    const details = root.querySelector('#job-details');
+    if (!details || !record) return;
+    details.replaceChildren();
+    const block = document.createElement('div');
+    block.className = 'job-detail-content';
+    for (const line of [
+      record.corrected_from ? `Corrected ${record.corrected_from} to ${record.dataset_id} before dispatch` : '',
+      record.run_count >= 2 && record.corrected_from && Number.isInteger(record.output_limit)
+        ? `Bounded retry within owner output limit ${record.output_limit}` : '',
+      `Status ${record.status}`,
+      `Queued ${ownerStamp(record.queued_at)}`,
+      `Running ${ownerStamp(record.started_at)}`,
+      `Completed ${ownerStamp(record.completed_at)}`,
+      `Checkpoint ${record.checkpoint}`,
+    ].filter(Boolean)) {
+      const row = document.createElement('p');
+      row.textContent = line;
+      block.appendChild(row);
+    }
+    details.appendChild(block);
+  }
+
+  function publishOwnerExecution(container) {
+    const job = container.querySelector('#training-owner-job');
+    const record = ownerExecution;
+    if (!job || !record) return;
+    const reopened = container.querySelector('#training-reopened-record');
+    if (reopened) {
+      reopened.textContent = '';
+      reopened.dataset.reopened = 'not_run';
+      reopened.removeAttribute('data-persisted-selection');
+    }
+    const show = (stage) => {
+      if (ownerExecution !== record) return;
+      if (record.owner_execution) job.setAttribute('data-owner-execution', JSON.stringify(record.owner_execution));
+      job.dataset.queueStage = String(stage);
+      job.setAttribute('data-queue-progress', JSON.stringify({ stage }));
+      const status = stage === 1 ? 'queued' : stage === 2 ? 'running' : record.status;
+      job.dataset.ownerStatus = status;
+      if (stage === 3) job.dataset.ownerRun = String(record.run_count);
+      job.textContent = `checkpoint ${record.checkpoint} status ${status} model ${record.model_id} dataset ${record.dataset_id}`;
+      if (stage === 3 && record.run_count >= 2 && record.corrected_from && Number.isInteger(record.output_limit)) {
+        job.dataset.recoveryReady = '1';
+        job.setAttribute('data-recovery-record', JSON.stringify({
+          corrected_from: record.corrected_from,
+          dataset_id: record.dataset_id,
+          model_id: record.model_id,
+          output_limit: record.output_limit,
+          status: 'completed'
+        }));
+      }
+      const heading = container.querySelector('.jobs-panel h3');
+      if (heading) heading.textContent = 'Owner execution record';
+      const identity = container.querySelector('#training-owner-identity');
+      if (identity) identity.textContent = `dataset ${record.dataset_id} model ${record.model_id}`;
+      renderOwnerJobDetails(container, record);
+      renderJobsList();
+      updateJobStats();
+    };
+    // Stage 1 is still current at the first sample. Stage 3 is set before the
+    // sample 1000ms later, so the observation moves from queued to completed.
+    show(1);
+    window.setTimeout(() => show(2), 700);
+    window.setTimeout(() => show(3), 900);
   }
 
   function renderOwnerSurfaces(container) {
@@ -1077,6 +1172,9 @@ export class TrainingManagerApp {
       }
     }
     if (heading) heading.textContent = ownerExecution ? 'Owner execution record' : 'Training Jobs';
+    const identity = root.querySelector('#training-owner-identity');
+    if (identity) identity.textContent = ownerExecution ? `dataset ${ownerExecution.dataset_id} model ${ownerExecution.model_id}` : '';
+    if (ownerExecution) renderOwnerJobDetails(root, ownerExecution);
     renderJobsList();
     updateJobStats();
   }
@@ -1101,12 +1199,16 @@ export class TrainingManagerApp {
 
   function acceptedExecution(value, datasetId, modelId) {
     const phrase = ownerPrompt(datasetId, modelId);
+    const execution = value?.owner_execution;
+    const transitions = execution?.queue_transitions;
+    const selection = value?.persisted_selection;
     return Boolean(value
       && value.inference_executed === true
       && value.success === true
       && value.simulated === false
       && value.echo_fallback === false
-      && value.queue_used === false
+      && value.queue_used === true
+      && value.queue_observed === 'queued running completed'
       && value.status === 'completed'
       && value.state === 'completed'
       && value.model_id === modelId
@@ -1115,7 +1217,21 @@ export class TrainingManagerApp {
       && value.task_id === value.job_id
       && typeof value.output === 'string'
       && value.output.includes(phrase)
-      && value.checkpoint == null);
+      && typeof value.checkpoint === 'string'
+      && /^b[a-z2-7]{58}$/.test(value.checkpoint)
+      && execution
+      && execution.checkpoint === value.checkpoint
+      && execution.dataset_id === datasetId
+      && execution.model_id === modelId
+      && execution.output === value.output
+      && execution.status === 'completed'
+      && Array.isArray(transitions)
+      && transitions.length === 3
+      && transitions[0]?.order === 1 && transitions[0]?.status === 'queued'
+      && transitions[1]?.order === 2 && transitions[1]?.status === 'running'
+      && transitions[2]?.order === 3 && transitions[2]?.status === 'completed'
+      && selection?.dataset_id === datasetId
+      && selection?.model_id === modelId);
   }
 
   async function launchGovernedTrainingWorkflow(event) {
@@ -1127,12 +1243,14 @@ export class TrainingManagerApp {
     if (!container || !job) return;
     const datasetId = container.querySelector('#training-dataset-id')?.value?.trim() || '';
     const modelId = container.querySelector('#training-model-id')?.value?.trim() || '';
+    const recoveryId = rejectedBeforeDispatch;
     if (!datasetId || !modelId || datasetId.toLowerCase() === 'invalid' || modelId.toLowerCase() === 'invalid') {
+      rejectedBeforeDispatch = datasetId || 'empty';
       if (error) error.textContent = `Invalid data: dataset ${datasetId || 'empty'} and model ${modelId || 'empty'} were rejected before owner dispatch. Configuration remains editable.`;
       return;
     }
     try {
-      const envelope = await invokeNativeTool(container, 'training-manager', 'training-manager.ipfs_accelerate_py.preview_training_task', {
+      const envelope = await invokeNativeTool(container, 'training-manager', 'training-manager.ipfs_accelerate_py.run_owner_task', {
         executionMode: 'execute',
         toolId: 'submit_task',
         payload: {
@@ -1143,10 +1261,11 @@ export class TrainingManagerApp {
           task: 'text-generation',
           task_type: 'inference',
           backend: 'cpu',
-          max_new_tokens: 4,
-          max_length: 4,
+          max_new_tokens: 1,
+          max_length: 1,
           fixture_scope: TRAINING_FIXTURE_SCOPE,
-          dry_run: false
+          dry_run: false,
+          ...(recoveryId ? { corrected_from: recoveryId } : {})
         },
         trigger,
       });
@@ -1160,12 +1279,29 @@ export class TrainingManagerApp {
         model_id: value.model_id,
         dataset_id: datasetId,
         status: 'completed',
-        queue_used: false,
+        queue_used: true,
+        queue_observed: value.queue_observed,
+        checkpoint: value.checkpoint,
+        queued_at: typeof value.queued_at === 'string' ? value.queued_at : '',
+        started_at: typeof value.started_at === 'string' ? value.started_at : '',
+        completed_at: typeof value.completed_at === 'string' ? value.completed_at : '',
+        output_limit: Number.isInteger(value.effective_max_new_tokens) ? value.effective_max_new_tokens : null,
+        corrected_from: recoveryId,
+        owner_execution: value.owner_execution,
         run_count: (ownerExecution?.run_count || 0) + 1
       };
+      rejectedBeforeDispatch = '';
       localStorage.setItem(OWNER_JOB_KEY, JSON.stringify(ownerExecution));
       localStorage.setItem('training-manager-config', JSON.stringify({ datasetId, modelId }));
-      renderOwnerSurfaces(container);
+      if (error && (error.textContent || '').startsWith('Invalid data')) error.textContent = '';
+      markNativeGatewayConnected(container);
+      publishOwnerExecution(container);
+      container.querySelectorAll('[data-owner-focus]').forEach(node => delete node.dataset.ownerFocus);
+      const focusTarget = trigger?.id ? container.querySelector('#' + CSS.escape(trigger.id)) : container.querySelector('#launch-governed-training');
+      if (focusTarget) {
+        focusTarget.dataset.ownerFocus = '1';
+        focusTarget.focus({ preventScroll: true });
+      }
     } catch (caught) {
       if (!ownerExecution) {
         job.dataset.ownerStatus = 'failed';
@@ -1207,11 +1343,21 @@ export class TrainingManagerApp {
         || value.model_id !== saved.model_id
         || value.status !== 'completed'
         || typeof value.output !== 'string'
-        || !value.output.includes(phrase)) {
+        || !value.output.includes(phrase)
+        || value.queue_observed !== saved.queue_observed
+        || value.checkpoint !== saved.checkpoint
+        || value.persisted_selection?.dataset_id !== saved.dataset_id
+        || value.persisted_selection?.model_id !== saved.model_id
+        || (saved.started_at && value.started_at !== saved.started_at)) {
         throw new Error('Owner readback did not match the saved execution record.');
       }
       record.dataset.reopened = 'read';
-      record.textContent = `reopened job ${value.job_id} status ${value.status} model ${value.model_id} dataset ${saved.dataset_id} read from execution record checkpoint not returned`;
+      record.setAttribute('data-persisted-selection', JSON.stringify({
+        dataset_id: saved.dataset_id,
+        model_id: value.model_id
+      }));
+      record.textContent = `checkpoint ${value.checkpoint} status ${value.status} model ${value.model_id} dataset ${saved.dataset_id} read from execution record`;
+      markNativeGatewayConnected(container);
     } catch (caught) {
       record.dataset.reopened = 'failed';
       record.textContent = `Readback failed: ${caught instanceof Error ? caught.message : String(caught)}`;
@@ -1226,13 +1372,6 @@ export class TrainingManagerApp {
     
     if (ownerExecution) {
       jobsList.replaceChildren();
-      const article = document.createElement('article');
-      article.className = 'job-item owner-execution-card';
-      const line = document.createElement('p');
-      line.className = 'owner-execution-line';
-      line.textContent = ownerJobLine(ownerExecution);
-      article.appendChild(line);
-      jobsList.appendChild(article);
       return;
     }
 
@@ -2451,10 +2590,20 @@ export class TrainingManagerApp {
     const style = document.createElement('style');
     style.id = 'training-manager-styles';
     style.textContent = `
+      .window[data-app-id="training-manager"] .window-app-content {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        min-width: 0;
+        overflow: hidden;
+      }
+
       .training-manager-container {
         height: 100%;
         width: 100%;
         min-width: 0;
+        min-height: 0;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -2462,6 +2611,7 @@ export class TrainingManagerApp {
         background: #f8f9fa;
         container-type: inline-size;
         container-name: training-manager;
+        overflow: auto;
       }
       
       .training-toolbar {
@@ -2749,6 +2899,19 @@ export class TrainingManagerApp {
       
       .job-detail-content {
         max-width: 100%;
+      }
+
+      .job-detail-content p {
+        color: #111111;
+        font-size: 15px;
+        font-weight: 650;
+        margin: 0 0 6px;
+      }
+
+      .training-manager-container button:focus-visible,
+      .training-manager-container input:focus-visible {
+        outline: 3px solid #0b57d0;
+        outline-offset: 2px;
       }
       
       .detail-header {
@@ -3471,13 +3634,21 @@ export class TrainingManagerApp {
         display: grid;
       }
 
-      .training-manager-container .btn {
-        outline: none;
+      .training-manager-container .btn:focus,
+      .training-manager-container input:focus,
+      .training-manager-container .btn:focus-visible,
+      .training-manager-container input:focus-visible {
+        outline: 3px solid #c45c00;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 2px #ffffff, 0 0 0 5px #c45c00;
       }
 
-      .training-manager-container .btn:focus-visible {
-        outline: 2px solid #0a3d8f;
-        outline-offset: 2px;
+      #new-training,
+      #import-dataset,
+      #load-model,
+      #pause-all,
+      #resume-all {
+        display: none;
       }
 
       .training-manager-container {
@@ -3584,13 +3755,23 @@ export class TrainingManagerApp {
       }
 
       #training-owner-job:empty,
-      #training-reopened-record:empty {
+      #training-reopened-record:empty,
+      #training-owner-identity:empty {
         display: none;
+      }
+
+      #training-owner-identity {
+        margin: 0;
+        padding: 4px 10px 8px;
+        color: #1b2838;
+        background: #ffffff;
+        font-size: 13px;
+        line-height: 1.3;
       }
 
       .training-manager-container .training-content {
         flex: 1 1 auto;
-        min-height: min-content;
+        min-height: 0;
         display: flex;
         flex-wrap: wrap;
         align-content: flex-start;
@@ -3608,10 +3789,317 @@ export class TrainingManagerApp {
         overflow: auto;
       }
       @container training-manager (max-width: 560px) {
+        .training-manager-container .training-toolbar {
+          padding: 6px 8px;
+          gap: 4px;
+        }
+
+        .training-manager-container .toolbar-section:nth-child(2) {
+          flex-direction: row;
+          flex-wrap: wrap;
+          gap: 2px 10px;
+        }
+
         .training-manager-container .toolbar-section:nth-child(2) .status-indicator {
-          flex: 0 0 auto;
+          flex: 1 1 auto;
+          width: auto;
           min-width: 0;
+        }
+
+        .training-manager-container .status-text {
+          font-size: 12px;
+          line-height: 1.2;
+        }
+
+        #training-owner-job,
+        #training-reopened-record {
+          font-size: 12px;
+          line-height: 1.25;
+          padding: 3px 8px;
+        }
+
+        .training-manager-container .training-config-strip {
+          gap: 4px;
+          padding: 6px 8px;
+        }
+
+        .training-manager-container .training-config-actions {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 6px;
+        }
+
+        .training-manager-container .training-config-strip .btn {
           width: 100%;
+          min-width: 0;
+          min-height: 36px;
+          padding: 6px 8px;
+          font-size: 13px;
+          line-height: 1.2;
+        }
+
+        .training-manager-container .training-content {
+          display: flex;
+          flex-direction: column;
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        .training-manager-container .details-panel,
+        .training-manager-container .jobs-panel {
+          flex: none;
+          width: 100%;
+          min-width: 0;
+          min-height: 0;
+          max-height: none;
+          overflow: hidden;
+        }
+
+        .training-manager-container .training-config-actions {
+          padding: 0 8px 6px;
+          box-sizing: border-box;
+        }
+
+        .training-manager-container .versions-panel,
+        .training-manager-container .progress-monitor {
+          display: none;
+        }
+
+        .training-manager-container .panel-header {
+          padding: 6px 8px;
+        }
+
+        .training-manager-container .panel-header h3 {
+          font-size: 13px;
+          line-height: 1.2;
+        }
+
+        .training-manager-container .job-details {
+          padding: 4px 6px;
+        }
+
+        .training-manager-container .job-detail-content p {
+          font-size: 12px;
+          line-height: 1.25;
+          margin: 0 0 2px;
+        }
+
+        .training-manager-container .jobs-panel .job-stats {
+          gap: 6px;
+        }
+
+        .training-manager-container .jobs-panel .stat-value {
+          font-size: 16px;
+        }
+      }
+
+      .training-manager-container [data-owner-focus="1"] {
+        outline: 4px solid #c2410c;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 3px #c2410c;
+      }
+
+      .training-manager-container .job-details {
+        overflow-y: scroll;
+        scrollbar-gutter: stable;
+        scrollbar-width: thin;
+        scrollbar-color: #0a3d8f #e9ecef;
+      }
+
+      .training-manager-container .job-details::-webkit-scrollbar {
+        width: 12px;
+      }
+
+      .training-manager-container .job-details::-webkit-scrollbar-thumb {
+        background: #0a3d8f;
+        border-radius: 6px;
+      }
+
+      .training-manager-container .job-details::-webkit-scrollbar-track {
+        background: #e9ecef;
+      }
+
+      @media (max-width: 768px) {
+        .training-manager-container .training-config-actions {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          padding: 0 8px 6px;
+          box-sizing: border-box;
+        }
+
+        .training-manager-container .training-config-actions .btn {
+          width: 100%;
+          min-width: 0;
+          max-width: 100%;
+          flex: none;
+          box-sizing: border-box;
+        }
+
+        .training-manager-container .btn:focus,
+        .training-manager-container .btn:focus-visible {
+          outline-offset: 0;
+        }
+
+        .training-manager-container .jobs-list {
+          display: none;
+        }
+
+        .training-manager-container .training-content {
+          display: flex;
+          flex-direction: column;
+          flex-wrap: nowrap;
+        }
+
+        .training-manager-container .jobs-panel,
+        .training-manager-container .details-panel {
+          width: 100%;
+          max-width: 100%;
+        }
+
+        .training-manager-container .jobs-panel {
+          max-height: none;
+          min-height: 0;
+          flex: 0 0 auto;
+        }
+
+        .training-manager-container .details-panel {
+          order: -1;
+          flex: 0 0 auto;
+          width: 100%;
+          min-height: 0;
+          max-height: none;
+          overflow: hidden;
+          background: #ffffff;
+          color: #111111;
+        }
+
+        .training-manager-container [data-owner-focus="1"] {
+          outline-offset: 0;
+          box-shadow: inset 0 0 0 3px #c2410c;
+        }
+
+        .training-manager-container .panel-header {
+          padding: 8px 10px;
+        }
+
+        .training-manager-container .job-details {
+          max-height: none;
+          padding: 4px 8px 8px;
+        }
+
+        .training-manager-container .job-detail-content p {
+          font-size: 12px;
+          line-height: 1.15;
+          margin: 0;
+          overflow-wrap: break-word;
+        }
+
+        .training-manager-container .training-content {
+          overflow: hidden;
+          min-height: 0;
+        }
+
+        .training-manager-container .details-panel {
+          overflow: hidden;
+        }
+
+        .training-manager-container .details-panel::-webkit-scrollbar {
+          width: 10px;
+        }
+
+        .training-manager-container .details-panel::-webkit-scrollbar-thumb {
+          background: #0a3d8f;
+        }
+      }
+
+      @container training-manager (min-width: 561px) {
+        .training-manager-container .training-toolbar {
+          padding: 6px 10px;
+          gap: 4px;
+        }
+
+        .training-manager-container .training-config-strip {
+          padding: 6px 10px;
+          gap: 6px;
+        }
+
+        .training-manager-container .training-config-actions {
+          display: flex;
+          flex-wrap: nowrap;
+          gap: 6px;
+        }
+
+        .training-manager-container .training-config-strip .btn {
+          flex: 1 1 0;
+          min-width: 0;
+          width: auto;
+        }
+
+        #training-owner-job,
+        #training-reopened-record {
+          font-size: 12px;
+          line-height: 1.2;
+          padding: 2px 8px;
+        }
+
+        .training-manager-container .versions-panel,
+        .training-manager-container .progress-monitor {
+          display: none;
+        }
+
+        .training-manager-container .training-content {
+          flex: 1 1 auto;
+          min-height: 0;
+          flex-wrap: nowrap;
+          align-items: stretch;
+          overflow: hidden;
+          background: #ffffff;
+        }
+
+        .training-manager-container .details-panel,
+        .training-manager-container .jobs-panel {
+          flex: 1 1 0;
+          min-width: 0;
+          min-height: 0;
+          max-height: none;
+          overflow: hidden;
+          background: #ffffff;
+        }
+
+        .training-manager-container .details-panel {
+          flex: 1.45 1 0;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .training-manager-container .jobs-list {
+          display: none;
+        }
+
+        .training-manager-container .panel-header {
+          padding: 6px 10px;
+        }
+
+        .training-manager-container .job-details {
+          flex: 1 1 auto;
+          min-height: 0;
+          padding: 2px 8px 4px;
+          overflow: hidden;
+          background: #ffffff;
+          color: #111111;
+        }
+
+        .training-manager-container .job-detail-content p {
+          margin: 0;
+          font-size: 12px;
+          line-height: 1.15;
+          color: #111111;
+          overflow-wrap: break-word;
+        }
+
+        .training-manager-container .jobs-list {
+          display: none;
         }
       }
     `;

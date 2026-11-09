@@ -32,6 +32,8 @@ export class StrudelAIDAW {
         this._previewBeatHistory = [];
         this._metronomeTimer = null;
         this.audioBackend = 'unavailable';
+        this.transportStarted = '';
+        this.transportHalted = '';
         this.audioCleanupErrors = [];
         this._transportFaulted = false;
         this._closed = false;
@@ -104,6 +106,44 @@ export class StrudelAIDAW {
         return this.getContentHTML();
     }
 
+    fitStrudelFrame(container, retry) {
+        const frame = container.closest?.('.window');
+        const view = container.ownerDocument?.defaultView;
+        if (!frame || !view) return;
+        const doc = container.ownerDocument;
+        const taskbar = doc.getElementById('taskbar');
+        const viewportHeight = doc.documentElement.clientHeight || view.innerHeight || 0;
+        const viewportWidth = doc.documentElement.clientWidth || view.innerWidth || 0;
+        const taskbarTop = taskbar && taskbar.getBoundingClientRect ? taskbar.getBoundingClientRect().top : viewportHeight - 48;
+        const margin = viewportWidth <= 800 ? 8 : 16;
+        const height = Math.max(320, Math.floor(taskbarTop - margin - 4));
+        const width = Math.max(300, Math.min(1100, viewportWidth - margin * 2));
+        frame.style.setProperty('top', `${margin}px`, 'important');
+        frame.style.setProperty('left', `${margin}px`, 'important');
+        frame.style.setProperty('width', `${width}px`, 'important');
+        frame.style.setProperty('height', `${height}px`, 'important');
+        frame.style.setProperty('max-width', `${Math.max(300, viewportWidth - margin * 2)}px`, 'important');
+        frame.style.setProperty('max-height', `${height}px`, 'important');
+        frame.style.setProperty('overflow', 'hidden', 'important');
+        const content = frame.querySelector('.window-content') || frame.querySelector('.window-app-content');
+        if (content) {
+            const inner = Math.max(160, height - 32);
+            content.style.setProperty('height', `${inner}px`, 'important');
+            content.style.setProperty('max-height', `${inner}px`, 'important');
+            content.style.setProperty('overflow-x', 'hidden', 'important');
+            content.style.setProperty('overflow-y', 'scroll', 'important');
+        }
+        if (viewportWidth <= 800 && content) {
+            content.scrollTop = 0;
+            const editor = frame.querySelector('#strudel-code-editor');
+            if (editor) {
+                editor.wrap = 'soft';
+                editor.scrollLeft = 0;
+            }
+        }
+        if (retry !== true) view.requestAnimationFrame(() => this.fitStrudelFrame(container, true));
+    }
+
     /**
      * Called after the HTML has been inserted into the container. Sets up listeners and audio.
      */
@@ -111,6 +151,7 @@ export class StrudelAIDAW {
         if (this._closed || this._container) return;
         if (!container.isConnected) { await this.onDestroy(); return; }
         this._container = container;
+        this.fitStrudelFrame(container);
         const view = container.ownerDocument.defaultView;
         this._ownerObserver = new view.MutationObserver(() => {
             if (!container.isConnected) void this.onDestroy();
@@ -169,32 +210,62 @@ export class StrudelAIDAW {
     getContentHTML() {
         return `
             <style>
-                .window[data-app-id="strudel-ai-daw"]{overflow:hidden!important}
+                .window[data-app-id="strudel-ai-daw"]{top:8px!important;left:8px!important;width:min(1100px,calc(100vw - 16px))!important;height:calc(100dvh - 64px)!important;max-width:calc(100vw - 16px)!important;max-height:calc(100dvh - 64px)!important;overflow:hidden!important}
                 .window[data-app-id="strudel-ai-daw"] .window-content,.window[data-app-id="strudel-ai-daw"] .window-app-content{position:relative!important;flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:100%!important;overflow:auto!important}
                 .strudel-ai-daw{box-sizing:border-box!important;width:100%!important;max-width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;display:flex!important;flex-direction:column!important}
-                .strudel-ai-daw .daw-chrome{position:sticky!important;top:0!important;z-index:4!important;background:#1b1b1b!important;flex:0 0 auto!important;max-width:100%!important}
-                .strudel-ai-daw .daw-main{display:flex!important;flex-direction:column!important;width:100%!important;min-width:0!important;min-height:0!important;flex:1 1 auto!important;overflow:visible!important}
-                .strudel-ai-daw .pattern-sidebar,.strudel-ai-daw .code-section{display:block!important;position:static!important;width:100%!important;max-width:100%!important;min-width:0!important;flex:0 0 auto!important}
-                .strudel-ai-daw .daw-menubar,.strudel-ai-daw .menu-section,.strudel-ai-daw .transport-bar{display:flex!important;flex:0 0 auto!important;flex-wrap:wrap!important;align-items:center!important;gap:6px!important;max-width:100%!important;overflow:visible!important}
+                .strudel-ai-daw .daw-chrome{position:relative!important;z-index:4!important;background:#1b1b1b!important;flex:0 0 auto!important;max-width:100%!important}
+                .strudel-ai-daw .daw-main{display:flex!important;flex-direction:column!important;width:100%!important;min-width:0!important;min-height:360px!important;height:auto!important;flex:0 0 auto!important;overflow:visible!important}
+                .strudel-ai-daw .pattern-sidebar{display:flex!important;flex-direction:column!important;position:static!important;width:100%!important;max-width:100%!important;min-width:0!important;flex:0 0 132px!important;height:132px!important;min-height:132px!important;max-height:160px!important;overflow:auto!important}
+                .strudel-ai-daw .sidebar-tabs{display:flex!important;flex:0 0 auto!important}
+                .strudel-ai-daw .sidebar-content{display:block!important;flex:1 1 auto!important;height:auto!important;min-height:72px!important;overflow:auto!important}
+                .strudel-ai-daw .sidebar-panel.active{display:block!important;height:auto!important;min-height:64px!important}
+                .strudel-ai-daw .pattern-list,.strudel-ai-daw .pattern-item{display:flex!important;min-height:36px!important}
+                .strudel-ai-daw .pattern-name{color:#e5e7eb!important}
+                .strudel-ai-daw .code-section{display:flex!important;flex-direction:column!important;position:static!important;width:100%!important;max-width:100%!important;min-width:0!important;flex:0 0 auto!important;height:auto!important;min-height:200px!important;overflow:visible!important}
+                .strudel-ai-daw .daw-menubar,.strudel-ai-daw .menu-section,.strudel-ai-daw .transport-bar{display:flex!important;flex:0 0 auto!important;flex-wrap:wrap!important;align-items:center!important;gap:6px!important;max-width:100%!important;min-width:0!important;overflow:visible!important}
+                .strudel-ai-daw .menu-section{flex:1 1 240px!important}
                 .strudel-ai-daw .daw-menubar{min-height:32px!important;background:#1b1b1b!important}
-                .strudel-ai-daw .menu-btn{flex:0 0 auto!important;white-space:nowrap!important}
+                .strudel-ai-daw .menu-btn{flex:0 1 auto!important;max-width:100%!important;white-space:nowrap!important;border-color:#444!important;box-shadow:none!important}
+                .strudel-ai-daw .menu-btn:hover{border-color:#6b7280!important;box-shadow:none!important;transform:none!important}
                 .strudel-ai-daw .transport-controls{display:flex!important;flex-wrap:wrap!important;gap:8px!important;max-width:100%!important}
-                .strudel-ai-daw .sk-transport-btn{flex:0 0 auto!important}
-                .strudel-ai-daw .code-editor-container{display:flex!important;width:100%!important;min-height:150px!important}
-                .strudel-ai-daw #strudel-code-editor{width:100%!important;min-height:130px!important;flex:1 1 auto!important}
-                .strudel-ai-daw button:focus,.strudel-ai-daw textarea:focus,.strudel-ai-daw input:focus{outline:none;box-shadow:none}
-                .strudel-ai-daw :focus-visible{outline:2px solid #7dffb3!important;outline-offset:2px!important;box-shadow:none!important}
+                .strudel-ai-daw .sk-transport-btn{flex:0 0 auto!important;width:auto!important;min-width:64px!important;height:36px!important;border-radius:8px!important;padding:0 10px!important;font-size:13px!important;opacity:1!important}
+                .strudel-ai-daw .sk-transport-btn:not(:disabled){background:#1f2937!important;color:#f9fafb!important;border-color:#93c5fd!important}
+                .strudel-ai-daw .sk-transport-btn.is-main:not(:disabled){min-width:76px!important;height:40px!important;background:#14532d!important;border-color:#4ade80!important;color:#ecfdf5!important}
+                .strudel-ai-daw .sk-transport-btn:disabled{opacity:0.4!important;background:#111827!important;color:#9ca3af!important;border-color:#374151!important}
+                .strudel-ai-daw .status-section{display:flex!important;flex-direction:column!important;align-items:stretch!important;flex:1 1 100%!important;width:100%!important;max-width:100%!important;margin-left:0!important;min-width:0!important;gap:2px!important}
+                .window[data-app-id="strudel-ai-daw"] .live-tool-gateway-host,.window[data-app-id="strudel-ai-daw"] .backend-status-disclosure{display:none!important;height:0!important;max-height:0!important;min-height:0!important;overflow:hidden!important;padding:0!important;margin:0!important;border:0!important;flex:0 0 0!important}
+                .strudel-ai-daw #audio-playback-status,.strudel-ai-daw #assistance-status,.strudel-ai-daw #project-retention,.strudel-ai-daw #restored-source,.strudel-ai-daw #transport-started:not([hidden]),.strudel-ai-daw #transport-halted:not([hidden]){display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important;overflow:visible!important;line-height:1.35!important;color:#e5e7eb!important}
+                .strudel-ai-daw .code-header{flex:0 0 auto!important}
+                .strudel-ai-daw .code-editor-container{display:flex!important;width:100%!important;min-width:0!important;flex:0 0 150px!important;height:150px!important;min-height:150px!important;max-height:180px!important;overflow:auto!important}
+                .strudel-ai-daw #strudel-code-editor{display:block!important;width:100%!important;height:140px!important;min-height:140px!important;flex:1 1 auto!important;white-space:pre!important;overflow:auto!important;color:#e5e7eb!important;background:#0a0a0a!important}
+                .strudel-ai-daw #code-suggestions{position:static!important;top:auto!important;right:auto!important;width:auto!important;max-width:100%!important;margin:8px 0 0!important;z-index:1!important;max-height:120px!important;overflow:auto!important}
+                .strudel-ai-daw .controls-sidebar{width:100%!important;height:auto!important;min-height:0!important;flex:0 0 auto!important}
+                .strudel-ai-daw :is(#play-btn,#stop-btn,#pause-btn,#record-btn,#undo-btn,#bpm-input,#strudel-code-editor,#new-pattern,#open-pattern,#save-pattern,#export-audio,#ai-generate,#tap-tempo):focus,.strudel-ai-daw :is(#play-btn,#stop-btn,#pause-btn,#record-btn,#undo-btn,#bpm-input,#strudel-code-editor,#new-pattern,#open-pattern,#save-pattern,#export-audio,#ai-generate,#tap-tempo):focus-visible{outline:2px solid #93c5fd!important;outline-offset:2px!important;border-color:#93c5fd!important;box-shadow:0 0 0 3px #1d4ed8!important}
+                .strudel-ai-daw .tempo-section input:focus,.strudel-ai-daw .master-section input:focus{outline:2px solid #93c5fd!important;border-color:#93c5fd!important;box-shadow:0 0 0 3px #1d4ed8!important}
                 .strudel-ai-daw .cpu-meter,.strudel-ai-daw .latency-display{display:none!important}
                 @media (max-width:800px){
-                    .window[data-app-id="strudel-ai-daw"]{max-height:calc(100dvh - 56px)!important;height:calc(100dvh - 56px)!important;overflow:hidden!important}
-                    .strudel-ai-daw .pattern-sidebar{max-height:44px!important;overflow:auto!important}
+                    .strudel-ai-daw .strudel-session-details{display:none!important}
+                    .strudel-ai-daw .daw-main{min-height:0!important;height:auto!important}
+                    .strudel-ai-daw .code-section{min-height:0!important}
+                    .strudel-ai-daw .sidebar-content,.strudel-ai-daw .sidebar-panel.active{min-height:0!important;height:auto!important;overflow:visible!important}
+                    .strudel-ai-daw .daw-menubar{position:sticky!important;top:0!important;z-index:9!important;background:#161616!important;display:flex!important;flex-wrap:wrap!important;gap:4px!important;padding:2px 4px!important}
+                    .strudel-ai-daw .menu-section{flex:0 1 auto!important;margin:0!important}
+                    .strudel-ai-daw .transport-controls{position:sticky!important;top:32px!important;z-index:8!important;background:#1b1b1b!important;width:100%!important;display:flex!important}
+                    .strudel-ai-daw .status-section{max-height:none!important;overflow:visible!important;flex:0 0 auto!important;font-size:11px!important;line-height:1.15!important;gap:1px!important}
+                    .strudel-ai-daw .cpu-meter,.strudel-ai-daw .latency-display{display:none!important}
+                    .strudel-ai-daw .daw-chrome{max-height:none!important;overflow:visible!important}
+                    .strudel-ai-daw .pattern-sidebar{flex:0 0 auto!important;flex-basis:auto!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
+                    .strudel-ai-daw .pattern-sidebar .panel-header{display:none!important}
+                    .strudel-ai-daw .pattern-item{flex-wrap:nowrap!important;overflow:visible!important;min-height:28px!important}
+                    .strudel-ai-daw .pattern-item.active .pattern-name{color:#052e16!important;font-weight:700!important;font-size:13px!important;flex:1 1 auto!important;min-width:7.5rem!important;overflow:visible!important;white-space:nowrap!important}
                     .strudel-ai-daw .controls-sidebar,.strudel-ai-daw .bottom-panel{display:none!important}
-                    .strudel-ai-daw .daw-menubar,.strudel-ai-daw .transport-bar,.strudel-ai-daw .menu-section,.strudel-ai-daw .transport-controls{flex-wrap:wrap!important;max-width:100%!important;overflow:visible!important}
                     .strudel-ai-daw .logo{display:none!important}
-                    .strudel-ai-daw .menu-btn,.strudel-ai-daw .sk-transport-btn{padding:2px 6px!important;font-size:12px!important}
-                    .strudel-ai-daw .status-section{flex:0 0 auto!important;max-height:none!important;overflow:visible!important;font-size:12px!important;line-height:1.3!important}
-                    .strudel-ai-daw .code-editor-container{min-height:120px!important}
-                    .strudel-ai-daw #strudel-code-editor{min-height:100px!important}
+                    .strudel-ai-daw .menu-btn,.strudel-ai-daw .sk-transport-btn{display:inline-flex!important;visibility:visible!important;padding:2px 8px!important;font-size:12px!important;min-width:0!important;height:28px!important}
+                    .strudel-ai-daw #code-line-numbers{position:static!important;flex:0 0 22px!important;width:22px!important;min-width:22px!important;max-width:22px!important;padding:2px!important;box-sizing:border-box!important}
+                    .strudel-ai-daw .code-editor-container{flex:0 0 auto!important;flex-basis:auto!important;height:auto!important;min-height:44px!important;max-height:none!important;overflow:hidden!important}
+                    .strudel-ai-daw #strudel-code-editor{position:static!important;flex:1 1 auto!important;width:auto!important;min-width:0!important;height:auto!important;min-height:40px!important;margin:0!important;padding:2px 4px!important;box-sizing:border-box!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important;word-break:break-word!important;overflow-x:hidden!important}
+                    .strudel-ai-daw #project-retention,.strudel-ai-daw #restored-source,.strudel-ai-daw #assistance-status,.strudel-ai-daw #transport-started:not([hidden]),.strudel-ai-daw #transport-halted:not([hidden]){display:block!important;visibility:visible!important}
+                    .strudel-ai-daw #restored-source{padding:2px 4px!important;background:#052e16!important;color:#ecfdf5!important;font:11px/1.15 ui-monospace,monospace!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important}
                 }
             </style>
             <div class="strudel-ai-daw" style="box-sizing:border-box;width:100%;min-height:0;max-height:none;overflow:visible;display:flex;flex-direction:column">
@@ -245,7 +316,9 @@ export class StrudelAIDAW {
                         <span id="audio-playback-status" role="status">Audio initializing</span>
                         <span id="assistance-status" role="status">Assistance idle. Local edits stay in the editor.</span>
                         <span id="project-retention" role="status">track:main tempo:120 source:</span>
-                        <span id="restored-source" role="status" style="display:block;font-size:12px;line-height:1.3;overflow-wrap:anywhere"></span>
+                        <span id="transport-started" role="status" hidden></span>
+                        <span id="transport-halted" role="status" hidden></span>
+                        <span id="restored-source" role="status"></span>
                         <div class="cpu-meter">
                             <span>CPU:</span>
                             <div class="meter"><div class="meter-fill" id="cpu-meter"></div></div>
@@ -376,7 +449,7 @@ export class StrudelAIDAW {
                         
                         <div class="code-editor-container">
                             <div class="line-numbers" id="code-line-numbers"></div>
-                            <textarea id="strudel-code-editor" class="strudel-code-editor" placeholder="// 🎵 Welcome to Strudel AI DAW!
+                            <textarea id="strudel-code-editor" class="strudel-code-editor" wrap="off" placeholder="// 🎵 Welcome to Strudel AI DAW!
 // Describe your musical idea and let AI help you create it
 
 // Example: Create a minimal techno beat
@@ -739,6 +812,9 @@ stack(
         if (retention) retention.textContent = `track:${this.activePattern} tempo:${this.bpm} source:${this.currentCode}`;
         const restoredNode = window.querySelector('#restored-source');
         if (restoredNode) restoredNode.textContent = this.restoredProof;
+        this.transportStarted = typeof restored?.transportStarted === 'string' ? restored.transportStarted : '';
+        this.transportHalted = typeof restored?.transportHalted === 'string' ? restored.transportHalted : '';
+        this.renderTransportFacts(window);
 
         this.updateLineNumbers(window);
         this.scanCodeVariables(window);
@@ -1408,6 +1484,11 @@ stack(
                 `Local audio preview — metronome/reference tone (${this.audioBackend === 'web-audio-reference' ? 'native WebAudio fallback' : 'AudioWorklet'}); Strudel code compilation unavailable`;
             this.updateStatus(window, status);
             this.addConsoleMessage(window, status, 'info');
+            this.transportStarted = this.playbackMode === 'strudel'
+                ? 'Play started the Strudel transport.'
+                : 'Play started the local reference tone. Strudel code compilation stayed unavailable.';
+            this.renderTransportFacts(window);
+            this.showTransportFocus(window, '#stop-btn');
         } catch (error) {
             // Preserve the evaluation/start failure instead of replacing it with a missing stop().
             await this.haltAudio();
@@ -1448,6 +1529,7 @@ stack(
     }
 
     async stop(window, status = 'Stopped') {
+        const hadPlayback = this.isPlaying || this._localPreviewActive || this._sdkActive;
         this._transportGeneration++;
         if (!this._closed) this.updateStatus(window, 'Stopping audio…');
         const failure = await this.haltAudio();
@@ -1456,6 +1538,13 @@ stack(
         this.updateStatus(window, failure ? 'Audio stop failed' : status);
         this.addConsoleMessage(window, failure ? `Audio stop failed: ${failure.message}` : status,
             failure ? 'error' : 'info');
+        if (!failure && hadPlayback && status === 'Stopped') {
+            this.transportHalted = this.playbackMode === 'strudel'
+                ? 'Stop halted the Strudel transport.'
+                : 'Stop halted the local reference tone.';
+            this.renderTransportFacts(window);
+        }
+        this.showTransportFocus(window, '#bpm-input');
     }
 
     updateTransportButtons(window) {
@@ -1700,6 +1789,26 @@ note("c2 ~ eb2 ~").sound("sawtooth").lpf(300).gain(0.6)`;
         messageDiv.innerHTML = `<span class="timestamp">${new Date().toLocaleTimeString()}</span> ${message}`;
         console.appendChild(messageDiv);
         console.scrollTop = console.scrollHeight;
+    }
+
+    renderTransportFacts(window) {
+        const started = window.querySelector('#transport-started');
+        const halted = window.querySelector('#transport-halted');
+        if (started) {
+            started.textContent = this.transportStarted;
+            started.hidden = this.transportStarted.length === 0;
+        }
+        if (halted) {
+            halted.textContent = this.transportHalted;
+            halted.hidden = this.transportHalted.length === 0;
+        }
+    }
+
+    showTransportFocus(window, selector) {
+        const node = window.querySelector(selector);
+        if (!node || node.disabled) return;
+        try { node.focus({ focusVisible: true, preventScroll: true }); }
+        catch { try { node.focus({ preventScroll: true }); } catch { /* focus unavailable */ } }
     }
 
     updateStatus(window, status) {
@@ -2031,6 +2140,8 @@ stack(
             masterVolume: this.masterVolume,
             code,
             restoredProof: this.restoredProof || '',
+            transportStarted: this.transportStarted || '',
+            transportHalted: this.transportHalted || '',
             codeContext: this.codeContext,
             assetProvenance: this.assetProvenance,
             renderState: this.renderState,

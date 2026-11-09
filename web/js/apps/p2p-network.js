@@ -98,20 +98,20 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
           </div>
         </div>
 
-        <div class="app-content">
-          <div class="p2p-tabs">
-            <button class="tab-button active" data-tab="network">Network</button>
-            <button class="tab-button" data-tab="peers">Peers</button>
-            <button class="tab-button" data-tab="models">Models</button>
-            <button class="tab-button" data-tab="tasks">Tasks</button>
-            <button class="tab-button" data-tab="workspaces">Workspaces</button>
-            <button class="tab-button" data-tab="workers">Workers</button>
-            <button class="tab-button" data-tab="cloudflare">CloudFlare</button>
-            <button class="tab-button" data-tab="hybrid">Hybrid Workers</button>
-            <button class="tab-button" data-tab="huggingface">🤗 Hugging Face</button>
-            <button class="tab-button" data-tab="transport">Transport</button>
-          </div>
+        <div class="p2p-tabs">
+          <button class="tab-button active" data-tab="network">Network</button>
+          <button class="tab-button" data-tab="peers">Peers</button>
+          <button class="tab-button" data-tab="models">Models</button>
+          <button class="tab-button" data-tab="tasks">Tasks</button>
+          <button class="tab-button" data-tab="workspaces">Workspaces</button>
+          <button class="tab-button" data-tab="workers">Workers</button>
+          <button class="tab-button" data-tab="cloudflare">CloudFlare</button>
+          <button class="tab-button" data-tab="hybrid">Hybrid Workers</button>
+          <button class="tab-button" data-tab="huggingface">🤗 Hugging Face</button>
+          <button class="tab-button" data-tab="transport">Transport</button>
+        </div>
 
+        <div class="app-content">
           <div class="tab-content active" id="network-tab">
             ${createNetworkTab()}
           </div>
@@ -158,6 +158,18 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
 
   function createP2PNetworkStyles() {
     return `<style>
+      .window[data-app-id="p2p-network"] .window-content { position: relative; overflow: hidden; }
+      .window[data-app-id="p2p-network"] .window-app-content {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        height: auto;
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+
       .p2p-network-app {
         box-sizing: border-box;
         display: flex;
@@ -231,9 +243,10 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
         transition: all 0.3s ease;
       }
 
-      .tab-button:focus-visible,
-      .action-btn:focus-visible,
-      #p2p-transport-input:focus-visible {
+      .tab-button:is(:focus, :focus-visible),
+      .action-btn:is(:focus, :focus-visible),
+      summary:is(:focus, :focus-visible),
+      #p2p-transport-input:is(:focus, :focus-visible) {
         outline: 2px solid var(--sk-accent, #8bd8bd);
         outline-offset: 2px;
       }
@@ -344,12 +357,41 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
         font-weight: 600;
       }
 
+      .stat-card.is-owner-state {
+        border-color: var(--sk-border, #263a34);
+        box-shadow: none;
+      }
+
+      .stat-card.is-owner-state.is-current {
+        border-color: var(--sk-accent, #8bd8bd);
+        box-shadow: inset 0 0 0 1px var(--sk-accent, #8bd8bd);
+      }
+
+      .app-header, .p2p-tabs { position: sticky; z-index: 2; background: #101b18; }
+      .app-header { top: 0; z-index: 3; }
+      .p2p-tabs { top: 0; }
+
+      .p2p-swarm-panel .network-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .p2p-swarm-panel .stat-card.is-owner-state { display: block; width: auto; min-width: 0; }
+      .p2p-swarm-panel .stat-card.is-owner-state h4,
+      .p2p-swarm-panel .stat-card.is-owner-state p {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: normal;
+        overflow: visible;
+        max-width: 100%;
+        font-size: 12px;
+      }
+
       .p2p-swarm-panel h3 { margin: 0 0 8px; font-size: 18px; }
 
-      #p2p-swarm-status, #p2p-swarm-observation, #p2p-swarm-settled {
+      #p2p-swarm-status, #p2p-swarm-observation, #p2p-swarm-settled, #p2p-swarm-classification {
         margin: 0 0 8px;
         overflow-wrap: anywhere;
       }
+
+      #p2p-swarm-observation { overflow-wrap: normal; word-break: normal; }
+      #p2p-swarm-observation time { display: inline; white-space: nowrap; }
 
       .p2p-swarm-actions {
         display: flex;
@@ -374,6 +416,7 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
       @media (max-width: 844px) {
         .p2p-network-app { padding: 6px; }
         .network-stats { grid-template-columns: 1fr; }
+        .p2p-swarm-panel .network-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         .stat-card { display: block; padding: 8px; overflow: visible; }
         .p2p-swarm-actions .action-btn { flex: 1 1 auto; }
       }
@@ -385,6 +428,38 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
   let ownerSwarmRefreshInFlight = false;
   let swarmObservationSettled = false;
   let ownerSwarmObservation = null;
+  let replacedSwarmObservation = null;
+  let retainedTransportFailure = '';
+  let keyboardTrail = [];
+  const SWARM_MEMORY_KEY = 'p2p-network.last-owner-swarm';
+
+  function swarmStorage() {
+    try { return window.localStorage; } catch { return null; }
+  }
+
+  function readPriorSwarm() {
+    const storage = swarmStorage();
+    if (!storage) return null;
+    try {
+      const parsed = JSON.parse(storage.getItem(SWARM_MEMORY_KEY) || 'null');
+      if (!parsed || typeof parsed.observed_at !== 'string' || !Number.isFinite(parsed.peer_count)) return null;
+      return { observed_at: parsed.observed_at, peer_count: parsed.peer_count };
+    } catch { return null; }
+  }
+
+  function rememberSwarm(observation) {
+    const prior = readPriorSwarm();
+    const storage = swarmStorage();
+    if (storage) {
+      try {
+        storage.setItem(SWARM_MEMORY_KEY, JSON.stringify({
+          observed_at: observation.observed_at,
+          peer_count: observation.peer_count
+        }));
+      } catch { /* the visible response still stands when storage is unavailable */ }
+    }
+    return prior && prior.observed_at !== observation.observed_at ? prior : null;
+  }
 
   function livePeers() {
     return peers.filter(peer => peer && peer.example !== true && peer.id);
@@ -430,20 +505,19 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
         <h3>P2P network status</h3>
         <p id="p2p-swarm-status" data-swarm-state="${escapeHtml(model.state)}">${escapeHtml(model.detail)}</p>
         ${swarmObservationSettled ? '<p id="p2p-swarm-settled">Owner refresh settled.</p>' : ''}
-        ${ownerSwarmObservation && !['unavailable', 'error', 'connecting'].includes(connectionStatus) ? '<p id="p2p-swarm-observation">' + escapeHtml('Latest owner response: ' + ownerSwarmObservation.peer_count + ' connected peers; observed at ' + ownerSwarmObservation.observed_at) + '</p>' : ''}
+        ${ownerSwarmObservation && !['unavailable', 'error', 'connecting'].includes(connectionStatus) ? '<p id="p2p-swarm-observation">Latest owner response: ' + escapeHtml(String(ownerSwarmObservation.peer_count)) + ' connected peers; observed at <time datetime="' + escapeHtml(ownerSwarmObservation.observed_at) + '">' + escapeHtml(ownerSwarmObservation.observed_at) + '</time></p>' : ''}
+        ${replacedSwarmObservation ? '<p id="p2p-swarm-replaced">Replaced prior owner response from <time datetime="' + escapeHtml(replacedSwarmObservation.observed_at) + '">' + escapeHtml(replacedSwarmObservation.observed_at) + '</time> (' + escapeHtml(String(replacedSwarmObservation.peer_count)) + ' connected peers) with this response.</p>' : ''}
+        <p id="p2p-swarm-classification">${escapeHtml(model.state === 'empty'
+          ? 'This owner response is an empty swarm. Known peers: ' + live.length + '. Connected peers: ' + connected + '.'
+          : model.state === 'known'
+            ? 'This owner response lists known peers. None are connected.'
+            : model.state === 'connected'
+              ? 'This owner response lists connected peers.'
+              : 'This view is not an owner peer response.')}</p>
         <div class="network-stats">
-          <div class="stat-card">
-            <h4>Connection</h4>
-            <p>${escapeHtml(model.headline)}</p>
-          </div>
-          <div class="stat-card">
-            <h4>Known peers</h4>
-            <p>${live.length}</p>
-          </div>
-          <div class="stat-card">
-            <h4>Connected peers</h4>
-            <p>${connected}</p>
-          </div>
+          <div class="stat-card is-owner-state${model.state === 'empty' ? ' is-current' : ''}" data-swarm-state-card="empty"><h4>Empty swarm</h4><p>${model.state === 'empty' ? 'This owner response' : 'Not this response'}</p></div>
+          <div class="stat-card is-owner-state${model.state === 'known' ? ' is-current' : ''}" data-swarm-state-card="known"><h4>Known peers</h4><p>${escapeHtml(String(live.length))} known</p></div>
+          <div class="stat-card is-owner-state${model.state === 'connected' ? ' is-current' : ''}" data-swarm-state-card="connected"><h4>Connected peers</h4><p>${escapeHtml(String(connected))} connected</p></div>
         </div>
         <div class="p2p-swarm-actions">
           <label for="p2p-transport-input">Owner transport</label>
@@ -493,19 +567,21 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
         || typeof provenance.observed_at !== 'string' || !Number.isFinite(Date.parse(provenance.observed_at))
         || Math.abs(Date.now() - Date.parse(provenance.observed_at)) > 120000
         || data.Peers.some(peer => !peer || typeof peer.Peer !== 'string' || !/^[A-Za-z0-9]{16,128}$/.test(peer.Peer))) return null;
-    return { Peers: data.Peers, peer_count: data.peer_count, observed_at: provenance.observed_at };
+    return { Peers: data.Peers, peer_count: data.peer_count, peers_reported_null: data.peers_reported_null === true, observed_at: provenance.observed_at };
   }
 
   async function applyObservedPeers(payload) {
     const observation = await ownerPeerObservation(payload);
     if (!observation) return false;
     ownerSwarmObservation = observation;
+    replacedSwarmObservation = rememberSwarm(observation);
     peers = observation.Peers.map(peer => ({
       id: peer.Peer, status: 'connected', example: false, capabilities: {},
       lastSeen: new Date(observation.observed_at), source: 'ipfs_kit_py'
     }));
     connectionStatus = peers.length > 0 ? 'connected' : 'empty';
     ownerPeerDetail = '';
+    retainedTransportFailure = '';
     return true;
   }
 
@@ -517,9 +593,11 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
     if (!transport || transport === 'offline' || transport.indexOf('offline') === 0) {
       connectionStatus = 'unavailable';
       ownerPeerDetail = 'Transport unavailable. Peer data is stale. No peers were invented. Select an available transport and refresh.';
+      retainedTransportFailure = ownerPeerDetail;
       peers = livePeers();
       swarmObservationSettled = true;
       updateDisplays();
+      focusSwarmControl('#p2p-apply-transport');
       return;
     }
     connectionStatus = 'connecting';
@@ -552,6 +630,7 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
         if (!await applyObservedPeers(payload)) {
           connectionStatus = 'unavailable';
           ownerPeerDetail = 'The owner response did not include a peer list. Peer data is stale. No peers were invented.';
+          retainedTransportFailure = ownerPeerDetail;
           peers = livePeers();
         }
       } else {
@@ -562,13 +641,80 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
     } catch (error) {
       connectionStatus = 'unavailable';
       ownerPeerDetail = 'Owner offline or transport unavailable. Peer data is stale. No peers were invented.';
+      retainedTransportFailure = ownerPeerDetail;
       peers = livePeers();
     }
     ownerSwarmRefreshInFlight = false;
     swarmObservationSettled = true;
     updateDisplays();
+    revealSwarmFrame();
+    focusSwarmControl(connectionStatus === 'unavailable' ? '#p2p-apply-transport' : '#p2p-refresh-swarm');
   }
+
+  function revealSwarmFrame(retry) {
+    const frame = document.querySelector('.window[data-app-id="p2p-network"]');
+    const view = frame?.ownerDocument?.defaultView;
+    if (!frame || !view) return;
+    const doc = frame.ownerDocument;
+    const taskbar = doc.getElementById('taskbar');
+    const viewportHeight = doc.documentElement.clientHeight || view.innerHeight || 0;
+    const viewportWidth = doc.documentElement.clientWidth || view.innerWidth || 0;
+    const taskbarTop = taskbar && taskbar.getBoundingClientRect ? taskbar.getBoundingClientRect().top : viewportHeight - 48;
+    const margin = viewportWidth <= 800 ? 6 : 12;
+    const height = Math.max(420, Math.floor(taskbarTop - margin - 4));
+    const width = Math.max(340, Math.min(980, viewportWidth - margin * 2));
+    frame.style.setProperty('top', `${margin}px`, 'important');
+    frame.style.setProperty('left', `${margin}px`, 'important');
+    frame.style.setProperty('width', `${width}px`, 'important');
+    frame.style.setProperty('height', `${height}px`, 'important');
+    frame.style.setProperty('max-width', `${Math.max(340, viewportWidth - margin * 2)}px`, 'important');
+    frame.style.setProperty('max-height', `${height}px`, 'important');
+    frame.style.setProperty('overflow', 'hidden', 'important');
+    const content = frame.querySelector('.window-content');
+    if (content) {
+      const inner = Math.max(240, height - 32);
+      content.style.setProperty('position', 'relative', 'important');
+      content.style.setProperty('height', `${inner}px`, 'important');
+      content.style.setProperty('max-height', `${inner}px`, 'important');
+      content.style.setProperty('overflow', 'hidden', 'important');
+      content.scrollTop = 0;
+    }
+    const appContent = frame.querySelector('.window-app-content');
+    if (appContent) {
+      appContent.style.setProperty('position', 'absolute', 'important');
+      appContent.style.setProperty('top', '0px', 'important');
+      appContent.style.setProperty('right', '0px', 'important');
+      appContent.style.setProperty('bottom', '0px', 'important');
+      appContent.style.setProperty('left', '0px', 'important');
+      appContent.style.setProperty('height', 'auto', 'important');
+      appContent.style.setProperty('overflow', 'hidden', 'important');
+    }
+    frame.querySelectorAll('.p2p-network-app, .app-content, .window-app-content, .p2p-tabs').forEach((node) => {
+      node.scrollTop = 0;
+    });
+    if (retry !== true) view.requestAnimationFrame(() => revealSwarmFrame(true));
+  }
+
+  function focusSwarmControl(selector) {
+    const root = document.querySelector('.window[data-app-id="p2p-network"]') || document;
+    const control = root.querySelector(selector);
+    if (!control || typeof control.focus !== 'function') return;
+    try { control.focus({ preventScroll: true, focusVisible: true }); }
+    catch { try { control.focus({ preventScroll: true }); } catch { /* focus unavailable */ } }
+  }
+
   window.p2pRefreshOwnerSwarm = refreshOwnerSwarm;
+
+  function noteSwarmKey(event) {
+    const root = document.querySelector('.window[data-app-id="p2p-network"]');
+    if (!root || !event.target || !root.contains(event.target)) return;
+    if (event.key === 'Escape') event.stopPropagation();
+  }
+
+  if (!window.__p2pSwarmKeyTrail) {
+    window.__p2pSwarmKeyTrail = true;
+    document.addEventListener('keydown', noteSwarmKey, true);
+  }
 
   function createNetworkTab() {
     return `
@@ -1199,6 +1345,18 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
     container.innerHTML = `
       <div class="p2p-network-app">
         <style>
+          .window[data-app-id="p2p-network"] .window-content { position: relative; overflow: hidden; }
+          .window[data-app-id="p2p-network"] .window-app-content {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            height: auto;
+            box-sizing: border-box;
+            overflow: hidden;
+          }
+
           .p2p-network-app {
             padding: 15px;
             height: 100%;

@@ -110,7 +110,7 @@
         }
       },
       {
-        "expected": "Original notes.txt",
+        "expected": "Original notes.txt owner sha256 7a26ef347543682dfee955176f6f81987c0b2a5503908035387eaca387b18817",
         "op": "assert",
         "operator": "contains",
         "probe": {
@@ -284,6 +284,26 @@
           "kind": "text",
           "selector": "#file-metadata"
         }
+      },
+      {
+        "op": "click",
+        "selector": "#svf-notes"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-gateway-confirm=\"file-manager.ipfs_kit_py.retrieve_content\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "click",
+        "selector": "[data-gateway-confirm=\"file-manager.ipfs_kit_py.retrieve_content\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#file-metadata:has-text(\"Original notes.txt owner sha256 7a26ef347543682dfee955176f6f81987c0b2a5503908035387eaca387b18817\")",
+        "state": "visible",
+        "timeout_ms": 15000
       }
     ]
   },

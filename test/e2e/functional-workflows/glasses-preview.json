@@ -7,14 +7,22 @@
   "phases": {
     "primary_result": [
       {"op": "select", "selector": "#glasses-packet", "value": "trail-note"},
+      {"op": "fill", "selector": "#glasses-width", "value": "240"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#glasses-width"}, "operator": "equals", "expected": "240"},
       {"op": "fill", "selector": "#glasses-width", "value": "320"},
       {"op": "fill", "selector": "#glasses-height", "value": "180"},
       {"op": "press", "selector": "#glasses-width", "key": "Enter"},
-      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#glasses-preview-readout"}, "operator": "equals", "expected": "Trail note. Stay on the marked path. Preview 320 by 180. Simulator only; no physical glasses."}
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#glasses-preview-readout"}, "operator": "equals", "expected": "Trail note. Stay on the marked path. Preview 320 by 180. Simulator only; no physical glasses."},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#glasses-packet"}, "operator": "equals", "expected": "trail-note"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#glasses-width"}, "operator": "equals", "expected": "320"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#glasses-height"}, "operator": "equals", "expected": "180"}
     ],
     "persist_reopen": [
       {"op": "reopen_app"},
-      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#glasses-preview-readout"}, "operator": "equals", "expected": "Trail note. Stay on the marked path. Preview 320 by 180. Simulator only; no physical glasses."}
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#glasses-preview-readout"}, "operator": "equals", "expected": "Trail note. Stay on the marked path. Preview 320 by 180. Simulator only; no physical glasses."},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#glasses-packet"}, "operator": "equals", "expected": "trail-note"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#glasses-width"}, "operator": "equals", "expected": "320"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#glasses-height"}, "operator": "equals", "expected": "180"}
     ],
     "failure_recovery": [
       {"op": "select", "selector": "#glasses-packet", "value": "unsupported-live"},

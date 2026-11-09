@@ -161,15 +161,17 @@ export class CronApp {
           .cron-app-container .task-info { flex: 1 1 auto; min-width: 0; width: auto !important; }
           .cron-app-container .task-name { display: block; white-space: normal; font-weight: 700; }
           .cron-app-container #cron-retention:empty { display: none !important; }
-          .cron-app-container #task-creation-modal { position: absolute !important; inset: 0; z-index: 30; overflow: auto; align-items: flex-start; justify-content: center; background: #f8fafc; }
-          .cron-app-container #task-creation-modal .modal-content { width: min(100%, 480px); margin: 4px; max-height: 100%; padding: 0 !important; }
+          .cron-app-container #task-creation-modal { position: absolute !important; inset: 0; z-index: 30; overflow: hidden; display: none; flex-direction: column; align-items: stretch; justify-content: stretch; background: #f8fafc; }
+          .cron-app-container #task-creation-modal .modal-content { width: 100%; max-width: 100%; margin: 0; max-height: 100%; height: 100%; padding: 0 !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; }
+          .cron-app-container #task-creation-modal .modal-body { flex: 1 1 auto; min-height: 0; overflow: auto; }
+          .cron-app-container #task-creation-modal .modal-footer { flex: 0 0 auto; display: flex !important; gap: 8px; background: #fff; }
           .cron-app-container #task-creation-modal .modal-header,
           .cron-app-container #task-creation-modal .modal-body,
           .cron-app-container #task-creation-modal .modal-footer { padding: 4px 8px !important; }
           .cron-app-container #task-creation-modal .form-group { margin: 2px 0 !important; }
           .cron-app-container #task-creation-modal .sk-input { min-height: 0 !important; height: 28px !important; padding: 2px 6px !important; }
           .cron-app-container #task-schedule-error { color: #7f1d1d !important; background: #fee2e2; padding: 4px 6px; }
-          .cron-app-container button:focus, .cron-app-container input:focus, .cron-app-container select:focus { outline: 3px solid #ca8a04 !important; outline-offset: 2px; }
+          .cron-app-container button:focus, .cron-app-container button:focus-visible, .cron-app-container input:focus, .cron-app-container input:focus-visible, .cron-app-container select:focus, .cron-app-container select:focus-visible { outline: 3px solid #ca8a04 !important; outline-offset: 2px; box-shadow: 0 0 0 3px #ca8a04 !important; }
         </style>
         <div class="cron-header">
           <div class="header-tabs">
@@ -187,7 +189,7 @@ export class CronApp {
             </button>
           </div>
           <div class="header-controls">
-            <button class="control-btn" id="create-task" title="Create Task" aria-label="Create task">➕</button>
+            <button class="control-btn" id="create-task" title="Create Task" aria-label="Create task">Add</button>
             <button class="control-btn" id="import-tasks" title="Import Tasks" aria-label="Import tasks">📥</button>
             <button class="control-btn" id="export-tasks" title="Export Tasks" aria-label="Export tasks">📤</button>
             <button class="control-btn" id="cron-settings" title="Settings" aria-label="Scheduler settings">⚙️</button>
@@ -252,6 +254,7 @@ export class CronApp {
             <div class="tasks-list">
               <h3>📋 Scheduled Tasks</h3>
               <p id="cron-retention" role="status">${this.savedRetention()}</p>
+              <p id="schedule-roster">${this.escapeRoster(this.scheduleRosterText())}</p>
               <div class="tasks-container" id="scheduled-tasks-container">
                 ${this.renderScheduledTasksMarkup()}
               </div>
@@ -741,6 +744,7 @@ export class CronApp {
           <div class="task-schedule">
             <span class="schedule-icon">⏰</span>
             <span class="schedule-text">${this.formatSchedule(task.schedule)} · ${task.timezone || 'local'}</span>
+            <span class="task-cron-expr">${this.escapeRoster(task.schedule)}</span>
           </div>
           <div class="task-next-run">
             <span class="next-run-icon">🕐</span>
@@ -748,12 +752,10 @@ export class CronApp {
           </div>
         </div>
         <div class="task-actions">
-          <button type="button" class="task-btn" data-cron-action="run" data-task-id="${task.id}" title="Run Now" aria-label="Run now">▶️</button>
-          <button type="button" class="task-btn" data-cron-action="edit" data-task-id="${task.id}" title="Edit" aria-label="Edit schedule">✏️</button>
-          <button type="button" class="task-btn" data-cron-action="toggle" data-task-id="${task.id}" title="${task.enabled ? 'Pause' : 'Resume'}" aria-label="${task.enabled ? 'Pause schedule' : 'Resume schedule'}">
-            ${task.enabled ? '⏸️' : '▶️'}
-          </button>
-          <button type="button" class="task-btn danger" data-cron-action="delete" data-task-id="${task.id}" data-task-name="${String(task.name).replace(/"/g, '&quot;')}" title="Delete" aria-label="Delete schedule">🗑️</button>
+          <button type="button" class="task-btn" data-cron-action="run" data-task-id="${task.id}" title="Run Now" aria-label="Run now">Run</button>
+          <button type="button" class="task-btn" data-cron-action="edit" data-task-id="${task.id}" title="Edit" aria-label="Edit schedule">Edit</button>
+          <button type="button" class="task-btn" data-cron-action="toggle" data-task-id="${task.id}" title="${task.enabled ? 'Pause' : 'Resume'}" aria-label="${task.enabled ? 'Pause schedule' : 'Resume schedule'}">${task.enabled ? 'Pause' : 'Resume'}</button>
+          <button type="button" class="task-btn danger" data-cron-action="delete" data-task-id="${task.id}" data-task-name="${String(task.name).replace(/"/g, '&quot;')}" title="Delete" aria-label="Delete schedule">Delete</button>
         </div>
       </div>
     `).join('');
@@ -764,6 +766,8 @@ export class CronApp {
     const container = document.querySelector(`.cron-app-container[data-cron-instance="${this.instanceId}"] #scheduled-tasks-container`);
     if (!container) return;
     container.innerHTML = this.renderScheduledTasksMarkup();
+    const roster = document.querySelector(`.cron-app-container[data-cron-instance="${this.instanceId}"] #schedule-roster`);
+    if (roster) roster.textContent = this.scheduleRosterText();
     this.updateStats();
     return;
 
@@ -801,6 +805,7 @@ export class CronApp {
           <div class="task-schedule">
             <span class="schedule-icon">⏰</span>
             <span class="schedule-text">${this.formatSchedule(task.schedule)} · ${task.timezone || 'local'}</span>
+            <span class="task-cron-expr">${this.escapeRoster(task.schedule)}</span>
           </div>
           <div class="task-next-run">
             <span class="next-run-icon">🕐</span>
@@ -809,12 +814,10 @@ export class CronApp {
         </div>
         
         <div class="task-actions">
-          <button type="button" class="task-btn" data-cron-action="run" data-task-id="${task.id}" title="Run Now" aria-label="Run now">▶️</button>
-          <button type="button" class="task-btn" data-cron-action="edit" data-task-id="${task.id}" title="Edit" aria-label="Edit schedule">✏️</button>
-          <button type="button" class="task-btn" data-cron-action="toggle" data-task-id="${task.id}" title="${task.enabled ? 'Pause' : 'Resume'}" aria-label="${task.enabled ? 'Pause schedule' : 'Resume schedule'}">
-            ${task.enabled ? '⏸️' : '▶️'}
-          </button>
-          <button type="button" class="task-btn danger" data-cron-action="delete" data-task-id="${task.id}" data-task-name="${String(task.name).replace(/"/g, '&quot;')}" title="Delete" aria-label="Delete schedule">🗑️</button>
+          <button type="button" class="task-btn" data-cron-action="run" data-task-id="${task.id}" title="Run Now" aria-label="Run now">Run</button>
+          <button type="button" class="task-btn" data-cron-action="edit" data-task-id="${task.id}" title="Edit" aria-label="Edit schedule">Edit</button>
+          <button type="button" class="task-btn" data-cron-action="toggle" data-task-id="${task.id}" title="${task.enabled ? 'Pause' : 'Resume'}" aria-label="${task.enabled ? 'Pause schedule' : 'Resume schedule'}">${task.enabled ? 'Pause' : 'Resume'}</button>
+          <button type="button" class="task-btn danger" data-cron-action="delete" data-task-id="${task.id}" data-task-name="${String(task.name).replace(/"/g, '&quot;')}" title="Delete" aria-label="Delete schedule">Delete</button>
         </div>
       </div>
     `).join('');
@@ -1267,6 +1270,27 @@ export class CronApp {
     }
   }
 
+  escapeRoster(value) {
+    return String(value ?? '').replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+  }
+
+  scheduleRosterText() {
+    const names = Array.from(this.scheduledTasks.values()).map(task => task.name).filter(Boolean);
+    return names.length ? names.join(', ') : 'No schedules';
+  }
+
+  focusScheduleControl(taskId) {
+    const root = document.querySelector(`.cron-app-container[data-cron-instance="${this.instanceId}"]`);
+    const target = (taskId && root?.querySelector(`button[data-cron-action="toggle"][data-task-id="${taskId}"]`))
+      || root?.querySelector('button[data-cron-action="toggle"]');
+    if (!target || typeof target.focus !== 'function') return;
+    try {
+      target.focus({ focusVisible: true });
+    } catch (error) {
+      target.focus();
+    }
+  }
+
   setRetention(text) {
     this.retentionNote = text;
     try { localStorage.setItem('swissknife-cron-retention', text); } catch (error) { /* keep the visible line */ }
@@ -1570,6 +1594,7 @@ export class CronApp {
     this.scheduledTasks.set(taskId, task);
     this.saveTasks();
     this.displayScheduledTasks();
+    this.focusScheduleControl(taskId);
 
     this.showNotification(`Task "${task.name}" ${task.enabled ? 'enabled' : 'disabled'}`, 'info');
   }
@@ -1826,7 +1851,8 @@ export class CronApp {
     const deleted = `Deleted ${task.name}. That schedule is absent. Morning local remains.`;
     this.setRetention(prior ? `${prior} ${deleted}` : deleted);
     this.showNotification(`Task "${task.name}" deleted`, 'info');
-    document.getElementById('create-task')?.focus();
+    const remaining = this.scheduledTasks.keys().next().value;
+    this.focusScheduleControl(remaining);
   }
 
   cancelDeleteTask() {

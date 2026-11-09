@@ -109,6 +109,21 @@
         "timeout_ms": 15000
       },
       {
+        "op": "press",
+        "selector": "#p2p-refresh-swarm",
+        "key": "Tab"
+      },
+      {
+        "op": "press",
+        "selector": "#p2p-refresh-swarm",
+        "key": "Shift+Tab"
+      },
+      {
+        "op": "press",
+        "selector": "#p2p-transport-input",
+        "key": "Escape"
+      },
+      {
         "op": "assert",
         "requirement_id": "failure_recovery",
         "probe": {

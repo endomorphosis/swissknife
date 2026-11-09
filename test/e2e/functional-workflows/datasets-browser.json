@@ -29,6 +29,10 @@
     ],
     "persist_reopen": [
       {"op": "reopen_app"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#datasets-record-id"}, "operator": "equals", "expected": "bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#datasets-query"}, "operator": "equals", "expected": "desktop note provenance"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#datasets-schema"}, "operator": "equals", "expected": "support-intent-v2"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#datasets-split"}, "operator": "equals", "expected": "train"},
       {"op": "press", "selector": "#datasets-query", "key": "Enter"},
       {"op": "wait_for", "selector": "#datasets-semantic-status", "state": "visible", "timeout_ms": 15000},
       {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#datasets-match-summary"}, "operator": "contains", "expected": "note_id=cedar-ledger; split=train; schema=support-intent-v2; id=bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm"}

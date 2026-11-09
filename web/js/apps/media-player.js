@@ -330,6 +330,7 @@ class MediaPlayer {
                         <h3>Playlist</h3>
                         <button class="close-panel" onclick="mediaPlayer.hidePlaylist()" aria-label="Close playlist">×</button>
                     </div>
+                    <p class="mp-playlist-order" id="mp-playlist-order"></p>
                     <div class="playlist-content" id="playlistContent"></div>
                     <div class="playlist-controls">
                         <button onclick="mediaPlayer.clearPlaylist()">Clear All</button>
@@ -347,7 +348,7 @@ class MediaPlayer {
                     
                     <div class="volume-control">
                         <button class="sk-transport-btn volume-btn" onclick="mediaPlayer.toggleMute()" title="Mute" aria-label="Mute">🔊</button>
-                        <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="80"
+                        <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" step="1" value="80"
                                aria-label="Volume"
                                onchange="mediaPlayer.setVolume(this.value)" />
                     </div>
@@ -565,6 +566,14 @@ class MediaPlayer {
             .player-main {
                 padding: 8px 12px;
             }
+            @media (min-width: 481px) {
+                .window[data-app-id="media-player"] .player-main {
+                    position: sticky;
+                    top: 0;
+                    z-index: 4;
+                    background: #111;
+                }
+            }
 
             .track-info {
                 text-align: center;
@@ -624,7 +633,10 @@ class MediaPlayer {
                 text-align: left;
                 min-width: 0;
             }
-            .mp-playback-identity { color: #d1fae5; white-space: nowrap; overflow-x: auto; }
+            .mp-playback-identity { color: #d1fae5; white-space: normal; overflow: visible; }
+            .mp-identity-clock, .mp-identity-cid { display: block; min-width: 0; }
+            .mp-identity-cid { white-space: nowrap; overflow: hidden; font-size: 11px; line-height: 1.2; }
+            .mp-playlist-order { margin: 0; padding: 4px 8px; color: #d1fae5; font-size: 12px; line-height: 1.3; overflow-wrap: normal; word-break: normal; }
             .mp-recovery-note { color: #99f6e4; white-space: normal; overflow-wrap: anywhere; }
             .mp-playback-identity:empty, .mp-recovery-note:empty { display: none; }
 
@@ -1296,7 +1308,16 @@ class MediaPlayer {
                 .track-info { margin-bottom: 4px; }
                 .visualization-area { margin: 2px 0; }
                 .window[data-app-id="media-player"] #playerAudio { height: 36px; }
-                .mp-playback-identity { white-space: normal; overflow-x: visible; overflow-wrap: anywhere; }
+                .mp-playback-identity { white-space: normal; overflow: visible; overflow-wrap: normal; }
+                .mp-identity-cid { font-size: 8px; letter-spacing: 0; white-space: nowrap; overflow: hidden; }
+                .window[data-app-id="media-player"] .playlist-item .mp-track-cid {
+                    white-space: normal;
+                    overflow: visible;
+                    overflow-wrap: anywhere;
+                    word-break: break-all;
+                    font-size: 10px;
+                    line-height: 1.25;
+                }
                 .window[data-app-id="media-player"] .playlist-item .mp-track-title {
                     white-space: normal;
                     overflow: visible;
@@ -1393,6 +1414,26 @@ class MediaPlayer {
             });
         }
         this.volumeSlider = container.querySelector('#volumeSlider');
+        if (this.volumeSlider) {
+            this.volumeSlider.addEventListener('keydown', (event) => {
+                const move = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[event.key];
+                if (move === undefined) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const min = Number(this.volumeSlider.min);
+                const max = Number(this.volumeSlider.max);
+                const step = Number(this.volumeSlider.step);
+                const delta = Number.isFinite(step) && step > 0 ? step : 1;
+                let value = Number(this.volumeSlider.value);
+                if (!Number.isFinite(value)) value = 80;
+                const lower = Number.isFinite(min) ? min : 0;
+                const upper = Number.isFinite(max) ? max : 100;
+                value = Math.min(upper, Math.max(lower, value + move * delta));
+                this.volumeSlider.value = String(value);
+                this.setVolume(value);
+                this.keepPlayerInView();
+            });
+        }
         this.timeDisplay = {
             current: container.querySelector('#currentTime'),
             total: container.querySelector('#totalTime')
@@ -1447,6 +1488,7 @@ class MediaPlayer {
             }
         }
 
+        this.keepPlayerInView();
         mediaPlayer = this;
         if (typeof window !== 'undefined') window.mediaPlayer = this;
         console.log('🎵 Media Player initialized successfully');
@@ -1667,18 +1709,23 @@ class MediaPlayer {
      * 🎚️ Set volume (0-100)
      */
     setVolume(value) {
-        this.volume = value / 100;
+        const percent = Math.round(Number(value));
+        if (!Number.isFinite(percent)) return;
+        const bounded = Math.max(0, Math.min(100, percent));
+        this.volumePercent = bounded;
+        this.volume = bounded / 100;
         if (this.currentElement) {
             this.currentElement.volume = this.volume;
         }
         
         // Update volume slider if not already updated
-        if (this.volumeSlider && this.volumeSlider.value != value) {
-            this.volumeSlider.value = value;
+        if (this.volumeSlider && Number(this.volumeSlider.value) !== bounded) {
+            this.volumeSlider.value = String(bounded);
         }
         
-        // Update volume button icon
+        // Update volume button icon and the visible identity line.
         this.updateVolumeButton();
+        this.renderPlaybackIdentity();
     }
 
     /**
@@ -1846,8 +1893,16 @@ class MediaPlayer {
         const duration = Number(this.currentElement?.duration);
         const head = this.formatTime(Number.isFinite(playhead) ? playhead : 0);
         const total = this.formatTime(Number.isFinite(duration) && duration > 0 ? duration : 0);
-        const volume = Math.round((Number(this.volume) || 0) * 100);
-        node.textContent = `${head} / ${total} · volume ${volume}% · decoded ${cid}`;
+        const volume = Number.isFinite(this.volumePercent)
+            ? this.volumePercent
+            : Math.round((Number(this.volume) || 0) * 100);
+        const clock = document.createElement('span');
+        clock.className = 'mp-identity-clock';
+        clock.textContent = `${head} / ${total} · volume ${volume}% · decoded`;
+        const cidNode = document.createElement('span');
+        cidNode.className = 'mp-identity-cid';
+        cidNode.textContent = cid;
+        node.replaceChildren(clock, cidNode);
     }
 
     hidePlaylist() {
@@ -1993,12 +2048,15 @@ class MediaPlayer {
     updatePlaylist() {
         if (!this.playlistContainer) return;
         
-        this.playlistContainer.innerHTML = this.playlist.map((track, index) => ({ track, index }))
-            .filter(row => row.track.storedMetadataOnly !== true)
-            .map(({ track, index }) => `
+        const visible = this.playlist.map((track, index) => ({ track, index }))
+            .filter(row => row.track.storedMetadataOnly !== true);
+        const order = this.container?.querySelector('#mp-playlist-order');
+        if (order) order.textContent = visible.map((row, position) => `${position + 1} ${row.track.title}`).join(' · ');
+        this.playlistContainer.innerHTML = visible.map(({ track, index }) => `
             <div class="playlist-item ${index === this.currentTrack ? 'active' : ''}"
                  onclick="mediaPlayer.loadTrack(${index})">
-                <div class="mp-track-title">${escapeHtmlMp(track.title)} · ${escapeHtmlMp(track.artist)} · ${this.formatTime(track.duration)}${track.cid ? ` · ${escapeHtmlMp(track.cid)}` : ''}</div>
+                <div class="mp-track-title">${escapeHtmlMp(track.title)} · ${escapeHtmlMp(track.artist)} · ${this.formatTime(track.duration)}</div>
+                ${track.cid ? `<div class="mp-track-cid">${escapeHtmlMp(track.cid)}</div>` : ''}
             </div>
         `).join('');
     }
@@ -2219,9 +2277,9 @@ class MediaPlayer {
             cid: record.cid
         };
         const index = this.playlist.findIndex(item => item.cid === record.cid);
-        if (index >= 0) this.playlist.splice(index, 1);
-        this.playlist.unshift(track);
-        return 0;
+        if (index >= 0) this.playlist[index] = track;
+        else this.playlist.push(track);
+        return index >= 0 ? index : this.playlist.length - 1;
     }
 
     writePlaylistIndex(index) {
@@ -2345,7 +2403,7 @@ class MediaPlayer {
             this.setWorkflowState('[data-svd-vda-marker="cid-media"]', 'retrievalState', 'retrieved');
             this.markWorkflowAction('retrieve-cid-media');
             this.updatePlaylist();
-            this.showNotification(`Retrieved ${cid} in ${ms} ms`, 'success');
+            this.showNotification('Retrieved supported audio.', 'success');
         } catch (error) {
             if (pendingTrack && this.playlist[pendingIndex] === pendingTrack) {
                 if (priorTrack) this.playlist[pendingIndex] = priorTrack;

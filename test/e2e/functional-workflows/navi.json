@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "navi",
-  "description": "Resolve an ambiguous catalog-field query by choosing gpt2, reopen that stored target, and recover from an unresolved intent with a distinct exact retry.",
+  "description": "Resolve an ambiguous catalog-field query by choosing gpt2, reopen that stored target, and recover from an unresolved intent by choosing gpt2 again from those same matches.",
   "fixture_scope": "svf-navi-catalog-intent",
   "backend_bindings": [
     {
@@ -62,21 +62,30 @@
         "op": "assert",
         "probe": {
           "kind": "text",
-          "selector": "#navi-choice-record"
+          "selector": "#navi-kept-choices"
         },
-        "operator": "equals",
-        "expected": "Chose gpt2 from gpt2 | text-generation."
+        "operator": "contains",
+        "expected": "gpt2 | text-generation"
       }
     ],
     "persist_reopen": [
       {
         "op": "assert",
         "probe": {
-          "kind": "text",
-          "selector": "#navi-retained-choice"
+          "kind": "value",
+          "selector": "#navi-selected-target"
         },
         "operator": "equals",
-        "expected": "Selected gpt2."
+        "expected": "gpt2"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "value",
+          "selector": "#message-input"
+        },
+        "operator": "equals",
+        "expected": "field g"
       },
       {
         "op": "reopen_app"
@@ -123,13 +132,9 @@
         "expected": "field g"
       },
       {
-        "op": "assert",
-        "probe": {
-          "kind": "text",
-          "selector": "#navi-choice-record"
-        },
-        "operator": "equals",
-        "expected": "Chose gpt2 from gpt2 | text-generation."
+        "op": "press",
+        "selector": "#navi-selected-target",
+        "key": "Escape"
       },
       {
         "op": "assert",
@@ -170,9 +175,18 @@
         "expected": "Not resolved"
       },
       {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#navi-kept-choices"
+        },
+        "operator": "contains",
+        "expected": "gpt2 | text-generation"
+      },
+      {
         "op": "fill",
         "selector": "#message-input",
-        "value": "gpt2"
+        "value": "field g"
       },
       {
         "op": "press",
@@ -194,6 +208,11 @@
         "selector": "#navi-intent-status",
         "state": "visible",
         "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "#navi-selected-target",
+        "key": "Escape"
       },
       {
         "op": "assert",

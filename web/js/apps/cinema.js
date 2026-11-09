@@ -371,7 +371,7 @@ export class CinemaApp {
     container.innerHTML = `
       <div class="cinema-app cinema-root" >
         <style>
-          .cinema-app button:focus-visible,.cinema-app input:focus-visible,.cinema-app select:focus-visible,.cinema-app textarea:focus-visible,.cinema-app .cinema-vda-workflow:focus-visible{outline:2px solid var(--sk-accent,#7dd3fc);outline-offset:2px}
+          .cinema-app button:focus,.cinema-app button:focus-visible,.cinema-app input:focus,.cinema-app input:focus-visible,.cinema-app select:focus,.cinema-app select:focus-visible,.cinema-app textarea:focus,.cinema-app textarea:focus-visible{outline:3px solid #f8fffb;outline-offset:2px;box-shadow:0 0 0 3px #2563eb}
           .cinema-app.cinema-root{position:relative;flex:1 1 auto;width:100%;height:100%;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:auto;background:var(--sk-bg-panel,#101b18);color:var(--sk-text,#fff)}
           .cinema-app .cinema-header{position:sticky;top:0;z-index:6;display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:0 0 auto;padding:8px 12px;background:var(--sk-bg-panel,#101b18);border-bottom:1px solid var(--sk-border,rgba(255,255,255,.1))}
           .cinema-app .cinema-primary-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;flex:1 1 100%;min-width:0}
@@ -389,11 +389,13 @@ export class CinemaApp {
           .cinema-app .cinema-preview-area{flex:0 0 auto;min-height:72px;display:flex;flex-direction:column;align-items:center;overflow:visible}
           .cinema-app .cinema-video-frame{position:relative;width:min(320px,86%);max-height:144px;overflow:hidden;background:#000;border-radius:8px;display:flex;align-items:center;justify-content:center}
           .cinema-app .cinema-native-video{display:block;width:100%;max-height:140px;object-fit:contain}
+          .cinema-app .cinema-native-video::-webkit-media-controls,
+          .cinema-app .cinema-native-video::-webkit-media-controls-enclosure{display:none !important}
           .cinema-app .cinema-native-video[hidden],.cinema-app .cinema-playback[hidden]{display:none !important}
           .cinema-app .cinema-playback{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;max-width:100%;padding:4px 8px}
           .cinema-app .cinema-timeline{flex:0 0 auto;min-height:0;padding:8px;overflow:auto}
           .cinema-app .cinema-timeline-head{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-          .cinema-app .cinema-timeline-head>.sk-section-head,.cinema-app .cinema-timeline-controls,.cinema-app [data-cinema-timeline-summary]{grid-column:1 / -1}
+          .cinema-app .cinema-timeline-head>.sk-section-head,.cinema-app .cinema-timeline-controls,.cinema-app .cinema-timeline-head>.cinema-tracks,.cinema-app [data-cinema-timeline-summary]{grid-column:1 / -1}
           .cinema-app [data-cinema-action="add-video-track"]{scroll-margin-top:8px}
           .cinema-app .cinema-tracks{min-height:40px;padding:6px}
           .cinema-app .cinema-clip{position:relative;width:100%;box-sizing:border-box;min-height:32px;padding:6px 8px;border-radius:6px;overflow-wrap:anywhere}
@@ -427,18 +429,21 @@ export class CinemaApp {
             .cinema-app .cinema-timeline{padding:6px;overflow:visible}
             .cinema-app .cinema-playback{margin-top:4px;padding:4px 8px;gap:4px}
           }
-          .cinema-app .cinema-toolpanel{width:80px;background:rgba(0,0,0,.4);border-right:1px solid var(--sk-border,rgba(255,255,255,.1));padding:15px 5px;gap:10px;overflow-y:auto}
-          .cinema-app .cinema-tool{height:60px;flex-basis:60px;font-size:20px;cursor:pointer}
-          .cinema-app .cinema-tool:hover{background:rgba(255,255,255,.18)}
-          .cinema-app .cinema-tool.active{background:rgba(139,216,189,.25)}
-          .cinema-app .cinema-tool-name{margin-top:2px;color:rgba(255,255,255,.8)}
+          .cinema-app .cinema-toolpanel{width:96px;box-sizing:border-box;background:#1c2836;border-right:1px solid #8fd8c0;padding:8px 6px;gap:8px;overflow-x:hidden;overflow-y:auto}
+          .cinema-app .cinema-tool{width:100%;height:auto;min-height:44px;flex-basis:auto;font-size:16px;cursor:pointer;color:#f7fffb;border:1px solid #d5fff0;background:#2c4a40}
+          .cinema-app .cinema-tool:hover{background:#3d6a5c}
+          .cinema-app .cinema-tool.active{background:rgba(139,216,189,.45);color:#fff}
+          .cinema-app :is(button, input, select, textarea):is(:focus, :focus-visible){outline:3px solid #93c5fd;outline-offset:2px}
+          .cinema-app .cinema-tool-name{margin-top:2px;color:#f7fffb;font-size:10px;line-height:1.2}
           .cinema-app .cinema-preview-area{background:rgba(0,0,0,.6);border-bottom:1px solid var(--sk-border,rgba(255,255,255,.1))}
           .cinema-app .cinema-video-frame{max-width:86%;border:2px solid rgba(255,255,255,.2);gap:8px;color:rgba(255,255,255,.6);font-size:16px;text-align:center}
           .cinema-app .cinema-playback{background:rgba(0,0,0,.8);border-radius:25px}
           .cinema-app .cinema-time{color:rgba(255,255,255,.8);font-size:12px;font-weight:500;white-space:nowrap}
           .cinema-app .cinema-timeline,.cinema-app .cinema-timeline-head{background:#141824}
           .cinema-app .cinema-timeline-controls{display:flex;gap:10px;flex-wrap:wrap}
-          .cinema-app .cinema-clip{min-height:48px;background:rgba(139,216,189,.55);border:1px solid var(--sk-accent,#8bd8bd);color:#fff;font-size:12px}
+          .cinema-app .cinema-lane{position:relative;height:36px;background:#0e1412;border:1px solid #8bd8bd;border-radius:6px;overflow:hidden}
+          .cinema-app .cinema-clip{min-height:28px;background:#8bd8bd;border:0;color:#0e1412;font-size:12px;font-weight:700}
+          .cinema-app .cinema-trim-handle{position:absolute;right:0;top:0;width:6px;height:100%;background:#f8fffb;border-radius:2px}
           .cinema-app .cinema-empty-icon{font-size:24px;margin-bottom:10px}
           .cinema-app .cinema-empty-sub{font-size:12px;margin-top:5px}
           .cinema-app .cinema-props{background:rgba(0,0,0,.4);border-left:1px solid var(--sk-border,rgba(255,255,255,.1))}
@@ -460,9 +465,12 @@ export class CinemaApp {
           .cinema-app .cinema-playback[hidden] { display:none !important; }
           .cinema-app [data-cinema-output-reference] { width:100%; box-sizing:border-box; resize:vertical; font:11px monospace; overflow-wrap:anywhere; color:inherit; background:#101b18; }
           .cinema-app [data-cinema-output-controls] { gap:6px; flex-wrap:wrap; }
-          .cinema-app .cinema-source-controls { display:flex; flex-wrap:wrap; gap:6px; padding:8px; width:100%; box-sizing:border-box; }
-          .cinema-app .cinema-source-controls label { display:flex; flex:1 1 200px; flex-direction:column; min-width:0; gap:4px; font-size:12px; }
-          .cinema-app [data-cinema-source-cid], .cinema-app [data-cinema-output-reference], .cinema-app [data-cinema-project-reference], .cinema-app [data-cinema-previous-project-reference] { width:100%; min-width:0; box-sizing:border-box; font:12px/16px monospace; height:46px; min-height:46px; padding:6px 8px; white-space:pre-wrap; overflow-wrap:anywhere; resize:vertical; }
+          .cinema-app .cinema-source-controls { display:flex; flex-direction:column; align-items:stretch; flex-wrap:nowrap; gap:6px; padding:8px; width:100%; box-sizing:border-box; }
+          .cinema-app .cinema-source-controls label { display:flex; flex:1 1 auto; width:100%; flex-direction:column; min-width:0; gap:4px; font-size:12px; }
+          .cinema-app .cinema-source-controls .sk-btn { width:100%; }
+          .cinema-app [data-cinema-source-cid] { width:100%; min-width:0; box-sizing:border-box; font:12px/16px monospace; height:auto; min-height:4.6em; padding:6px 8px; white-space:pre-wrap; overflow-wrap:anywhere; resize:vertical; }
+          .cinema-app [data-cinema-output-reference], .cinema-app [data-cinema-project-reference], .cinema-app [data-cinema-previous-project-reference] { width:100%; min-width:0; box-sizing:border-box; font:12px/16px monospace; height:46px; min-height:46px; padding:6px 8px; white-space:pre-wrap; overflow-wrap:anywhere; resize:vertical; }
+          .cinema-app [data-cinema-track-caption] { flex:1 1 100%; margin:0; color:#f7fffb; font-size:12px; font-weight:600; line-height:1.35; overflow-wrap:anywhere; }
           .cinema-app [data-cinema-source-status], .cinema-app [data-cinema-selection] { margin:4px 8px; font-size:12px; overflow-wrap:anywhere; }
           .cinema-app [data-cinema-seek] { min-width:80px; max-width:100%; }
           .cinema-app .cinema-native-video { max-height:140px; }
@@ -470,6 +478,7 @@ export class CinemaApp {
           .cinema-app .cinema-timeline-head { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
           .cinema-app .cinema-timeline-head > .sk-section-head,
           .cinema-app .cinema-timeline-controls,
+          .cinema-app .cinema-timeline-head > .cinema-tracks,
           .cinema-app [data-cinema-timeline-summary] { grid-column:1 / -1; }
           .cinema-app [data-cinema-export-outcome] { margin:4px 8px; font-size:12px; line-height:1.3; overflow-wrap:anywhere; }
           .cinema-app .cinema-project-reference { display:flex; flex-direction:column; width:100%; box-sizing:border-box; padding:4px 8px; gap:2px; font-size:11px; }
@@ -477,13 +486,33 @@ export class CinemaApp {
           @media (min-width: 701px) {
             .cinema-app .cinema-timeline { padding:6px; }
             .cinema-app .cinema-timeline-head { gap:4px; }
-            .cinema-app .cinema-clip { min-height:32px; }
+            .cinema-app .cinema-native-video { max-height:96px; }
+            .cinema-app .cinema-video-frame { max-height:100px; }
+            .cinema-app [data-cinema-source-cid] { min-height:2.6em; }
+            .cinema-app .cinema-clip { min-height:28px; }
           }
           @media (max-width: 700px) {
-            .cinema-app .cinema-native-video { max-height:110px; }
-            .cinema-app .cinema-video-frame { max-height:114px; }
+            .cinema-app .cinema-toolpanel { display:none; }
+            .cinema-app .cinema-native-video { max-height:72px; }
+            .cinema-app .cinema-video-frame { max-height:76px; }
+            .cinema-app [data-cinema-source-cid],
+            .cinema-app [data-cinema-output-reference],
+            .cinema-app [data-cinema-project-reference] { height:2.2em; min-height:0; max-height:2.2em; white-space:nowrap; overflow-x:auto; overflow-wrap:normal; word-break:normal; }
+            .cinema-app .cinema-timeline-controls { flex-wrap:nowrap; scroll-margin-bottom:24px; }
+            .cinema-app .timeline-btn { flex:1 1 0; min-width:0; }
             .cinema-app .cinema-timeline { padding:6px; }
             .cinema-app .cinema-timeline-head { gap:4px; margin-bottom:4px; }
+            .cinema-app .cinema-content,
+            .cinema-app .cinema-editing,
+            .cinema-app .cinema-timeline { overflow:visible !important; max-height:none !important; }
+            .cinema-app .cinema-timeline-head > .sk-section-head,
+            .cinema-app .cinema-timeline-controls { order:1; }
+            .cinema-app .cinema-trim-label { order:2; position:sticky; bottom:0; z-index:9; background:#141824; scroll-margin-bottom:16px; }
+            .cinema-app .cinema-timeline-head > .cinema-tracks,
+            .cinema-app [data-cinema-timeline-summary] { order:3; }
+            .cinema-app .cinema-timeline { padding-bottom:8px; }
+            .cinema-app .cinema-native-video { max-height:56px !important; }
+            .cinema-app .cinema-video-frame { max-height:60px !important; }
             .cinema-app .cinema-tracks { min-height:40px; padding:6px; }
             .cinema-app .cinema-clip { min-height:32px; }
             .cinema-app .cinema-playback { margin-top:4px; padding:4px 8px; gap:4px; }
@@ -496,6 +525,7 @@ export class CinemaApp {
           <div class="app-icon cinema-icon">🎬</div>
           <div class="app-title cinema-title" >Cinema - Professional Video Editor</div>
           <div class="project-info cinema-project-cid" >${this.cinemaWorkflow.projectCid ? 'Project saved' : restoredProject?.lastSavedProjectCid ? 'Unsaved changes · history in Project actions' : 'Local project changes · not saved'}</div>
+          <p class="cinema-project-cid" data-cinema-track-caption>No clips on the timeline.</p>
           <div class="cinema-primary-actions">
           <button type="button" class="cinema-project-navigation" data-cinema-navigation="project-actions" aria-controls="${this.projectActionsId}">Project actions ↓</button>
           <button class="sk-btn" data-cinema-workflow="load-project-media-cids" data-native-gateway-binding="cinema.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" aria-label="Review Cinema project persistence">Persist project</button>
@@ -522,13 +552,13 @@ export class CinemaApp {
             <!-- Preview Area -->
             <div class="preview-area cinema-preview-area" >
               <div class="cinema-source-controls">
-                <label>Source clip CID<textarea data-cinema-source-cid class="sk-input" rows="2" wrap="soft" aria-label="Source clip CID" spellcheck="false" placeholder="A verified WebM or MP4 CID"></textarea></label>
+                <label>Source clip CID<textarea data-cinema-source-cid class="sk-input" rows="2" wrap="off" aria-label="Source clip CID" spellcheck="false" placeholder="A verified WebM or MP4 CID"></textarea></label>
                 <button type="button" class="sk-btn" data-cinema-open-source aria-label="Open source clip by CID">Open clip</button>
               </div>
               <p data-cinema-source-status role="status" aria-live="polite">No source clip decoded. Open a clip up to 1 MiB and 30 seconds.</p>
               <div class="video-preview cinema-video-frame"  data-playback-fallback-state="unavailable" data-playback-state="not_loaded">
-                <video class="cinema-native-video" data-cinema-video data-cinema-source-video controls muted playsinline preload="metadata" aria-label="Cinema source preview" hidden></video>
-                <video class="cinema-native-video" data-cinema-output-video controls muted playsinline preload="metadata" aria-label="Exported WebM preview" hidden></video>
+                <video class="cinema-native-video" data-cinema-video data-cinema-source-video muted playsinline preload="metadata" aria-label="Cinema source preview" hidden></video>
+                <video class="cinema-native-video" data-cinema-output-video muted playsinline preload="metadata" aria-label="Exported WebM preview" hidden></video>
                 <span data-cinema-media-placeholder>🎬 No media decoded</span>
               </div>
               
@@ -546,12 +576,12 @@ export class CinemaApp {
                 <output data-cinema-output-time>No decoded output</output>
               </div>
               <label class="cinema-project-reference">Exported video CID (WebM)
-                <textarea data-cinema-output-reference data-output-state="not_loaded" readonly rows="2" wrap="soft" aria-label="Exported video CID"></textarea>
+                <textarea data-cinema-output-reference data-output-state="not_loaded" readonly rows="2" wrap="off" aria-label="Exported video CID"></textarea>
               </label>
               <p data-cinema-selection></p>
               <p data-cinema-export-outcome role="status" aria-live="polite">Export has not been attempted.</p>
               <label class="cinema-project-reference">Current project CID (blank while changes are unsaved)
-                <textarea data-cinema-project-reference data-reference-state="not_saved" readonly rows="2" wrap="soft" aria-label="Saved project CID"></textarea>
+                <textarea data-cinema-project-reference data-reference-state="not_saved" readonly rows="2" wrap="off" aria-label="Saved project CID"></textarea>
               </label>
             </div>
             
@@ -564,6 +594,13 @@ export class CinemaApp {
                   <button type="button" class="timeline-btn sk-btn">🔊 Audio</button>
                   <button type="button" class="timeline-btn sk-btn">📝 Text</button>
                 </div>
+                <div class="timeline-tracks sk-card cinema-tracks" >
+                  <div class="sk-empty">
+                    <div class="cinema-empty-icon">🎞️</div>
+                    <div>Drop video clips here to start editing</div>
+                    <div class="cinema-empty-sub">Multi-track timeline with precision controls</div>
+                  </div>
+                </div>
                 <label class="cinema-trim-label">Trim out seconds
                   <input data-cinema-trim="out" class="sk-input" type="number" min="0" max="30" step="1" value="0" aria-label="Clip trim out seconds">
                 </label>
@@ -575,15 +612,6 @@ export class CinemaApp {
                   </select>
                 </label>
                 <p data-cinema-timeline-summary>No clips on the timeline.</p>
-              </div>
-              
-              <!-- Timeline Tracks -->
-              <div class="timeline-tracks sk-card cinema-tracks" >
-                <div class="sk-empty">
-                  <div class="cinema-empty-icon">🎞️</div>
-                  <div>Drop video clips here to start editing</div>
-                  <div class="cinema-empty-sub">Multi-track timeline with precision controls</div>
-                </div>
               </div>
             </div>
           </div>
@@ -648,20 +676,23 @@ export class CinemaApp {
       hostWindow.hidden = false;
       hostWindow.removeAttribute('hidden');
       hostWindow.style.zIndex = '30';
+      const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+      const viewportHeight = document.documentElement.clientHeight || window.innerHeight;
+      const margin = viewportWidth <= 700 ? 8 : 24;
+      const taskbar = document.getElementById('taskbar');
+      const taskbarTop = taskbar ? taskbar.getBoundingClientRect().top : viewportHeight;
+      const height = Math.max(280, Math.min(800, Math.floor(taskbarTop - margin - 6)));
+      hostWindow.style.setProperty('top', `${margin}px`, 'important');
+      hostWindow.style.setProperty('height', `${height}px`, 'important');
+      hostWindow.style.setProperty('max-height', `${height}px`, 'important');
+      hostWindow.style.minHeight = '0';
       if (!hostWindow.dataset.cinemaPlaced) {
         hostWindow.dataset.cinemaPlaced = '1';
-        const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
-        const viewportHeight = document.documentElement.clientHeight || window.innerHeight;
-        const margin = viewportWidth <= 700 ? 8 : 24;
         const width = Math.min(1200, Math.max(1, viewportWidth - margin * 2));
-        const height = Math.min(800, Math.max(1, viewportHeight - margin - 56));
         const previousLeft = Number.parseFloat(hostWindow.style.left);
         hostWindow.style.left = `${Math.max(margin, Math.min(Number.isFinite(previousLeft) ? previousLeft : margin,
           viewportWidth - width - margin))}px`;
-        hostWindow.style.top = `${margin}px`;
         hostWindow.style.width = `${width}px`;
-        hostWindow.style.height = `${height}px`;
-        hostWindow.style.minHeight = '0';
       }
       const gateway = hostWindow.querySelector('.live-tool-gateway-host');
       if (!gateway) return;
@@ -872,7 +903,7 @@ export class CinemaApp {
     const video = document.createElement('video');
     video.className = 'cinema-native-video'; video.dataset.cinemaVideo = ''; video.dataset.cinemaSourceVideo = '';
     video.setAttribute('aria-label', 'Cinema source preview');
-    video.controls = true; video.muted = true; video.playsInline = true; video.preload = 'auto';
+    video.controls = false; video.muted = true; video.playsInline = true; video.preload = 'auto';
     const url = URL.createObjectURL(new Blob([bytes], { type: metadata.mime }));
     let committed = false;
     try {
@@ -910,6 +941,7 @@ export class CinemaApp {
       video.hidden = false;
       target.replaceWith(video);
       this.sourceMedia = { ...metadata, video, url };
+      this.notePresentedFrame(video);
       const sync = event => {
         if (this.sourceMedia?.video !== video || !container.isConnected) return;
         if (event?.type === 'error') {
@@ -951,10 +983,35 @@ export class CinemaApp {
     this.syncMediaControls(container);
   }
 
+  notePresentedFrame(video) {
+    if (!video || video.dataset.presentWatch === '1' || typeof video.requestVideoFrameCallback !== 'function') return;
+    video.dataset.presentWatch = '1';
+    const watch = () => {
+      if (!video.isConnected) return;
+      video.requestVideoFrameCallback((_now, metadata) => {
+        if (Number.isFinite(metadata?.mediaTime)) {
+          video.dataset.presentedTime = metadata.mediaTime.toFixed(3);
+          if (this.container?.isConnected) this.syncMediaControls(this.container);
+        }
+        watch();
+      });
+    };
+    watch();
+  }
+
+  mediaClock(video) {
+    const duration = Number.isFinite(video?.duration) ? video.duration : null;
+    if (duration === null) return { position: 0, duration: 0, text: 'duration unavailable' };
+    const trim = video === this.exportMedia?.video ? { in: 0, out: duration } : this.mediaTrim();
+    const shown = trim.out > trim.in ? Math.min(duration, trim.out - trim.in) : duration;
+    const position = Math.min(Math.max(0, video.currentTime - (trim.in || 0)), shown);
+    return { position, duration: shown, text: `${position.toFixed(2)}s / ${shown.toFixed(2)}s` };
+  }
+
   updateOutputControls(container) {
     const video = this.exportMedia?.video, ready = this.outputReady(video);
     const clock = container.querySelector('[data-cinema-output-time]');
-    if (clock) clock.textContent = ready ? `${video.currentTime.toFixed(2)}s / ${Number.isFinite(video.duration) ? video.duration.toFixed(2)+'s' : 'duration unavailable'}` : 'No decoded output';
+    if (clock) clock.textContent = ready ? this.mediaClock(video).text : 'No decoded output';
     const input = container.querySelector('[data-cinema-output-reference]');
     if (input) {
       input.value = ready ? this.exportMedia.cid : '';
@@ -968,7 +1025,7 @@ export class CinemaApp {
     const video = document.createElement('video');
     video.className = 'cinema-native-video'; video.dataset.cinemaOutputVideo = '';
     video.setAttribute('aria-label', 'Exported WebM preview');
-    video.controls = true; video.muted = true; video.playsInline = true; video.preload = 'auto';
+    video.controls = false; video.muted = true; video.playsInline = true; video.preload = 'auto';
     const url = URL.createObjectURL(new Blob([bytes], { type: metadata.mime }));
     try {
       await new Promise((resolve, reject) => {
@@ -1058,7 +1115,7 @@ export class CinemaApp {
     if(!target)throw new Error('The output preview disappeared.');
     const previous=this.exportMedia;
     previous?.removeListeners?.();previous?.video.pause();
-    target.replaceWith(candidate.video);candidate.video.hidden=false;this.exportMedia=candidate;
+    target.replaceWith(candidate.video);candidate.video.hidden=false;this.exportMedia=candidate;this.notePresentedFrame(candidate.video);
     const sync=()=>{if(this.exportMedia===candidate&&container.isConnected){this.updateOutputControls(container);this.syncMediaControls(container);}};
     const events=['timeupdate','durationchange','loadeddata','play','pause','ended','error'];
     for(const name of events)candidate.video.addEventListener(name,sync);
@@ -1106,13 +1163,13 @@ export class CinemaApp {
       if(!response){this.showExportOutcome(container,'cancelled','Export persistence cancelled; the last good media and project remain.');return false;}
       if(response.preview||response.value.persisted!==true||response.value.verified!==true||response.value.cid!==cid)throw new Error('The owner did not persist and verify the exact recorded video CID.');
       if(!container.querySelector('[data-cinema-output-video]'))throw new Error('The output preview disappeared before project publication.');
-      const output={...checked.metadata,source_cid:source.cid,trim:{...trim}};
+      const output={...checked.metadata,source_cid:source.cid,trim:{...trim},persisted:true};
       sessionStorage.setItem(CINEMA_OUTPUT_CACHE+cid,JSON.stringify({...output,bytes_base64:base64ForBytes(bytes)}));
       const updated={...project,output,codec:'webm',duration:trim.out,tracks:project.tracks.map(item=>item===track?{...item,in:trim.in,out:trim.out}:item)};
       if(updated.projectCid){updated.lastSavedProjectCid=updated.projectCid;delete updated.projectCid;delete updated.persistence;}
       this.writeLocalProject(updated);projectWritten=true;this.renderTimeline(container,updated);
       this.commitExportPreview(container,candidate);committed=true;
-      this.showExportOutcome(container,'persisted',`WebM output persisted: ${cid}. ${bytes.length} bytes; save the project to retain its output reference.`);
+      this.showExportOutcome(container,'persisted',`WebM output reference retained: ${cid}. ${bytes.length} bytes.`);
       return true;
     } catch(error){
       if(projectWritten&&!committed){
@@ -1188,18 +1245,21 @@ export class CinemaApp {
 
   syncMediaControls(container) {
     const video = container.querySelector('[data-cinema-video]');
+    if (video) { video.controls = false; video.removeAttribute('controls'); }
     const ready = video===this.exportMedia?.video?this.outputReady(video):this.isDecodedMedia(video);
     container.querySelectorAll('[data-cinema-play]').forEach(control=>{control.disabled=!ready;});
     container.querySelectorAll('[data-cinema-seek], [data-cinema-seek-step]').forEach(control=>{control.disabled=!ready||!Number.isFinite(video.duration);});
     const button = container.querySelector('[data-cinema-play]');
     if (button) { button.textContent = ready && !video.paused ? '⏸️' : '▶️'; button.setAttribute('aria-label', ready && !video.paused ? 'Pause' : 'Play'); }
     const time = container.querySelector('.time-display');
-    const fmt = value => `${value.toFixed(2)}s`;
-    if (time) time.textContent = ready ? `${fmt(video.currentTime)} / ${Number.isFinite(video.duration)?fmt(video.duration):'duration unavailable'}` : 'No decoded media';
+    const clock = ready ? this.mediaClock(video) : null;
+    if (time) time.textContent = clock ? clock.text : 'No decoded media';
+    const outputClock = container.querySelector('[data-cinema-output-time]');
+    if (outputClock && video === this.exportMedia?.video) outputClock.textContent = clock ? clock.text : 'No decoded output';
     const range = container.querySelector('[data-cinema-seek]');
     if (range) {
-      const trim = video===this.exportMedia?.video?{in:0,out:Number.isFinite(video.duration)?video.duration:0}:this.mediaTrim(); range.min=String(trim.in);range.max=String(trim.out);range.value=String(ready?video.currentTime:0);
-      range.setAttribute('aria-valuetext',ready?`${video.currentTime.toFixed(1)} seconds of ${Number.isFinite(video.duration)?video.duration.toFixed(1)+' seconds':'unknown duration'}`:'No decoded media');
+      const trim = video===this.exportMedia?.video?{in:0,out:Number.isFinite(video.duration)?video.duration:0}:this.mediaTrim(); range.min=String(trim.in);range.max=String(ready&&clock?clock.duration:trim.out);range.value=String(ready&&clock?clock.position:0);
+      range.setAttribute('aria-valuetext',ready&&clock?`${clock.position.toFixed(2)} seconds of ${Number.isFinite(video.duration)?video.duration.toFixed(2)+' seconds':'unknown duration'}`:'No decoded media');
     }
     this.renderSelection(container, this.readLocalProject());
   }
@@ -1214,7 +1274,8 @@ export class CinemaApp {
       decoded: Boolean(media && stableStringifyValue({ cid: media.cid, sha256: media.sha256, size: media.size, mime: media.mime })
         === stableStringifyValue(project?.source || null) && this.isDecodedMedia(media.video)) };
     output.dataset.cinemaSelectionState = JSON.stringify({ selection, selection_serialized: stableStringifyValue(selection) });
-    output.textContent = `Trim ${selection.trim.in}–${selection.trim.out}s · ${selection.decoded ? 'source decoded' : 'no source decoded'} · ${selection.saved ? 'project saved' : 'local changes'}`;
+    const retained = project?.output?.persisted === true && Boolean(project.output.cid);
+    output.textContent = `Trim ${selection.trim.in}–${selection.trim.out}s · ${selection.decoded ? 'source decoded' : 'no source decoded'} · ${selection.saved ? 'project saved' : retained ? 'output retained' : 'local changes'}`;
     const reference = container.querySelector('[data-cinema-project-reference]');
     if (reference) {
       reference.value = project?.projectCid || '';
@@ -1434,7 +1495,7 @@ export class CinemaApp {
     }
     if (status) {
       status.dataset.exportState = state;
-      status.textContent = state === 'persisted' ? 'WebM output persisted. Current changes need a separate project save.' : message;
+      status.textContent = message;
     }
     const details = container.querySelector('[data-cinema-project-history]');
     if (details) details.hidden = !(history?.textContent || container.querySelector('[data-cinema-previous-project-reference]')?.value);
@@ -1561,24 +1622,42 @@ export class CinemaApp {
     this.timeline.tracks = project?.tracks || [];
     this.timeline.duration = project?.duration || 0;
     const header = container.querySelector('.cinema-header .project-info');
-    if (header) header.textContent = this.cinemaWorkflow.projectCid ? 'Project saved' : project?.pendingProjectCid ? 'Checking saved project…' : project?.lastSavedProjectCid ? 'Unsaved changes · history in Project actions' : 'Local project changes · not saved';
+    if (header) header.textContent = project?.output?.cid ? 'Output reference persisted' : this.cinemaWorkflow.projectCid ? 'Project saved' : project?.pendingProjectCid ? 'Checking saved project…' : project?.lastSavedProjectCid ? 'Unsaved changes · history in Project actions' : 'Local project changes · not saved';
     const proof = container.querySelector('[data-project-cid-state]');
     if (proof) proof.dataset.projectCidState = project?.projectCid ? 'persisted' : 'not_persisted';
     const cid = container.querySelector('[data-cinema-project-cid]');
     if (cid) cid.textContent = project?.projectCid ? `Project persisted: ${project.projectCid}`
+      : project?.output?.cid ? `Output reference persisted: ${project.output.cid}`
       : project?.lastSavedProjectCid ? `Previous saved snapshot: ${project.lastSavedProjectCid}; current changes are unsaved.` : 'No project has been persisted.';
     const summary = container.querySelector('[data-cinema-timeline-summary]');
-    if (summary) summary.textContent = this.timelineSummary(project);
+    const summaryText = this.timelineSummary(project);
+    if (summary) summary.textContent = summaryText;
+    const trackCaption = container.querySelector('[data-cinema-track-caption]');
+    if (trackCaption) trackCaption.textContent = summaryText;
     const duration = container.querySelector('[data-cinema-duration]');
     if (duration) duration.textContent = `Duration: ${project?.duration || 0}s`;
     const tracks = container.querySelector('.timeline-tracks');
     const video = project?.tracks?.find(track => track.kind === 'video');
     if (tracks && video) {
       tracks.replaceChildren();
+      const lane = document.createElement('div');
+      lane.className = 'cinema-lane';
       const clip = document.createElement('div');
       clip.className = 'cinema-clip';
-      clip.textContent = `${video.label} · in ${video.in}s · out ${video.out}s`;
-      tracks.appendChild(clip);
+      const end = Math.max(Number(video.out) || 0, 0.001);
+      const start = Math.max(0, Math.min(end, Number(video.in) || 0));
+      clip.style.position = 'absolute';
+      clip.style.left = `${(start / end) * 100}%`;
+      clip.style.width = `${Math.max(12, ((end - start) / end) * 100)}%`;
+      clip.style.top = '4px';
+      clip.style.height = '28px';
+      clip.textContent = `${video.label} · ${start}s–${end}s`;
+      const handle = document.createElement('span');
+      handle.className = 'cinema-trim-handle';
+      handle.setAttribute('aria-hidden', 'true');
+      clip.appendChild(handle);
+      lane.appendChild(clip);
+      tracks.appendChild(lane);
     }
     const preview = container.querySelector('.video-preview');
     if (preview) {
@@ -1592,6 +1671,29 @@ export class CinemaApp {
     const codec = container.querySelector('[data-cinema-codec]');
     if (codec && project?.codec && document.activeElement !== codec) codec.value = project.codec;
     this.syncMediaControls(container);
+    this.revealTimelineClip(container);
+  }
+
+  revealTimelineClip(container) {
+    const view = container.ownerDocument?.defaultView;
+    const narrow = (view?.innerWidth || 0) <= 700;
+    const target = narrow
+      ? (container.querySelector('[data-cinema-codec]') || container.querySelector('[data-cinema-trim="out"]'))
+      : (container.querySelector('.cinema-clip') || container.querySelector('.cinema-timeline-controls'));
+    if (!target) return;
+    const taskbar = container.ownerDocument.getElementById('taskbar');
+    const taskbarTop = taskbar ? taskbar.getBoundingClientRect().top : Number.POSITIVE_INFINITY;
+    const panes = [container.querySelector('.cinema-editing'), container.querySelector('.cinema-root'), container.closest('.window-app-content')].filter(Boolean);
+    for (const pane of panes) {
+      const bounds = pane.getBoundingClientRect();
+      const box = target.getBoundingClientRect();
+      const limitBottom = Math.min(bounds.bottom, taskbarTop - 4);
+      const maximum = pane.scrollHeight - pane.clientHeight;
+      if (maximum <= 0 || box.height <= 0) continue;
+      if (box.top >= bounds.top + 4 && box.bottom <= limitBottom - 4) continue;
+      const delta = box.bottom > limitBottom - 4 ? box.bottom - limitBottom + 8 : box.top - bounds.top - 8;
+      pane.scrollTop = Math.max(0, Math.min(maximum, pane.scrollTop + delta));
+    }
   }
 
   projectMatchesRecord(project, record) {

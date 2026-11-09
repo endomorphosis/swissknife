@@ -69,6 +69,15 @@
       },
       {
         "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#mp-playlist-order"
+        },
+        "operator": "equals",
+        "expected": "1 Chill Lo-Fi Beat · 2 Coding Focus · 3 Nature Sounds · 4 Retrieved audio"
+      },
+      {
+        "op": "assert",
         "requirement_id": "result_1",
         "probe": {
           "kind": "media_state",
@@ -96,6 +105,15 @@
         },
         "operator": "contains",
         "expected": "bafkreifumhfm2a3c7noqi3qnosbwoqt2gten3at67srom7twuvsjriq2sy"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#mp-playlist-order"
+        },
+        "operator": "equals",
+        "expected": "1 Chill Lo-Fi Beat · 2 Coding Focus · 3 Nature Sounds · 4 Retrieved audio"
       },
       {
         "op": "assert",
@@ -198,6 +216,29 @@
         },
         "operator": "at_least",
         "expected": 0.05
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#mp-playback-identity"
+        },
+        "operator": "contains",
+        "expected": "volume 80%"
+      },
+      {
+        "op": "press",
+        "selector": "#volumeSlider",
+        "key": "ArrowLeft"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#mp-playback-identity"
+        },
+        "operator": "contains",
+        "expected": "volume 79%"
       }
     ]
   }

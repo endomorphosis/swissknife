@@ -112,10 +112,10 @@
         "op": "assert",
         "probe": {
           "kind": "text",
-          "selector": "#ums-edited"
+          "selector": "#ums-loaded"
         },
         "operator": "equals",
-        "expected": "Edited note C4 on Drums."
+        "expected": "Loaded project local. Tracks Drums, Bass. Tempo 120 BPM. Note C4."
       }
     ],
     "failure_recovery": [
@@ -195,10 +195,10 @@
         "op": "assert",
         "probe": {
           "kind": "text",
-          "selector": "#ums-tracks"
+          "selector": "#ums-rejected"
         },
-        "operator": "equals",
-        "expected": "Drums C4 · Bass c2"
+        "operator": "contains",
+        "expected": "Invalid project. Playback did not start."
       },
       {
         "op": "assert",

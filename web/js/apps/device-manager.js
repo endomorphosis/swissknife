@@ -81,10 +81,14 @@ export class DeviceManagerApp {
         ownerSource: typeof parsed.ownerSource === 'string' ? parsed.ownerSource : '',
         ownerCpuAvailable: parsed.ownerCpuAvailable === true,
         ownerLogicalCpus: Number.isFinite(parsed.ownerLogicalCpus) ? parsed.ownerLogicalCpus : null,
-        recordNote: typeof parsed.recordNote === 'string' ? parsed.recordNote : ''
+        recordNote: typeof parsed.recordNote === 'string' ? parsed.recordNote : '',
+        retainedObservationSequence: Number.isInteger(parsed.retainedObservationSequence) && parsed.retainedObservationSequence > 0 ? parsed.retainedObservationSequence : 0,
+        ownerObservationCount: Number.isInteger(parsed.ownerObservationCount) && parsed.ownerObservationCount > 0 ? parsed.ownerObservationCount : 0,
+        retainedOwnerObservedAt: typeof parsed.retainedOwnerObservedAt === 'string' ? parsed.retainedOwnerObservedAt : '',
+        sessionOwnerObservedAt: typeof parsed.sessionOwnerObservedAt === 'string' ? parsed.sessionOwnerObservedAt : ''
       };
     } catch (error) {
-      return { selectedDiagnostic: '', ownerObservedAt: '', sessionObservedAt: '', ownerSource: '', ownerCpuAvailable: false, ownerLogicalCpus: null, recordNote: '' };
+      return { selectedDiagnostic: '', ownerObservedAt: '', sessionObservedAt: '', ownerSource: '', ownerCpuAvailable: false, ownerLogicalCpus: null, recordNote: '', retainedObservationSequence: 0, ownerObservationCount: 0, retainedOwnerObservedAt: '', sessionOwnerObservedAt: '' };
     }
   }
 
@@ -165,6 +169,9 @@ export class DeviceManagerApp {
     }
     const windowRect = windowEl?.getBoundingClientRect();
     if (!appContent || !windowRect || windowRect.height < 120) return;
+    const taskbar = document.getElementById('taskbar');
+    const taskbarTop = taskbar ? taskbar.getBoundingClientRect().top : Number.POSITIVE_INFINITY;
+    const visibleBottom = Math.min(windowRect.bottom, taskbarTop - 4);
     let frame = appContent.getBoundingClientRect();
     if (frame.top < windowRect.top - 1 && appContent.dataset.dmFrameShift !== '1') {
       const current = Number.parseFloat(appContent.style.marginTop || '0') || 0;
@@ -175,7 +182,7 @@ export class DeviceManagerApp {
     for (const el of [windowContent, appContent]) {
       if (!el) continue;
       const top = Math.max(el.getBoundingClientRect().top, windowRect.top);
-      const available = Math.floor(windowRect.bottom - top);
+      const available = Math.floor(visibleBottom - top);
       if (available < 160) continue;
       el.style.boxSizing = 'border-box';
       el.style.minHeight = '0';
@@ -193,6 +200,12 @@ export class DeviceManagerApp {
       body.style.maxHeight = '100%';
       body.style.minHeight = '0';
       body.style.overflow = 'auto';
+      const request = body.querySelector('#dm-request-owner');
+      if (request) {
+        const box = request.getBoundingClientRect();
+        const limit = Math.min(body.getBoundingClientRect().bottom, visibleBottom);
+        if (box.bottom > limit - 2) body.scrollTop += Math.ceil(box.bottom - limit + 8);
+      }
     }
   }
 
@@ -219,6 +232,44 @@ export class DeviceManagerApp {
       }
     }
     return null;
+  }
+
+  readOwnerObservedAt(outcome) {
+    const queue = [outcome];
+    const seen = [];
+    while (queue.length && seen.length < 12) {
+      const current = queue.shift();
+      if (!current || typeof current !== 'object' || seen.includes(current)) continue;
+      seen.push(current);
+      const provenance = current.native_provenance;
+      if (provenance && typeof provenance === 'object' && typeof provenance.observed_at === 'string' && provenance.observed_at) {
+        return provenance.observed_at;
+      }
+      if (current.result && typeof current.result === 'object') queue.push(current.result);
+      if (Array.isArray(current.content)) {
+        for (const item of current.content) {
+          if (item && item.json && typeof item.json === 'object') queue.push(item.json);
+        }
+      }
+    }
+    return '';
+  }
+
+  paintObservationIdentity(retainedSeq, sessionSeq, retainedAt, sessionAt) {
+    const windows = [...document.querySelectorAll('.window[data-app-id="device-manager"]')];
+    const host = windows[windows.length - 1] || document;
+    const setValue = (id, value) => {
+      const node = host.querySelector(`#${id}`);
+      if (node) node.value = String(value);
+    };
+    const setText = (id, value) => {
+      const node = host.querySelector(`#${id}`);
+      if (node) node.textContent = value || 'none';
+    };
+    setValue('dm-retained-sequence', retainedSeq);
+    setValue('dm-session-sequence', sessionSeq);
+    setText('dm-retained-owner-at', retainedAt || 'none');
+    setText('dm-session-owner-at', sessionAt || 'none');
   }
 
   async requestOwnerHardware() {
@@ -348,22 +399,32 @@ export class DeviceManagerApp {
       const cpu = this.readOwnerCpu(outcome);
       const cpuAvailable = Boolean(cpu && cpu.available === true);
       const logicalCpus = cpu && Number.isFinite(cpu.logical_cpu_count) ? cpu.logical_cpu_count : null;
+      const ownerAt = this.readOwnerObservedAt(outcome);
+      const retainedSeq = prior.retainedObservationSequence > 0 ? prior.retainedObservationSequence : 1;
+      const nextCount = (prior.ownerObservationCount > 0 ? prior.ownerObservationCount : 0) + 1;
+      const retainedOwnerAt = prior.retainedOwnerObservedAt || ownerAt;
       const retainedUpdate = {
         selectedDiagnostic: 'inspect_hardware',
         ownerObservedAt: firstOwnerAt,
         sessionObservedAt: observedAt,
-        ownerSource: 'ipfs_accelerate_py'
+        ownerSource: 'ipfs_accelerate_py',
+        retainedObservationSequence: retainedSeq,
+        ownerObservationCount: nextCount,
+        retainedOwnerObservedAt: retainedOwnerAt,
+        sessionOwnerObservedAt: ownerAt
       };
       if (cpu) {
         retainedUpdate.ownerCpuAvailable = cpuAvailable;
         retainedUpdate.ownerLogicalCpus = logicalCpus;
       }
       this.writeRetained(retainedUpdate);
+      this.paintObservationIdentity(retainedSeq, nextCount, retainedOwnerAt, ownerAt);
       const browserAt = this.browserAccess?.observedAt || this.browserAccessRecord().observedAt;
       const cpuSentence = cpuAvailable ? ' Owner cpu.available: true.' : '';
-      this.setDmStatus(`Browser device access source: navigator, observed ${browserAt}. Owner hardware source: ipfs_accelerate_py, observed ${observedAt}.${cpuSentence}`);
-      if (!(retainedAt && retainedAt !== observedAt)) {
-        this.appendRecord(`Owner hardware source: ipfs_accelerate_py, observed ${observedAt}.`);
+      const ownerStamp = ownerAt || observedAt;
+      this.setDmStatus(`Browser device access source: navigator, observed ${browserAt}. Owner hardware source: ipfs_accelerate_py, observed ${ownerStamp}.${cpuSentence}`);
+      if (!(retainedAt && retainedAt !== ownerStamp)) {
+        this.appendRecord(`Owner hardware source: ipfs_accelerate_py, observed ${ownerStamp}.`);
       }
       const ready = document.getElementById('dm-owner-ready');
       if (ready) {
@@ -375,13 +436,16 @@ export class DeviceManagerApp {
       const session = document.getElementById('dm-session-owner');
       const catalog = document.getElementById('dm-owner-catalog');
       if (ownerSource) ownerSource.textContent = retainedAt ? 'source: ipfs_accelerate_py, retained' : 'source: ipfs_accelerate_py';
-      if (ownerTime) ownerTime.textContent = `observed: ${firstOwnerAt}`;
+      const keptAt = retainedOwnerAt || firstOwnerAt;
+      const newlyAt = ownerAt || observedAt;
+      if (ownerTime) ownerTime.textContent = `observed: ${keptAt}`;
       if (session) {
         const kept = prior.selectedDiagnostic;
         const cpuNote = cpuAvailable ? ' Owner cpu.available: true.' : '';
-        session.textContent = retainedAt && retainedAt !== observedAt && kept
-          ? `Reopened selection ${kept} was kept.${cpuNote} Newly observed hardware this session: ${observedAt}. Retained owner observed ${retainedAt}.`
-          : `This session owner observation: ${observedAt}${cpuNote}`;
+        const separateObservation = Boolean(retainedAt && retainedAt !== observedAt && kept && ownerAt && retainedOwnerAt && ownerAt !== retainedOwnerAt);
+        session.textContent = separateObservation
+          ? `Reopened selection ${kept} was kept.${cpuNote} Newly observed hardware this session: ${ownerAt}. Retained owner observed ${retainedOwnerAt}.`
+          : `This session owner observation: ${newlyAt}${cpuNote}`;
       }
       const cpuLine = document.getElementById('dm-owner-cpu');
       if (cpuLine && cpu && typeof cpu.available === 'boolean') {
@@ -402,17 +466,23 @@ export class DeviceManagerApp {
     const retainedLabel = retained.selectedDiagnostic || 'none';
     const hasOwner = Boolean(retained.ownerSource && retained.ownerObservedAt);
     const ownerSourceLabel = hasOwner ? `source: ${retained.ownerSource}, retained` : 'source: not observed';
-    const ownerTimeLabel = hasOwner ? `observed: ${retained.ownerObservedAt}` : 'observed: not yet this session';
+    const keptOwnerAt = retained.retainedOwnerObservedAt || '';
+    const newOwnerAt = retained.sessionOwnerObservedAt || '';
+    const ownerTimeLabel = keptOwnerAt
+      ? `observed: ${keptOwnerAt}`
+      : hasOwner ? `observed: ${retained.ownerObservedAt}` : 'observed: not yet this session';
     const cpuLabel = retained.ownerCpuAvailable === true
       ? `Owner cpu.available: true${retained.ownerLogicalCpus === null ? '' : `. Logical CPUs: ${retained.ownerLogicalCpus}`}.`
       : 'Owner cpu.available: not observed.';
-    const sessionLabel = retained.ownerObservedAt && retained.sessionObservedAt && retained.sessionObservedAt !== retained.ownerObservedAt && retained.selectedDiagnostic
-      ? `Reopened selection ${retained.selectedDiagnostic} was kept. Newly observed hardware this session: ${retained.sessionObservedAt}. Retained owner observed ${retained.ownerObservedAt}.`
+    const sessionLabel = newOwnerAt && keptOwnerAt && newOwnerAt !== keptOwnerAt && retained.selectedDiagnostic
+      ? `Reopened selection ${retained.selectedDiagnostic} was kept. Newly observed hardware this session: ${newOwnerAt}. Retained owner observed ${keptOwnerAt}.`
       : hasOwner
         ? `Newly observed hardware this session: none. Reopened selection ${retained.selectedDiagnostic || 'none'} was kept.`
         : 'This session owner observation: none';
     const supportedLabel = retained.selectedDiagnostic === 'inspect_hardware' ? 'Selected: inspect hardware' : 'Use inspect hardware';
     const unsupportedLabel = retained.selectedDiagnostic === 'wifi-radio-scan' ? 'Selected: wifi radio scan' : 'Use wifi radio scan';
+    const retainedSeqLabel = retained.retainedObservationSequence > 0 ? String(retained.retainedObservationSequence) : '0';
+    const retainedOwnerAtLabel = retained.retainedOwnerObservedAt || 'none';
     const content = `
       <div class="device-manager-container" style="display:flex;flex-direction:column;max-height:100%;min-height:0;">
         <style>
@@ -443,26 +513,81 @@ export class DeviceManagerApp {
           }
           .device-manager-container #dm-diagnostic-label,
           .device-manager-container #dm-reopened-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 2px 0;
+            display: block !important;
+            position: static !important;
+            float: none !important;
+            clear: both !important;
+            width: 100% !important;
+            margin: 6px 0 0 !important;
             color: #1c2430;
             font-size: 14px;
+            box-sizing: border-box;
           }
           .device-manager-container #dm-diagnostic-choice,
-          .device-manager-container #dm-reopened-value {
-            flex: 1 1 auto;
+          .device-manager-container #dm-reopened-value,
+          .device-manager-container #dm-retained-sequence,
+          .device-manager-container #dm-session-sequence {
+            display: block !important;
+            position: static !important;
+            float: none !important;
+            flex: none !important;
+            width: 100% !important;
             min-width: 0;
             max-width: 100%;
+            margin: 4px 0 8px !important;
             box-sizing: border-box;
             background: #f8fafc;
             color: #1c2430;
             border: 1px solid #94a3b8;
           }
-          .device-manager-container #dm-reopened-value:focus {
+          .device-manager-container #dm-observation-indexes {
+            display: flex;
+            position: static;
+            width: 100%;
+            clear: both;
+            gap: 8px;
+            margin: 0 0 10px;
+          }
+          @media (max-width: 800px) {
+            .device-manager-container #dm-observation-indexes { flex-direction: column; }
+          }
+          .device-manager-container #dm-observation-indexes label {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 0;
+            min-width: 0;
+            color: #1c2430;
+            font-size: 13px;
+          }
+          .device-manager-container #dm-retained-sequence,
+          .device-manager-container #dm-session-sequence {
+            width: 4.5em !important;
+            max-width: 4.5em !important;
+            margin: 2px 0 0 !important;
+          }
+          .device-manager-container #dm-browser-time,
+          .device-manager-container #dm-owner-time,
+          .device-manager-container #dm-retained-owner .dm-stamp,
+          .device-manager-container #dm-retained-owner-at,
+          .device-manager-container #dm-session-owner-at {
+            display: block;
+            margin-top: 2px;
+            font-size: 12px;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow-x: auto;
+            overflow-wrap: normal;
+            word-break: normal;
+            text-overflow: clip;
+            color: #1c2430;
+          }
+          .device-manager-container #dm-reopened-value:focus,
+          .device-manager-container #dm-reopened-value:focus-visible,
+          .device-manager-container #dm-diagnostic-choice:focus,
+          .device-manager-container #dm-diagnostic-choice:focus-visible {
             outline: 3px solid #ca8a04 !important;
-            outline-offset: 2px;
+            outline-offset: 1px;
+            box-shadow: 0 0 0 2px #ca8a04;
           }
           .window[data-app-id="device-manager"] .window-content,
           .window[data-app-id="device-manager"] .window-app-content {
@@ -489,6 +614,12 @@ export class DeviceManagerApp {
           .device-manager-container #dm-owner-time,
           .device-manager-container #dm-owner-cpu,
           .device-manager-container #dm-record { margin: 2px 0 !important; padding: 2px 6px !important; }
+          .device-manager-container #dm-session-owner,
+          .device-manager-container #dm-record,
+          .device-manager-container #dm-status-line {
+            font-size: 12px;
+            line-height: 1.25;
+          }
           .device-manager-container #dm-select-supported,
           .device-manager-container #dm-select-unsupported,
           .device-manager-container #dm-request-owner {
@@ -570,6 +701,16 @@ export class DeviceManagerApp {
                 <label id="dm-reopened-label" for="dm-reopened-value">Reopened diagnostic
                   <input id="dm-reopened-value" readonly value="${this.escapeHtml(retained.selectedDiagnostic)}">
                 </label>
+                <div id="dm-observation-indexes">
+                  <label for="dm-retained-sequence">Retained
+                    <input id="dm-retained-sequence" readonly value="${this.escapeHtml(retainedSeqLabel)}">
+                    <span id="dm-retained-owner-at">${this.escapeHtml(retainedOwnerAtLabel)}</span>
+                  </label>
+                  <label for="dm-session-sequence">Session
+                    <input id="dm-session-sequence" readonly value="0">
+                    <span id="dm-session-owner-at">none</span>
+                  </label>
+                </div>
                 <label id="dm-diagnostic-label" for="dm-diagnostic-choice">Diagnostic choice
                   <select id="dm-diagnostic-choice">
                     <option value="inspect_hardware"${retained.selectedDiagnostic === 'inspect_hardware' ? ' selected' : ''}>inspect hardware</option>
@@ -819,7 +960,7 @@ export class DeviceManagerApp {
       const ownedIds = [
         'dm-browser-access', 'dm-browser-source', 'dm-browser-time', 'dm-owner-hardware',
         'dm-browser-device', 'dm-owner-source', 'dm-owner-time', 'dm-owner-cpu', 'dm-retained-selection', 'dm-session-owner',
-        'dm-retained-owner', 'dm-record', 'dm-owner-ready', 'dm-status-line', 'dm-reopened-label', 'dm-reopened-value', 'dm-diagnostic-label', 'dm-diagnostic-choice',
+        'dm-retained-owner', 'dm-record', 'dm-owner-ready', 'dm-status-line', 'dm-reopened-label', 'dm-reopened-value', 'dm-observation-indexes', 'dm-retained-sequence', 'dm-session-sequence', 'dm-retained-owner-at', 'dm-session-owner-at', 'dm-diagnostic-label', 'dm-diagnostic-choice',
         'dm-select-supported', 'dm-select-unsupported',
         'dm-request-owner', 'dm-owner-details', 'dm-owner-catalog'
       ];

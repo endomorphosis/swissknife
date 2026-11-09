@@ -92,6 +92,25 @@
         },
         "operator": "contains",
         "expected": "Model: gpt2; snapshot: 607a30d783dfa663caf39e06633721c8d4cfcd7e; reference: ipfs://bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "value",
+          "selector": "#ai-chat-reference-cid"
+        },
+        "operator": "equals",
+        "expected": "bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "json_attribute",
+          "selector": ".message.assistant .chat-reference-link",
+          "attribute": "data-citation-target"
+        },
+        "operator": "equals",
+        "expected": "ipfs://bafkreib3xeblemlbglbw2yduqo2xkaiqt34ms6q7l63bn5q2yzmpd72lgm"
       }
     ],
     "failure_recovery": [
@@ -156,6 +175,11 @@
         "timeout_ms": 15000
       },
       {
+        "op": "press",
+        "selector": "#ai-chat-input",
+        "key": "Escape"
+      },
+      {
         "op": "assert",
         "requirement_id": "failure_recovery",
         "probe": {
@@ -164,6 +188,15 @@
         },
         "operator": "equals",
         "expected": 1
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#ai-chat-recovery-note"
+        },
+        "operator": "contains",
+        "expected": "No verified IPFS content has been selected"
       }
     ]
   }

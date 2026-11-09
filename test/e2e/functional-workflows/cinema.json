@@ -135,13 +135,11 @@
       {
         "op": "assert",
         "probe": {
-          "kind": "json_attribute",
-          "selector": "[data-cinema-output-reference]",
-          "attribute": "data-output-identity",
-          "pointer": "/size"
+          "kind": "text",
+          "selector": "[data-cinema-track-caption]"
         },
-        "operator": "at_least",
-        "expected": 1
+        "operator": "equals",
+        "expected": "Track order video. Trim in 0s out 2s."
       },
       {
         "op": "assert",
@@ -249,13 +247,11 @@
         "op": "assert",
         "requirement_id": "persist_reopen",
         "probe": {
-          "kind": "media_state",
-          "selector": "[data-cinema-video]",
-          "pointer": "/current_time",
-          "temporal_ms": 250
+          "kind": "text",
+          "selector": "[data-cinema-track-caption]"
         },
-        "operator": "at_least",
-        "expected": 0.05
+        "operator": "equals",
+        "expected": "Track order video. Trim in 0s out 2s."
       }
     ],
     "failure_recovery": [

@@ -76,6 +76,18 @@
         "timeout_ms": 10000
       },
       {
+        "op": "assert",
+        "probe": {"kind": "value", "selector": "#github-retained-repository"},
+        "operator": "equals",
+        "expected": "fixture-owner/fixture-repo"
+      },
+      {
+        "op": "assert",
+        "probe": {"kind": "value", "selector": "#github-retained-file"},
+        "operator": "equals",
+        "expected": "README.md"
+      },
+      {
         "op": "click",
         "selector": "#github-retrieve-content"
       },
@@ -129,6 +141,18 @@
         "expected": "not found"
       },
       {
+        "op": "assert",
+        "probe": {"kind": "value", "selector": "#github-repo-context"},
+        "operator": "equals",
+        "expected": "missing-repo"
+      },
+      {
+        "op": "assert",
+        "probe": {"kind": "value", "selector": "#github-rejected-repository"},
+        "operator": "equals",
+        "expected": "missing-repo"
+      },
+      {
         "op": "fill",
         "selector": "#github-repo-context",
         "value": "fixture-owner/fixture-repo"
@@ -142,6 +166,18 @@
         "op": "press",
         "selector": "#github-file-path",
         "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "probe": {"kind": "value", "selector": "#github-repo-context"},
+        "operator": "equals",
+        "expected": "fixture-owner/fixture-repo"
+      },
+      {
+        "op": "assert",
+        "probe": {"kind": "value", "selector": "#github-rejected-repository"},
+        "operator": "equals",
+        "expected": "missing-repo"
       },
       {
         "op": "click",

@@ -39,9 +39,13 @@ export async function parseStoredChatReference(response, expectedCid, modelId) {
 
 export function buildStoredReferencePrompt(message, reference = null, context = {}) {
   const selected = Object.fromEntries(Object.entries(context).filter(([key]) => key !== 'reference'));
+  const question = String(message || '').trim();
+  // End on a word cue. A prompt that ends inside the context JSON makes the
+  // four-token GPT-2 continuation another JSON fragment, which the transcript
+  // then shows as a blank answer line.
   const facts = reference?.status === 'available'
-    ? `Stored reference ${reference.cid}\nModel: ${reference.model_id}; snapshot: ${reference.snapshot}; task: ${reference.task}; device: ${reference.device}\nQuestion: ${message}\nContinuation:`
-    : String(message);
+    ? `Stored reference ${reference.cid}\nModel: ${reference.model_id}; snapshot: ${reference.snapshot}; task: ${reference.task}; device: ${reference.device}\nQuestion: ${question}\nThe stored reference names model ${reference.model_id}. Answer:`
+    : question;
   const prompt = (Object.keys(selected).length ? `Context:\n${JSON.stringify(selected)}\n\n` : '') + facts;
   if (new TextEncoder().encode(prompt).length > 512) throw new Error('Question, selected context and stored reference exceed the bounded model input; shorten the question or deselect context.');
   return prompt;
@@ -293,12 +297,14 @@ export class AIChatApp {
           <div class="chat-messages" id="${this.instanceId}-messages" role="log" aria-label="Conversation messages" tabindex="0">
             ${this.renderTranscriptHtml()}
           </div>
+          <div id="ai-chat-recovery-note" role="status"></div>
 
           <!-- Enhanced Input Area -->
           <div class="chat-input-area">
             <div class="reference-context">
               <label><input type="checkbox" id="ai-chat-reference-enabled" ${this.referenceEnabled ? 'checked' : ''} onchange="window.aiChatInstances?.['${this.instanceId}']?.setReferenceEnabled(this.checked)"> Use stored reference</label>
-              <input id="ai-chat-reference-cid" aria-label="Reference CID" placeholder="Configured reference, or enter a CID">
+              <textarea id="ai-chat-reference-cid" aria-label="Reference CID" rows="2" spellcheck="false">${this.storedReferenceCid()}</textarea>
+              <div id="ai-chat-reference-cid-full" hidden></div>
             </div>
             <div class="input-enhancements">
               <div class="suggestion-chips" style="display: none;">
@@ -350,6 +356,7 @@ export class AIChatApp {
 
       <!-- Enhanced CSS Styles -->
       <style>
+        .window[data-app-id="ai-chat"]{top:8px!important;left:8px!important;width:min(1100px,calc(100vw - 16px))!important;height:calc(100dvh - 64px)!important;max-width:calc(100vw - 16px)!important;max-height:calc(100dvh - 64px)!important;overflow:hidden!important}
         .window[data-app-id="ai-chat"] .window-content { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding-bottom:0; }
         .window[data-app-id="ai-chat"] .window-app-content { display:flex; flex-direction:column; height:100%; min-height:0; min-width:0; overflow:hidden; }
         .window[data-app-id="ai-chat"] .window-app-content > [id$="-content"] { flex:1 1 auto; width:100%; align-self:stretch; min-height:0; min-width:0; overflow:hidden; display:flex; flex-direction:column; }
@@ -610,9 +617,9 @@ export class AIChatApp {
         }
 
         .chat-messages {
-          flex: 1 1 0;
-          min-height: 0;
-          padding: 16px;
+          flex: 1 1 auto;
+          min-height: 8rem;
+          padding: 8px 10px;
           overflow-x: hidden;
           overflow-y: auto;
           scroll-behavior: auto;
@@ -830,18 +837,21 @@ export class AIChatApp {
         .message-text {
           display: block;
           color: var(--sk-text, #edf7f2);
-          font-size: 14px;
-          line-height: 1.5;
+          font-size: 13px;
+          line-height: 1.25;
           white-space: pre-wrap;
         }
 
         .message-meta {
-          font-size: 11px;
+          font-size: 10px;
           opacity: 0.7;
-          margin-top: 8px;
+          margin-top: 2px;
           display: flex;
           justify-content: space-between;
         }
+        .window[data-app-id="ai-chat"] .message { margin-bottom: 6px; gap: 8px; }
+        .window[data-app-id="ai-chat"] .message-avatar { width: 22px; height: 22px; font-size: 13px; }
+        .window[data-app-id="ai-chat"] .message-content { padding: 6px 8px; }
 
         /* Typing indicator */
         .typing-dots {
@@ -896,9 +906,18 @@ export class AIChatApp {
         /* Responsive */
         .reference-context { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:6px 12px; font-size:12px; }
         .reference-context label { white-space:nowrap; }
-        .reference-context input:not([type=checkbox]) { flex:1; min-width:120px; max-width:100%; }
+        .reference-context input:not([type=checkbox]), .reference-context textarea { flex:1 1 100%; width:100%; min-width:0; max-width:100%; box-sizing:border-box; }
         .message { min-width: 0; max-width: 100%; }
         .message-text { overflow-wrap:anywhere; word-break:break-word; }
+        .ai-chat-container :is(button, input, select, textarea, a.chat-reference-link):is(:focus, :focus-visible) {
+          outline: 3px solid #93c5fd !important;
+          outline-offset: 2px;
+          box-shadow: 0 0 0 3px #1e3a8a !important;
+        }
+        #ai-chat-reference-cid { display:block; min-height:2.6rem; height:auto; margin:0; padding:4px 6px; font:12px/1.35 ui-monospace,monospace; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-all; resize:none; }
+        #ai-chat-reference-cid-full { display:none !important; }
+        #ai-chat-recovery-note:empty { display:none; }
+        #ai-chat-recovery-note { display:block; margin:6px 12px 0; padding:6px 8px; border:1px solid #64748b; border-radius:6px; color:#e5e7eb; background:#1f2937; overflow-wrap:anywhere; white-space:normal; }
         @media (max-width: 768px) {
           .ai-chat-container {
             flex-direction: column;
@@ -911,10 +930,24 @@ export class AIChatApp {
             max-width: none;
             flex: 0 0 auto;
             height: auto;
-            max-height: 132px;
+            max-height: 6.4rem;
             overflow-x: hidden;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
           }
+          .chat-messages { min-height: 20rem; flex: 1 1 auto; }
+          .chat-messages .message { margin-bottom: 6px; }
+          .chat-header { order: -2; }
+          .model-section {
+            order: -1;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #111827;
+            padding-bottom: 4px;
+          }
+          .model-section select { width: 100%; min-height: 36px; }
 
           .provider-section,
           .conversation-list,
@@ -936,7 +969,7 @@ export class AIChatApp {
     // Register before insertion so the first input/click event has an owner.
     window.aiChatInstances ||= {};
     window.aiChatInstances[this.instanceId] = this;
-    window.requestAnimationFrame?.(() => this.scrollTranscript('end'));
+    window.requestAnimationFrame?.(() => { this.fitAiChatFrame(); this.scrollTranscript('end'); });
 
     return content;
   }
@@ -1338,22 +1371,39 @@ export class AIChatApp {
       }
       if (container.querySelector('#ai-chat-reference-enabled')?.checked) {
         context.reference = await this.retrieveStoredReference();
+        if (context.reference?.cid) this.showReferenceCid(context.reference.cid);
       }
       const response = await this.sendToAI(message, context, trigger);
       if (response === null) throw new Error('Inference was not executed.');
-      if (String(response).trim() === message) throw new Error('Inference returned the question instead of a continuation.');
+      const continuation = String(response).trim();
+      if (!continuation || continuation === message) throw new Error('Inference returned the question instead of a continuation.');
       container?.querySelectorAll('.message.error').forEach(node => node.remove());
-      this.addMessage('assistant', this.appendCitations(response, context), Date.now(), context.reference || null);
+      const note = container?.querySelector('#ai-chat-recovery-note');
+      if (note && note.textContent.includes('No verified IPFS content has been selected')) {
+        note.textContent = 'Earlier rejection kept: No verified IPFS content has been selected for this chat. The retry completed with the stored reference.';
+      }
+      const contextStatus = container?.querySelector('[data-chat-context-status]');
+      if (contextStatus && /IPFS Content: disabled|No verified IPFS content has been selected/.test(contextStatus.textContent)) {
+        contextStatus.textContent = 'IPFS Content: off. This reply used the stored reference, not selected IPFS content.';
+      }
+      this.tokenUsage.output += continuation.split(/\s+/).filter(Boolean).length;
+      this.addMessage('assistant', this.appendCitations(continuation, context), Date.now(), context.reference || null);
       this.updateUsageStats();
+      this.scrollTranscript('end');
     } catch (error) {
       input.value = message;
       input.disabled = false;
       this.handleInputChange(message);
+      const failure = error.message || String(error);
+      const note = container?.querySelector('#ai-chat-recovery-note');
+      if (note) note.textContent = failure;
       container?.querySelectorAll('.message.error').forEach(node => node.remove());
-      this.addMessage('error', error.message || String(error));
+      this.addMessage('error', failure);
     } finally {
       this.hideTypingIndicator();
       this.isSending = false;
+      try { input?.focus({ focusVisible: true, preventScroll: true }); }
+      catch { try { input?.focus(); } catch { /* focus unavailable */ } }
     }
   }
 
@@ -1420,7 +1470,7 @@ export class AIChatApp {
   formatMessage(content) {
     // Basic markdown-like formatting
     return String(content).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
-      .replace(/\[Stored reference\]\(ipfs:\/\/(bafkrei[a-z2-7]{52})\)/g, '<a class="chat-reference-link" href="ipfs://$1">Stored reference</a>')
+      .replace(/\[Stored reference\]\(ipfs:\/\/(bafkrei[a-z2-7]{52})\)/g, '<a class="chat-reference-link" href="ipfs://$1" data-citation-target="ipfs://$1">Stored reference</a>')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/`(.*?)`/g, '<code>$1</code>')
@@ -1475,6 +1525,10 @@ export class AIChatApp {
     const rootPreview = outcome === 'preview' || outcome === 'dry_run' || [response, response?.result, response?.receipt, response?.result?.receipt]
       .some(entry => entry && typeof entry === 'object' && (entry.dry_run === true || entry.outcome === 'preview' || entry.outcome === 'dry_run'));
     const canShow = acceptedOutcome && response?.ok !== false && !rootPreview;
+    const generated = [response?.result, response]
+      .map(value => value && typeof value === 'object' ? value.generated_text : '')
+      .find(item => typeof item === 'string' && item.trim());
+    if (generated && canShow) return generated.trim();
     const pending = [response?.result, response];
     const prose = (value) => (typeof value === 'string' && value.trim() ? value : '');
     for (let index = 0; index < pending.length && index < 48; index++) {
@@ -1534,8 +1588,9 @@ export class AIChatApp {
     const messageCountElement = container?.querySelector(`#${this.instanceId}-message-count`) || container?.querySelector('#message-count');
     const tokenCountElement = container?.querySelector(`#${this.instanceId}-token-count`) || container?.querySelector('#token-count');
 
+    const visibleMessages = container?.querySelectorAll('.chat-messages .message:not(.typing)').length || 0;
     if (messageCountElement) {
-      messageCountElement.textContent = this.messageCount;
+      messageCountElement.textContent = visibleMessages || this.messageCount;
     }
     
     if (tokenCountElement) {
@@ -1588,26 +1643,77 @@ export class AIChatApp {
     return container?.querySelector('.chat-main') || container;
   }
 
+  storedReferenceCid() {
+    const messages = this.currentConversation?.messages || [];
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const cid = messages[index]?.reference?.cid;
+      if (typeof cid === 'string' && /^bafkrei[a-z2-7]{52}$/.test(cid)) return cid;
+    }
+    return '';
+  }
+
+  showReferenceCid(cid) {
+    const container = this.getContainer();
+    const input = container?.querySelector('#ai-chat-reference-cid');
+    const full = container?.querySelector('#ai-chat-reference-cid-full');
+    if (input && typeof cid === 'string') input.value = cid;
+    if (full) full.textContent = cid || '';
+  }
+
   setReferenceEnabled(enabled) {
     this.referenceEnabled = enabled === true;
     try { localStorage.setItem('swissknife-ai-reference-enabled', String(this.referenceEnabled)); }
     catch (error) { console.warn('Failed to store reference preference:', error); }
   }
 
+  fitAiChatFrame(retry) {
+    const container = this.getContainer();
+    const frame = container?.closest?.('.window');
+    const view = container?.ownerDocument?.defaultView;
+    if (!frame || !view) return;
+    const doc = container.ownerDocument;
+    const taskbar = doc.getElementById('taskbar');
+    const viewportHeight = doc.documentElement.clientHeight || view.innerHeight || 0;
+    const viewportWidth = doc.documentElement.clientWidth || view.innerWidth || 0;
+    const taskbarTop = taskbar && taskbar.getBoundingClientRect ? taskbar.getBoundingClientRect().top : viewportHeight - 48;
+    const margin = viewportWidth <= 800 ? 6 : 12;
+    const height = Math.max(420, Math.floor(taskbarTop - margin - 4));
+    const width = Math.max(340, Math.min(1080, viewportWidth - margin * 2));
+    frame.style.setProperty('top', margin + 'px', 'important');
+    frame.style.setProperty('left', margin + 'px', 'important');
+    frame.style.setProperty('width', width + 'px', 'important');
+    frame.style.setProperty('max-width', Math.max(340, viewportWidth - margin * 2) + 'px', 'important');
+    frame.style.setProperty('height', height + 'px', 'important');
+    frame.style.setProperty('max-height', height + 'px', 'important');
+    frame.style.setProperty('overflow', 'hidden', 'important');
+    const content = frame.querySelector('.window-content');
+    if (content) {
+      const inner = Math.max(280, height - 32);
+      content.style.setProperty('height', inner + 'px', 'important');
+      content.style.setProperty('max-height', inner + 'px', 'important');
+      content.style.setProperty('overflow', 'hidden', 'important');
+    }
+    if (retry !== true) view.requestAnimationFrame(() => this.fitAiChatFrame(true));
+  }
+
   scrollTranscript(position = 'end') {
+    this.fitAiChatFrame();
     const messages = this.getContainer()?.querySelector('.chat-messages');
     if (!messages) return;
-    if (position === 'start' || messages.scrollHeight <= messages.clientHeight + 1) {
+    if (position === 'start') {
       messages.scrollTop = 0;
       return;
     }
-    const last = [...messages.querySelectorAll('.message')].reverse().find(node => !node.classList.contains('typing'));
-    if (!last) {
-      messages.scrollTop = messages.scrollHeight;
+    const user = [...messages.querySelectorAll('.message.user')].pop();
+    const assistant = [...messages.querySelectorAll('.message.assistant')].filter(node => !node.classList.contains('typing')).pop();
+    const anchor = user || assistant;
+    if (!anchor) {
+      messages.scrollTop = 0;
       return;
     }
-    const top = last.getBoundingClientRect().top - messages.getBoundingClientRect().top + messages.scrollTop;
-    messages.scrollTop = Math.max(0, top - 8);
+    const viewTop = messages.getBoundingClientRect().top;
+    const anchorTop = anchor.getBoundingClientRect().top - viewTop + messages.scrollTop;
+    messages.scrollTop = Math.max(0, anchorTop - 4);
   }
 
   loadStoredConversations() {
@@ -1715,7 +1821,8 @@ export class AIChatApp {
 
   appendCitations(text, context) {
     const reference = context?.reference;
-    if (reference?.status === 'available') return `Stored reference facts:\nModel: ${reference.model_id}; snapshot: ${reference.snapshot}; reference: ipfs://${reference.cid}\nTask: ${reference.task}\nDevice: ${reference.device}\nReferences: [Stored reference](ipfs://${reference.cid})\n\nModel continuation (${this.selectedModel}; separate from retrieved facts):\n${text}`;
+    const continuation = String(text || '').trim();
+    if (reference?.status === 'available') return `Model continuation (${this.selectedModel}; separate from retrieved facts):\n${continuation}\n\nStored reference facts:\nModel: ${reference.model_id}; snapshot: ${reference.snapshot}; reference: ipfs://${reference.cid}\nTask: ${reference.task}\nDevice: ${reference.device}\nReferences: [Stored reference](ipfs://${reference.cid})`;
     const names = [];
     for (const [key, value] of Object.entries(context || {})) {
       if (value?.status !== 'available') continue;
@@ -1765,9 +1872,12 @@ export class AIChatApp {
     }
     return messages.map(entry => {
       const avatar = entry.type === 'user' ? '👤' : (entry.type === 'error' ? '⚠️' : '🤖');
-      const content = entry.type === 'assistant'
-        ? String(entry.content || '').replace(/^Stored reference facts:/, 'Saved reference facts (not reverified):') : String(entry.content || '');
-      return `<div class="message ${entry.type}"><div class="message-avatar">${avatar}</div><div class="message-content"><div class="message-text">${this.formatMessage(content)}</div>${entry.type === 'assistant' ? '<div class="message-meta">Saved conversation; reference not reverified. Use stored reference to retrieve it again.</div>' : ''}</div></div>`;
+      const content = String(entry.content || '');
+      const restored = entry.type !== 'assistant' ? content
+        : entry.reference
+          ? content.replace('Stored reference facts:', 'Saved reference facts (not reverified):\nStored reference facts:')
+          : content.replace('Stored reference facts:', 'Stored reference facts (reference not reverified):');
+      return `<div class="message ${entry.type}"><div class="message-avatar">${avatar}</div><div class="message-content"><div class="message-text">${this.formatMessage(restored)}</div>${entry.type === 'assistant' ? '<div class="message-meta">Restored saved turn.</div>' : ''}</div></div>`;
     }).join('');
   }
 

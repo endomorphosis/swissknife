@@ -151,6 +151,27 @@ export class ClockApp {
     });
   }
 
+  timerRetentionLine() {
+    const duration = Number(this.timer.duration) || 0;
+    if (duration <= 0) return '';
+    const totalSeconds = Math.round(duration / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const clock = `${minutes}:${String(seconds).padStart(2, '0')}`;
+    const state = this.timer.isRunning ? 'Running' : 'Paused';
+    return `${state} local timer. Duration ${clock}.`;
+  }
+
+  focusAlarmSave() {
+    const button = document.querySelector('#add-alarm-btn');
+    if (!button || typeof button.focus !== 'function') return;
+    try {
+      button.focus({ focusVisible: true });
+    } catch (error) {
+      button.focus();
+    }
+  }
+
   writeRetainedTimerProbe() {
     const node = document.querySelector('#clock-retained-timer');
     if (!node) return;
@@ -201,6 +222,7 @@ export class ClockApp {
       this.alarmError = 'Invalid alarm time. No notification will be delivered.';
       this.alarmStatus = '';
       this.refreshContent();
+      this.focusAlarmSave();
       return;
     }
     const nextId = Math.max(0, ...this.alarms.map(item => Number(item.id) || 0)) + 1;
@@ -221,6 +243,7 @@ export class ClockApp {
     this.alarmStatus = `Saved ${label} at ${time} locally. ${permissionNote} Local timer retained.`;
     this.persistClockUserState();
     this.refreshContent();
+    this.focusAlarmSave();
   }
 
   initializeApp() {
@@ -300,17 +323,30 @@ export class ClockApp {
           min-height: 0;
           padding-top: 48px;
         }
-        .clock-session-proof { margin: 0 12px 4px; font-size: 13px; line-height: 16px; overflow-wrap: anywhere; }
-        .clock-session-proof p { margin: 0; }
-        .clock-session-proof p:empty { display: none; }
-        .clock-container button:focus,
-        .clock-container input:focus,
-        .clock-container .view-tab:focus,
-        .clock-container button:focus-visible,
-        .clock-container input:focus-visible,
-        .clock-container .view-tab:focus-visible {
-          outline: 2px solid #f5d90a;
+        .clock-session-proof {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+        .retained-timer-card {
+          margin: 0 0 12px;
+          font-size: 15px;
+          line-height: 1.3;
+          color: #f7fffb;
+        }
+        .retained-timer-card:empty { display: none; }
+        .clock-container button:is(:focus, :focus-visible),
+        .clock-container input:is(:focus, :focus-visible),
+        .clock-container .view-tab:is(:focus, :focus-visible) {
+          outline: 3px solid #0b6bcb;
           outline-offset: 2px;
+          box-shadow: 0 0 0 2px #f7fbff;
         }
         .clock-container {
           background: var(--sk-bg-deep, #0e1412);
@@ -366,13 +402,14 @@ export class ClockApp {
           box-shadow: 0 2px 8px rgba(139, 216, 189, 0.3);
         }
 
-        .view-tab:focus-visible,
-        .control-btn:focus-visible,
-        .stopwatch-btn:focus-visible,
-        .add-alarm-btn:focus-visible,
-        .clock-workflow-actions button:focus-visible {
-          outline: 2px solid var(--sk-accent, #8bd8bd);
+        .view-tab:is(:focus, :focus-visible),
+        .control-btn:is(:focus, :focus-visible),
+        .stopwatch-btn:is(:focus, :focus-visible),
+        .add-alarm-btn:is(:focus, :focus-visible),
+        .clock-workflow-actions button:is(:focus, :focus-visible) {
+          outline: 3px solid #0b6bcb;
           outline-offset: 2px;
+          box-shadow: 0 0 0 2px #f7fbff;
         }
 
         .header-controls {
@@ -863,7 +900,7 @@ export class ClockApp {
           justify-content: space-between;
           align-items: center;
           font-size: 12px;
-          opacity: 0.8;
+          color: #e7f6ef;
         }
 
         .alarm-repeat {
@@ -875,16 +912,19 @@ export class ClockApp {
           width: 24px;
           height: 24px;
           border-radius: 50%;
-          background: rgba(255, 255, 255, 0.2);
+          background: rgba(8, 20, 16, 0.72);
+          border: 1px solid rgba(247, 255, 251, 0.82);
+          color: #f7fffb;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 10px;
-          font-weight: 600;
+          font-weight: 700;
         }
 
         .repeat-day.active {
           background: var(--sk-accent, #8bd8bd);
+          border-color: #d8fff0;
           color: #0e1412;
         }
 
@@ -1190,6 +1230,7 @@ export class ClockApp {
         </form>
         <p id="alarm-error" role="alert" style="color:var(--sk-err,#ff6b6b);min-height:1.2em;margin:0 0 8px">${this.escapeHtml(this.alarmError || '')}</p>
         <p id="alarm-status" role="status" style="min-height:1.2em;margin:0 0 12px">${this.escapeHtml(this.alarmStatus || '')}</p>
+        <p id="clock-timer-state" class="retained-timer-card">${this.escapeHtml(this.timerRetentionLine())}</p>
         <div class="alarms-list">
           ${this.alarms.map(alarm => `
             <div class="alarm-item" data-id="${alarm.id}">

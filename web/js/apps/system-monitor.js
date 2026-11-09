@@ -53,6 +53,8 @@ export class SystemMonitorApp {
     this.ownerUnavailable = false;
     this.ownerFailureText = '';
     this.ownerRejectionNote = '';
+    this.rejectedProbeBefore = null;
+    this.rejectedProbeReceiptId = null;
     this.cpuHistoryExpanded = false;
     this.historyOrigin = 'fresh samples';
     this.observationStamp = 'unavailable';
@@ -319,7 +321,13 @@ export class SystemMonitorApp {
       );
       if (mountedRoot && (!mountedRoot.isConnected || this.container !== mountedRoot)) return this.backendTelemetry;
       if (!native) throw new Error('Telemetry confirmation was cancelled');
-      if (native.outcome === 'failed') throw new Error(this.ownerFailureMessage(native));
+      if (native.outcome === 'failed') {
+        const receiptId = native?.receipt?.receipt_id;
+        // Keep the owner receipt id from this rejected call. The measured
+        // sample stays unchanged; the id is not a fabricated observation.
+        if (typeof receiptId === 'string' && /^b[a-z2-7]{58}$/.test(receiptId)) this.rejectedProbeReceiptId = receiptId;
+        throw new Error(this.ownerFailureMessage(native));
+      }
       const telemetry = this.readOwnerTelemetry(native);
       const ownerTimestamp = telemetry.output.timestamp;
       const measuredAt = Date.parse(ownerTimestamp);
@@ -348,7 +356,10 @@ export class SystemMonitorApp {
       this.telemetrySnapshot = sample;
       this.lastTelemetryAt = measuredAt;
       this.observationStamp = `measured ${this.formatClock(measuredAt)}`;
-      if (this.ownerRejectionNote) {
+      if (this.rejectedProbeBefore) {
+        const before = this.rejectedProbeBefore;
+        this.ownerRejectionNote = `unavailable rejected probe before ${before.percent} ${before.stamp} fresh measured ${this.ownerPercentText(sample.cpu)} ${ownerTimestamp}`;
+      } else if (this.ownerRejectionNote) {
         this.ownerRejectionNote = `fresh measured ${this.ownerPercentText(sample.cpu)} ${ownerTimestamp}`;
       }
       const observationNode = document.querySelector('#observation-stamp');
@@ -367,7 +378,13 @@ export class SystemMonitorApp {
       this.backendTelemetry = { state: 'error', at: Date.now(), latencyMs: Date.now() - started, data: null, error: message };
       this.ownerUnavailable = true;
       this.ownerFailureText = message;
-      this.ownerRejectionNote = 'unavailable';
+      const before = this.telemetrySnapshot || {};
+      const beforePercent = this.hasMeasuredSample ? this.ownerPercentText(before.cpu) : 'no sample';
+      const beforeStamp = typeof before.ownerTimestamp === 'string' && before.ownerTimestamp
+        ? before.ownerTimestamp
+        : (this.hasMeasuredSample ? this.formatClock(before.timestamp) : 'none');
+      this.rejectedProbeBefore = { percent: beforePercent, stamp: beforeStamp };
+      this.ownerRejectionNote = `unavailable rejected probe before ${beforePercent} ${beforeStamp}`;
       if (!this.hasMeasuredSample) this.observationStamp = 'unavailable';
     }
     this.collapseBackendDisclosure();
@@ -536,6 +553,8 @@ export class SystemMonitorApp {
     if (!node) return;
     const note = this.ownerRejectionNote || '';
     node.classList.toggle('owner-failure-visible', note.length > 0);
+    if (typeof this.rejectedProbeReceiptId === 'string') node.dataset.ownerReceipt = this.rejectedProbeReceiptId;
+    else delete node.dataset.ownerReceipt;
     node.replaceChildren();
     if (!note) return;
     const iso = typeof this.telemetrySnapshot?.ownerTimestamp === 'string' ? this.telemetrySnapshot.ownerTimestamp : '';

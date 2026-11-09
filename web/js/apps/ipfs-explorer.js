@@ -110,6 +110,13 @@ export class IPFSExplorerApp {
           .path-bar { flex-wrap: nowrap; align-items: center; gap: 6px; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
           #path-input { display: block; visibility: visible; min-height: 32px; min-width: 0 !important; width: 1px !important; max-width: calc(100% - 64px) !important; flex: 1 1 0% !important; font-size: 12px; line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; resize: none; box-sizing: border-box; }
           #go-btn { flex: 0 0 auto !important; align-self: center; min-width: 44px; }
+          #path-input:is(:focus, :focus-visible),
+          #go-btn:is(:focus, :focus-visible),
+          .tab-btn:is(:focus, :focus-visible),
+          .ipfs-explorer-container button:is(:focus, :focus-visible) {
+            outline: 2px solid #0b6bcb;
+            outline-offset: 2px;
+          }
           .header-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
           .ipfs-content { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: scroll; }
           .tab-content:not([data-view="explorer"]) { display: none; }
@@ -1447,7 +1454,10 @@ export class IPFSExplorerApp {
       wrap.className = 'ipfs-preview';
       wrap.dataset.retrievedCid = items.cid;
       const meta = document.createElement('p');
-      meta.textContent = `Retrieved bytes match the requested CID. Type ${items.type}. Pin state ${items.pinState}.`;
+      const pinSentence = items.pinState === 'pinned' || items.pinState === 'not pinned'
+        ? `Pin state for ${items.cid}: owner reported ${items.pinState}.`
+        : `Pin state for ${items.cid}: owner retrieve omitted the pin field.`;
+      meta.textContent = `Retrieved bytes match the requested CID. Type ${items.type}. ${pinSentence}`;
       wrap.append(meta);
       if (items.contentSha256) {
         const hashLine = document.createElement('p');
@@ -1493,6 +1503,8 @@ export class IPFSExplorerApp {
         wrap.append(pre);
       }
       browser.append(wrap);
+      const pathInput = document.getElementById('path-input');
+      if (items.liveRetrieve === true && pathInput && typeof pathInput.focus === 'function') pathInput.focus();
       const retainedSha = items.contentSha256 || (stored?.cid === items.cid ? stored.contentSha256 || '' : '');
       const retainedHost = items.ownerHost || (stored?.cid === items.cid ? stored.ownerHost || '' : '');
       const retainedLength = byteLength || (stored?.cid === items.cid && Number.isInteger(stored.byteLength) ? stored.byteLength : 0);

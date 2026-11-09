@@ -207,6 +207,7 @@ export class FileManagerApp {
     this.previewBytes = '';
     this.reopenedSentence = '';
     this.reopenProof = '';
+    this.originalOwnerRead = null;
     this.storageConsent = false;
     try {
       const savedWorkflow = JSON.parse(localStorage.getItem('svf-file-manager') || 'null');
@@ -219,6 +220,10 @@ export class FileManagerApp {
         this.keptSelection = typeof savedWorkflow.selection === 'string' ? savedWorkflow.selection : '';
         this.previewBytes = typeof savedWorkflow.previewBytes === 'string' ? savedWorkflow.previewBytes : '';
         this.storageConsent = savedWorkflow.consent === true;
+        const owner = savedWorkflow.originalOwnerRead;
+        if (owner && owner.path === '/svf-isolated/notes.txt' && typeof owner.sha256 === 'string' && typeof owner.content === 'string') {
+          this.originalOwnerRead = { path: owner.path, sha256: owner.sha256, content: owner.content };
+        }
       }
     } catch (error) {
       this.extraFiles = [];
@@ -1668,6 +1673,22 @@ export class FileManagerApp {
             height: 18px;
             font-size: 11px;
             line-height: 16px;
+          }
+
+          .workflow-row .checkbox-label {
+            flex: 1 1 100%;
+            min-width: 0;
+            max-width: 100%;
+            height: auto !important;
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+          }
+
+          .workflow-row .checkbox-label span {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
           }
         }
       </style>
@@ -3707,10 +3728,13 @@ export class FileManagerApp {
       const size = Number.isFinite(entry.size) ? `${entry.size} B` : '';
       const state = entry.stored === true ? 'stored' : 'readback';
       const pin = entry.pinned === true ? ' pinned' : '';
-      const receipt = typeof entry.dataset_id === 'string' && entry.dataset_id ? ` ${entry.dataset_id}` : '';
-      return `${role} ${entry.name} ${size} ${state}${pin}${receipt}`.replace(/\s+/g, ' ').trim();
+      return `${role} ${entry.name} ${size} ${state}${pin}`.replace(/\s+/g, ' ').trim();
     });
-    return [selected, 'Original notes.txt intact.', ...copies].filter(Boolean).join('\n');
+    const owner = this.originalOwnerRead;
+    const original = owner && owner.path === '/svf-isolated/notes.txt' && owner.sha256 && owner.content
+      ? `Original notes.txt owner sha256 ${owner.sha256}.`
+      : 'Original notes.txt intact.';
+    return [selected, original, ...copies].filter(Boolean).join('\n');
   }
 
   describeSelection(file, bytes) {
@@ -3729,7 +3753,10 @@ export class FileManagerApp {
     if (status) status.textContent = this.workflowStatus || '';
     if (error) error.textContent = this.fileError || '';
     if (preview) preview.textContent = this.previewBytes || '';
-    if (proof) proof.textContent = this.reopenProof || '';
+    if (proof) {
+      proof.textContent = this.reopenProof || '';
+      proof.hidden = !!this.reopenProof && (this.extraFiles || []).some((entry) => entry.role === 'retry');
+    }
     if (meta) meta.textContent = this.metadataLine();
     const kept = window.querySelector('#kept-selection, [data-svf-id="kept-selection"]');
     if (kept) kept.value = this.keptSelection || '';
@@ -3744,6 +3771,7 @@ export class FileManagerApp {
       selection: this.keptSelection,
       previewBytes: this.previewBytes,
       consent: this.storageConsent === true,
+      originalOwnerRead: this.originalOwnerRead,
     }));
   }
 
@@ -3776,14 +3804,20 @@ export class FileManagerApp {
       const read = await this.readGovernedBytes(surface, surface.querySelector('#svf-notes'));
       file.content = read.content;
       this.retrievedFile = { path: file.path, cid: read.cid, content: read.content };
-      return read.content;
+      return read;
     })();
     try { return await this.retrieveInFlight; } finally { this.retrieveInFlight = null; }
   }
 
   async previewFile(window, file) {
     try {
-      const bytes = await this.requestGovernedRetrieve(window, file);
+      const read = await this.requestGovernedRetrieve(window, file);
+      const bytes = typeof read === 'string' ? read : (read?.content || '');
+      const sha256 = read && typeof read === 'object' ? read.sha256 : '';
+      const copySaved = (this.extraFiles || []).some((entry) => entry.role !== 'retry' && entry.name === 'notes-copy.txt');
+      if (file?.path === '/svf-isolated/notes.txt' && copySaved && sha256 && bytes) {
+        this.originalOwnerRead = { path: file.path, sha256, content: bytes };
+      }
       this.keptSelection = file.path || file.name;
       this.describeSelection(file, bytes);
       this.fileError = '';
@@ -3851,7 +3885,7 @@ export class FileManagerApp {
       }
       const listing = this.fixtureListing(this.currentPath) || this.files || [];
       if (!name || listing.some(file => file.name === name)) {
-        this.fileError = `filename conflict: ${name || 'empty'}. Selection kept: ${selected.name}. Choose a nonconflicting filename and retry.`;
+        this.fileError = `filename conflict: ${name || 'empty'}. Selection kept: ${selected.name}. Owner not called.`;
         this.renderWorkflow(window);
         return;
       }

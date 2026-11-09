@@ -126,6 +126,13 @@ export class MCPPlusPlusExplorerApp {
 
   bind(container) {
     this.container = container;
+    if (container) {
+      container.style.display = 'flex';
+      container.style.flexDirection = 'column';
+      container.style.height = '100%';
+      container.style.minHeight = '0';
+      container.style.overflow = 'hidden';
+    }
     this.bindEvents();
     if (this.state.ownerWorkflow?.ready) {
       this.state.status = 'ready';
@@ -538,7 +545,7 @@ export class MCPPlusPlusExplorerApp {
       <section class="mcppp-section" aria-label="Owner descriptor" data-owner-workflow>
         <div class="mcppp-section-heading"><h3>Owner descriptor</h3><span>Read-only registry</span></div>
         <label for="mcppp-owner-identity">Peer identity</label>
-        <textarea id="mcppp-owner-identity" autocomplete="off" rows="1" placeholder="did:key:...">${escapeHtml(flow.identity || '')}</textarea>
+        <textarea id="mcppp-owner-identity" autocomplete="off" rows="2" placeholder="did:key:...">${escapeHtml(flow.identity || '')}</textarea>
         <p class="mcppp-peer-line" data-owner-identity-text>${escapeHtml(flow.identity || 'Peer identity is shown here in full after a verified read.')}</p>
         <label for="mcppp-owner-transport">Transport</label>
         <select id="mcppp-owner-transport">
@@ -712,6 +719,7 @@ export class MCPPlusPlusExplorerApp {
       return;
     }
     this.update();
+    this.focusOwnerIdentity();
   }
 
   ownerIdentityAccepted(identity) {
@@ -721,11 +729,18 @@ export class MCPPlusPlusExplorerApp {
     return identity === verified && /^[A-Za-z0-9]{8,128}$/.test(verified);
   }
 
+  focusOwnerIdentity() {
+    const input = this.container?.querySelector('#mcppp-owner-identity');
+    if (!input || typeof input.focus !== 'function') return;
+    try { input.focus({ focusVisible: true }); }
+    catch { input.focus(); }
+  }
+
   async refreshOwnerDescriptor() {
     this.rememberOwnerInputs();
     const priorIdentity = this.state.ownerWorkflow.identity;
+    const recovered = this.state.ownerWorkflow.verifiedPeer || '';
     if (priorIdentity && !this.ownerIdentityAccepted(priorIdentity)) {
-      const recovered = this.state.ownerWorkflow.verifiedPeer || '';
       if (!recovered || !this.ownerIdentityAccepted(recovered)) {
         this.failOwnerWorkflow('Invalid identity cannot become an executed success.');
         return;
@@ -735,6 +750,12 @@ export class MCPPlusPlusExplorerApp {
       this.state.ownerWorkflow.error = '';
       const input = this.container?.querySelector('#mcppp-owner-identity');
       if (input) input.value = recovered;
+      this.focusOwnerIdentity();
+      return;
+    }
+    if (this.state.ownerWorkflow.error && priorIdentity === recovered && this.ownerIdentityAccepted(recovered)) {
+      this.state.ownerWorkflow.pendingRecovery = 'identity-refreshed';
+      this.state.ownerWorkflow.error = '';
     }
     await this.inspectOwnerDescriptor();
   }
@@ -957,6 +978,11 @@ export class MCPPlusPlusExplorerApp {
     });
     this.container.querySelector('[data-action="inspect-owner-descriptor"]')?.addEventListener('click', () => void this.inspectOwnerDescriptor());
     this.container.querySelector('[data-action="refresh-owner-descriptor"]')?.addEventListener('click', () => void this.refreshOwnerDescriptor());
+    this.container.querySelector('#mcppp-owner-identity')?.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' || event.shiftKey || event.isComposing || event.repeat) return;
+      event.preventDefault();
+      void this.inspectOwnerDescriptor();
+    });
     this.container.querySelector('#mcppp-owner-transport')?.addEventListener('change', () => {
       this.rememberOwnerInputs();
       saveOwnerWorkflow(this.state.ownerWorkflow);
@@ -1044,22 +1070,25 @@ export class MCPPlusPlusExplorerApp {
 
   renderStyles() {
     return `<style>
-      .mcp-plus-plus-explorer { display: flex; flex-direction: column; height: 100%; max-height: 100%; min-height: 0; overflow: hidden; background: #101820; color: #e7edf4; font: 13px/1.45 system-ui, sans-serif; padding: 16px; box-sizing: border-box; }
+      .window[data-app-id="mcp-plus-plus"] .window-content { display: flex !important; flex-direction: column; min-height: 0; overflow: hidden !important; padding-bottom: 0; }
+      .window[data-app-id="mcp-plus-plus"] .window-app-content { display: flex !important; flex-direction: column; flex: 1 1 auto; height: 100%; min-height: 0; min-width: 0; overflow: hidden !important; }
+      .window[data-app-id="mcp-plus-plus"] .window-app-content > [id$="-content"] { display: flex !important; flex-direction: column; flex: 1 1 auto; align-self: stretch; width: 100%; min-height: 0; min-width: 0; overflow: hidden; }
+      .mcp-plus-plus-explorer { display: flex; flex-direction: column; flex: 1 1 auto; height: 100%; max-height: 100%; min-height: 0; overflow: hidden; background: #101820; color: #e7edf4; font: 13px/1.45 system-ui, sans-serif; padding: 16px; box-sizing: border-box; }
       .mcppp-header, .mcppp-header-actions, .mcppp-section-heading, .mcppp-actions, .mcppp-result-heading { display: flex; align-items: center; gap: 10px; } .mcppp-actions-spaced { margin-top: 8px; }
-      .mcppp-header { justify-content: space-between; border-bottom: 1px solid #2b3a49; padding-bottom: 12px; }
+      .mcppp-header { justify-content: space-between; border-bottom: 1px solid #2b3a49; padding-bottom: 6px; }
       .mcppp-header h2, .mcppp-section h3 { margin: 0; font-size: 16px; } .mcppp-header p { margin: 3px 0 0; color: #aebdcc; }
       .mcppp-state, .mcppp-dot { display: inline-block; border-radius: 50%; } .mcppp-state { border-radius: 3px; padding: 3px 7px; background: #3a4855; text-transform: uppercase; font-size: 11px; } .mcppp-state.is-ready { background: #1f6b52; } .mcppp-state.is-degraded { background: #7a5c22; } .mcppp-state.is-unavailable { background: #7a3030; }
-      .mcppp-icon-button, .mcppp-tab, .mcppp-actions button, .mcppp-section button { border: 1px solid #496174; background: #172735; color: #e7edf4; border-radius: 4px; padding: 6px 9px; cursor: pointer; } .mcppp-icon-button:hover, .mcppp-tab:hover, .mcppp-actions button:hover, .mcppp-section button:hover { background: #24445a; } button:disabled { opacity: .5; cursor: not-allowed; } button:focus-visible, .mcppp-section select:focus-visible, .mcppp-section input:focus-visible, .mcppp-section textarea:focus-visible { outline: 2px solid #4cc2dd; outline-offset: 2px; }
-      .mcppp-message { margin: 12px 0; color: #b9c7d5; flex: 0 0 auto; } .mcppp-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #2b3a49; max-width: 100%; flex: 0 0 auto; } .mcppp-tab { border-radius: 4px 4px 0 0; border-bottom: 0; white-space: nowrap; } .mcppp-tab.is-active { background: #2e6b7f; color: #fff; }
-      .mcppp-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding-top: 14px; } .mcppp-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } .mcppp-service-card { min-height: 116px; text-align: left; display: grid; gap: 5px; border: 1px solid #32495d; background: #172735; color: inherit; padding: 12px; border-radius: 5px; cursor: pointer; } .mcppp-service-card.is-selected { border-color: #4cc2dd; background: #1a3545; } .mcppp-service-card small { color: #a8b8c8; overflow-wrap: anywhere; } .mcppp-dot { width: 8px; height: 8px; background: #768594; } .mcppp-dot.is-available { background: #47c78e; } .mcppp-dot.is-unavailable { background: #e06a6a; }
-      .mcppp-section { border: 1px solid #2d4558; background: #142330; border-radius: 5px; padding: 12px; margin-top: 12px; min-width: 0; } .mcppp-section-heading { justify-content: space-between; margin-bottom: 10px; } .mcppp-section-heading span, .mcppp-note { color: #aab9c7; font-size: 12px; }
+      .mcppp-icon-button, .mcppp-tab, .mcppp-actions button, .mcppp-section button { border: 1px solid #496174; background: #172735; color: #e7edf4; border-radius: 4px; padding: 6px 9px; cursor: pointer; } .mcppp-icon-button:hover, .mcppp-tab:hover, .mcppp-actions button:hover, .mcppp-section button:hover { background: #24445a; } button:disabled { opacity: .5; cursor: not-allowed; } button:focus, button:focus-visible, .mcppp-section select:focus, .mcppp-section select:focus-visible, .mcppp-section input:focus, .mcppp-section input:focus-visible, .mcppp-section textarea:focus, .mcppp-section textarea:focus-visible { outline: 2px solid #4cc2dd; outline-offset: 2px; } #mcppp-owner-identity:focus, #mcppp-owner-identity:focus-visible, #mcppp-owner-transport:focus, #mcppp-owner-transport:focus-visible, [data-action="inspect-owner-descriptor"]:focus, [data-action="inspect-owner-descriptor"]:focus-visible, [data-action="refresh-owner-descriptor"]:focus, [data-action="refresh-owner-descriptor"]:focus-visible { outline: 3px solid #93c5fd !important; outline-offset: 2px !important; box-shadow: 0 0 0 3px #1e3a8a !important; }
+      .mcppp-message { margin: 4px 0; color: #b9c7d5; flex: 0 0 auto; } .mcppp-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #2b3a49; max-width: 100%; flex: 0 0 auto; } .mcppp-tab { border-radius: 4px 4px 0 0; border-bottom: 0; white-space: nowrap; } .mcppp-tab.is-active { background: #2e6b7f; color: #fff; }
+      .mcppp-body { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: scroll; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: #4cc2dd #0d1821; padding-top: 6px; } .mcppp-body::-webkit-scrollbar { width: 14px; } .mcppp-body::-webkit-scrollbar-track { background: #0d1821; } .mcppp-body::-webkit-scrollbar-thumb { background: #4cc2dd; border-radius: 7px; } .mcppp-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } .mcppp-service-card { min-height: 0; text-align: left; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; border: 1px solid #32495d; background: #172735; color: inherit; padding: 6px 10px; border-radius: 5px; cursor: pointer; } .mcppp-service-card.is-selected { border-color: #4cc2dd; background: #1a3545; } .mcppp-service-card small { color: #a8b8c8; overflow-wrap: anywhere; } .mcppp-dot { width: 8px; height: 8px; background: #768594; } .mcppp-dot.is-available { background: #47c78e; } .mcppp-dot.is-unavailable { background: #e06a6a; }
+      .mcppp-section { border: 1px solid #2d4558; background: #142330; border-radius: 5px; padding: 8px; margin-top: 8px; min-width: 0; } .mcppp-section-heading { justify-content: space-between; margin-bottom: 10px; } .mcppp-section-heading span, .mcppp-note { color: #aab9c7; font-size: 12px; }
       .mcppp-coverage-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; color: #bdc9d3; } .mcppp-split { display: grid; grid-template-columns: minmax(220px, .85fr) minmax(340px, 1.4fr); gap: 12px; } .mcppp-tool-list { margin-top: 12px; } .mcppp-tool-call { margin-top: 12px; }
       .mcppp-service-selector { display: inline-flex; align-items: center; gap: 8px; color: #bac8d5; } .mcppp-service-selector select, .mcppp-section input, .mcppp-section select, .mcppp-section textarea { background: #0d1821; border: 1px solid #425a6e; color: #eef4f8; border-radius: 4px; padding: 7px; font: inherit; box-sizing: border-box; width: 100%; } .mcppp-service-selector select { width: auto; min-width: 180px; } .mcppp-section label { display: block; margin: 9px 0 5px; color: #bcc9d5; font-size: 12px; } .mcppp-section textarea { min-height: 150px; font: 12px/1.4 ui-monospace, monospace; resize: vertical; }
       .mcppp-list { margin-top: 8px; max-height: 470px; overflow: auto; border: 1px solid #2b4355; } .mcppp-list button { display: grid; width: 100%; text-align: left; border: 0; border-bottom: 1px solid #263b4c; border-radius: 0; gap: 3px; } .mcppp-list button.is-selected { background: #234a60; } .mcppp-list span { color: #a7b6c4; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .mcppp-schema, .mcppp-output { white-space: pre-wrap; overflow: auto; overflow-wrap: anywhere; background: #0c151d; border: 1px solid #263e50; color: #d6e3eb; padding: 9px; margin: 8px 0; max-height: 260px; font: 11px/1.45 ui-monospace, monospace; } .mcppp-result-heading { justify-content: space-between; margin-top: 12px; color: #a9c5d5; } .mcppp-diagnostic-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; } .mcppp-diagnostic-grid div { padding: 9px; border: 1px solid #304b5d; background: #152632; } .mcppp-diagnostic-grid span { display: block; color: #a7bac9; font-size: 11px; } .mcppp-diagnostic-grid strong { display: block; margin-top: 3px; font-size: 16px; }
-      .mcppp-event-list { border: 1px solid #284356; margin-top: 10px; } .mcppp-event-list article { display: grid; grid-template-columns: 120px 1fr auto; gap: 8px; padding: 8px; border-bottom: 1px solid #263e50; } .mcppp-event-list code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a6d3e4; } .mcppp-event-list span { color: #acbbc9; font-size: 11px; } .mcppp-empty { padding: 14px; color: #a8b6c3; } #mcppp-owner-identity { min-height: 2.8em; height: auto; white-space: pre-wrap; overflow-wrap: anywhere; resize: vertical; font: 12px/1.35 ui-monospace, monospace; } .mcppp-peer-line, [data-owner-observation], [data-owner-receipt], [data-owner-error] { overflow-wrap: anywhere; word-break: break-word; margin: 6px 0 0; }
+      .mcppp-event-list { border: 1px solid #284356; margin-top: 10px; } .mcppp-event-list article { display: grid; grid-template-columns: 120px 1fr auto; gap: 8px; padding: 8px; border-bottom: 1px solid #263e50; } .mcppp-event-list code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a6d3e4; } .mcppp-event-list span { color: #acbbc9; font-size: 11px; } .mcppp-empty { padding: 14px; color: #a8b6c3; } .mcppp-section textarea#mcppp-owner-identity { min-height: 2.6em; height: auto; max-height: 5.4em; width: 100%; box-sizing: border-box; white-space: pre-wrap; overflow-x: hidden; overflow-y: auto; overflow-wrap: anywhere; word-break: break-all; resize: none; font: 12px/1.35 ui-monospace, monospace; padding: 6px 8px; } .mcppp-peer-line, [data-owner-observation], [data-owner-receipt], [data-owner-error] { overflow-wrap: anywhere; word-break: break-word; margin: 6px 0 0; } .mcppp-peer-line { white-space: normal; overflow-x: visible; overflow-wrap: anywhere; word-break: break-all; }
       .mcppp-vda-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .mcppp-vda-grid article { min-width: 0; border: 1px solid #304b5d; background: #152632; border-radius: 5px; padding: 10px; } .mcppp-vda-grid h4 { margin: 0 0 6px; font-size: 13px; } .mcppp-vda-grid p { margin: 0 0 8px; color: #bdc9d3; overflow-wrap: anywhere; } .mcppp-vda-grid code { color: #a6d3e4; overflow-wrap: anywhere; } .mcppp-vda-grid pre { max-height: 170px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: #0c151d; border: 1px solid #263e50; padding: 8px; font: 11px/1.4 ui-monospace, monospace; } .mcppp-vda-log { margin: 10px 0 0; padding-left: 22px; color: #b9c7d5; overflow-wrap: anywhere; }
-      @media (max-width: 760px) { .mcp-plus-plus-explorer { padding: 8px; } .mcppp-header p { display: none; } .mcppp-message { margin: 4px 0; } .mcppp-section { padding: 8px; margin-top: 8px; } .mcppp-header, .mcppp-coverage-row, .mcppp-section-heading { align-items: flex-start; flex-direction: column; } .mcppp-actions, .mcppp-vda-actions { align-items: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .mcppp-actions button, .mcppp-section button { min-width: 0; overflow-wrap: anywhere; } .mcppp-summary-grid, .mcppp-split, .mcppp-diagnostic-grid, .mcppp-vda-grid { grid-template-columns: 1fr; } .mcppp-service-card { min-height: 0; } .mcppp-event-list article { grid-template-columns: 1fr; } }
+      @media (max-width: 760px) { .mcp-plus-plus-explorer { padding: 8px; } .mcppp-header p { display: none; } .mcppp-message { margin: 4px 0; } .mcppp-section { padding: 8px; margin-top: 8px; } .mcppp-header, .mcppp-coverage-row, .mcppp-section-heading { align-items: flex-start; flex-direction: column; } .mcppp-actions, .mcppp-vda-actions { align-items: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .mcppp-actions button, .mcppp-section button { min-width: 0; overflow-wrap: anywhere; } [data-owner-workflow] .mcppp-actions { grid-template-columns: 1fr; } [data-owner-workflow] .mcppp-actions button { white-space: nowrap; overflow-wrap: normal; word-break: normal; } .mcppp-summary-grid, .mcppp-split, .mcppp-diagnostic-grid, .mcppp-vda-grid { grid-template-columns: 1fr; } .mcppp-service-card { min-height: 0; } .mcppp-event-list article { grid-template-columns: 1fr; } }
     </style>`;
   }
 }

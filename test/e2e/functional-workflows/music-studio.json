@@ -18,6 +18,9 @@
     ],
     "persist_reopen": [
       {"op": "reopen_app"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#classic-track-name"}, "operator": "equals", "expected": "Midnight Lead"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#classic-tempo"}, "operator": "equals", "expected": "96"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#classic-instrument"}, "operator": "equals", "expected": "lead"},
       {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#classic-reopen-summary"}, "operator": "equals", "expected": "Midnight Lead | 96 | lead"}
     ],
     "failure_recovery": [

@@ -1944,12 +1944,10 @@ class SwissKnifeDesktop {
             const maxWidth = Math.max(280, viewportWidth);
             const frameWidth = Math.min(parseInt(datasetFrame.style.width, 10) || datasetFrame.offsetWidth || maxWidth, maxWidth);
             const frameLeft = Math.max(0, parseInt(datasetFrame.style.left, 10) || 0);
-            datasetFrame.style.top = '0px';
             datasetFrame.style.left = Math.min(frameLeft, Math.max(0, viewportWidth - frameWidth)) + 'px';
             datasetFrame.style.width = frameWidth + 'px';
             datasetFrame.style.maxWidth = maxWidth + 'px';
             datasetFrame.style.maxHeight = maxHeight + 'px';
-            datasetFrame.style.height = maxHeight + 'px';
         }
         if (!document.getElementById('datasets-browser-fit-style')) {
             const fitStyle = document.createElement('style');
@@ -1958,19 +1956,30 @@ class SwissKnifeDesktop {
                 .window[data-app-id="datasets-browser"] .window-content { padding-bottom: 0; }
                 .datasets-browser-workflow.sk-app { height: auto; max-height: 100%; min-width: 0; overflow: auto; box-sizing: border-box; }
                 .datasets-browser-workflow .sk-card { min-width: 0; max-width: 100%; overflow: visible; align-self: start; }
-                .datasets-browser-workflow :is(button,select,input,textarea):is(:focus, :focus-visible) { outline: 2px solid #93c5fd; outline-offset: 2px; }
+                .datasets-browser-workflow :is(button,select,input,textarea):is(:focus, :focus-visible) { outline: 3px solid #93c5fd; outline-offset: 2px; }
                 .datasets-browser-workflow :is(p, span, label, h2, h3, td) { max-width: 100%; min-width: 0; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
                 .datasets-browser-workflow :is(input, select, button) { max-width: 100%; min-width: 0; box-sizing: border-box; }
                 .datasets-browser-workflow .datasets-primary { display:flex; flex-direction:column; gap:6px; min-width:0; }
                 .datasets-browser-workflow [data-svd-vda-marker="error-ui"] { margin:0; padding:0; background:transparent; border:0; box-shadow:none; }
                 .datasets-browser-workflow [data-svd-vda-marker="error-ui"] h3 { display:none; }
-                .datasets-browser-workflow #datasets-match-summary, .datasets-browser-workflow #datasets-record-id-full { display:block; margin:0 0 6px; font-size:13px; line-height:1.35; overflow-wrap:anywhere; word-break:break-all; } .datasets-browser-workflow .datasets-rows-wrap { max-height: 4.5rem; max-width: 100%; overflow: auto; }
+                .datasets-browser-workflow #datasets-match-summary, .datasets-browser-workflow #datasets-record-id-full { display:block; margin:0 0 6px; font-size:13px; line-height:1.35; overflow-wrap:break-word; word-break:normal; } .datasets-browser-workflow .datasets-rows-wrap { max-width: 100%; overflow: visible; }
                 .datasets-browser-workflow table { width: 100%; border-collapse: collapse; table-layout: fixed; }
                 .datasets-browser-workflow td { border-top: 1px solid #26384a; padding: 4px 0; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
-                .datasets-browser-workflow tr[aria-selected="true"] td { outline: 2px solid #93c5fd; outline-offset: -2px; }
+                .datasets-browser-workflow tr[aria-selected="true"] td { background: #1e3a5f; outline: none; }
                 .datasets-browser-workflow .datasets-actions { position: static; z-index: auto; background: transparent; }
                 .datasets-browser-workflow .datasets-diagnostics { margin-top: 8px; }
                 .datasets-browser-workflow .datasets-diagnostics pre { max-height: 4.5rem; overflow: auto; white-space: pre-wrap; }
+                @media (max-width: 800px) {
+                    .window[data-app-id="datasets-browser"] .datasets-browser-workflow.sk-app { padding: 8px !important; }
+                    .window[data-app-id="datasets-browser"] .datasets-browser-workflow .sk-card { padding: 8px !important; margin: 0 !important; }
+                    .window[data-app-id="datasets-browser"] .datasets-browser-workflow .sk-section-head { margin: 0 0 4px !important; font-size: 15px !important; }
+                    .window[data-app-id="datasets-browser"] .datasets-primary { gap: 4px !important; }
+                    .window[data-app-id="datasets-browser"] .datasets-actions { margin-top: 4px !important; }
+                    .window[data-app-id="datasets-browser"] .datasets-browser-workflow td { padding: 2px 0 !important; }
+                    .window[data-app-id="datasets-browser"] [data-svd-vda-marker="schema-filter-ui"] > div { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+                    .window[data-app-id="datasets-browser"] :is(#datasets-catalog-status, .datasets-selection-note, #datasets-record-id-full) { display: none !important; }
+                    .window[data-app-id="datasets-browser"] .backend-status-disclosure { max-width: 100%; overflow-wrap: anywhere; }
+                }
             `;
             document.head.appendChild(fitStyle);
         }
@@ -2038,7 +2047,7 @@ class SwissKnifeDesktop {
                                     <option value="validation">validation</option>
                                 </select>
                             </label>
-                            <span>Selections stay in this form and are sent the next time Search runs.</span>
+                            <span class="datasets-selection-note">Selections stay in this form and are sent the next time Search runs.</span>
                         </div>
                     </section>
 
@@ -2084,6 +2093,37 @@ class SwissKnifeDesktop {
             if (note) parts.push(`note_id=${note}`);
             if (text) parts.push(String(text).slice(0, 120));
             return parts.length ? parts.join(' · ') : JSON.stringify(record).slice(0, 160);
+        };
+        const placeDatasetFrame = () => {
+            const workflow = contentElement.querySelector('.datasets-browser-workflow');
+            const frame = contentElement.closest('.window');
+            if (!workflow || !frame) return;
+            const titlebar = frame.querySelector('.window-titlebar');
+            const titleHeight = titlebar ? titlebar.offsetHeight : 0;
+            const viewportHeight = document.documentElement.clientHeight || window.innerHeight || 0;
+            const viewportWidth = document.documentElement.clientWidth || window.innerWidth || 0;
+            const taskbar = document.getElementById('taskbar');
+            const reserve = Math.max(72, (taskbar && taskbar.offsetHeight ? taskbar.offsetHeight : 56) + 20);
+            const maxHeight = Math.max(220, viewportHeight - reserve);
+            const footer = frame.querySelector('.backend-status-disclosure');
+            const footerHeight = footer ? footer.offsetHeight : 0;
+            const needed = titleHeight + workflow.scrollHeight + footerHeight + 12;
+            const height = Math.min(maxHeight, Math.max(220, needed));
+            const maxWidth = Math.max(280, viewportWidth - 8);
+            const width = Math.min(parseInt(frame.style.width, 10) || frame.offsetWidth || maxWidth, maxWidth);
+            frame.style.boxSizing = 'border-box';
+            frame.style.maxWidth = maxWidth + 'px';
+            frame.style.width = width + 'px';
+            frame.style.maxHeight = maxHeight + 'px';
+            frame.style.height = height + 'px';
+            const left = Math.max(0, parseInt(frame.style.left, 10) || 0);
+            frame.style.left = Math.min(left, Math.max(0, viewportWidth - width)) + 'px';
+            let top = Math.max(0, parseInt(frame.style.top, 10) || 0);
+            if (top + height > viewportHeight - reserve) top = Math.max(0, viewportHeight - reserve - height);
+            frame.style.top = top + 'px';
+            contentElement.scrollTop = 0;
+            const scroller = frame.querySelector('.window-content');
+            if (scroller) scroller.scrollTop = 0;
         };
         const fitPrimaryDatasetBrowser = () => {
             const workflow = contentElement.querySelector('.datasets-browser-workflow');
@@ -2133,13 +2173,16 @@ class SwissKnifeDesktop {
                 if (heading) heading.hidden = true;
                 stack.append(errorCard);
             }
+            const catalogStatus = contentElement.querySelector('#datasets-catalog-status');
+            if (catalogStatus && !diagnostics.contains(catalogStatus)) diagnostics.append(catalogStatus);
+            const selectionNote = Array.from(workflow.querySelectorAll('span')).find(node => (node.textContent || '').startsWith('Selections stay'));
+            if (selectionNote && !diagnostics.contains(selectionNote)) diagnostics.append(selectionNote);
             workflow.prepend(stack);
             for (const grid of Array.from(workflow.children)) {
                 if (grid !== stack && grid !== diagnostics && grid.childElementCount === 0) grid.remove();
             }
             diagnostics.open = false;
-            contentElement.scrollTop = 0;
-            workflow.scrollTop = 0;
+            placeDatasetFrame();
         };
         fitPrimaryDatasetBrowser();
 
@@ -2223,17 +2266,18 @@ class SwissKnifeDesktop {
                     const body = contentElement.querySelector('#datasets-rows');
                     if (body) {
                         body.replaceChildren();
-                        const selected = records[0];
-                        if (selected) {
+                        records.forEach((record, index) => {
                             const tr = document.createElement('tr');
                             tr.className = 'datasets-row';
-                            tr.dataset.selected = 'true';
-                            tr.setAttribute('aria-selected', 'true');
+                            if (index === 0) {
+                                tr.dataset.selected = 'true';
+                                tr.setAttribute('aria-selected', 'true');
+                            }
                             const td = document.createElement('td');
-                            td.textContent = datasetRowLabel(selected);
+                            td.textContent = datasetRowLabel(record);
                             tr.appendChild(td);
                             body.appendChild(tr);
-                        }
+                        });
                     }
                     if (records.length) {
                         try {
@@ -2244,7 +2288,7 @@ class SwissKnifeDesktop {
                             }));
                         } catch { /* storage unavailable */ }
                     }
-                    if (statusEl) { statusEl.hidden = false; statusEl.textContent = summaryText; }
+                    if (statusEl) { statusEl.hidden = false; statusEl.textContent = records.length ? 'Search finished.' : 'No records matched this query.'; }
                 }
                 const summary = `${operation} ${preview ? 'preview validated; body not executed, no record, index or job created' : envelope.outcome} via ${envelope.transport || 'declared transport'}; receipt ${envelope.receipt?.receipt_id || 'unavailable'}`;
                 if (result) { const pre = document.createElement('pre'); pre.textContent = JSON.stringify(envelope, null, 2); result.replaceChildren(pre); }
@@ -2279,7 +2323,7 @@ class SwissKnifeDesktop {
                 if (!defaults.collection || !defaults.model) throw new Error('The owner has not declared an actual search collection and embedding model.');
                 return { ...defaults, query, top_k: 5, filters: { ...defaults.filters, ...stagedFilters() } };
             }, { trigger: event.currentTarget, statusEl: semanticStatus });
-            contentElement.scrollTop = 0;
+            placeDatasetFrame();
             contentElement.querySelector('#datasets-query')?.focus({ preventScroll: true });
         });
         contentElement.querySelector('[data-svd-workflow-action="record-provenance"]')?.addEventListener('click', async event => {
@@ -2345,16 +2389,20 @@ class SwissKnifeDesktop {
                 const body = contentElement.querySelector('#datasets-rows');
                 if (body && Array.isArray(saved.rows)) {
                     body.replaceChildren();
-                    for (const record of saved.rows) {
+                    saved.rows.forEach((record, index) => {
                         const tr = document.createElement('tr');
                         tr.className = 'datasets-row';
+                        if (index === 0) {
+                            tr.dataset.selected = 'true';
+                            tr.setAttribute('aria-selected', 'true');
+                        }
                         const td = document.createElement('td');
                         td.textContent = datasetRowLabel(record);
                         tr.appendChild(td);
                         body.appendChild(tr);
-                    }
+                    });
                 }
-                contentElement.scrollTop = 0;
+                placeDatasetFrame();
             }
         } catch { /* no saved dataset */ }
     }
@@ -2398,23 +2446,35 @@ class SwissKnifeDesktop {
         if (primarySurface) Object.assign(primarySurface.style, { height: '100%', minHeight: '0', minWidth: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' });
         Object.assign(contentElement.style, { flex: '1 1 0%', minHeight: '0', minWidth: '0', overflow: 'auto' });
         const gatewayHost = primarySurface?.querySelector('.live-tool-gateway-host');
-        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '4.5rem', minHeight: '0', flexShrink: '0', overflow: 'auto', position: 'static' });
+        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '0', minHeight: '0', height: '0', flexShrink: '0', overflow: 'hidden', position: 'static', padding: '0', border: '0' });
         if (!document.getElementById('orb-auto-ui-fit-style')) {
             const fitStyle = document.createElement('style');
             fitStyle.id = 'orb-auto-ui-fit-style';
             fitStyle.textContent = `
                 .window[data-app-id="orb-auto-ui"] .window-content { padding-bottom: 0; }
-                .window[data-app-id="orb-auto-ui"] .live-tool-gateway-host { max-height: 4.5rem; min-height: 0; flex: 0 0 auto; overflow: auto; position: static; }
+                .window[data-app-id="orb-auto-ui"] .live-tool-gateway-host { min-height:0!important; max-height:0!important; height:0!important; overflow:hidden!important; flex:0 0 0!important; padding:0!important; border:0!important; }
+                .window[data-app-id="orb-auto-ui"] .backend-status-disclosure { display:none!important; }
                 .orb-auto-ui-workflow.sk-app { height:auto; max-height:100%; overflow:auto; box-sizing:border-box; }
                 .orb-auto-ui-workflow .sk-card { min-width:0; overflow:visible; align-self:start; }
-                .orb-auto-ui-workflow :is(button,select,textarea):focus-visible { outline:2px solid #93c5fd; outline-offset:2px; }
+                .window[data-app-id="orb-auto-ui"] .orb-auto-ui-workflow :is(#orb-arguments,#orb-owner,#orb-refresh,#orb-inspect):is(:focus,:focus-visible) { outline:3px solid #93c5fd!important; outline-offset:2px!important; box-shadow:0 0 0 3px #1e3a8a!important; }
                 .orb-auto-ui-workflow textarea { width:100%; min-height:4.5rem; max-height:7rem; box-sizing:border-box; }
                 .orb-auto-ui-workflow .orb-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
                 .orb-auto-ui-workflow p, .orb-auto-ui-workflow pre { overflow-wrap:anywhere; word-break:break-word; }
                 .orb-auto-ui-workflow #orb-retained, .orb-auto-ui-workflow #orb-output { display:block; margin:0 0 8px; }
+                .orb-auto-ui-workflow #orb-schema-ready, .orb-auto-ui-workflow #orb-retained-descriptor { overflow-wrap:anywhere; word-break:break-word; white-space:normal; overflow-x:visible; }
+                .orb-auto-ui-workflow :is(#orb-retained-descriptor,#orb-retained-tool,#orb-retained-input,#orb-retained-output,#orb-rejected) { margin:0 0 2px; font-size:12px; line-height:1.25; }
                 .orb-auto-ui-workflow pre { max-height:8rem; overflow:auto; white-space:pre-wrap; }
-                @media (max-width: 480px) {
-                    .orb-auto-ui-workflow textarea { min-height: 2.75rem; max-height: 4.25rem; }
+                @media (max-width: 800px) {
+                    .orb-auto-ui-workflow.sk-app { padding: 4px 6px !important; }
+                    .orb-auto-ui-workflow h2 { margin: 0 0 2px !important; font-size: 15px !important; }
+                    .orb-auto-ui-workflow .sk-honest-note { margin: 0 0 4px !important; padding: 4px 8px !important; max-height: none !important; overflow: visible !important; }
+                    .orb-auto-ui-workflow textarea { min-height: 2rem !important; max-height: 2.5rem !important; }
+                    .orb-auto-ui-workflow .sk-card { padding: 4px 6px !important; }
+                    .orb-auto-ui-workflow .sk-section-head { padding: 0 0 2px !important; margin: 0 !important; }
+                    .orb-auto-ui-workflow > div { gap: 6px !important; }
+                    .orb-auto-ui-workflow .orb-actions { margin-top: 4px !important; }
+                    .orb-auto-ui-workflow :is(#orb-output,#orb-retained,#orb-retained-descriptor,#orb-retained-tool,#orb-retained-input,#orb-retained-output,#orb-rejected,#orb-error,#orb-output-label,#orb-retained-label) { margin: 0 !important; line-height: 1.15 !important; }
+                    .orb-auto-ui-workflow details { margin-top: 2px !important; }
                 }
             `;
             document.head.appendChild(fitStyle);
@@ -2448,6 +2508,11 @@ class SwissKnifeDesktop {
                 <p id="orb-output" role="status" hidden></p>
                 <p id="orb-retained-label">Retained result</p>
                 <p id="orb-retained">No retained descriptor result.</p>
+                <p id="orb-retained-descriptor"></p>
+                <p id="orb-retained-tool"></p>
+                <p id="orb-retained-input"></p>
+                <p id="orb-retained-output"></p>
+                <p id="orb-rejected"></p>
                 <details style="margin-top:12px">
                     <summary>Diagnostics</summary>
                     <pre id="orb-diagnostics"></pre>
@@ -2461,8 +2526,42 @@ class SwissKnifeDesktop {
         const errorStatus = root.querySelector('#orb-error');
         const outputStatus = root.querySelector('#orb-output');
         const retainedStatus = root.querySelector('#orb-retained');
+        const retainedDescriptor = root.querySelector('#orb-retained-descriptor');
+        const retainedTool = root.querySelector('#orb-retained-tool');
+        const retainedInput = root.querySelector('#orb-retained-input');
+        const retainedOutput = root.querySelector('#orb-retained-output');
+        const rejectedStatus = root.querySelector('#orb-rejected');
         const diagnostics = root.querySelector('#orb-diagnostics');
+        const focusArguments = () => {
+            try { argumentsInput.focus({ focusVisible: true }); }
+            catch { try { argumentsInput.focus(); } catch { /* focus unavailable */ } }
+        };
         let loaded = null;
+        const placeOrbFrame = () => {
+            const frame = contentElement.closest('.window');
+            if (!frame) return;
+            const viewportHeight = document.documentElement.clientHeight || window.innerHeight || 0;
+            const viewportWidth = document.documentElement.clientWidth || window.innerWidth || 0;
+            const taskbar = document.getElementById('taskbar');
+            const reserve = Math.max(80, (taskbar && taskbar.offsetHeight ? taskbar.offsetHeight : 56) + 24);
+            const height = Math.max(240, viewportHeight - reserve);
+            const width = Math.min(Math.max(280, frame.offsetWidth || viewportWidth), Math.max(280, viewportWidth - 8));
+            frame.style.boxSizing = 'border-box';
+            frame.style.top = '0px';
+            frame.style.left = '0px';
+            frame.style.width = width + 'px';
+            frame.style.maxWidth = (viewportWidth - 8) + 'px';
+            frame.style.height = height + 'px';
+            frame.style.maxHeight = height + 'px';
+            const rejected = contentElement.querySelector('#orb-rejected');
+            if (viewportWidth > 800 && rejected && rejected.textContent.trim() && typeof rejected.scrollIntoView === 'function') {
+                rejected.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            } else {
+                contentElement.scrollTop = 0;
+                const workflow = contentElement.querySelector('.orb-auto-ui-workflow');
+                if (workflow) workflow.scrollTop = 0;
+            }
+        };
         const valueType = value => Array.isArray(value) ? 'array' : value === null ? 'null' : typeof value;
         const selectedOwner = () => owners.find(item => item.bindingId === ownerSelect.value) || owners[0];
         const remember = () => {
@@ -2475,9 +2574,22 @@ class SwissKnifeDesktop {
                     argumentsText: argumentsInput.value,
                     output: outputStatus.hidden ? '' : outputStatus.textContent,
                     retained: retainedStatus.textContent,
+                    retainedDescriptor: retainedDescriptor.textContent,
+                    retainedTool: retainedTool.textContent,
+                    retainedInput: retainedInput.textContent,
+                    retainedOutput: retainedOutput.textContent,
+                    rejected: rejectedStatus.textContent,
                     error: errorStatus.textContent,
                 }));
             } catch { /* storage unavailable */ }
+            placeOrbFrame();
+        };
+        const publishRetained = (current, submitted, summary) => {
+            retainedStatus.textContent = `Retained descriptor ${current.bindingId} tool ${current.tool} owner ${current.owner} input ${submitted} output ${summary}`;
+            retainedDescriptor.textContent = `Descriptor ${current.bindingId}`;
+            retainedTool.textContent = `Tool ${current.tool}`;
+            retainedInput.textContent = `Input ${submitted}`;
+            retainedOutput.textContent = `Output ${summary}`;
         };
         const validateArguments = () => {
             const current = selectedOwner();
@@ -2576,6 +2688,10 @@ class SwissKnifeDesktop {
             if (!check.ok) {
                 errorStatus.textContent = check.message;
                 outputStatus.hidden = true;
+                if (check.message.includes('unexpected field')) {
+                    rejectedStatus.textContent = `Rejected payload ${argumentsInput.value.trim()} was not sent.`;
+                }
+                focusArguments();
                 remember();
                 return;
             }
@@ -2586,6 +2702,7 @@ class SwissKnifeDesktop {
                 });
                 if (!envelope) {
                     errorStatus.textContent = 'Inspection cancelled before dispatch. Nothing was executed.';
+                    focusArguments();
                     remember();
                     return;
                 }
@@ -2595,7 +2712,7 @@ class SwissKnifeDesktop {
                 const submitted = JSON.stringify(check.value);
                 outputStatus.hidden = false;
                 outputStatus.textContent = `Inspected tool ${current.tool} descriptor ${current.bindingId} owner ${current.owner} input ${submitted} output ${summary}`;
-                retainedStatus.textContent = `Retained descriptor ${current.bindingId} tool ${current.tool} owner ${current.owner} input ${submitted} output ${summary}`;
+                publishRetained(current, submitted, summary);
                 errorStatus.textContent = '';
                 if (diagnostics) diagnostics.textContent = JSON.stringify({
                     owner: current.owner, tool: current.tool, outcome: envelope.outcome, transport: envelope.transport || '',
@@ -2606,6 +2723,7 @@ class SwissKnifeDesktop {
                 errorStatus.textContent = `${current.tool} is unavailable: ${message} Nothing was accepted.`;
                 outputStatus.hidden = true;
             }
+            focusArguments();
             remember();
         };
         ownerSelect.addEventListener('change', () => {
@@ -2633,19 +2751,26 @@ class SwissKnifeDesktop {
                     outputStatus.textContent = saved.output;
                 }
                 if (typeof saved.error === 'string') errorStatus.textContent = saved.error;
+                if (typeof saved.retainedDescriptor === 'string') retainedDescriptor.textContent = saved.retainedDescriptor;
+                if (typeof saved.retainedTool === 'string') retainedTool.textContent = saved.retainedTool;
+                if (typeof saved.retainedInput === 'string') retainedInput.textContent = saved.retainedInput;
+                if (typeof saved.retainedOutput === 'string') retainedOutput.textContent = saved.retainedOutput;
+                if (typeof saved.rejected === 'string') rejectedStatus.textContent = saved.rejected;
                 if (saved.schemaReady === true && Array.isArray(saved.fields) && saved.bindingId === ownerSelect.value) {
                     const current = selectedOwner();
                     loaded = { bindingId: current.bindingId, owner: current.owner, tool: current.tool, fields: saved.fields.filter(field => field && typeof field.name === 'string' && typeof field.type === 'string') };
                     schemaReady.hidden = false;
                     schemaReady.textContent = typeof saved.schemaText === 'string' ? saved.schemaText : `Descriptor ${current.bindingId} tool ${current.tool}`;
                 }
-                if (typeof saved.retained === 'string' && saved.retained && typeof saved.argumentsText === 'string' && saved.bindingId) {
+                if (typeof saved.retainedDescriptor !== 'string' && typeof saved.retained === 'string' && saved.bindingId && typeof saved.argumentsText === 'string') {
                     try {
                         const compact = JSON.stringify(JSON.parse(saved.argumentsText));
+                        const current = selectedOwner();
                         if (compact && saved.retained.includes(saved.bindingId) && saved.retained.includes(`input ${compact}`) && saved.retained.includes(' output ')) {
-                            retainedStatus.textContent = `${saved.retained} Compared equal descriptor ${saved.bindingId} input ${compact}`;
+                            const output = saved.retained.split(' output ').pop();
+                            publishRetained(current, compact, output);
                         }
-                    } catch { /* retained sentence stays without a comparison */ }
+                    } catch { /* retained fields stay empty when the saved record cannot be compared */ }
                 }
             }
         } catch { /* no retained descriptor */ }
@@ -2672,7 +2797,7 @@ class SwissKnifeDesktop {
             fitStyle.textContent = `
                 .glasses-preview-workflow.sk-app { height: auto; max-height: 100%; overflow: auto; box-sizing: border-box; }
                 .glasses-preview-workflow .sk-card { min-width: 0; overflow: visible; }
-                .glasses-preview-workflow :is(button, select, input):focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
+                .glasses-preview-workflow :is(button, select, input):is(:focus, :focus-visible) { outline: 2px solid #93c5fd; outline-offset: 2px; }
                 .glasses-preview-workflow .glasses-preview-frame { box-sizing: border-box; max-width: 100%; min-height: 2.75rem; overflow: auto; border: 1px solid var(--sk-border, #26384a); border-radius: 6px; padding: 8px; }
                 .glasses-preview-workflow .sk-label { display: flex; flex-direction: column; align-items: stretch; gap: 4px; max-width: 100%; }
                 .glasses-preview-workflow .sk-label input { width: 100%; min-width: 0; box-sizing: border-box; }
@@ -2802,7 +2927,6 @@ class SwissKnifeDesktop {
             remember(packetSelect.value, widthInput.value.trim(), heightInput.value.trim(), readout.textContent);
             contentElement.scrollTop = 0;
             root.scrollTop = 0;
-            fallbackNote.scrollIntoView({ block: 'center', inline: 'nearest' });
         };
 
         packetSelect.addEventListener('change', apply);
@@ -2868,6 +2992,7 @@ class SwissKnifeDesktop {
         const storedParameter = typeof storedRecord.parameter === 'string' && storedRecord.parameter
             ? storedRecord.parameter
             : '{"descriptor_id":"ipfs_datasets_py","limit":5}';
+        let lastValidParameter = typeof storedRecord.lastValidParameter === 'string' ? storedRecord.lastValidParameter : '';
         const options = ['<option value="">Select a descriptor</option>'].concat(inspections.map(item => `<option value="${escape(item.id)}"${item.id === storedId ? ' selected' : ''}>${escape(item.id)}</option>`)).join('');
         contentElement.innerHTML = `
             <div class="generated-service-surface generated-mcp-app idl-explorer-workflow sk-app" data-app-id="idl-explorer" data-service="orb_idl" data-svd-workflow="idl-explorer.inspect-governed-descriptors" style="min-height:0;padding:12px;background:var(--sk-bg-panel,#101820);color:var(--sk-text,#f7fafc)">
@@ -2956,6 +3081,7 @@ class SwissKnifeDesktop {
                 validationStatus.textContent = `Schema ${schemaLine}.${prior} Invalid field ${errors[0][0]}: ${errors.map(item => item[1]).join('; ')}. No owner tool was invoked.`;
                 return;
             }
+            lastValidParameter = parameterInput.value;
             validationStatus.dataset.validPassed = 'true';
             validationStatus.dataset.validationState = 'passed';
             validationStatus.textContent = `Valid parameter passed for ${id}. Schema ${schemaLine}. No owner tool was invoked.`;
@@ -2970,11 +3096,21 @@ class SwissKnifeDesktop {
                 next.validationState = validationStatus.dataset.validationState || '';
                 next.validPassed = validationStatus.dataset.validPassed === 'true';
                 if (descriptorSelect.value) next.id = descriptorSelect.value;
+                if (lastValidParameter) next.lastValidParameter = lastValidParameter;
                 sessionStorage.setItem(storageKey, JSON.stringify(next));
             } catch { /* storage unavailable */ }
         };
         const explainAndRemember = () => { explainParameter(); rememberValidation(); };
-        descriptorSelect.addEventListener('change', showSelection);
+        descriptorSelect.addEventListener('change', () => {
+            const wasUnavailable = schemaView.dataset.descriptorState === 'unavailable';
+            showSelection();
+            if (!wasUnavailable || !descriptorSelect.value || !lastValidParameter) return;
+            parameterInput.value = lastValidParameter;
+            validationStatus.dataset.validPassed = 'true';
+            validationStatus.dataset.validationState = 'passed';
+            validationStatus.textContent = `Valid parameter passed for ${descriptorSelect.value}. Schema ${schemaTextFor(descriptorSelect.value)}. No owner tool was invoked.`;
+            rememberValidation();
+        });
         root.querySelector('#idl-validate-parameter').addEventListener('click', explainAndRemember);
         parameterInput.addEventListener('keydown', event => {
             if (event.key !== 'Enter' || event.repeat || event.shiftKey) return;

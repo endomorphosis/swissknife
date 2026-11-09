@@ -184,10 +184,14 @@ export class NAVIApp {
         .navi-container .conversation-messages {
           flex: 1 1 0; min-height: 0; min-width: 0;
           overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
-          padding: 8px 10px 10px;
-          display: flex; flex-direction: column; gap: 6px;
+          padding: 4px 8px 6px;
+          display: flex; flex-direction: column; justify-content: flex-start; align-content: flex-start; gap: 4px;
         }
-        .navi-container .message { display: flex; gap: 6px; max-width: 100%; min-width: 0; position: static; flex-shrink: 0; opacity: 1; transform: none; animation: none; }
+        .navi-container .message.navi-retained-message {
+          position: static; top: auto; z-index: auto;
+          background: transparent;
+        }
+        .navi-container .message { display: flex; gap: 6px; max-width: 100%; min-width: 0; margin: 0; padding: 0; box-shadow: none; font-weight: 400; position: static; flex-shrink: 0; opacity: 1; transform: none; animation: none; }
         .navi-container .message.user-message { align-self: flex-end; flex-direction: row-reverse; max-width: 85%; }
         .navi-container .message-avatar {
           width: 22px; height: 22px; border-radius: 50%;
@@ -277,15 +281,13 @@ export class NAVIApp {
         }
         .navi-container .message-input::placeholder { color: var(--sk-text-faint, #9eb2aa); }
         .navi-container .message-input:focus,
-        .navi-container .message-input.navi-intent-focused,
         .navi-container button:focus,
         .navi-container button:focus-visible,
         .navi-container select:focus,
         .navi-container select:focus-visible {
-          outline: 3px solid #f8fffb;
+          outline: 2px solid #93c5fd;
           outline-offset: 2px;
-          box-shadow: 0 0 0 3px #8bd8bd;
-          border-color: #f8fffb;
+          box-shadow: 0 0 0 3px #1d4ed8;
         }
         .navi-container [hidden] { display: none !important; }
         .navi-resolution {
@@ -336,6 +338,9 @@ export class NAVIApp {
           color: #0e1412;
           background: #8bd8bd;
           border: 1px solid #8bd8bd;
+          outline: 2px solid #93c5fd;
+          outline-offset: 2px;
+          box-shadow: 0 0 0 3px #1d4ed8;
         }
         .navi-match-list .navi-declined-choice {
           color: #f8fffb;
@@ -502,6 +507,16 @@ export class NAVIApp {
           .navi-container .message-input { font-size: 13px; }
           .navi-container .quick-btn { font-size: 11px; padding: 6px 8px; }
         }
+        .window[data-app-id="navi"] .live-tool-gateway-host {
+          min-height: 0 !important;
+          max-height: 0 !important;
+          height: 0 !important;
+          overflow: hidden !important;
+          flex: 0 0 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+        }
+        .window[data-app-id="navi"] .backend-status-disclosure { display: none !important; }
       </style>
         <div class="navi-header">
           <div class="navi-avatar">
@@ -541,8 +556,11 @@ export class NAVIApp {
             
             <div class="navi-resolution" id="navi-resolution">
               <p id="navi-retained-choice" class="navi-intent-status" hidden></p>
+              <p id="navi-retained-intent" class="navi-intent-status" hidden></p>
+              <p id="navi-owner-readback" class="navi-intent-status" hidden></p>
               <p id="navi-choice-record" class="navi-intent-status" hidden></p>
               <p id="navi-intent-status" class="navi-intent-status" hidden></p>
+              <button type="button" id="navi-reread-catalog" class="action-btn" hidden>Reread owner catalog</button>
               <select id="navi-selected-target" class="navi-selected-target" aria-label="Selected catalog target" hidden></select>
               <div id="navi-kept-choices" class="navi-match-list" hidden></div>
               <div id="navi-match-list" class="navi-match-list" hidden></div>
@@ -716,6 +734,8 @@ export class NAVIApp {
         e.preventDefault();
         this.commitSelectedTarget(choice.getAttribute('data-target') || '');
       });
+      const reread = nativeRoot.querySelector('#navi-reread-catalog');
+      if (reread) reread.addEventListener('click', () => { this.rereadOwnerCatalog(); });
     }
 
     // Voice controls
@@ -904,10 +924,13 @@ export class NAVIApp {
     const status = document.getElementById('navi-intent-status');
     const list = document.getElementById('navi-match-list');
     const input = document.getElementById('message-input');
-    if (input) input.value = message;
-    this.lastIntent = message;
     this.lastLabels = Array.isArray(labels) ? labels.slice(0, 8) : [];
     const choosing = this.lastLabels.length > 0;
+    const keptIntent = !choosing && String(statusText).includes('Original intent kept.') && this.storedIntent
+      ? this.storedIntent
+      : message;
+    if (input) input.value = keptIntent;
+    this.lastIntent = keptIntent;
     if (this.lastLabels.length > 1) this.choiceLabels = this.lastLabels.slice(0, 8);
     if (!choosing && !/[0-9A-Za-z]/.test(message)) this.failedIntent = message;
     if (choosing) {
@@ -926,8 +949,21 @@ export class NAVIApp {
     }
     if (list) {
       if (!choosing) {
-        if (this.targetConfirmed && this.storedTarget) this.renderChosenTarget(this.storedTarget);
+        const kept = Array.isArray(this.choiceLabels) ? this.choiceLabels.slice(0, 8) : [];
+        if (this.storedTarget) this.renderConfirmedTarget(this.storedTarget);
         else {
+          const select = document.getElementById('navi-selected-target');
+          if (select) {
+            select.hidden = true;
+            select.value = '';
+            select.replaceChildren();
+          }
+        }
+        if (kept.length) {
+          list.hidden = false;
+          const text = kept.map((label) => this.escapeText(label)).join(' | ');
+          list.innerHTML = `<span id="navi-match-text" class="navi-match-text">${text}</span>${this.choiceButtons(kept, true)}`;
+        } else {
           list.hidden = true;
           list.innerHTML = '';
         }
@@ -950,25 +986,25 @@ export class NAVIApp {
     this.keptLabels = labels.slice(0, 8);
     const host = document.getElementById('navi-kept-choices');
     if (!host || !labels.length) return;
-    host.hidden = false;
-    host.innerHTML = `<span class="navi-match-text">${labels.map((label) => this.escapeText(label)).join(' | ')}</span>${this.choiceButtons(labels, false)}`;
+    host.hidden = true;
+    host.textContent = labels.join(' | ');
   }
 
   renderConfirmedTarget(label) {
     const clean = String(label || '').trim();
     if (!clean) return;
-    this.keptLabels = [clean];
-    const host = document.getElementById('navi-kept-choices');
-    if (host) {
-      host.hidden = true;
-      host.innerHTML = '';
-    }
-    const select = document.getElementById('navi-selected-target');
-    if (!select) return;
     const labels = (Array.isArray(this.choiceLabels) && this.choiceLabels.length)
       ? this.choiceLabels.slice(0, 8)
       : [clean];
     const options = labels.includes(clean) ? labels : [clean, ...labels];
+    this.keptLabels = options.slice(0, 8);
+    const host = document.getElementById('navi-kept-choices');
+    if (host) {
+      host.hidden = true;
+      host.textContent = options.join(' | ');
+    }
+    const select = document.getElementById('navi-selected-target');
+    if (!select) return;
     select.replaceChildren();
     for (const item of options) {
       const option = document.createElement('option');
@@ -1009,13 +1045,23 @@ export class NAVIApp {
     node.textContent = text;
   }
 
-  renderChosenTarget(clean) {
-    const list = document.getElementById('navi-match-list');
-    if (list) {
-      list.hidden = true;
-      list.innerHTML = '';
-    }
+  renderChosenTarget(clean, onlyChosen) {
     this.renderConfirmedTarget(clean);
+    const list = document.getElementById('navi-match-list');
+    if (!list) return;
+    const labels = Array.isArray(this.choiceLabels) ? this.choiceLabels.slice(0, 8) : [];
+    if (labels.length > 1 && !onlyChosen) {
+      list.hidden = false;
+      const text = labels.map((label) => this.escapeText(label)).join(' | ');
+      list.innerHTML = `<span id="navi-match-text" class="navi-match-text">${text}</span>${this.choiceButtons(labels, true)}`;
+      for (const button of list.querySelectorAll('[data-target]')) {
+        if (button.getAttribute('data-target') === clean) button.classList.add('navi-confirmed-target');
+      }
+      return;
+    }
+    const choiceId = clean === 'gpt2' ? ' id="navi-choice-gpt2"' : '';
+    list.hidden = false;
+    list.innerHTML = `<span id="navi-match-text" class="navi-match-text">Chosen ${this.escapeText(clean)}</span><button type="button" class="action-btn navi-target-choice navi-confirmed-target"${choiceId} data-target="${this.escapeText(clean)}">Use ${this.escapeText(clean)}</button>`;
   }
 
   commitSelectedTarget(label) {
@@ -1033,7 +1079,7 @@ export class NAVIApp {
       this.lastStatus = `Matched catalog context: ${clean}.`;
     }
     this.noteCatalogReceipt();
-    this.renderChosenTarget(clean);
+    this.renderChosenTarget(clean, !firstChoice);
     this.paintStoredReadback();
     const status = document.getElementById('navi-intent-status');
     if (status) {
@@ -1042,13 +1088,21 @@ export class NAVIApp {
     }
     if (firstChoice) {
       this.addMessage('navi', this.choiceRecord || `Chose ${clean}.`);
-      const intentNode = document.querySelector('#conversation-messages .user-message .message-text');
-      if (intentNode && intentNode.textContent === this.storedIntent) intentNode.id = 'navi-retained-intent';
-    } else if (!this.lastStatus.startsWith('Selected ')) this.addMessage('navi', this.lastStatus);
-    const input = document.getElementById('message-input');
-    if (input) {
-      input.classList.add('navi-intent-focused');
-      input.focus();
+      const bubble = document.querySelector('#conversation-messages .user-message');
+      const bubbleText = bubble?.querySelector('.message-text');
+      if (bubble && bubbleText && bubbleText.textContent === this.storedIntent) bubble.classList.add('navi-retained-message');
+    } else if (!this.lastStatus.startsWith('Selected ')) {
+      this.addMessage('navi', this.lastStatus);
+      this.addMessage('user', `Choose ${clean}`);
+      const input = document.getElementById('message-input');
+      if (input) input.value = clean;
+    }
+    const select = document.getElementById('navi-selected-target');
+    if (select) {
+      try { select.focus({ focusVisible: true }); }
+      catch (focusError) {
+        try { select.focus(); } catch (ignored) { /* choice already committed */ }
+      }
     }
     this.saveWorkflowState();
   }
@@ -1064,6 +1118,13 @@ export class NAVIApp {
     const failedRow = document.getElementById('navi-failed-row');
     if (intent) intent.textContent = intentText;
     if (intentRow) intentRow.hidden = intentText.length === 0;
+    const retainedIntent = document.getElementById('navi-retained-intent');
+    if (retainedIntent) {
+      retainedIntent.textContent = intentText;
+      retainedIntent.hidden = intentText.length === 0;
+    }
+    const reread = document.getElementById('navi-reread-catalog');
+    if (reread) reread.hidden = true;
     if (target) target.textContent = targetText;
     if (targetRow) targetRow.hidden = targetText.length === 0;
     if (failed && this.failedIntent) failed.value = this.failedIntent;
@@ -1170,15 +1231,57 @@ export class NAVIApp {
         const text = document.createElement('div');
         text.className = 'message-text';
         text.textContent = entry.content;
-        if (entry.sender === 'user' && entry.content === this.storedIntent) text.id = 'navi-retained-intent';
+        if (entry.sender === 'user' && entry.content === this.storedIntent) messageElement.classList.add('navi-retained-message');
         content.appendChild(text);
         messageElement.append(avatar, content);
         messagesContainer.appendChild(messageElement);
       }
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      this.pinTranscript(messagesContainer);
     }
-    const intent = document.getElementById('message-input');
-    if (intent) intent.classList.add('navi-intent-focused');
+  }
+
+  async rereadOwnerCatalog() {
+    const target = this.storedTarget;
+    if (!target) return;
+    let envelope, requestedCid;
+    try {
+      const { invokeNativeTool } = await import('../live-tool-gateway.js');
+      const trigger = document.getElementById('navi-reread-catalog');
+      const container = trigger?.closest('.window-app-content') || document.getElementById('navi-resolution');
+      const discovery = await fetch('/mcp/tools/bindings?app_id=navi');
+      if (!discovery.ok) throw new Error('Catalog binding discovery is unavailable.');
+      const control = (await discovery.json()).controls?.find(item => item.binding_id === 'navi.ipfs_datasets_py.query_catalog' && item.owner === 'ipfs_datasets_py');
+      const payload = control?.safe_payloads?.get_from_ipfs;
+      if (!control?.preferred_tool_ids?.includes('get_from_ipfs') || typeof payload?.cid !== 'string'
+          || !/^bafkrei[a-z2-7]{52}$/.test(payload.cid)) throw new Error('No qualified catalog CID is configured for this owner.');
+      requestedCid = payload.cid;
+      envelope = await invokeNativeTool(container, 'navi', 'navi.ipfs_datasets_py.query_catalog', {
+        executionMode: 'execute', toolId: 'get_from_ipfs', payload: { ...payload }, trigger
+      });
+    } catch (error) {
+      console.warn('Catalog reread failed:', error?.message || error);
+      return;
+    }
+    const payload = envelope && (envelope.output != null ? envelope.output : envelope.result);
+    const outcome = String(envelope?.status || envelope?.outcome || '').toLowerCase();
+    const accepted = outcome === 'ok' || outcome === 'executed' || outcome === 'success' || outcome === 'completed';
+    if (!envelope || !accepted || payload == null || payload === '') return;
+    let rows;
+    try {
+      const record = this.decodeCatalogResult(payload);
+      if (record.cid !== requestedCid || typeof record.content !== 'string'
+          || await contentCidForBytes(new TextEncoder().encode(record.content)) !== requestedCid) return;
+      rows = this.extractCatalogMatches(payload);
+    } catch (error) {
+      console.warn('Catalog reread could not be verified:', error?.message || error);
+      return;
+    }
+    const match = rows.find((row) => row && row.id === target);
+    if (!match) return;
+    const node = document.getElementById('navi-owner-readback');
+    if (!node) return;
+    node.hidden = false;
+    node.textContent = `Owner catalog id ${match.id}.`;
   }
 
   async resolveCatalogIntent(message) {
@@ -1257,6 +1360,33 @@ export class NAVIApp {
     this.showIntentOutcome(message, `Matched catalog context: ${labels[0]}`, labels);
   }
 
+  pinTranscript(messagesContainer) {
+    if (!messagesContainer) return;
+    const slack = messagesContainer.scrollHeight - messagesContainer.clientHeight;
+    if (slack <= 1) {
+      messagesContainer.scrollTop = 0;
+      return;
+    }
+    const wanted = [...messagesContainer.querySelectorAll('.message-text')].find((node) => {
+      const text = node.textContent || '';
+      return text.startsWith('Chose ') || text.trim() === '??';
+    });
+    if (!wanted) {
+      messagesContainer.scrollTop = 0;
+      return;
+    }
+    const message = wanted.closest('.message');
+    const top = message.getBoundingClientRect().top - messagesContainer.getBoundingClientRect().top + messagesContainer.scrollTop;
+    const last = messagesContainer.lastElementChild;
+    const lastBottom = last
+      ? last.getBoundingClientRect().bottom - messagesContainer.getBoundingClientRect().top + messagesContainer.scrollTop
+      : top;
+    const view = messagesContainer.clientHeight;
+    let next = Math.max(0, Math.min(top, slack));
+    if (lastBottom - top <= view) next = Math.max(0, Math.min(slack, lastBottom - view));
+    messagesContainer.scrollTop = next;
+  }
+
   addMessage(sender, content, metadata = {}) {
     const messagesContainer = document.getElementById('conversation-messages');
     if (!messagesContainer) return;
@@ -1282,7 +1412,7 @@ export class NAVIApp {
     `;
     
     messagesContainer.appendChild(messageElement);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    this.pinTranscript(messagesContainer);
     
     // Store in conversation history
     this.conversations.push({

@@ -126,11 +126,25 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     return `
       <div class="vibecode-container" data-theme="dark">
         <style>
+          .window[data-app-id="vibecode"] .window-content { position: relative; overflow: hidden; }
+          .window[data-app-id="vibecode"] .window-app-content {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            height: auto;
+            box-sizing: border-box;
+            overflow: hidden;
+          }
+
           .vibecode-container {
             display: flex;
             flex-direction: column;
             height: 100%;
+            max-height: 100%;
             min-height: 0;
+            overflow: hidden;
             container-type: inline-size;
             background: #1e1e1e;
             color: #ffffff;
@@ -171,9 +185,11 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             border-color: #777;
           }
 
-          .vibe-btn:focus-visible {
+          .vibe-btn:is(:focus, :focus-visible),
+          #vibecode-workspace-path:is(:focus, :focus-visible) {
             outline: 2px solid #8ab4ff;
             outline-offset: 2px;
+            box-shadow: 0 0 0 3px #1d4ed8;
           }
           
           .vibe-btn.ai {
@@ -183,19 +199,19 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
           
           .main-content {
             display: flex;
-            flex: 1;
+            flex: 1 1 auto;
             min-height: 0;
-            overflow: auto;
+            overflow: hidden;
           }
           
           .code-section {
-            flex: 1 1 16rem;
+            flex: 1 1 14rem;
             min-width: 0;
-            min-height: 12rem;
+            min-height: 0;
             display: flex;
             flex-direction: column;
             background: #1e1e1e;
-            overflow: auto;
+            overflow: hidden;
           }
           
           .code-editor-container {
@@ -206,7 +222,7 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
           .code-editor {
             width: 100%;
             height: 100%;
-            min-height: 10rem;
+            min-height: 0;
             background: #1e1e1e;
             color: #d4d4d4;
             border: none;
@@ -220,11 +236,19 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             overflow-wrap: anywhere;
             overflow: auto;
           }
+
+          .code-editor:is(:focus, :focus-visible) {
+            outline: 3px solid #93c5fd;
+            outline-offset: 0;
+            box-shadow: inset 0 0 0 3px #1d4ed8;
+          }
           
           .preview-section {
-            flex: 1 1 12rem;
+            flex: 1 1 16rem;
             min-width: 0;
-            min-height: 6rem;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
             background: #ffffff;
             border-left: 1px solid #3e3e42;
             overflow: auto;
@@ -297,6 +321,10 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             padding: 0.5rem 0.75rem;
             color: #888;
           }
+
+          .loading-indicator[hidden] {
+            display: none !important;
+          }
           
           .vibecode-container #send-ai-btn {
             width: 100%;
@@ -325,7 +353,19 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
           }
           
           #vibecode-diff {
-            margin-left: 0.75rem;
+            flex: 1 1 auto;
+            margin: 0;
+            min-height: 0;
+            max-height: 100%;
+            padding: 8px 10px 16px;
+            box-sizing: border-box;
+            overflow-x: auto;
+            overflow-y: auto;
+            white-space: pre;
+            overflow-wrap: normal;
+            color: #142018;
+            background: #f3f7f4;
+            font: 13px/1.35 ui-monospace, SFMono-Regular, Consolas, monospace;
           }
 
           #vibecode-save-error {
@@ -386,13 +426,17 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             }
 
             .code-section {
-              flex: 1 1 12rem;
-              min-height: 9rem;
+              flex: 0 0 4.75rem;
+              min-height: 0;
             }
+
+            .code-editor { min-height: 0; padding: 0.35rem 0.5rem; }
             
             .preview-section {
-              flex: 0 0 2.5rem;
-              max-height: 2.5rem;
+              flex: 1 1 auto;
+              min-height: 0;
+              max-height: none;
+              overflow: hidden;
               border-left: none;
               border-top: 1px solid #3e3e42;
             }
@@ -415,13 +459,17 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             }
 
             .code-section {
-              flex: 1 1 12rem;
-              min-height: 9rem;
+              flex: 0 0 4.75rem;
+              min-height: 0;
             }
 
+            .code-editor { min-height: 0; }
+
             .preview-section {
-              flex: 0 0 2.5rem;
-              max-height: 2.5rem;
+              flex: 1 1 auto;
+              min-height: 0;
+              max-height: none;
+              overflow: hidden;
               border-left: none;
               border-top: 1px solid #3e3e42;
             }
@@ -469,6 +517,7 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
 
           <!-- Preview Section -->
           <div class="preview-section" id="preview-section">
+            <pre id="vibecode-diff" aria-label="Function diff">No function change to describe.</pre>
             <div class="loading-indicator">
               <span>Preview will appear here when you run your Streamlit app</span>
             </div>
@@ -501,7 +550,6 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
         <div class="status-bar">
           <div class="status-left">
             <span id="status-text">Ready</span>
-            <output id="vibecode-diff" aria-label="Function diff">No function change to describe.</output>
             <span id="vibecode-save-error" role="alert"></span>
           </div>
           <div class="status-right">
@@ -584,8 +632,70 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
       });
     }
     this.updateDiff(window);
+    this.placeVibecodeFrame();
     
     console.log('✅ VibeCode event listeners setup complete');
+  }
+
+  placeVibecodeFrame(retry) {
+    const frame = document.querySelector('.window[data-app-id="vibecode"]');
+    const view = frame?.ownerDocument?.defaultView;
+    if (!frame || !view) return;
+    const doc = frame.ownerDocument;
+    const viewportWidth = doc.documentElement.clientWidth || view.innerWidth || 0;
+    const viewportHeight = doc.documentElement.clientHeight || view.innerHeight || 0;
+    const taskbarEl = doc.getElementById('taskbar');
+    const taskbarTop = taskbarEl && taskbarEl.getBoundingClientRect ? taskbarEl.getBoundingClientRect().top : viewportHeight - 48;
+    const margin = viewportWidth <= 800 ? 8 : 16;
+    const height = Math.max(360, Math.floor(taskbarTop - margin - 6));
+    const width = Math.max(320, Math.min(1040, viewportWidth - margin * 2));
+    frame.style.boxSizing = 'border-box';
+    frame.style.setProperty('top', `${margin}px`, 'important');
+    frame.style.setProperty('left', `${margin}px`, 'important');
+    frame.style.setProperty('bottom', 'auto', 'important');
+    frame.style.setProperty('width', `${width}px`, 'important');
+    frame.style.setProperty('height', `${height}px`, 'important');
+    frame.style.setProperty('max-width', `${Math.max(320, viewportWidth - margin * 2)}px`, 'important');
+    frame.style.setProperty('max-height', `${height}px`, 'important');
+    frame.style.setProperty('overflow', 'hidden', 'important');
+    frame.style.minHeight = '0';
+    const content = frame.querySelector('.window-content');
+    if (content) {
+      const inner = Math.max(200, height - 32);
+      content.style.setProperty('position', 'relative', 'important');
+      content.style.setProperty('height', `${inner}px`, 'important');
+      content.style.setProperty('max-height', `${inner}px`, 'important');
+      content.style.setProperty('overflow', 'hidden', 'important');
+      content.style.setProperty('padding-bottom', '0px', 'important');
+    }
+    const appContent = frame.querySelector('.window-app-content');
+    if (appContent) {
+      appContent.style.setProperty('position', 'absolute', 'important');
+      appContent.style.setProperty('left', '0px', 'important');
+      appContent.style.setProperty('right', '0px', 'important');
+      appContent.style.setProperty('top', '0px', 'important');
+      appContent.style.setProperty('bottom', '0px', 'important');
+      appContent.style.setProperty('height', 'auto', 'important');
+      appContent.style.setProperty('max-height', '100%', 'important');
+      appContent.style.setProperty('overflow', 'hidden', 'important');
+    }
+    const diff = frame.querySelector('#vibecode-diff');
+    if (diff) {
+      const limit = taskbarTop - 10;
+      const box = diff.getBoundingClientRect();
+      if (box.bottom > limit) {
+        const next = Math.max(96, Math.floor(diff.clientHeight - (box.bottom - limit)));
+        diff.style.setProperty('height', `${next}px`, 'important');
+        diff.style.setProperty('max-height', `${next}px`, 'important');
+        diff.style.setProperty('flex', '0 0 auto', 'important');
+      }
+      diff.style.setProperty('overflow-x', 'auto', 'important');
+      diff.style.setProperty('overflow-y', 'auto', 'important');
+      diff.style.setProperty('white-space', 'pre', 'important');
+      const hidden = diff.scrollHeight - diff.clientHeight;
+      if (hidden > 1) diff.scrollTop = hidden;
+    }
+    if (retry !== true) view.requestAnimationFrame(() => this.placeVibecodeFrame(true));
   }
 
   async runWorkspaceOperation(container, toolId, trigger) {
@@ -698,6 +808,7 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             localStorage.setItem('vibecode-remote-note', JSON.stringify({ path, content, cid: persistedCid, note: 'Remote file saved.' }));
           } catch (_noteError) {}
           this.updateStatus(contentRoot || liveRoot || container, 'Ready');
+          this.focusEditor(contentRoot || liveRoot || container);
         }
       }
       return response;
@@ -753,12 +864,39 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     return '';
   }
 
+  focusEditor(root) {
+    const scope = root?.querySelector ? root : (typeof document !== 'undefined' ? document.querySelector('.window[data-app-id="vibecode"]') : null);
+    const editor = scope?.querySelector('#code-editor');
+    if (editor && typeof editor.focus === 'function') {
+      try { editor.focus({ preventScroll: true, focusVisible: true }); }
+      catch { editor.focus(); }
+    }
+  }
+
   updateDiff(root) {
     const code = root.querySelector('#code-editor')?.value || '';
     const diff = root.querySelector('#vibecode-diff');
     if (!diff) return;
-    const match = code.match(/(?:async\s+def|def|function)\s+([A-Za-z_][A-Za-z0-9_]*)/);
-    diff.textContent = match ? `Diff describes ${match[1]}` : 'No function change to describe.';
+    const before = this.getDefaultStreamlitCode().replace(/\n+$/, '');
+    const after = code.replace(/\n+$/, '');
+    const match = after.match(/(?:async\s+def|def|function)\s+([A-Za-z_][A-Za-z0-9_]*)/);
+    const changed = after !== before;
+    const placeholder = root.querySelector('#preview-section .loading-indicator');
+    if (!match || !changed) {
+      diff.textContent = 'No function change to describe.';
+      if (placeholder) placeholder.hidden = false;
+      this.placeVibecodeFrame();
+      return;
+    }
+    const lines = [
+      `function ${match[1]}`,
+      ...after.split('\n').map(line => `+${line}`),
+      ...before.split('\n').map(line => `-${line}`)
+    ];
+    diff.textContent = lines.join('\n');
+    diff.scrollTop = diff.scrollHeight;
+    if (placeholder) placeholder.hidden = true;
+    this.placeVibecodeFrame();
   }
 
   saveFile(window) {
@@ -800,6 +938,7 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
       remoteStatus.textContent = remembered ? 'Remote file saved.' : 'Local draft only. Remote file not saved yet.';
     }
     this.updateDiff(window);
+    this.focusEditor(window);
   }
 
   async runStreamlitApp(window) {

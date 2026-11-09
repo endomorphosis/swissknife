@@ -468,6 +468,13 @@ export class NeuralPhotoshopApp {
           </div>
         </div>
 
+        <figure data-saved-project-output class="saved-project-output" hidden>
+          <span data-source-pixels-label hidden>Unedited source</span>
+          <img data-source-pixels-preview alt="Unedited source pixels" hidden>
+          <img data-saved-project-image alt="Saved image preview">
+          <figcaption></figcaption>
+        </figure>
+
         <!-- Main Content Area -->
         <div class="main-content">
           <!-- Left Sidebar - Tools -->
@@ -500,13 +507,10 @@ export class NeuralPhotoshopApp {
               </div>
             </div>
             
-            <figure data-saved-project-output class="saved-project-output" hidden>
-              <img data-saved-project-image alt="Saved image preview">
-              <figcaption></figcaption>
-            </figure>
             <output data-project-storage-status data-project-storage-state="unsaved" aria-live="polite"></output>
             <!-- Canvas Status Bar -->
             <div class="canvas-status">
+              <button class="menu-btn" id="add-layer-btn" title="Add Layer" type="button">Add layer</button>
               <span class="status-info" id="canvas-info">
                 ${this.currentProject ? this.currentProject.width : 1024} × ${this.currentProject ? this.currentProject.height : 1024} px | RGB
               </span>
@@ -1078,9 +1082,10 @@ export class NeuralPhotoshopApp {
            inside its own scroll area so it cannot push panels out of a small
            window or cover the controls and real confirmation inputs. */
         .window[data-app-id="neural-photoshop"] > .window-content { container-type: size; position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
-        .neural-photoshop-container { min-width: 0; min-height: 0; width: 100%; position: relative; flex: 1 1 auto; height: 100%; height: 100cqh; overflow: hidden; }
+        .neural-photoshop-container { min-width: 0; min-height: 0; width: 100%; position: relative; flex: 1 1 auto; height: 100%; height: 100cqh; overflow: hidden; display: flex; flex-direction: column; }
         .neural-photoshop-container > .menu-bar { flex: 0 0 auto; overflow-x: auto; }
-        .neural-photoshop-container > .main-content { flex: 1 1 0; flex-direction: row; min-width: 0; min-height: 0; width: 100%; position: relative; }
+        .neural-photoshop-container > .saved-project-output { flex: 0 0 auto; position: relative; top: auto; z-index: 6; }
+        .neural-photoshop-container > .main-content { flex: 1 1 0; flex-direction: row; min-width: 0; min-height: 0; width: 100%; position: relative; overflow: auto; }
         .neural-photoshop-container .left-panel,
         .neural-photoshop-container .right-panel { position: relative; flex: 0 0 clamp(160px, 25%, 240px); width: auto; min-width: 0; min-height: 0; height: auto; max-height: 100%; overflow-y: auto; overflow-x: hidden; transform: none; padding-bottom: 8px; scroll-padding-bottom: 8px; }
         .neural-photoshop-container .canvas-area { flex: 1 1 0; min-width: 0; min-height: 0; overflow: hidden; }
@@ -1136,13 +1141,40 @@ export class NeuralPhotoshopApp {
         .neural-photoshop-container { height: auto; flex: 1 1 0; min-height: 0; }
         .neural-photoshop-container .left-panel,
         .neural-photoshop-container .right-panel { scrollbar-width: thin; scrollbar-color: #8b91a8 #25283b; scroll-padding-block: 8px 48px; }
-        .neural-photoshop-container .saved-project-output { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: #202335; }
-        .neural-photoshop-container .saved-project-output img { width: 64px; height: 48px; object-fit: contain; image-rendering: pixelated; }
-        .neural-photoshop-container .saved-project-output figcaption { font-size: 11px; overflow-wrap: anywhere; }
+        .neural-photoshop-container .saved-project-output { flex: 0 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; padding: 4px 8px; background: #202335; }
+        .neural-photoshop-container .saved-project-output img { width: 64px; height: 48px; object-fit: contain; image-rendering: pixelated; background: #111827; }
+        .neural-photoshop-container [data-source-pixels-preview] { outline: 2px solid #93c5fd; }
+        .neural-photoshop-container [data-saved-project-image] { outline: 2px solid #ff2d55; }
+        .neural-photoshop-container [data-source-pixels-label] { flex: 1 1 100%; color: #f8fafc; font-size: 12px; font-weight: 700; }
+        .neural-photoshop-container .saved-project-output figcaption { flex: 1 1 100%; font-size: 12px; color: #f8fafc; overflow-wrap: anywhere; }
         .neural-photoshop-container [data-project-storage-status] { flex: 0 0 auto; font-size: 11px; padding-inline: 8px; overflow-wrap: anywhere; }
+        .neural-photoshop-container .canvas-status #add-layer-btn { flex: 0 0 auto; min-height: 32px; }
         .neural-photoshop-container .project-optional-tools { display: block; margin-top: 8px; }
         .neural-photoshop-container .project-optional-tools > summary { cursor: pointer; padding: 8px 4px; color: #dbeafe; font-size: 12px; }
-        .neural-photoshop-container :is(button,input,textarea,select,summary):focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
+        .neural-photoshop-container .vda-g042-subtitle { color: #f8fafc; font-size: 12px; line-height: 1.35; white-space: normal; overflow-wrap: break-word; display: block; }
+        @media (max-width: 800px) {
+          .window[data-app-id="neural-photoshop"] { top: 8px !important; left: 8px !important; width: calc(100vw - 16px) !important; height: calc(100dvh - 64px) !important; max-width: calc(100vw - 16px) !important; max-height: calc(100dvh - 64px) !important; overflow: hidden !important; }
+          .neural-photoshop-container > .menu-bar .menu-btn { padding: 4px 6px !important; font-size: 11px !important; }
+          .neural-photoshop-container > .main-content { display: flex !important; flex-direction: column !important; overflow: auto !important; }
+          .neural-photoshop-container .left-panel,
+          .neural-photoshop-container .right-panel { position: relative !important; inset: auto !important; transform: none !important; width: 100% !important; height: auto !important; max-height: none !important; flex: 0 0 auto !important; z-index: 1 !important; overflow: visible !important; background: #1a1a2e !important; }
+          .neural-photoshop-container .canvas-area { order: -1 !important; position: sticky !important; top: 0 !important; z-index: 5 !important; flex: 0 0 auto !important; min-height: 168px !important; max-height: none !important; height: auto !important; overflow: visible !important; background: #2a2a3e !important; }
+          .neural-photoshop-container .main-canvas,
+          .neural-photoshop-container .overlay-canvas { width: min(100%, 240px) !important; max-height: 120px !important; height: auto !important; }
+          .neural-photoshop-container .canvas-status { position: relative !important; display: flex !important; flex-wrap: wrap !important; background: #1a1a2e !important; }
+          .neural-photoshop-container [data-source-cid-input] { min-height: 2.4em !important; }
+          .neural-photoshop-container .tools-panel .tool-grid { display: flex !important; overflow-x: auto !important; }
+        }
+        @media (min-width: 801px) {
+          .window[data-app-id="neural-photoshop"] { top: 16px !important; left: 16px !important; width: min(1100px, calc(100vw - 32px)) !important; height: calc(100dvh - 72px) !important; max-width: calc(100vw - 32px) !important; max-height: calc(100dvh - 72px) !important; overflow: hidden !important; }
+          .neural-photoshop-container > .main-content { display: flex !important; flex-direction: row !important; overflow: hidden !important; }
+          .neural-photoshop-container .left-panel,
+          .neural-photoshop-container .right-panel { position: relative !important; inset: auto !important; transform: none !important; flex: 0 1 220px !important; width: 220px !important; max-width: 240px !important; height: auto !important; max-height: 100% !important; overflow: auto !important; background: #1a1a2e !important; z-index: 1 !important; }
+          .neural-photoshop-container .canvas-area { position: relative !important; flex: 1 1 auto !important; min-width: 200px !important; overflow: hidden !important; }
+        }
+        .neural-photoshop-container .vda-g042-panel,
+        .neural-photoshop-container #load-source-bytes { scroll-margin-top: 144px; scroll-margin-bottom: 16px; }
+        .neural-photoshop-container :is(button,input,textarea,select,summary,canvas):is(:focus, :focus-visible) { outline: 2px solid #93c5fd !important; outline-offset: 2px; box-shadow: 0 0 0 3px #1d4ed8 !important; }
         @container (max-width: 720px) {
           .neural-photoshop-container > .menu-bar .menu-section { gap: 4px; }
           .neural-photoshop-container > .menu-bar .menu-btn { padding: 5px 7px; }
@@ -1150,7 +1182,8 @@ export class NeuralPhotoshopApp {
           .neural-photoshop-container .tools-panel .tool-grid { display: flex; overflow-x: auto; gap: 4px; padding: 4px; }
           .neural-photoshop-container .tool-btn { flex: 0 0 48px; min-height: 44px; }
           .neural-photoshop-container .panel-header { padding: 6px 10px; }
-          .neural-photoshop-container .canvas-area { top: 128px; min-height: 192px; max-height: 240px; }
+          .neural-photoshop-container .canvas-area { position: relative; top: auto; min-height: 160px; max-height: none; overflow: visible; }
+          .neural-photoshop-container .saved-project-output img { flex: 0 0 64px; width: 64px; height: 48px; }
           .neural-photoshop-container .right-panel { padding-bottom: 72px; }
           .neural-photoshop-container .vda-g042-header { display: flex; flex-wrap: wrap; }
           .neural-photoshop-container .vda-g042-subtitle { max-width: 100%; }
@@ -1342,7 +1375,6 @@ export class NeuralPhotoshopApp {
   renderLayersPanel() {
     return `
       <div class="layer-controls-header">
-        <button class="menu-btn" id="add-layer-btn" title="Add Layer">➕ Add</button>
         <button class="menu-btn" id="delete-layer-btn" title="Delete Layer">🗑️ Delete</button>
         <button class="menu-btn" id="duplicate-layer-btn" title="Duplicate Layer">📋 Duplicate</button>
       </div>
@@ -1515,7 +1547,42 @@ export class NeuralPhotoshopApp {
     
     // Keyboard shortcuts
     this.setupKeyboardHandlers();
+    this.fitNeuralFrame();
     return canvasReady;
+  }
+
+  fitNeuralFrame(retry) {
+    const container = this.container;
+    const frame = container?.closest?.('.window');
+    const view = container?.ownerDocument?.defaultView;
+    if (!frame || !view) return;
+    const doc = container.ownerDocument;
+    const taskbar = doc.getElementById('taskbar');
+    const viewportHeight = doc.documentElement.clientHeight || view.innerHeight || 0;
+    const viewportWidth = doc.documentElement.clientWidth || view.innerWidth || 0;
+    const taskbarTop = taskbar && taskbar.getBoundingClientRect ? taskbar.getBoundingClientRect().top : viewportHeight - 48;
+    const margin = viewportWidth <= 800 ? 8 : 16;
+    const height = Math.max(360, Math.floor(taskbarTop - margin - 4));
+    const width = Math.max(300, Math.min(1100, viewportWidth - margin * 2));
+    frame.style.setProperty('top', margin + 'px', 'important');
+    frame.style.setProperty('left', margin + 'px', 'important');
+    frame.style.setProperty('width', width + 'px', 'important');
+    frame.style.setProperty('max-width', Math.max(300, viewportWidth - margin * 2) + 'px', 'important');
+    frame.style.setProperty('height', height + 'px', 'important');
+    frame.style.setProperty('max-height', height + 'px', 'important');
+    frame.style.setProperty('overflow', 'hidden', 'important');
+    const content = frame.querySelector('.window-content');
+    if (content) {
+      const inner = Math.max(240, height - 32);
+      content.style.setProperty('height', inner + 'px', 'important');
+      content.style.setProperty('max-height', inner + 'px', 'important');
+      content.style.setProperty('overflow', 'hidden', 'important');
+    }
+    if (viewportWidth <= 800) {
+      const scroller = container.querySelector('.main-content');
+      if (scroller) scroller.scrollTop = 0;
+    }
+    if (retry !== true) view.requestAnimationFrame(() => this.fitNeuralFrame(true));
   }
 
   setupPanelHandlers(container) {
@@ -1746,12 +1813,22 @@ export class NeuralPhotoshopApp {
       if (source) source.dataset.sourceCidState = 'decoded-image';
       if (message) { message.textContent = `${bytes.length} source bytes decoded (${image.naturalWidth}×${image.naturalHeight}).${keepEdits ? ' Current edits kept.' : ''}`; message.title = `Source CID ${cid}`; }
       this.appendVdaG042Receipt(container, response); this.updateVdaG042Status(container, 'Source verified');
+      this.showSourcePixelsPreview();
     } catch (error) {
       if (!owner?.isConnected || this.container !== owner || (source && !owner.contains(source)) || (message && !owner.contains(message))) return;
       if (source) source.dataset.sourceCidState = 'error';
       if (message) message.textContent = `Source read failed: ${error.message} Current image and edits kept.`;
       this.updateVdaG042Status(container, 'Source error');
-    } finally { this.sourceReadPending = false; }
+    } finally {
+      this.sourceReadPending = false;
+      if (owner?.isConnected && this.container === owner) {
+        const decoded = owner.querySelector('[data-source-cid-state]')?.dataset.sourceCidState === 'decoded-image';
+        const target = decoded ? owner.querySelector('#add-layer-btn') : owner.querySelector('#load-source-bytes');
+        if (decoded) this.fitNeuralFrame();
+        try { target?.focus({ focusVisible: true, preventScroll: true }); }
+        catch { try { target?.focus({ preventScroll: true }); } catch { /* focus unavailable */ } }
+      }
+    }
   }
 
   async markVdaG042GenerationComplete(container, trigger = null) {
@@ -3158,8 +3235,39 @@ export class NeuralPhotoshopApp {
     if (historyList) {
       historyList.innerHTML = this.canvasHistory.map((step, index) => `<div class="history-item ${index === this.historyIndex ? 'active' : ''}" data-history-index="${index}">${step.action} - ${step.timestamp}</div>`).join('');
     }
+    this.historyGeneration = (this.historyGeneration || 0) + 1;
+    void this.finishHistoryLabel(action, this.historyGeneration);
+  }
+
+  async publishCanvasPixelHash() {
+    const canvas = this.canvas;
+    const owner = this.container;
+    if (!this.ownsProjectCanvas(owner, canvas)) return;
+    const hash = await this.projectPixelHash(canvas);
+    if (!this.ownsProjectCanvas(owner, canvas)) return;
+    canvas.dataset.canvasPixelsSha256 = JSON.stringify(hash);
+  }
+
+  async finishHistoryLabel(action, generation) {
+    try { await this.publishCanvasPixelHash(); } catch { /* the pixel-hash assert fails closed */ }
+    if (generation !== this.historyGeneration) return;
     this.projectMetaLabel = action;
     this.renderProjectMeta();
+    this.showSourcePixelsPreview();
+  }
+
+  showSourcePixelsPreview() {
+    const preview = this.container?.querySelector('[data-source-pixels-preview]');
+    const label = this.container?.querySelector('[data-source-pixels-label]');
+    const bytes = this.vdaG042?.sourceBytes;
+    if (!preview || !bytes?.length) return;
+    const src = `data:image/png;base64,${this.projectBase64(bytes)}`;
+    if (preview.getAttribute('src') !== src) preview.src = src;
+    preview.hidden = false;
+    if (label) label.hidden = false;
+    if (this.vdaG042.sourcePixelsSha256) preview.dataset.pixelSha256 = this.vdaG042.sourcePixelsSha256;
+    const figure = this.container.querySelector('[data-saved-project-output]');
+    if (figure) figure.hidden = false;
   }
 
   renderProjectMeta() {
@@ -3207,9 +3315,10 @@ export class NeuralPhotoshopApp {
       });
       this.activeLayerIndex = Math.min(Math.max(step.activeLayerIndex || 0, 0), this.layers.length - 1);
       this.restoreProjectSource(step.source || null);
-      this.projectMetaLabel = step.action;
       this.redrawCanvas();
       this.refreshUI();
+      this.historyGeneration = (this.historyGeneration || 0) + 1;
+      void this.finishHistoryLabel(step.action, this.historyGeneration);
     }
   }
 
@@ -3380,11 +3489,17 @@ export class NeuralPhotoshopApp {
     if (!old || !figure) return;
     image.setAttribute('data-saved-project-image', ''); image.alt = 'Saved image preview';
     image.width = frame.width; image.height = frame.height;
-    image.dataset.pngSha256 = frame.sha256; image.dataset.pngBytes = String(frame.bytes);
+    image.dataset.pngSha256 = JSON.stringify(frame.sha256);
+    image.dataset.pngBytes = JSON.stringify(String(frame.bytes));
     image.dataset.layerNames = (frame.layerNames || this.layers.map(layer => layer.name)).join(', ');
     old.replaceWith(image); figure.hidden = false;
     const caption = figure.querySelector('figcaption');
-    if (caption) { caption.textContent = `Saved PNG · ${frame.width}×${frame.height} · ${frame.bytes} bytes`; caption.title = `SHA-256 ${frame.sha256}`; }
+    if (caption) {
+      const sourceNote = this.vdaG042?.sourceBytes?.length ? 'Unedited source beside saved edit. ' : '';
+      caption.textContent = `${sourceNote}Saved PNG · ${frame.width}×${frame.height} · ${frame.bytes} bytes`;
+      caption.title = `SHA-256 ${frame.sha256}`;
+    }
+    this.showSourcePixelsPreview();
     this.savedProjectFrame = frame;
   }
 

@@ -31,11 +31,17 @@
     "persist_reopen": [
       {"op": "reopen_app"},
       {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "value", "selector": "#dm-diagnostic-choice"}, "operator": "equals", "expected": "inspect_hardware"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#dm-reopened-value"}, "operator": "equals", "expected": "inspect_hardware"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#dm-retained-sequence"}, "operator": "equals", "expected": "1"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#dm-session-sequence"}, "operator": "equals", "expected": "0"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#dm-session-owner-at"}, "operator": "equals", "expected": "none"},
       {"op": "click", "selector": "#dm-reopened-value"},
       {"op": "click", "selector": "#dm-request-owner"},
       {"op": "wait_for", "selector": "button[data-gateway-confirm=\"device-manager.ipfs_accelerate_py.inspect_hardware\"]", "state": "visible", "timeout_ms": 15000},
       {"op": "click", "selector": "button[data-gateway-confirm=\"device-manager.ipfs_accelerate_py.inspect_hardware\"]"},
-      {"op": "wait_for", "selector": "#dm-owner-ready", "state": "visible", "timeout_ms": 15000}
+      {"op": "wait_for", "selector": "#dm-owner-ready", "state": "visible", "timeout_ms": 15000},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#dm-retained-sequence"}, "operator": "equals", "expected": "1"},
+      {"op": "assert", "probe": {"kind": "value", "selector": "#dm-session-sequence"}, "operator": "equals", "expected": "2"}
     ],
     "failure_recovery": [
       {"op": "click", "selector": "#dm-select-unsupported"},

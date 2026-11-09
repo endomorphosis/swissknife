@@ -626,6 +626,7 @@ export class FriendsListApp {
               </div>
             </div>
             <p id="friends-recovery-note" class="friends-form-error" role="status" aria-live="polite"></p>
+            <p id="friends-listed-count" class="friends-form-error" role="status"></p>
             <button id="reload-friend-record" type="button" class="btn-secondary sk-btn">Save contact record</button>
             <div class="friends-list" id="friends-list">
               <!-- Friends will be populated by JavaScript -->
@@ -1020,14 +1021,29 @@ export class FriendsListApp {
         color: #0e1412;
       }
 
+      .action-btn:focus,
       .action-btn:focus-visible,
+      .nav-tab:focus,
       .nav-tab:focus-visible,
+      .btn-primary:focus,
       .btn-primary:focus-visible,
+      .btn-secondary:focus,
       .btn-secondary:focus-visible,
+      #reload-friend-record:focus,
+      #reload-friend-record:focus-visible,
+      #friends-search:focus,
+      #friends-search:focus-visible,
+      .form-group input:focus,
       .form-group input:focus-visible,
+      .form-group select:focus,
+      .form-group select:focus-visible,
+      .filter-controls select:focus,
+      .filter-controls select:focus-visible,
+      .modal-close:focus,
       .modal-close:focus-visible {
-        outline: 2px solid var(--sk-accent, #8bd8bd);
+        outline: 3px solid #f8fffb;
         outline-offset: 2px;
+        box-shadow: 0 0 0 3px #8bd8bd;
       }
       
       .action-btn.status-online {
@@ -1114,6 +1130,7 @@ export class FriendsListApp {
 
       #friends-panel > .panel-header,
       #friends-panel > #friends-recovery-note,
+      #friends-panel > #friends-listed-count,
       #friends-panel > #reload-friend-record {
         flex: 0 0 auto;
       }
@@ -1250,6 +1267,13 @@ export class FriendsListApp {
         min-height: 1.2em;
         color: var(--sk-warn, #ffd166);
         font-size: 0.85rem;
+      }
+
+      #friends-panel > #friends-listed-count {
+        margin: 0.1rem 0 0.85rem;
+        line-height: 1.35;
+        min-height: 1.35em;
+        position: static;
       }
       
       .friend-card:hover {
@@ -2056,6 +2080,16 @@ export class FriendsListApp {
           margin: 1rem;
         }
       }
+      .window[data-app-id="friends-list"] .live-tool-gateway-host {
+        min-height: 0 !important;
+        max-height: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        flex: 0 0 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+      }
+      .window[data-app-id="friends-list"] .backend-status-disclosure { display: none !important; }
     `;
   }
   
@@ -2554,6 +2588,14 @@ export class FriendsListApp {
         </div>
       </div>
     `).join('');
+    const listedId = 'contact-did:key:zSvF412DisposableContact';
+    const listedNode = document.querySelector('#friends-listed-count');
+    if (listedNode) {
+      const stored = [...this.friends.values()].filter(friend => friend.id === listedId).length;
+      const shown = [...friendsList.querySelectorAll('.friend-card')].filter(card => card.dataset.friendId === listedId).length;
+      const count = stored === shown ? stored : shown;
+      listedNode.textContent = `${count} listed contact${count === 1 ? '' : 's'} for did:key:zSvF412DisposableContact`;
+    }
     
     // Add click handlers for friend cards
     const friendCards = friendsList.querySelectorAll('.friend-card');
@@ -2840,6 +2882,7 @@ export class FriendsListApp {
       this.persistRetainedContacts();
       this.renderFriendsList();
       if (button) button.dataset.reloaded = '1';
+      this.focusSavedRecord();
     } catch (error) {
       const errorNode = document.querySelector('#friends-form-error');
       if (errorNode) errorNode.textContent = `Update denied or stale: ${error.message}`;
@@ -2886,6 +2929,7 @@ export class FriendsListApp {
       document.querySelector('#add-friend-form')?.classList.add('hidden');
       document.querySelector('#add-friend-modal')?.classList.add('hidden');
       this.renderFriendsList();
+      this.focusSavedRecord();
       return;
     }
     showError('');
@@ -2952,6 +2996,15 @@ export class FriendsListApp {
     }
     this.refreshVdaG037WorkflowPanel();
     this.renderFriendsList();
+  }
+
+  focusSavedRecord() {
+    const button = document.querySelector('#reload-friend-record');
+    if (!button) return;
+    try { button.focus({ focusVisible: true }); }
+    catch (focusError) {
+      try { button.focus(); } catch (ignored) { /* record already saved */ }
+    }
   }
 
   showAddFriendForm(method) {

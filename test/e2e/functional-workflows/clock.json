@@ -42,7 +42,7 @@
       {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#alarm-error"}, "operator": "contains", "expected": "Invalid alarm time"},
       {"op": "fill", "selector": "#alarm-time", "value": "23:58"},
       {"op": "press", "selector": "#add-alarm-btn", "key": "Enter"},
-      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#alarm-status"}, "operator": "contains", "expected": "Local timer retained"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#clock-timer-state"}, "operator": "equals", "expected": "Paused local timer. Duration 2:00."},
       {"op": "assert", "probe": {"kind": "text", "selector": "#clock-retained-alarm"}, "operator": "equals", "expected": "Retained alarm Desk check at 23:59."},
       {"op": "assert", "probe": {"kind": "text", "selector": "#clock-saved-alarm"}, "operator": "equals", "expected": "Saved alarm Desk check at 23:58."}
     ]

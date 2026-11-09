@@ -2463,9 +2463,9 @@
               ]
             },
             {
-              "binding_id": "training-manager.ipfs_accelerate_py.preview_training_task",
+              "binding_id": "training-manager.ipfs_accelerate_py.run_owner_task",
               "capability": "ipfs.accelerate.training_preview",
-              "operation": "preview_training_task",
+              "operation": "run_owner_task",
               "exact_tool_candidates": [
                 "submit_task"
               ],

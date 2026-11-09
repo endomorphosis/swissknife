@@ -19,27 +19,182 @@
   ],
   "phases": {
     "primary_result": [
-      {"op": "click", "selector": "#orb-refresh"},
-      {"op": "wait_for", "selector": "#orb-schema-ready", "state": "visible", "timeout_ms": 15000},
-      {"op": "press", "selector": "#orb-arguments", "key": "Enter"},
-      {"op": "wait_for", "selector": "#orb-output", "state": "visible", "timeout_ms": 15000},
-      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#orb-output"}, "operator": "contains", "expected": "Inspected tool tools_get_schema descriptor orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor owner ipfs_datasets_py input {\"name\":\"tools_list_categories\"} output"}
+      {
+        "op": "click",
+        "selector": "#orb-refresh"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#orb-schema-ready",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "#orb-arguments",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#orb-output",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#orb-schema-ready"
+        },
+        "operator": "contains",
+        "expected": "fields: name (string, required)"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "result_1",
+        "probe": {
+          "kind": "text",
+          "selector": "#orb-output"
+        },
+        "operator": "contains",
+        "expected": "Inspected tool tools_get_schema descriptor orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor owner ipfs_datasets_py input {\"name\":\"tools_list_categories\"} output"
+      }
     ],
     "persist_reopen": [
-      {"op": "reopen_app"},
-      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#orb-retained"}, "operator": "contains", "expected": "Retained descriptor orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor tool tools_get_schema owner ipfs_datasets_py input {\"name\":\"tools_list_categories\"} output"},
-      {"op": "assert", "probe": {"kind": "text", "selector": "#orb-retained"}, "operator": "contains", "expected": "Compared equal descriptor orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor input {\"name\":\"tools_list_categories\"}"}
+      {
+        "op": "reopen_app"
+      },
+      {
+        "op": "press",
+        "selector": "#orb-arguments",
+        "key": "Escape"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "text",
+          "selector": "#orb-retained"
+        },
+        "operator": "contains",
+        "expected": "Retained descriptor orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor tool tools_get_schema owner ipfs_datasets_py input {\"name\":\"tools_list_categories\"} output"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#orb-retained-descriptor"
+        },
+        "operator": "equals",
+        "expected": "Descriptor orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#orb-retained-tool"
+        },
+        "operator": "equals",
+        "expected": "Tool tools_get_schema"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#orb-retained-input"
+        },
+        "operator": "equals",
+        "expected": "Input {\"name\":\"tools_list_categories\"}"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#orb-retained-output"
+        },
+        "operator": "equals",
+        "expected": "Output fields name, schema, found"
+      }
     ],
     "failure_recovery": [
-      {"op": "fill", "selector": "#orb-arguments", "value": "{\"unexpected_field\":true}"},
-      {"op": "press", "selector": "#orb-arguments", "key": "Enter"},
-      {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#orb-error"}, "operator": "contains", "expected": "Schema mismatch"},
-      {"op": "click", "selector": "#orb-refresh"},
-      {"op": "wait_for", "selector": "#orb-schema-ready", "state": "visible", "timeout_ms": 15000},
-      {"op": "assert", "probe": {"kind": "text", "selector": "#orb-error"}, "operator": "contains", "expected": "Declared arguments restored {\"name\":\"tools_list_categories\"}"},
-      {"op": "press", "selector": "#orb-arguments", "key": "Enter"},
-      {"op": "wait_for", "selector": "#orb-output", "state": "visible", "timeout_ms": 15000},
-      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#orb-output"}, "operator": "contains", "expected": "Inspected tool tools_get_schema descriptor orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor owner ipfs_datasets_py input {\"name\":\"tools_list_categories\"} output"}
+      {
+        "op": "fill",
+        "selector": "#orb-arguments",
+        "value": "{\"unexpected_field\":true}"
+      },
+      {
+        "op": "press",
+        "selector": "#orb-arguments",
+        "key": "Enter"
+      },
+      {
+        "op": "assert",
+        "checkpoint_id": "error_observed",
+        "probe": {
+          "kind": "text",
+          "selector": "#orb-error"
+        },
+        "operator": "contains",
+        "expected": "Schema mismatch"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#orb-rejected"
+        },
+        "operator": "contains",
+        "expected": "{\"unexpected_field\":true}"
+      },
+      {
+        "op": "click",
+        "selector": "#orb-refresh"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#orb-schema-ready",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#orb-error"
+        },
+        "operator": "contains",
+        "expected": "Declared arguments restored {\"name\":\"tools_list_categories\"}"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "value",
+          "selector": "#orb-arguments"
+        },
+        "operator": "contains",
+        "expected": "\"name\": \"tools_list_categories\""
+      },
+      {
+        "op": "press",
+        "selector": "#orb-arguments",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#orb-output",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "assert",
+        "requirement_id": "failure_recovery",
+        "probe": {
+          "kind": "text",
+          "selector": "#orb-output"
+        },
+        "operator": "contains",
+        "expected": "Inspected tool tools_get_schema descriptor orb-auto-ui.ipfs_datasets_py.inspect_tool_descriptor owner ipfs_datasets_py input {\"name\":\"tools_list_categories\"} output"
+      }
     ]
   }
 }

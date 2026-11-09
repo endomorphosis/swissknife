@@ -59,23 +59,32 @@
           "selector": "#content-browser"
         },
         "operator": "contains",
-        "expected": "Retrieved bytes match the requested CID."
+        "expected": "Pin state for bafkreiboczqvtm47rm3pz7x27f7isrzi6ogfddyquo5qisw4fthjhiytcm: owner retrieve omitted the pin field."
       },
       {
         "op": "assert",
-        "probe": {"kind": "text", "selector": "#ipfs-content-sha256"},
+        "probe": {
+          "kind": "text",
+          "selector": "#ipfs-content-sha256"
+        },
         "operator": "equals",
         "expected": "Content sha256 2e166159b39f8b36fcfefaf97e894728f38c518f10a3bb044adc2cce93a31313"
       },
       {
         "op": "assert",
-        "probe": {"kind": "text", "selector": "#ipfs-owner-host"},
+        "probe": {
+          "kind": "text",
+          "selector": "#ipfs-owner-host"
+        },
         "operator": "equals",
         "expected": "Owner host http://127.0.0.1:5031"
       },
       {
         "op": "assert",
-        "probe": {"kind": "text", "selector": "#ipfs-byte-length"},
+        "probe": {
+          "kind": "text",
+          "selector": "#ipfs-byte-length"
+        },
         "operator": "equals",
         "expected": "Retrieved payload length 184."
       }
@@ -129,19 +138,28 @@
       },
       {
         "op": "assert",
-        "probe": {"kind": "text", "selector": "#ipfs-byte-compare"},
+        "probe": {
+          "kind": "text",
+          "selector": "#ipfs-byte-compare"
+        },
         "operator": "equals",
         "expected": "Stored preview sha256 matches this retrieve. Length 184."
       },
       {
         "op": "assert",
-        "probe": {"kind": "text", "selector": "#ipfs-content-sha256"},
+        "probe": {
+          "kind": "text",
+          "selector": "#ipfs-content-sha256"
+        },
         "operator": "equals",
         "expected": "Content sha256 2e166159b39f8b36fcfefaf97e894728f38c518f10a3bb044adc2cce93a31313"
       },
       {
         "op": "assert",
-        "probe": {"kind": "text", "selector": "#ipfs-byte-length"},
+        "probe": {
+          "kind": "text",
+          "selector": "#ipfs-byte-length"
+        },
         "operator": "equals",
         "expected": "Retrieved payload length 184."
       }
@@ -169,7 +187,10 @@
       },
       {
         "op": "assert",
-        "probe": {"kind": "text", "selector": "#ipfs-content-sha256"},
+        "probe": {
+          "kind": "text",
+          "selector": "#ipfs-content-sha256"
+        },
         "operator": "equals",
         "expected": "Content sha256 2e166159b39f8b36fcfefaf97e894728f38c518f10a3bb044adc2cce93a31313"
       },
@@ -212,7 +233,10 @@
       },
       {
         "op": "assert",
-        "probe": {"kind": "text", "selector": "#ipfs-retry-compare"},
+        "probe": {
+          "kind": "text",
+          "selector": "#ipfs-retry-compare"
+        },
         "operator": "equals",
         "expected": "Retry retrieve sha256 matches the stored preview. Length 184."
       }

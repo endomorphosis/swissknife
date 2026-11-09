@@ -73,7 +73,7 @@
           "selector": "#vibecode-diff"
         },
         "operator": "equals",
-        "expected": "Diff describes marker_fn"
+        "expected": "function marker_fn\n+def marker_fn():\n+    return \"SVF152-RUN\"\n-import streamlit as st\n-\n-st.title(\"Welcome to VibeCode! 🎯\")\n-st.markdown(\"### AI-Powered Streamlit Development Environment\")\n-\n-# Basic Streamlit components\n-name = st.text_input(\"What's your name?\")\n-if name:\n-    st.write(f\"Hello, {name}! 👋\")\n-\n-# Data visualization example\n-import pandas as pd\n-import numpy as np\n-\n-data = pd.DataFrame({\n-    'x': np.random.randn(100),\n-    'y': np.random.randn(100)\n-})\n-\n-st.line_chart(data)\n-\n-st.markdown(\"Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE\")"
       }
     ],
     "persist_reopen": [

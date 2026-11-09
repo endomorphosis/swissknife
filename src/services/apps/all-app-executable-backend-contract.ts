@@ -319,7 +319,7 @@ const OPERATION_BY_CAPABILITY_TOKEN: Readonly<Record<string, string>> = {
   dataset_lineage: 'record_dataset_provenance',
   dataset_preparation: 'preview_dataset_preparation',
   dataset_progress: 'read_dataset_progress',
-  training_preview: 'preview_training_task',
+  training_preview: 'run_owner_task',
   discovery: 'query_catalog',
   vector: 'query_vector_index',
   provenance: 'record_provenance',
