@@ -670,7 +670,7 @@ export async function openRealDesktopSession(settings, testDriver = null) {
     generation: 0, closed: false, actual_desktop: !testDriver,
     semantic_assertions: [], checkpoints: [], supplemental_observations: [], console_events: [], network_events: [], captures: [], keyboard_focus_observations: [],
     backend_enabled: settings.backendProof === true, backend_records: [], backend_observations: [], backend_artifacts: new Map(),
-    unexpected_backend_calls: 0, backend_policy_errors: [], backend_policy_diagnostics: [], consent_observations: [] };
+    unexpected_backend_calls: 0, backend_policy_errors: [], backend_policy_diagnostics: [], policy_denials: [], consent_observations: [] };
   const requests = new Map();
   let lock, server, browser, context, closing;
   let acquiring = true;
@@ -786,6 +786,19 @@ export async function openRealDesktopSession(settings, testDriver = null) {
           await route.continue();
           return;
         } catch (error) {
+          const observedPhase = session.failure_context?.phase;
+          const joinedPhase = PHASES.includes(observedPhase) ? observedPhase : null;
+          // A policy-blocked app has no owner binding. A well-formed gateway
+          // post is the refusal itself: record it and do not execute an owner.
+          if (app.disposition === 'policy_blocked' && error instanceof WorkflowError && error.code === 'POLICY_BOUNDARY'
+              && error.message === 'call must belong to the actual tool-backed app and governed gateway'
+              && joinedPhase && Number.isSafeInteger(session.failure_context.step) && session.policy_denials.length < 8) {
+            session.policy_denials.push({ phase: joinedPhase, step_index: session.failure_context.step, code: 'POLICY_BOUNDARY',
+              outcome: 'blocked', executed: false, route: '/mcp/tools/call', app_id: app.app_id });
+            if (session.network_events.length < 1500) session.network_events.push({ ...requestMetadata(request.url(), request.method(), request.resourceType(), origin), blocked: true, reason: 'POLICY_BOUNDARY' });
+            await route.abort('blockedbyclient');
+            return;
+          }
           session.unexpected_backend_calls += 1;
           if (session.backend_policy_errors.length < 128) session.backend_policy_errors.push(error.code || 'INVALID_BACKEND_CALL');
           if (session.backend_policy_diagnostics.length < 32) session.backend_policy_diagnostics.push({
@@ -828,7 +841,17 @@ export async function openRealDesktopSession(settings, testDriver = null) {
           const detail = event.detail, app = event.target?.closest?.('.window')?.dataset.appId;
           if (detail?.phase === 'confirmed' && detail.trusted === true && app && Date.now() - (clicks.get(detail.binding_id) || 0) < 1000) {
             clicks.delete(detail.binding_id);
-            globalThis.__swissknifeSVFConsent({ app_id: app, binding_id: detail.binding_id, correlation_id: detail.correlation_id, tool_id: detail.tool_id }).catch(() => {});
+            const grants = [{ binding_id: detail.binding_id, correlation_id: detail.correlation_id, tool_id: detail.tool_id }];
+            const extra = detail.paired_readback;
+            if (extra && extra.tool_id === 'ipfs_cat' && typeof extra.binding_id === 'string' && extra.binding_id.endsWith('.retrieve_content')
+                && typeof extra.correlation_id === 'string'
+                && /^desktop:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(extra.correlation_id)
+                && extra.correlation_id !== detail.correlation_id) {
+              grants.push({ binding_id: extra.binding_id, correlation_id: extra.correlation_id, tool_id: extra.tool_id });
+            }
+            for (const grant of grants) {
+              globalThis.__swissknifeSVFConsent({ app_id: app, binding_id: grant.binding_id, correlation_id: grant.correlation_id, tool_id: grant.tool_id }).catch(() => {});
+            }
           }
         });
       });
@@ -1328,6 +1351,15 @@ export async function executeScenarioPhase(session, phase, steps, context = {}) 
       else if (step.op === 'select') await target.selectOption(step.value, { timeout: 15000 });
       else if (step.op === 'check') await target.check({ timeout: 15000 });
       else if (step.op === 'uncheck') await target.uncheck({ timeout: 15000 });
+      if (session.app.disposition === 'policy_blocked' && ['click', 'press', 'fill'].includes(step.op)) {
+        await session.page.evaluate(async () => {
+          const pending = window.__svfPolicyRefusal;
+          if (pending && typeof pending.then === 'function') {
+            window.__svfPolicyRefusal = null;
+            await pending;
+          }
+        });
+      }
     }
     if (errorObserved && !['wait_ms', 'wait_for', 'capture'].includes(step.op)) recoveryAction = true;
     actions.push({ op: step.op, step_index: index });
@@ -1498,6 +1530,10 @@ function artifactRecord(file, root = WORKSPACE_ROOT) {
   return { path: relative.split(path.sep).join('/'), sha256: digest(bytes), bytes: bytes.length };
 }
 
+function declaredCid(expected) {
+  return typeof expected === 'string' && /^bafkrei[a-z2-7]{52}$/.test(expected) ? expected : null;
+}
+
 export async function collectBackendProof({ session, probe, operator, expected, recordIndex,
   artifactReader = readPersistedGatewayArtifact, evidenceRoot = WORKSPACE_ROOT }) {
   demand(session.backend_enabled === true && probe.kind === 'backend_result', 'FOUNDATION_STAGE_UNIMPLEMENTED', 'backend proof requires an enabled real browser observer');
@@ -1507,8 +1543,10 @@ export async function collectBackendProof({ session, probe, operator, expected, 
   let record;
   while (Date.now() < deadline) {
     await session.assertActive();
-    record = recordIndex === undefined ? session.backend_records.filter(item => item.call.binding_id === probe.binding_id).at(-1)
-      : session.backend_records[recordIndex];
+    const matches = session.backend_records.filter(item => item.call.binding_id === probe.binding_id);
+    const want = recordIndex === undefined ? declaredCid(expected) : null;
+    const cidMatches = want ? matches.filter(item => item.call?.input?.payload?.cid === want) : matches;
+    record = recordIndex === undefined ? (cidMatches.at(-1) || matches.at(-1)) : session.backend_records[recordIndex];
     demand(recordIndex === undefined || (Number.isSafeInteger(recordIndex) && recordIndex >= 0
       && record?.call.binding_id === probe.binding_id), 'BACKEND_JOIN_MISMATCH', 'backend proof names a different request');
     if (record?.finished) break;
@@ -1547,10 +1585,13 @@ export async function collectPhaseBackendProofs({ session, artifactReader = read
   demand(session.phase_evidence, 'INVALID_OBSERVATION', 'request-phase proofs require a V2 session');
   for (const intent of session.scenario.backend_bindings) {
     if (!intent.result_assertion) continue;
+    const wantCid = declaredCid(intent.result_assertion.expected);
     const selected = new Map();
     session.backend_records.forEach((record, index) => {
       if (record.call.binding_id === intent.binding_id && record.finished && !record.error
           && record.response?.ok === true && record.response?.outcome === 'executed') {
+        const payloadCid = record.call?.input?.payload?.cid;
+        if (wantCid && typeof payloadCid === 'string' && payloadCid !== wantCid) return;
         demand(record.request_phase?.request_index === index, 'BACKEND_JOIN_MISMATCH', 'request witness changed');
         selected.set(record.request_phase.phase, index);
       }
@@ -1563,6 +1604,23 @@ export async function collectPhaseBackendProofs({ session, artifactReader = read
         probe: { kind: 'backend_result', binding_id: intent.binding_id, pointer: intent.result_assertion.pointer },
         operator: intent.result_assertion.operator, expected: intent.result_assertion.expected, artifactReader, evidenceRoot });
     }
+  }
+  // The binding assertion names one CID, so a later cat or put of a different
+  // raw block never becomes an observation. Prove the CID the owner returned.
+  const cidPointer = '/result/result/content/0/json/cid';
+  for (let index = 0; index < session.backend_records.length; index += 1) {
+    const record = session.backend_records[index];
+    const tool = record.call?.tool_id;
+    if (tool !== 'ipfs_cat' && tool !== 'artifacts_put') continue;
+    if (!(record.finished && !record.error && record.response?.ok === true && record.response?.outcome === 'executed')) continue;
+    const cid = declaredCid(record.call?.input?.payload?.cid);
+    if (!cid) continue;
+    if (!session.scenario.backend_bindings.some(intent => intent.binding_id === record.call.binding_id)) continue;
+    demand(record.request_phase?.request_index === index, 'BACKEND_JOIN_MISMATCH', 'request witness changed');
+    if (session.backend_observations.some(row => row.request_phase_index === index && row.result_assertion?.actual === cid)) continue;
+    await collectBackendProof({ session, recordIndex: index,
+      probe: { kind: 'backend_result', binding_id: record.call.binding_id, pointer: cidPointer },
+      operator: 'equals', expected: cid, artifactReader, evidenceRoot });
   }
 }
 
@@ -2165,6 +2223,7 @@ export function buildViewportWorkflowEvidence(settings) {
       phase_evidence: session.phase_evidence }, settings.scenario) } : {}),
     ...(session.image_observations?.length ? { image_observations: session.image_observations } : {}),
     ...(session.backend_request_artifacts ? {backend_request_artifacts:session.backend_request_artifacts} : {}),
+    ...(session.policy_denials?.length ? { policy_denials: session.policy_denials.map(row => ({ ...row })) } : {}),
     backend_call_count: session.backend_records.length,
     ...(session.phase_evidence ? { backend_request_phases: { schema: BACKEND_REQUEST_PHASE_SCHEMA,
       requests: session.backend_records.map(row => row.request_phase) } } : {}),
@@ -2236,6 +2295,14 @@ export function validateViewportWorkflowReport(report, { app, scenario, sources,
     && Object.values(report.backend_call_phases).reduce((sum, value) => sum + value, 0) === report.backend_call_count,
     'INVALID_OBSERVATION', 'V2 observed dispatch-phase counts must sum to its actual browser call count');
   const phaseCalls = new Map();
+  if (app.disposition === 'policy_blocked') {
+    demand(Array.isArray(report.policy_denials) && report.policy_denials.length > 0 && report.policy_denials.length <= 8
+      && report.backend_call_count === 0
+      && report.policy_denials.every(row => plain(row) && ['primary_result', 'persist_reopen', 'failure_recovery'].includes(row.phase)
+        && Number.isSafeInteger(row.step_index) && row.step_index >= 0 && row.code === 'POLICY_BOUNDARY'
+        && row.outcome === 'blocked' && row.executed === false && row.route === '/mcp/tools/call' && row.app_id === app.app_id),
+      'POLICY_BOUNDARY', 'policy-blocked viewport lacks its joined runner refusal');
+  }
   if (app.disposition === 'tool_backed') {
     demand(report.backend_call_count > 0 && Array.isArray(report.backend_observations) && report.backend_observations.length > 0,
       'BACKEND_EVIDENCE_MISSING', 'V2 owner proof requires actual browser calls in this child');

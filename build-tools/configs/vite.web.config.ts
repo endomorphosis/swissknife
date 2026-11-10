@@ -338,6 +338,10 @@ function swissknifeSameOriginToolMediatorPlugin(): Plugin {
           const payload = JSON.parse(Buffer.concat(chunks).toString('utf8'))
           const result = await mediator.dispatch(payload)
           await persistGatewayArtifacts(payload, result, endpointFor.ipfs_kit_py)
+          // artifacts_put keeps the project on the disk block store. ipfs_cat
+          // reads the local Kubo raw block. Publish that same block before the
+          // browser is allowed to read it back.
+          await publishLocalRawBlock(payload, result)
           response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
           response.end(JSON.stringify(result))
         } catch (error) {
@@ -620,6 +624,45 @@ async function persistGatewayArtifact(
     throw new Error(body.error ?? `IPFS Kit ${kind} persistence returned HTTP ${response.status}.`)
   }
   return { backend: body.backend }
+}
+
+async function publishLocalRawBlock(
+  call: { tool_id?: unknown; input?: { policy?: { dry_run?: unknown }; payload?: Record<string, unknown> } },
+  result: { ok?: boolean; outcome?: string },
+): Promise<void> {
+  if (result.ok !== true || result.outcome !== 'executed' || call.tool_id !== 'artifacts_put' || call.input?.policy?.dry_run === true) return
+  const payload = call.input?.payload
+  if (!payload || payload.kind !== 'video-project' || payload.pin === false) return
+  const cid = payload.cid
+  const encoded = payload.bytes_base64
+  if (typeof cid !== 'string' || !/^bafkrei[a-z2-7]{52}$/.test(cid) || typeof encoded !== 'string' || encoded.length > 2_000_000) return
+  try {
+    const bytes = Buffer.from(encoded, 'base64')
+    if (!bytes.length) return
+    const boundary = `----svf${Date.now().toString(16)}`
+    const body = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="payload"\r\nContent-Type: application/octet-stream\r\n\r\n`),
+      bytes,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ])
+    const put = await fetch('http://127.0.0.1:5031/api/v0/block/put?cid-codec=raw&mhtype=sha2-256&pin=false', {
+      method: 'POST',
+      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      body,
+      signal: AbortSignal.timeout(4000),
+    })
+    const stored = await put.json() as { Key?: string }
+    if (!put.ok || stored.Key !== cid) throw new Error('local raw block was not stored under the project CID')
+    const pin = await fetch(`http://127.0.0.1:5031/api/v0/pin/add?arg=${encodeURIComponent(cid)}`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(4000),
+    })
+    if (!pin.ok) throw new Error('local raw block pin was not accepted')
+  } catch (error) {
+    // The disk put already succeeded. Keep that response. The reopen cat
+    // stays closed until this same block is readable.
+    console.error(`project block was not published locally: ${error instanceof Error ? error.message : 'unavailable'}`)
+  }
 }
 
 function swissknifeBundleAuditPlugin(): Plugin {

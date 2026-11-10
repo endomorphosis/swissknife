@@ -890,7 +890,7 @@
           border-radius: 4px;
         }
         
-        .track-header {
+        .window[data-app-id="music-studio"] .track-header {
           display: flex;
           flex-wrap: wrap;
           justify-content: space-between;
@@ -898,9 +898,17 @@
           gap: 6px;
           margin-bottom: 8px;
           position: relative;
+          left: auto;
           top: auto;
+          right: auto;
+          bottom: auto;
+          width: auto;
+          height: auto;
+          background: transparent;
+          border: 0;
           z-index: 0;
           max-width: 100%;
+          color: #0f172a;
         }
 
         .window[data-app-id="music-studio"] .track-name {
@@ -912,6 +920,7 @@
           white-space: normal !important;
           word-break: break-word;
           color: #0f172a;
+          background: transparent;
         }
         
         .track-controls {

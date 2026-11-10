@@ -207,6 +207,7 @@ export class FileManagerApp {
     this.previewBytes = '';
     this.reopenedSentence = '';
     this.reopenProof = '';
+    this.conflictNote = '';
     this.originalOwnerRead = null;
     this.storageConsent = false;
     try {
@@ -219,6 +220,8 @@ export class FileManagerApp {
         this.extraFiles = Array.isArray(savedWorkflow.copies) ? savedWorkflow.copies.map((entry) => this.normalizeCopy(entry)).filter(Boolean) : [];
         this.keptSelection = typeof savedWorkflow.selection === 'string' ? savedWorkflow.selection : '';
         this.previewBytes = typeof savedWorkflow.previewBytes === 'string' ? savedWorkflow.previewBytes : '';
+        this.reopenProof = typeof savedWorkflow.reopenProof === 'string' ? savedWorkflow.reopenProof : '';
+        this.conflictNote = typeof savedWorkflow.conflictNote === 'string' ? savedWorkflow.conflictNote : '';
         this.storageConsent = savedWorkflow.consent === true;
         const owner = savedWorkflow.originalOwnerRead;
         if (owner && owner.path === '/svf-isolated/notes.txt' && typeof owner.sha256 === 'string' && typeof owner.content === 'string') {
@@ -3717,6 +3720,7 @@ export class FileManagerApp {
     let text = '';
     if (saved.length) text += ` Copy ${saved.join(', ')}.`;
     if (retry.length) text += ` Retry ${retry.join(', ')}.`;
+    if (this.conflictNote) text += ` ${this.conflictNote}`;
     return text;
   }
 
@@ -3755,7 +3759,7 @@ export class FileManagerApp {
     if (preview) preview.textContent = this.previewBytes || '';
     if (proof) {
       proof.textContent = this.reopenProof || '';
-      proof.hidden = !!this.reopenProof && (this.extraFiles || []).some((entry) => entry.role === 'retry');
+      proof.hidden = false;
     }
     if (meta) meta.textContent = this.metadataLine();
     const kept = window.querySelector('#kept-selection, [data-svf-id="kept-selection"]');
@@ -3770,6 +3774,8 @@ export class FileManagerApp {
       copies: this.extraFiles,
       selection: this.keptSelection,
       previewBytes: this.previewBytes,
+      reopenProof: this.reopenProof || '',
+      conflictNote: this.conflictNote || '',
       consent: this.storageConsent === true,
       originalOwnerRead: this.originalOwnerRead,
     }));
@@ -3886,6 +3892,7 @@ export class FileManagerApp {
       const listing = this.fixtureListing(this.currentPath) || this.files || [];
       if (!name || listing.some(file => file.name === name)) {
         this.fileError = `filename conflict: ${name || 'empty'}. Selection kept: ${selected.name}. Owner not called.`;
+        this.conflictNote = this.fileError;
         this.renderWorkflow(window);
         return;
       }

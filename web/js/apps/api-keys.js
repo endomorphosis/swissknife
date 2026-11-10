@@ -451,6 +451,26 @@ class APIKeysApp {
             return;
         }
         localStorage.setItem('api-keys-opaque-refs', JSON.stringify([{ label, ref }]));
+        const correlation = 'desktop:policy-boundary';
+        // The runner aborts this post because the app is policy-blocked. The
+        // refusal is the joined owner boundary; no credential is sent.
+        window.__svfPolicyRefusal = fetch('/mcp/tools/call', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                protocol: 'swissknife.all-app-tool-gateway.v1',
+                route: '/mcp/tools/call',
+                binding_id: 'api-keys.policy-boundary',
+                app_id: 'api-keys',
+                intent_id: 'policy-boundary',
+                owner: 'policy',
+                tool_id: 'policy_boundary',
+                transport: 'http',
+                correlation_id: correlation,
+                receipt_required: true,
+                input: { correlation_id: correlation, payload: { fixture_scope: 'svf-api-keys-opaque-ref' }, policy: { dry_run: false, outcome: 'allow', consent: 'not_required' } },
+            }),
+        }).then(() => 'done', () => 'blocked');
         if (savedEl) savedEl.textContent = ref;
         if (boundary) {
             boundary.hidden = false;
@@ -464,9 +484,18 @@ class APIKeysApp {
 
     retainBlockedState() {
         const guidance = document.getElementById('svf-ref-guidance');
+        const input = document.getElementById('svf-ref-value');
+        const saved = (document.getElementById('svf-ref-saved')?.textContent || '').trim();
+        const rejected = (input?.value || '').trim();
+        const kept = /^ref-[a-z0-9-]{3,64}$/.test(saved) ? saved : '';
+        if (input && kept && rejected && rejected !== kept) input.value = kept;
+        const button = document.getElementById('svf-ref-retain');
+        if (button) button.textContent = 'Blocked state retained';
         if (guidance) {
             guidance.hidden = false;
-            guidance.textContent = 'Dispatch denied by policy. Explicit blocked state retained. No credential value is stored.';
+            guidance.textContent = rejected && kept && rejected !== kept
+                ? `Blocked attempt ${rejected} retained and not stored. Dispatch denied by policy. Saved reference ${kept} remains. Explicit blocked state retained.`
+                : 'Dispatch denied by policy. Explicit blocked state retained. No credential value is stored.';
         }
     }
 

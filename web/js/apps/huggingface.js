@@ -161,13 +161,14 @@ class HuggingFaceApp {
               .huggingface-app .model-card-facts{display:flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;font-size:12px;line-height:1.35}
               .huggingface-app .hf-revision{display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:break-all}
               .huggingface-app{height:100%;min-height:0;max-height:100%;overflow:hidden !important;display:flex !important;flex-direction:column !important}
+              .huggingface-app button:is(:focus,:focus-visible),.huggingface-app input:is(:focus,:focus-visible),.huggingface-app select:is(:focus,:focus-visible){outline:3px solid #f6ad55 !important;outline-offset:2px !important}
               .huggingface-app .hf-header,.huggingface-app .hf-nav-tabs,.huggingface-app .hf-status-bar{flex:0 0 auto;position:static !important;z-index:auto !important}
               .huggingface-app .hf-header{padding:4px 8px !important;min-height:0 !important}
               .huggingface-app .hf-status-bar{display:none !important}
               .huggingface-app .model-task{display:none !important}
               .huggingface-app .models-tab > .models-grid{padding:6px !important}
               .huggingface-app .model-card{padding:6px 8px !important}
-              .huggingface-app .hf-content{flex:1 1 0px !important;min-height:0 !important;overflow-x:hidden !important;overflow-y:auto !important;scroll-padding-top:8px;scroll-padding-bottom:8px}
+              .huggingface-app .hf-content{flex:1 1 0px !important;min-height:0 !important;overflow-x:hidden !important;overflow-y:auto !important;scroll-padding-top:8px;scroll-padding-bottom:8px;padding-bottom:40px !important}
               .huggingface-app .models-tab{flex:0 0 auto !important;min-height:0 !important;overflow:visible !important}
               .huggingface-app .models-tab > .models-grid{flex:0 0 auto !important;min-height:min-content !important;overflow:visible !important;grid-auto-rows:max-content;padding:12px;gap:12px}
               .huggingface-app .models-tab > .tab-header{flex:0 0 auto;flex-direction:column;align-items:stretch;padding:10px 12px;gap:8px}
@@ -206,7 +207,7 @@ class HuggingFaceApp {
                 .huggingface-app .model-card-facts{display:block !important;font-size:11px;line-height:1.2;margin:0}
                 .huggingface-app .hf-download-note,.huggingface-app .hf-reloaded,.huggingface-app .hf-owner-cid,.huggingface-app #hf-selected-item,.huggingface-app #hf-reopened-item{font-size:11px !important;line-height:1.15 !important;margin:0 !important;overflow-wrap:anywhere !important;word-break:normal !important}
                 .huggingface-app .hf-proof-line{display:block;word-break:normal !important;overflow-wrap:anywhere}
-                .huggingface-app .hf-status,.huggingface-app .hf-status-bar,.huggingface-app .hf-logo-icon{display:none !important}
+                .huggingface-app .hf-status-bar,.huggingface-app .hf-logo-icon{display:none !important}
                 .huggingface-app .hf-header{display:flex !important;flex-wrap:nowrap !important;align-items:center !important;gap:6px}
                 .huggingface-app .hf-header-left{min-width:0;flex:1 1 auto}
                 .huggingface-app .hf-header-right{flex:0 0 auto}
@@ -433,7 +434,7 @@ class HuggingFaceApp {
                     </button>
                 </div>
                 <div class="model-info">
-                    ${this.selection?.id === id ? `<p class="hf-download-note">Weight download is not supported.</p>${this.reopenProof ? `<p class="hf-reloaded">Reloaded stored selection.</p>` : ''}<p id="hf-selected-item" data-identity="${this.escapeCatalogStatus(this.identitySource || '')}" data-repository-id="${this.escapeCatalogStatus(this.selection.id)}" data-revision="${this.escapeCatalogStatus(this.selection.sha || '')}">${this.escapeCatalogStatus(this.selectedItemText())}</p>${this.reopenProof ? `<p id="hf-reopened-item">${this.reopenProof.split('; ').map((part, index, all) => `<span class="hf-proof-line">${this.escapeCatalogStatus(index < all.length - 1 ? `${part}; ` : part)}</span>`).join('')}</p>` : ''}` : ''}
+                    ${this.selection?.id === id ? `<p class="hf-download-note">Weight download is not supported.</p>${this.reopenProof ? `<p class="hf-stored-record" data-repository-id="${this.escapeCatalogStatus(this.selection.id)}" data-revision="${this.escapeCatalogStatus(this.selection.sha || '')}">Stored record ${this.escapeCatalogStatus(this.selection.id)} revision ${this.escapeCatalogStatus(this.selection.sha || '')}${this.ownerReopen ? `; owner row ${this.escapeCatalogStatus(this.ownerReopen.id)} revision ${this.escapeCatalogStatus(this.ownerReopen.sha)}` : ''}</p>` : ''}<p id="hf-selected-item" data-identity="${this.escapeCatalogStatus(this.identitySource || '')}" data-repository-id="${this.escapeCatalogStatus(this.selection.id)}" data-revision="${this.escapeCatalogStatus(this.selection.sha || '')}">${this.escapeCatalogStatus(this.selectedItemText())}</p>${this.reopenProof ? `<p id="hf-reopened-item" data-repository-id="${this.escapeCatalogStatus(this.ownerReopen?.id || this.selection.id)}" data-revision="${this.escapeCatalogStatus(this.ownerReopen?.sha || this.selection.sha || '')}">${this.reopenProof.split('; ').map((part, index, all) => `<span class="hf-proof-line">${this.escapeCatalogStatus(index < all.length - 1 ? `${part}; ` : part)}</span>`).join('')}</p>` : ''}` : ''}
                     <div class="model-card-facts">
                         <span>Device ${this.escapeCatalogStatus(model.device || 'cpu')}; catalog document ${this.catalogDocumentBytes == null ? 'not reported' : `${this.catalogDocumentBytes} bytes`}; compatibility ${this.escapeCatalogStatus(model.library_name || model.pipeline_tag || model.task || 'not listed')}</span>
                     </div>
@@ -1390,6 +1391,7 @@ class HuggingFaceApp {
                 const matched = rows.find(row => row && row.id === this.selection.id);
                 const revision = matched?.sha || matched?.snapshot || '';
                 if (matched && revision === this.selection.sha) {
+                    this.ownerReopen = { id: matched.id, sha: revision };
                     if (this.identitySource === 'stored') {
                         this.identitySource = 'reopened';
                         this.reopenProof = `Stored ${this.selection.id} revision ${this.selection.sha}; owner snapshot ${revision}; artifact ${this.catalogCid}`;
@@ -1627,6 +1629,7 @@ class HuggingFaceApp {
         const container = document.querySelector('.huggingface-app');
         if (container) container.outerHTML = this.render();
         this.scheduleFit();
+        if (this.reopenProof) document.getElementById('models-search')?.focus({ preventScroll: true });
     }
 
 }

@@ -532,11 +532,15 @@ export class ImageViewerApp {
           background: #334155;
           border-color: #94a3b8;
         }
+        button:focus,
         button:focus-visible,
+        input:focus,
         input:focus-visible,
+        summary:focus,
         summary:focus-visible {
           outline: 2px solid #5eead4;
-          outline-offset: 2px;
+          outline-offset: 0;
+          box-shadow: 0 0 0 2px #0f172a, 0 0 0 4px #5eead4;
         }
         button:disabled {
           opacity: 0.45;
@@ -927,18 +931,23 @@ export class ImageViewerApp {
           }
           .image-display {
             order: -1;
-            flex: 0 0 auto;
-            min-height: 72px;
-            max-height: 96px;
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: 168px;
+            overflow: hidden;
+          }
+          .main-image {
+            min-height: 0;
+            max-height: 72px;
           }
           .image-sidebar {
             order: 1;
             width: 100%;
             max-width: 100%;
             min-width: 0;
-            flex: 1 1 auto;
-            min-height: 0;
-            max-height: none;
+            flex: 0 0 148px;
+            min-height: 148px;
+            max-height: 148px;
             overflow: auto;
             border-right: 0;
             border-bottom: 1px solid #374151;
@@ -947,9 +956,10 @@ export class ImageViewerApp {
           }
           .sidebar-section:has(.image-info),
           .sidebar-section:has(.editing-tools) { display: none; }
-          .image-list { padding: 4px 6px; }
-          .image-list-item { padding: 4px 6px; margin-bottom: 4px; }
-          .section-header { padding: 4px 8px; }
+          .image-list { padding: 2px 6px 4px; }
+          .image-list-item { padding: 2px 6px; margin-bottom: 2px; }
+          .image-thumbnail { width: 22px; height: 22px; }
+          .section-header { padding: 2px 8px; }
           .workflow-actions { grid-template-columns: 1fr; }
           .toolbar-section {
             flex-wrap: wrap;
@@ -1037,6 +1047,55 @@ export class ImageViewerApp {
     const next = replacement.firstElementChild;
     container.replaceWith(next);
     this.setupEventHandlers();
+    this.applyTransformedFrame();
+    requestAnimationFrame(() => this.applyTransformedFrame());
+  }
+
+  // Zoom, rotation, and pan paint outside the image border box. The stage
+  // padding keeps that painting inside the display so the top of a turned
+  // plate is not clipped back into the unrotated layout box.
+  transformedFramePadding(width, height) {
+    const scale = Number(this.zoomLevel) > 0 ? Number(this.zoomLevel) : 1;
+    const turns = ((Number(this.rotation) % 360) + 360) % 360;
+    const rad = turns * Math.PI / 180;
+    const cos = Math.abs(Math.cos(rad));
+    const sin = Math.abs(Math.sin(rad));
+    const visualW = (width * cos + height * sin) * scale;
+    const visualH = (width * sin + height * cos) * scale;
+    const padX = Math.max(0, (visualW - width) / 2);
+    const padY = Math.max(0, (visualH - height) / 2);
+    const panX = Number(this.panX) || 0;
+    const panY = Number(this.panY) || 0;
+    const margin = width <= 160 ? 4 : 12;
+    return {
+      top: Math.ceil(padY + Math.max(0, -panY) + margin),
+      right: Math.ceil(padX + Math.max(0, panX) + margin),
+      bottom: Math.ceil(padY + Math.max(0, panY) + margin),
+      left: Math.ceil(padX + Math.max(0, -panX) + margin),
+    };
+  }
+
+  applyTransformedFrame() {
+    const container = this.container();
+    if (!container) return;
+    const image = container.querySelector('#main-image');
+    const stage = container.querySelector('.image-stage');
+    if (!image || !stage) return;
+    const width = image.offsetWidth || image.naturalWidth || 0;
+    const height = image.offsetHeight || image.naturalHeight || 0;
+    if (!(width > 0 && height > 0)) return;
+    const pad = this.transformedFramePadding(width, height);
+    stage.style.padding = `${pad.top}px ${pad.right}px ${pad.bottom}px ${pad.left}px`;
+    stage.style.overflow = 'visible';
+    stage.style.minHeight = `${Math.ceil(height + pad.top + pad.bottom)}px`;
+    const display = container.querySelector('.image-display');
+    if (display) {
+      const needed = Math.ceil(height + pad.top + pad.bottom + 4);
+      const narrow = container.getBoundingClientRect().width <= 700;
+      display.style.minHeight = narrow ? '0' : `${needed}px`;
+      display.style.maxHeight = narrow ? `${Math.min(needed, 168)}px` : 'none';
+    }
+    container.querySelector('.image-list-item.active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 
   updateImageDisplay() {
@@ -1049,6 +1108,7 @@ export class ImageViewerApp {
       image.setAttribute('data-alt-text-state', this.vdaG038.altTextState);
       image.alt = this.currentImage?.altText || this.vdaG038.altText;
     }
+    this.applyTransformedFrame();
     const zoomLevel = container.querySelector('#zoom-level');
     if (zoomLevel) zoomLevel.textContent = `${Math.round(this.zoomLevel * 100)}%`;
     const rotationReadout = container.querySelector('#rotation-readout');

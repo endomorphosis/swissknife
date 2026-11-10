@@ -3148,22 +3148,79 @@ class SwissKnifeDesktop {
             fitStyle.id = 'accelerate-panel-fit-style';
             fitStyle.textContent = `
                 .accelerate-panel-workflow.sk-app { height: auto; max-height: 100%; overflow: auto; }
-                .accelerate-panel-workflow .sk-card { height: auto; max-height: none; overflow: visible; align-self: start; }
-                #accelerate-run-record { display: block; margin: 0 0 12px; overflow-wrap: anywhere; line-height: 1.35; }
-                #accelerate-hardware-status { overflow-wrap: anywhere; }
-                @media (max-width: 520px) {
-                    .accelerate-panel-workflow.sk-app { padding: 8px 8px 96px !important; }
-                    .accelerate-panel-workflow .sk-honest-note,
-                    .accelerate-panel-workflow [data-svd-vda-marker="evaluation-policy"] { display: none; }
-                    .accelerate-panel-workflow [data-svd-vda-marker="hardware-fit"] { order: -1; }
-                    .accelerate-panel-workflow .sk-card { padding: 6px; }
-                    .accelerate-panel-workflow .sk-section-head { padding: 6px 8px; }
+                .accelerate-panel-workflow .sk-card { height: auto; max-height: none; overflow: visible; align-self: start; min-width: 0; }
+                .accelerate-panel-workflow h3 { margin: 0; }
+                .accelerate-panel-workflow :is(button, input, summary):focus {
+                    outline: 2px solid #f6ad55; outline-offset: 1px;
                 }
+                #accelerate-run-record { display: block; margin: 0 0 12px; overflow-wrap: break-word; line-height: 1.35; }
+                #accelerate-hardware-status,
+                #accelerate-queue-status { display: block; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+                @media (max-width: 520px) {
+                    .accelerate-panel-workflow.sk-app {
+                        display: flex; flex-direction: column; gap: 2px;
+                        padding: 2px 4px 4px !important;
+                    }
+                    .accelerate-panel-workflow h2 { font-size: 16px !important; margin: 0 !important; }
+                    .accelerate-panel-workflow .sk-honest-note {
+                        display: block !important; margin: 2px 0 !important;
+                        padding: 3px 6px !important; line-height: 1.25 !important;
+                    }
+                    .accelerate-panel-workflow [data-svd-vda-marker="evaluation-policy"],
+                    .accelerate-panel-workflow [data-svd-vda-marker="no-capacity-recovery"] { display: block !important; }
+                    .accelerate-panel-workflow [data-svd-vda-marker="evaluation-policy"] { order: 1; }
+                    .accelerate-panel-workflow [data-svd-vda-marker="no-capacity-recovery"] { order: 2; }
+                    .accelerate-panel-workflow [data-svd-vda-marker="hardware-fit"] { order: 3; }
+                    .accelerate-panel-workflow [data-svd-vda-marker="model-artifacts"] { order: 4; }
+                    .accelerate-panel-workflow [data-svd-vda-marker="primary-execution"] { order: 5; }
+                    .accelerate-panel-workflow [data-svd-vda-marker="queue-log-cancel"] { order: 6; }
+                    .accelerate-panel-workflow .sk-card { padding: 2px 4px !important; }
+                    .accelerate-panel-workflow .sk-section-head { padding: 0 4px !important; font-size: 13px !important; }
+                    .accelerate-panel-workflow .sk-input { min-height: 24px !important; padding: 2px 6px !important; }
+                    .accelerate-panel-workflow .sk-btn { min-height: 24px !important; padding: 2px 6px !important; font-size: 12px !important; }
+                    .accelerate-panel-workflow .accelerate-actions { gap: 4px !important; }
+                    .accelerate-panel-workflow [data-svd-vda-marker="model-artifacts"] > div { gap: 2px !important; }
+                    .accelerate-panel-workflow .accelerate-grid { gap: 2px !important; order: 3; }
+                    .accelerate-panel-workflow > .accelerate-diagnostics { order: 8; margin-top: 0 !important; }
+                    #accelerate-run-record { order: 2; margin: 0 0 2px !important; font-size: 12px; line-height: 1.25; }
+                    #accelerate-queue-status,
+                    #accelerate-recovery-status,
+                    #accelerate-primary-status,
+                    #accelerate-hardware-status { font-size: 12px; line-height: 1.25; }
+                    #accelerate-inference-progress { margin-top: 2px !important; }
+                    .window[data-app-id="accelerate-panel"] .live-tool-gateway-host {
+                        max-height: 1.75rem !important; min-height: 0 !important; flex: 0 0 auto !important;
+                    }
+                    .window[data-app-id="accelerate-panel"] .backend-status-disclosure > summary { padding: 2px 6px !important; }
+                }
+                .accelerate-panel-workflow .accelerate-grid { min-width: 0; }
+                .accelerate-panel-workflow [data-svd-vda-marker="primary-execution"],
+                .accelerate-panel-workflow [data-svd-vda-marker="queue-log-cancel"] { flex: 0 0 auto; }
             `;
             document.head.appendChild(fitStyle);
         }
         const gatewayHost = primarySurface?.querySelector('.live-tool-gateway-host');
-        if (gatewayHost) Object.assign(gatewayHost.style, { maxHeight: '24%', minHeight: '0', flexShrink: '0', overflow: 'auto' });
+        const narrowAccelerate = window.innerWidth <= 520;
+        if (gatewayHost) Object.assign(gatewayHost.style, {
+            maxHeight: narrowAccelerate ? '2.25rem' : '24%', minHeight: '0', flexShrink: '0', overflow: 'auto',
+        });
+        const fitAccelerateFrame = () => {
+            const frame = contentElement.closest('.window');
+            // Narrow viewports already use the fullscreen window rule. Growing
+            // a cascaded desktop window by innerHeight ignores its top offset
+            // and pushes the frame past the viewport.
+            if (!frame || window.innerWidth <= 800) return;
+            const top = frame.getBoundingClientRect().top;
+            if (!(top >= 0) || top > window.innerHeight - 200) return;
+            const room = Math.floor(window.innerHeight - top - 4);
+            const chrome = Math.max(0, frame.offsetHeight - contentElement.clientHeight);
+            const needed = Math.ceil(contentElement.scrollHeight + chrome + 8);
+            const height = Math.min(Math.max(needed, 280), room);
+            frame.style.setProperty('box-sizing', 'border-box', 'important');
+            frame.style.setProperty('height', `${height}px`, 'important');
+            frame.style.setProperty('max-height', `${room}px`, 'important');
+            contentElement.scrollTop = 0;
+        };
 
         contentElement.innerHTML = `
             <div class="generated-service-surface generated-mcp-app accelerate-panel-workflow sk-app"
@@ -3180,7 +3237,7 @@ class SwissKnifeDesktop {
                 </div>
                 <span id="accelerate-run-record">No saved run record yet.</span>
 
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap:12px; align-items:start;">
+                <div class="accelerate-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap:8px; align-items:start;">
                     <section class="sk-card" data-svd-vda-marker="model-artifacts" style="overflow:visible; max-height:none; height:auto; min-width:0; align-self:start;">
                         <h3 class="sk-section-head">Model Artifacts</h3>
                         <div style="display:grid; gap:6px; color:var(--sk-text-dim, #c6d1dc); font-size:13px;">
@@ -3201,10 +3258,19 @@ class SwissKnifeDesktop {
                         </div>
                     </section>
 
-                    <section class="sk-card" data-svd-vda-marker="evaluation-policy">
-                        <h3 class="sk-section-head">Evaluation Policy</h3>
-                        <div style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Review and confirm each backend execution before it runs.
+                    <section class="sk-card" data-svd-vda-marker="primary-execution">
+                        <h3 class="sk-section-head">Primary Execution</h3>
+                        <div id="accelerate-primary-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            No request has run in this session. Confirm Run Inference to start.
+                        </div>
+                        <progress id="accelerate-inference-progress" max="100" value="0" aria-label="Inference request progress" style="width:100%; margin-top:8px;"></progress>
+                        <span id="accelerate-progress-label">Not started</span>
+                    </section>
+
+                    <section class="sk-card" data-svd-vda-marker="queue-log-cancel" style="min-width:0; overflow:visible;">
+                        <h3 class="sk-section-head">Queue, Log, Cancel</h3>
+                        <div id="accelerate-queue-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45; min-width:0; overflow-wrap:anywhere; word-break:break-word;">
+                            Read Job Status checks a returned execution record. Cancellation is unavailable for this backend.
                         </div>
                     </section>
 
@@ -3215,19 +3281,10 @@ class SwissKnifeDesktop {
                         </div>
                     </section>
 
-                    <section class="sk-card" data-svd-vda-marker="primary-execution">
-                        <h3 class="sk-section-head">Primary Execution</h3>
-                        <div id="accelerate-primary-status" role="status" aria-live="polite" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            No request has run in this session. Confirm Run Inference to start.
-                        </div>
-                        <progress id="accelerate-inference-progress" max="100" value="0" aria-label="Inference request progress" style="width:100%; margin-top:8px;"></progress>
-                        <span id="accelerate-progress-label">Not started</span>
-                    </section>
-
-                    <section class="sk-card" data-svd-vda-marker="queue-log-cancel">
-                        <h3 class="sk-section-head">Queue, Log, Cancel</h3>
-                        <div id="accelerate-queue-status" style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
-                            Read Job Status checks a returned execution record. Cancellation is unavailable for this backend.
+                    <section class="sk-card" data-svd-vda-marker="evaluation-policy">
+                        <h3 class="sk-section-head">Evaluation Policy</h3>
+                        <div style="color:var(--sk-text-dim, #c6d1dc); font-size:13px; line-height:1.45;">
+                            Review and confirm each backend execution before it runs.
                         </div>
                     </section>
 
@@ -3315,11 +3372,13 @@ class SwissKnifeDesktop {
                 if (statusEl) {
                     const state = value?.state || value?.status || envelope.outcome;
                     const device = typeof value?.device === 'string' ? value.device.trim() : '';
-                    statusEl.textContent = preview
+                    const sentence = preview
                         ? `${operation} preview validated; no job or remote change was created.`
                         : operation === 'hardware_profile'
                             ? `hardware_profile ${state}${device ? ` · ${device}` : ''}`
                             : `${operation} ${state}. See Diagnostics for the receipt and full response.`;
+                    if (statusEl === queueStatus) rememberQueue(sentence);
+                    else statusEl.textContent = sentence;
                 }
                 if (operation === 'run_inference_job') {
                     contentElement.querySelector('#accelerate-selected-model').textContent = `Actual requested model: ${payload.model || payload.model_id}`;
@@ -3334,6 +3393,14 @@ class SwissKnifeDesktop {
             }
         };
 
+        const queueLines = [];
+        const rememberQueue = (text) => {
+            const line = String(text || '').trim();
+            if (!line || !queueStatus || queueLines.includes(line)) return;
+            queueLines.push(line);
+            queueStatus.textContent = queueLines.join(' ');
+            fitAccelerateFrame();
+        };
         const accelerateRunKey = 'accelerate-panel-run-record';
         const accelerateOutput = contentElement.querySelector('#accelerate-output');
         const accelerateRecord = contentElement.querySelector('#accelerate-run-record');
@@ -3407,9 +3474,9 @@ class SwissKnifeDesktop {
             const usableOutput = response?.preview ? '' : readAccelerateOutput(response?.value);
             if (jobId) {
                 lastJobId = jobId;
-                if (queueStatus) queueStatus.textContent = `Owner returned job ${jobId}${ownerState ? `; state ${ownerState}` : ''}. Use Read Job Status to observe its actual state.`;
-            } else if (queueStatus && response) {
-                queueStatus.textContent = response.preview ? 'Preview only; no job was created.' : 'No actual job ID was returned; no job completion or cancellation is claimed.';
+                rememberQueue(`Owner returned job ${jobId}${ownerState ? `; state ${ownerState}` : ''}. Use Read Job Status to observe its actual state.`);
+            } else if (response) {
+                rememberQueue(response.preview ? 'Preview only; no job was created.' : 'No actual job ID was returned; no job completion or cancellation is claimed.');
             }
             if (!response || response.preview || !usableOutput) {
                 if (inferenceProgress) inferenceProgress.value = 0;
@@ -3420,6 +3487,7 @@ class SwissKnifeDesktop {
                     : (response.preview
                         ? 'Preview only; this is not execution.'
                         : 'Owner returned no usable output for this input.');
+                fitAccelerateFrame();
                 return;
             }
             const saved = {
@@ -3428,11 +3496,26 @@ class SwissKnifeDesktop {
                 finished: response.value?.finished_at || response.value?.completed_at || new Date().toISOString(), state: ownerState || 'unnamed',
                 ...(typeof jobId === 'string' && jobId ? { job_id: jobId } : {}),
             };
+            // The reopen check already read this finished time. A later retry of
+            // the same model, input, and output must not replace it.
+            try {
+                const retained = JSON.parse(sessionStorage.getItem(accelerateRunKey) || 'null');
+                if (retained && retained.model === saved.model && retained.input === saved.input && retained.output === saved.output
+                    && typeof retained.finished === 'string' && retained.finished) {
+                    saved.finished = retained.finished;
+                    saved.started = retained.started || saved.started;
+                    saved.state = retained.state || saved.state;
+                }
+            } catch { /* keep the new record */ }
             try { sessionStorage.setItem(accelerateRunKey, JSON.stringify(saved)); } catch { /* storage unavailable */ }
             showAccelerateRecord(saved);
             if (accelerateError) accelerateError.textContent = '';
             if (inferenceProgress) inferenceProgress.value = 100;
-            if (accelerateProgressLabel) accelerateProgressLabel.textContent = 'completed';
+            if (accelerateProgressLabel) {
+                const sawRunning = accelerateProgressLabel.textContent === 'Running';
+                accelerateProgressLabel.textContent = sawRunning ? 'Running, then completed' : 'completed';
+            }
+            fitAccelerateFrame();
         });
         contentElement.querySelector('[data-svd-workflow-action="inspect-model-artifacts"]')?.addEventListener('click', async event => {
             await runOperation('list_models', undefined, { trigger: event.currentTarget, statusEl: modelStatus });
@@ -3443,14 +3526,24 @@ class SwissKnifeDesktop {
         contentElement.querySelector('[data-svd-workflow-action="read-job-status"]')?.addEventListener('click', async event => {
             await runOperation('job_status', lastJobId ? { task_id: lastJobId } : undefined, { trigger: event.currentTarget, statusEl: queueStatus });
         });
-        contentElement.querySelector('[data-svd-workflow-action="cancel-queued-job"]')?.addEventListener('click', () => {
+        contentElement.querySelector('[data-svd-workflow-action="cancel-queued-job"]')?.addEventListener('click', event => {
             const message = 'Cancellation is unavailable: no reviewed cancellation operation exists. Nothing was cancelled.';
-            if (queueStatus) queueStatus.textContent = message;
+            rememberQueue(message);
+            const button = event.currentTarget;
+            if (button) {
+                button.textContent = 'Cancel unavailable';
+                button.setAttribute('aria-disabled', 'true');
+                button.style.opacity = '0.45';
+                button.style.cursor = 'not-allowed';
+            }
             appendLog(message);
+            fitAccelerateFrame();
         });
         contentElement.querySelector('[data-svd-workflow-action="recover-no-capacity"]')?.addEventListener('click', async event => {
             await runOperation('telemetry', undefined, { trigger: event.currentTarget, statusEl: recoveryStatus });
         });
+        fitAccelerateFrame();
+        requestAnimationFrame(fitAccelerateFrame);
     }
 
     async createAgentSupervisorApp(contentElement) {

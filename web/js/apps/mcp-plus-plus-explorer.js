@@ -545,8 +545,8 @@ export class MCPPlusPlusExplorerApp {
       <section class="mcppp-section" aria-label="Owner descriptor" data-owner-workflow>
         <div class="mcppp-section-heading"><h3>Owner descriptor</h3><span>Read-only registry</span></div>
         <label for="mcppp-owner-identity">Peer identity</label>
-        <textarea id="mcppp-owner-identity" autocomplete="off" rows="2" placeholder="did:key:...">${escapeHtml(flow.identity || '')}</textarea>
-        <p class="mcppp-peer-line" data-owner-identity-text>${escapeHtml(flow.identity || 'Peer identity is shown here in full after a verified read.')}</p>
+        <textarea id="mcppp-owner-identity" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" rows="2" placeholder="did:key:...">${escapeHtml(flow.identity || '')}</textarea>
+        ${flow.identity ? '' : '<p class="mcppp-peer-line" data-owner-identity-text>Peer identity is shown here in full after a verified read.</p>'}
         <label for="mcppp-owner-transport">Transport</label>
         <select id="mcppp-owner-transport">
           <option value="http" ${transport === 'http' ? 'selected' : ''}>http</option>
@@ -649,9 +649,43 @@ export class MCPPlusPlusExplorerApp {
       peer: one(pick(['node_id', 'peer_id', 'peerId', 'ID'])),
       content: [...new Set([
         ...pick(['event_dag_cid', 'receipt_id', 'content_cid', 'artifact_cid']).filter(value => value.length >= 8 && value.length <= 200),
-        ...pick(['cid', 'event_cid']).filter(value => /^ba[a-z2-7]{20,}$/.test(value)),
+        ...pick(['cid', 'event_cid']).filter(value => /^baf[a-z2-7]{20,}$/.test(value)),
       ])].slice(0, 4).join(' '),
+      eventDag: this.eventDagFrom(nodes),
+      receiptId: one(pick(['receipt_id']).filter(value => /^baf[a-z2-7]{20,}$/.test(value))),
     };
+  }
+
+  eventDagFrom(nodes) {
+    const found = [];
+    const take = value => {
+      if (typeof value === 'string' && /^baf[a-z2-7]{20,}$/.test(value)) found.push(value);
+    };
+    for (const node of nodes) {
+      take(node.event_dag_cid);
+      const refs = node.event_dag_refs;
+      if (!Array.isArray(refs)) continue;
+      for (const item of refs) {
+        take(item);
+        if (item && typeof item === 'object') {
+          take(item.cid);
+          take(item.event_dag_cid);
+        }
+      }
+    }
+    return found[0] || '';
+  }
+
+  ownerProofSentence(facts) {
+    return [
+      `retained proof tool ${facts.tool}`,
+      `owner ${facts.owner}`,
+      `correlation ${facts.correlation}`,
+      facts.eventDag ? `event ${facts.eventDag}` : '',
+      `transport ${facts.transport}`,
+      facts.receiptId ? `receipt ${facts.receiptId}` : '',
+      facts.peer ? `content ${facts.peer}` : '',
+    ].filter(Boolean).join(' ');
   }
 
   async inspectOwnerDescriptor() {
@@ -694,7 +728,10 @@ export class MCPPlusPlusExplorerApp {
           return;
         }
       }
-      const proof = `retained proof tool ${facts.tool} owner ${facts.owner} correlation ${facts.correlation} transport ${facts.transport}${facts.content ? ` content ${facts.content}` : ''}`;
+      const gatewayEvent = this.container?.querySelector('[data-gateway-status="mcp-plus-plus.ipfs_kit_py.inspect_tool_registry"]')?.textContent || '';
+      const gatewayDag = gatewayEvent.match(/event=(baf[a-z2-7]{20,})/);
+      if (!facts.eventDag && gatewayDag) facts.eventDag = gatewayDag[1];
+      const proof = this.ownerProofSentence(facts);
       this.state.ownerWorkflow.error = '';
       this.state.ownerWorkflow.ready = true;
       const recoveryNote = this.state.ownerWorkflow.pendingRecovery === 'identity-refreshed' ? '; identity refreshed' : '';
@@ -706,7 +743,7 @@ export class MCPPlusPlusExplorerApp {
       if (!this.state.ownerWorkflow.identity && facts.peer) {
         this.state.ownerWorkflow.identity = facts.peer;
       }
-      if (!this.state.ownerWorkflow.receiptDetail) {
+      if (!this.state.ownerWorkflow.receiptDetail || !/ event baf[a-z2-7]{20,}/.test(this.state.ownerWorkflow.receiptDetail)) {
         this.state.ownerWorkflow.receiptDetail = proof;
       }
       this.state.status = 'ready';
@@ -1088,7 +1125,7 @@ export class MCPPlusPlusExplorerApp {
       .mcppp-schema, .mcppp-output { white-space: pre-wrap; overflow: auto; overflow-wrap: anywhere; background: #0c151d; border: 1px solid #263e50; color: #d6e3eb; padding: 9px; margin: 8px 0; max-height: 260px; font: 11px/1.45 ui-monospace, monospace; } .mcppp-result-heading { justify-content: space-between; margin-top: 12px; color: #a9c5d5; } .mcppp-diagnostic-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; } .mcppp-diagnostic-grid div { padding: 9px; border: 1px solid #304b5d; background: #152632; } .mcppp-diagnostic-grid span { display: block; color: #a7bac9; font-size: 11px; } .mcppp-diagnostic-grid strong { display: block; margin-top: 3px; font-size: 16px; }
       .mcppp-event-list { border: 1px solid #284356; margin-top: 10px; } .mcppp-event-list article { display: grid; grid-template-columns: 120px 1fr auto; gap: 8px; padding: 8px; border-bottom: 1px solid #263e50; } .mcppp-event-list code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a6d3e4; } .mcppp-event-list span { color: #acbbc9; font-size: 11px; } .mcppp-empty { padding: 14px; color: #a8b6c3; } .mcppp-section textarea#mcppp-owner-identity { min-height: 2.6em; height: auto; max-height: 5.4em; width: 100%; box-sizing: border-box; white-space: pre-wrap; overflow-x: hidden; overflow-y: auto; overflow-wrap: anywhere; word-break: break-all; resize: none; font: 12px/1.35 ui-monospace, monospace; padding: 6px 8px; } .mcppp-peer-line, [data-owner-observation], [data-owner-receipt], [data-owner-error] { overflow-wrap: anywhere; word-break: break-word; margin: 6px 0 0; } .mcppp-peer-line { white-space: normal; overflow-x: visible; overflow-wrap: anywhere; word-break: break-all; }
       .mcppp-vda-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .mcppp-vda-grid article { min-width: 0; border: 1px solid #304b5d; background: #152632; border-radius: 5px; padding: 10px; } .mcppp-vda-grid h4 { margin: 0 0 6px; font-size: 13px; } .mcppp-vda-grid p { margin: 0 0 8px; color: #bdc9d3; overflow-wrap: anywhere; } .mcppp-vda-grid code { color: #a6d3e4; overflow-wrap: anywhere; } .mcppp-vda-grid pre { max-height: 170px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: #0c151d; border: 1px solid #263e50; padding: 8px; font: 11px/1.4 ui-monospace, monospace; } .mcppp-vda-log { margin: 10px 0 0; padding-left: 22px; color: #b9c7d5; overflow-wrap: anywhere; }
-      @media (max-width: 760px) { .mcp-plus-plus-explorer { padding: 8px; } .mcppp-header p { display: none; } .mcppp-message { margin: 4px 0; } .mcppp-section { padding: 8px; margin-top: 8px; } .mcppp-header, .mcppp-coverage-row, .mcppp-section-heading { align-items: flex-start; flex-direction: column; } .mcppp-actions, .mcppp-vda-actions { align-items: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .mcppp-actions button, .mcppp-section button { min-width: 0; overflow-wrap: anywhere; } [data-owner-workflow] .mcppp-actions { grid-template-columns: 1fr; } [data-owner-workflow] .mcppp-actions button { white-space: nowrap; overflow-wrap: normal; word-break: normal; } .mcppp-summary-grid, .mcppp-split, .mcppp-diagnostic-grid, .mcppp-vda-grid { grid-template-columns: 1fr; } .mcppp-service-card { min-height: 0; } .mcppp-event-list article { grid-template-columns: 1fr; } }
+      @media (max-width: 760px) { .mcp-plus-plus-explorer { padding: 8px 8px 0; } .mcppp-header p { display: none; } .mcppp-message { margin: 4px 0; } .mcppp-section { padding: 8px; margin-top: 8px; } .mcppp-header, .mcppp-coverage-row, .mcppp-section-heading { align-items: flex-start; flex-direction: column; } .mcppp-actions, .mcppp-vda-actions { align-items: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .mcppp-actions button, .mcppp-section button { min-width: 0; overflow-wrap: anywhere; } [data-owner-workflow] .mcppp-actions { grid-template-columns: 1fr; } [data-owner-workflow] .mcppp-actions button { white-space: nowrap; overflow-wrap: normal; word-break: normal; } .mcppp-summary-grid, .mcppp-split, .mcppp-diagnostic-grid, .mcppp-vda-grid { grid-template-columns: 1fr; } .mcppp-service-card { min-height: 0; } .mcppp-event-list article { grid-template-columns: 1fr; } }
     </style>`;
   }
 }

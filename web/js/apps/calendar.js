@@ -17,6 +17,8 @@ export class CalendarApp {
     this.editingEventId = null;
     
     this.events = this.buildDefaultEvents();
+    this.deletedEvents = [];
+    this.lastSavedEventId = null;
     this.vdaG035 = this.buildVdaG035State();
     
     // Event categories with colors
@@ -47,6 +49,7 @@ export class CalendarApp {
   initializeApp() {
     // Load events from localStorage if available
     this.loadEventsFromStorage();
+    this.loadDeletedEventsFromStorage();
     this.loadViewFromStorage();
     this.loadRecord();
     this.vdaG035 = this.buildVdaG035State();
@@ -1006,6 +1009,23 @@ export class CalendarApp {
           border-left: 4px solid;
         }
 
+        .calendar-deleted-event {
+          border-left: 4px solid #7f1d1d;
+          background: #fff7f7;
+        }
+
+        .calendar-deleted-label {
+          display: inline-block;
+          background: #7f1d1d;
+          color: #fff;
+          font-weight: 700;
+          font-size: 0.72rem;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          padding: 1px 6px;
+          border-radius: 4px;
+        }
+
         .agenda-open {
           margin-top: 0.45rem;
           padding: 0.4rem 0.65rem;
@@ -1027,21 +1047,99 @@ export class CalendarApp {
         .calendar-shell .form-group:has(#eventReminder),
         .calendar-shell .form-group:has(#eventRecurring),
         .calendar-shell .form-group:has(#eventAttendees) { display: none !important; }
+        .calendar-shell {
+          display: flex;
+          flex-direction: column;
+        }
+        .calendar-shell .calendar-container {
+          display: flex;
+          flex-direction: column;
+          flex: 1 1 auto;
+          height: 100%;
+          max-height: 100%;
+          min-height: 0;
+          padding-bottom: 0;
+          overflow: hidden;
+        }
+        .calendar-shell .calendar-header {
+          flex: 0 0 auto;
+          padding: 6px 8px;
+        }
+        .calendar-shell .calendar-header h2 {
+          margin: 0;
+          font-size: 1.15rem;
+          line-height: 1.15;
+        }
+        .calendar-shell .calendar-content {
+          display: flex;
+          flex-direction: column;
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow: hidden;
+        }
+        .calendar-shell .calendar-view.agenda-view.active {
+          display: flex;
+          flex-direction: column;
+          flex: 1 1 auto;
+          min-height: 0;
+          padding: 4px 8px;
+          overflow: hidden;
+        }
+        .calendar-shell .agenda-list {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow: auto;
+          padding: 0;
+        }
         .calendar-shell #calendarLiveStatus,
         .calendar-shell #calendar-record {
           display: block;
-          margin: 6px 12px;
-          padding: 6px 8px;
+          flex: 0 0 auto;
+          margin: 4px 8px;
+          padding: 4px 8px;
           background: #f8fafc !important;
           color: #1c2430 !important;
           border-radius: 6px;
-          line-height: 1.35;
+          line-height: 1.25;
         }
         .calendar-shell #calendar-record:empty { display: none !important; }
         .calendar-shell .agenda-event {
           background: #f8fafc !important;
           color: #1c2430 !important;
-          padding: 8px !important;
+          padding: 4px 8px !important;
+          margin-bottom: 6px;
+        }
+        .calendar-shell .agenda-event.calendar-deleted-event {
+          background: #fff7f7 !important;
+          border-left: 4px solid #7f1d1d !important;
+        }
+        .calendar-shell .calendar-deleted-label {
+          display: inline-block;
+          background: #7f1d1d;
+          color: #fff !important;
+          font-weight: 700;
+          padding: 1px 6px;
+          border-radius: 4px;
+        }
+        .calendar-shell .calendar-deleted-time,
+        .calendar-shell .calendar-deleted-title {
+          text-decoration: line-through;
+          text-decoration-thickness: 2px;
+        }
+        .calendar-shell .calendar-deleted-note {
+          display: block !important;
+          color: #7f1d1d !important;
+          font-weight: 700;
+          font-size: 0.75rem;
+          line-height: 1.3;
+        }
+        .calendar-shell .calendar-saved-focus:focus {
+          outline: 3px solid #ca8a04 !important;
+          outline-offset: 2px;
+        }
+        .calendar-shell .agenda-open {
+          margin-top: 4px;
+          padding: 2px 8px;
         }
         .calendar-shell .agenda-event .event-title,
         .calendar-shell .agenda-event .event-time,
@@ -1112,7 +1210,10 @@ export class CalendarApp {
     const overlaps = conflicts.length
       ? ['Overlaps:', ...conflicts.map(conflict => `${conflict.events[0]} ${conflict.when[0]} and ${conflict.events[1]} ${conflict.when[1]}`)].join('\n')
       : 'Overlaps: none';
-    return `Selected date: ${this.formatLocalDate(this.selectedDate)}\n${lines.length ? lines.join('\n') : 'No events on this date'}\n${overlaps}`;
+    const removed = (this.deletedEvents || [])
+      .filter(event => event.date.toDateString() === this.selectedDate.toDateString())
+      .map(event => `Deleted: ${event.title} | ${this.formatStamp(event.date)} | SVF Disposable Standup remains`);
+    return `Selected date: ${this.formatLocalDate(this.selectedDate)}\n${lines.length ? lines.join('\n') : 'No events on this date'}\n${overlaps}${removed.length ? '\n' + removed.join('\n') : ''}`;
   }
 
   showEventError(message) {
@@ -1650,9 +1751,10 @@ export class CalendarApp {
       .filter(event => event.date.getFullYear() === this.currentDate.getFullYear() && event.date.getMonth() === this.currentDate.getMonth())
       .sort((a, b) => a.date - b.date);
 
-    return `
-      <div class="agenda-list">
-        ${upcomingEvents.length > 0 ? upcomingEvents.map(event => `
+    const removedEvents = (this.deletedEvents || [])
+      .filter(event => event.date.getFullYear() === this.currentDate.getFullYear() && event.date.getMonth() === this.currentDate.getMonth())
+      .sort((a, b) => a.date - b.date);
+    const cards = upcomingEvents.map(event => `
           <div class="agenda-event" style="border-left-color: ${this.categories[event.category].color}">
             <div class="event-time">${this.formatStamp(event.date)} — ${event.endDate ? this.formatStamp(event.endDate) : this.formatEventTime(event)}</div>
             <div class="calendar-timezone">Timezone: ${this.escapeHtml(event.timezone || this.settings.timezone)}</div>
@@ -1660,8 +1762,21 @@ export class CalendarApp {
             <button type="button" class="agenda-open" data-open-event="${event.id}" data-event-title="${this.escapeHtml(event.title)}">Edit ${this.escapeHtml(event.title)}</button>
             <div class="event-description">${this.escapeHtml(event.description)}</div>
             ${event.location ? `<div class="event-location">📍 ${this.escapeHtml(event.location)}</div>` : ''}
-          </div>
-        `).join('') : '<div class="agenda-event">No events in this month.</div>'}
+          </div>`).join('');
+    const removedCards = removedEvents.map(event => {
+      const savedHere = event.id != null && event.id === this.lastSavedEventId;
+      return `
+          <div class="agenda-event calendar-deleted-event${savedHere ? ' calendar-saved-focus' : ''}"${savedHere ? ' tabindex="-1"' : ''}>
+            <div class="calendar-deleted-label">Deleted</div>
+            <div class="event-time calendar-deleted-time">${this.formatStamp(event.date)} — ${event.endDate ? this.formatStamp(event.endDate) : this.formatEventTime(event)}</div>
+            <div class="calendar-timezone">Timezone: ${this.escapeHtml(event.timezone || this.settings.timezone)}</div>
+            <div class="event-title calendar-deleted-title">${this.escapeHtml(event.title)}</div>
+            <div class="calendar-deleted-note">Removed. Not a live overlap. SVF Disposable Standup remains.</div>
+          </div>`;
+    }).join('');
+    return `
+      <div class="agenda-list">
+        ${cards || removedCards ? cards + removedCards : '<div class="agenda-event">No events in this month.</div>'}
       </div>
     `;
   }
@@ -1750,6 +1865,38 @@ export class CalendarApp {
     setTimeout(() => this.containCalendarFrame(), 400);
   }
 
+  focusSavedAgendaCard() {
+    const shells = [...document.querySelectorAll('.calendar-shell')].filter(node => node.isConnected);
+    const card = shells.at(-1)?.querySelector('.calendar-saved-focus');
+    card?.focus({ preventScroll: true });
+  }
+
+  focusRetainedEvent() {
+    const shells = [...document.querySelectorAll('.calendar-shell')].filter(node => node.isConnected);
+    const shell = shells.at(-1);
+    const button = shell?.querySelector('button[data-event-title="SVF Disposable Standup"]')
+      || shell?.querySelector('.agenda-event:not(.calendar-deleted-event) .agenda-open');
+    button?.focus({ preventScroll: true });
+  }
+
+  revealDeletedAgendaCard() {
+    const shells = [...document.querySelectorAll('.calendar-shell')].filter(node => node.isConnected);
+    const shell = shells.at(-1);
+    const list = shell?.querySelector('.agenda-list');
+    const card = list?.querySelector('.calendar-deleted-event');
+    if (!list || !card) return;
+    const listRect = list.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    const extra = 6;
+    if (cardRect.bottom > listRect.bottom - 1) {
+      list.scrollTop += cardRect.bottom - listRect.bottom + extra;
+    }
+    const next = card.getBoundingClientRect();
+    if (next.top < listRect.top + 1) {
+      list.scrollTop -= listRect.top - next.top + extra;
+    }
+  }
+
   containCalendarFrame() {
     const shells = [...document.querySelectorAll('.calendar-shell')].filter(node => node.isConnected);
     const shell = shells.at(-1);
@@ -1786,6 +1933,7 @@ export class CalendarApp {
     shell.style.minHeight = '0';
     shell.style.maxHeight = '100%';
     shell.style.overflow = 'hidden';
+    this.revealDeletedAgendaCard();
   }
 
   attachEventListeners() {
@@ -1850,6 +1998,13 @@ export class CalendarApp {
 
     modal.addEventListener('click', (e) => {
       if (e.target === modal) this.hideEventModal();
+    });
+    modal.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || modal.classList.contains('hidden')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      this.hideEventModal();
+      this.focusRetainedEvent();
     });
   }
 
@@ -1956,6 +2111,8 @@ export class CalendarApp {
     if (message.startsWith('End time must be after the start')) {
       this.appendRecord('Invalid end time canceled. The bad event was not saved.');
     }
+    // The rejected fields stay out of the hidden form. Cancel did not save them.
+    if (document.querySelector('#eventForm')) this.clearEventForm();
     this.containCalendarFrame();
   }
 
@@ -2047,6 +2204,7 @@ export class CalendarApp {
       else this.events.push(eventData);
     }
     this.editingEventId = null;
+    this.lastSavedEventId = eventData.id;
     this.clearEventError();
     this.selectedDate = new Date(eventData.date.getTime());
     this.currentDate = new Date(eventData.date.getTime());
@@ -2065,20 +2223,29 @@ export class CalendarApp {
   deleteSelectedEvent() {
     if (this.editingEventId == null) return;
     const doomed = this.events.find(event => event.id === this.editingEventId);
+    if (doomed) this.deletedEvents = [...(this.deletedEvents || []), doomed];
     this.events = this.events.filter(event => event.id !== this.editingEventId);
     this.editingEventId = null;
     this.clearEventError();
     this.vdaG035 = this.buildVdaG035State();
     this.vdaG035.status = 'event deleted locally';
     this.vdaG035.actionLog.push('delete-event:local');
+    this.lastSavedEventId = null;
     this.saveEventsToStorage();
+    this.saveDeletedEventsToStorage();
+    // Paint the schedule that storage retained, not the pre-delete list.
+    this.loadEventsFromStorage();
+    this.loadDeletedEventsFromStorage();
     this.saveVdaG035EvidenceToStorage();
     this.hideEventModal();
     this.updateView();
     this.appendRecord(`Deleted ${doomed?.title || 'event'}. SVF Disposable Standup remains.`);
-    document.querySelector('#addEventBtn')?.focus();
     this.containCalendarFrame();
-    requestAnimationFrame(() => this.containCalendarFrame());
+    this.focusRetainedEvent();
+    requestAnimationFrame(() => {
+      this.containCalendarFrame();
+      this.focusRetainedEvent();
+    });
     this.refreshVdaG035WorkflowPanel();
   }
 
@@ -2139,6 +2306,27 @@ export class CalendarApp {
     } catch (error) {
       console.warn('Failed to save calendar events to storage:', error);
     }
+  }
+
+  saveDeletedEventsToStorage() {
+    try {
+      // Kept apart from the live list so a reload cannot schedule a deleted overlap again.
+      localStorage.setItem('swissknife-calendar-deleted', JSON.stringify(this.deletedEvents || []));
+    } catch { /* keep the visible tombstone for this session */ }
+  }
+
+  loadDeletedEventsFromStorage() {
+    try {
+      const saved = localStorage.getItem('swissknife-calendar-deleted');
+      if (!saved) return;
+      const events = JSON.parse(saved);
+      if (!Array.isArray(events)) return;
+      this.deletedEvents = events.map(event => ({
+        ...event,
+        date: new Date(event.date),
+        endDate: event.endDate ? new Date(event.endDate) : null
+      })).filter(event => event.date instanceof Date && !Number.isNaN(event.date.getTime()));
+    } catch { /* a corrupt deletion record must not restore a live overlap */ }
   }
 
   escapeHtml(value) {

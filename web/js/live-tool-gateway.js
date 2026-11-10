@@ -154,7 +154,7 @@ export async function invokeNativeTool(container, appId, bindingId, options = {}
   return invokeGateway(container, trigger, output, { ...control, selected_tool_id: toolId }, options, 'native-control');
 }
 
-function requestConfirmation(container, control, correlationId, origin, dryRun) {
+function requestConfirmation(container, control, correlationId, origin, dryRun, pairedReadback) {
   return new Promise(resolve => {
     const overlay = document.createElement('div');
     overlay.dataset.gatewayConfirmation = control.binding_id;
@@ -169,7 +169,9 @@ function requestConfirmation(container, control, correlationId, origin, dryRun) 
     const message = document.createElement('p');
     message.textContent = dryRun
       ? `${control.selected_tool_id} will run as a dry run. Review this action before continuing.`
-      : `${control.selected_tool_id} will execute against ${control.owner}. This is a real backend action. Review this action before continuing.`;
+      : pairedReadback
+        ? `${control.selected_tool_id} will execute against ${control.owner}. The saved project is read back with that same confirmation. This is a real backend action. Review this action before continuing.`
+        : `${control.selected_tool_id} will execute against ${control.owner}. This is a real backend action. Review this action before continuing.`;
     const confirm = document.createElement('button');
     confirm.type = 'button';
     confirm.dataset.gatewayConfirm = control.binding_id;
@@ -179,7 +181,8 @@ function requestConfirmation(container, control, correlationId, origin, dryRun) 
     cancel.dataset.gatewayCancel = control.binding_id;
     cancel.textContent = 'Cancel';
     const announce = (phase, trusted = false) => container.dispatchEvent(new CustomEvent('swissknife:gateway-confirmation', {
-      bubbles: true, detail: { phase, trusted, binding_id: control.binding_id, tool_id: control.selected_tool_id, correlation_id: correlationId, origin },
+      bubbles: true, detail: { phase, trusted, binding_id: control.binding_id, tool_id: control.selected_tool_id, correlation_id: correlationId, origin,
+        ...(pairedReadback && phase === 'confirmed' ? { paired_readback: pairedReadback } : {}) },
     }));
     let settled = false;
     const finish = (accepted, event) => {
@@ -212,7 +215,16 @@ async function invokeGateway(container, button, output, control, options, origin
   const governed = control.mutates_remote_state === true || control.confirmation_required === true;
   const forcedDryRun = globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true;
   let dryRun = forcedDryRun || (governed && options.executionMode !== 'execute');
-  const correlationId = `desktop:${crypto.randomUUID()}`;
+  const readbackConsent = options.pairedReadbackConsent === true;
+  if (readbackConsent && (control.selected_tool_id !== 'ipfs_cat' || typeof options.correlationId !== 'string'
+      || !/^desktop:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(options.correlationId))) {
+    throw new Error('A project readback must reuse the correlation named by the persist confirmation.');
+  }
+  const correlationId = readbackConsent ? options.correlationId : `desktop:${crypto.randomUUID()}`;
+  const pairedReadback = !readbackConsent && !dryRun && options.pairedReadback?.toolId === 'ipfs_cat'
+    && typeof options.pairedReadback.bindingId === 'string'
+    ? { binding_id: options.pairedReadback.bindingId, tool_id: 'ipfs_cat', correlation_id: `desktop:${crypto.randomUUID()}` }
+    : null;
   const payload =
     options.payload ?? control.safe_payload ??
     (dryRun
@@ -228,16 +240,17 @@ async function invokeGateway(container, button, output, control, options, origin
     ? transportOverride
     : control.transport;
   if (button) button.disabled = true;
-  if (governed) {
+  if (governed && !readbackConsent) {
     output.textContent = `Confirmation required for ${control.selected_tool_id}.`;
-    if (!await requestConfirmation(container, control, correlationId, origin, dryRun)) {
+    if (!await requestConfirmation(container, control, correlationId, origin, dryRun, pairedReadback)) {
       output.textContent = 'Cancelled before tool dispatch.';
       if (button) button.disabled = false;
       return null;
     }
+    if (pairedReadback) options.onPairedReadback?.(pairedReadback);
   }
   // Enabling the preview override while a dialog is open must also win.
-  if (globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true) dryRun = true;
+  if (!readbackConsent && globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true) dryRun = true;
   const call = {
     protocol: "swissknife.all-app-tool-gateway.v1",
     route: CALL_ROUTE,

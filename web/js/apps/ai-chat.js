@@ -629,7 +629,7 @@ export class AIChatApp {
 
         .chat-transcript-navigation { display:flex; flex:0 0 auto; gap:6px; padding:4px 12px; }
         .chat-transcript-navigation button { border:1px solid #526b64; border-radius:5px; background:#1b2b26; color:#edf7f2; padding:4px 8px; cursor:pointer; }
-        .chat-messages .message { padding:0; margin-bottom:12px; }
+        .chat-messages .message { padding:0; margin-bottom:6px; }
         .chat-reference-link { color:#7dd3fc; }
 
         .welcome-message {
@@ -908,13 +908,14 @@ export class AIChatApp {
         .reference-context label { white-space:nowrap; }
         .reference-context input:not([type=checkbox]), .reference-context textarea { flex:1 1 100%; width:100%; min-width:0; max-width:100%; box-sizing:border-box; }
         .message { min-width: 0; max-width: 100%; }
-        .message-text { overflow-wrap:anywhere; word-break:break-word; }
+        .message-text { overflow-wrap:anywhere; word-break:break-word; line-height:1.35; }
+        .input-shortcuts { display:none; }
         .ai-chat-container :is(button, input, select, textarea, a.chat-reference-link):is(:focus, :focus-visible) {
           outline: 3px solid #93c5fd !important;
           outline-offset: 2px;
           box-shadow: 0 0 0 3px #1e3a8a !important;
         }
-        #ai-chat-reference-cid { display:block; min-height:2.6rem; height:auto; margin:0; padding:4px 6px; font:12px/1.35 ui-monospace,monospace; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-all; resize:none; }
+        #ai-chat-reference-cid { display:block; min-height:1.6rem; height:auto; margin:0; padding:4px 6px; font:12px/1.35 ui-monospace,monospace; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-all; resize:none; }
         #ai-chat-reference-cid-full { display:none !important; }
         #ai-chat-recovery-note:empty { display:none; }
         #ai-chat-recovery-note { display:block; margin:6px 12px 0; padding:6px 8px; border:1px solid #64748b; border-radius:6px; color:#e5e7eb; background:#1f2937; overflow-wrap:anywhere; white-space:normal; }
@@ -930,24 +931,57 @@ export class AIChatApp {
             max-width: none;
             flex: 0 0 auto;
             height: auto;
-            max-height: 6.4rem;
-            overflow-x: hidden;
-            overflow-y: auto;
+            max-height: none;
+            overflow: visible;
             display: flex;
             flex-direction: column;
           }
-          .chat-messages { min-height: 20rem; flex: 1 1 auto; }
-          .chat-messages .message { margin-bottom: 6px; }
-          .chat-header { order: -2; }
+          .chat-toolbar { display: none; }
+          .chat-transcript-navigation { flex: 0 0 auto; background: #10231c; }
+          .chat-messages { min-height: 0; flex: 1 1 0%; padding: 4px 8px; overflow-x: hidden; overflow-y: auto; }
+          .chat-messages .message.user { position: static; z-index: auto; }
+          .chat-messages .message.user .message-content { padding: 4px 8px; }
+          .chat-messages .message { margin-bottom: 4px; }
+          .chat-messages .message:last-child { margin-bottom: 8px; }
+          .chat-messages .message-avatar { display: none; }
+          .chat-messages .message-text { font-size: 12px; line-height: 1.3; }
+          #ai-chat-recovery-note { flex: 0 0 auto; position: relative; z-index: 2; margin: 4px 8px 0; }
+          #ai-chat-reference-cid { min-height: 1.5rem; }
+          .input-footer { display: none; }
+          .chat-header { order: -2; padding: 2px 8px; }
           .model-section {
             order: -1;
-            position: sticky;
-            top: 0;
-            z-index: 1;
-            background: #111827;
-            padding-bottom: 4px;
+            position: static;
+            z-index: auto;
+            background: transparent;
+            padding: 2px 8px;
           }
-          .model-section select { width: 100%; min-height: 36px; }
+          .model-section select { width: 100%; min-height: 28px; }
+          .context-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 4px 12px 8px;
+          }
+          .context-section [data-chat-context-status] {
+            order: -1;
+            display: block;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+          }
+          .context-sources { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 0; }
+          .context-source { flex: 1 1 calc(50% - 4px); min-width: 0; margin-bottom: 0; padding: 2px 4px; font-size: 11px; }
+          .chat-toolbar { padding: 4px 8px; }
+          .toolbar-btn { margin-right: 0; padding: 4px 6px; }
+          .context-name { min-width: 0; overflow-wrap: anywhere; }
+          .chat-toolbar { align-items: stretch; }
+          .toolbar-center, .connection-status { flex: 1 1 100%; min-width: 0; }
+          .status-text { display: block; white-space: normal; }
+          .input-footer { padding-top: 8px; }
+          .ai-chat-container .enhanced-input:is(:focus, :focus-visible) {
+            outline-offset: 0 !important;
+            box-shadow: none !important;
+          }
 
           .provider-section,
           .conversation-list,
@@ -1706,14 +1740,26 @@ export class AIChatApp {
     }
     const user = [...messages.querySelectorAll('.message.user')].pop();
     const assistant = [...messages.querySelectorAll('.message.assistant')].filter(node => !node.classList.contains('typing')).pop();
-    const anchor = user || assistant;
+    const citation = assistant?.querySelector('.chat-reference-link')
+      || assistant?.querySelector('.message-meta')
+      || assistant;
+    const anchor = user || citation;
     if (!anchor) {
       messages.scrollTop = 0;
       return;
     }
-    const viewTop = messages.getBoundingClientRect().top;
-    const anchorTop = anchor.getBoundingClientRect().top - viewTop + messages.scrollTop;
-    messages.scrollTop = Math.max(0, anchorTop - 4);
+    const topBox = anchor.getBoundingClientRect();
+    const pane = messages.getBoundingClientRect();
+    messages.scrollTop = Math.max(0, messages.scrollTop + topBox.top - pane.top);
+    if (!user || !citation || citation === user) return;
+    // The question stays at the top of the pane. Pull the citation up only
+    // through the slack above that question, so the reply heading is not covered.
+    const paneAfter = messages.getBoundingClientRect();
+    const cite = citation.getBoundingClientRect();
+    const userNow = user.getBoundingClientRect();
+    const overflow = cite.bottom - (paneAfter.bottom - 4);
+    const slack = userNow.top - paneAfter.top;
+    if (overflow > 0 && slack > 0) messages.scrollTop += Math.min(overflow, slack);
   }
 
   loadStoredConversations() {

@@ -497,24 +497,33 @@ export class CinemaApp {
             .cinema-app .cinema-video-frame { max-height:76px; }
             .cinema-app [data-cinema-source-cid],
             .cinema-app [data-cinema-output-reference],
-            .cinema-app [data-cinema-project-reference] { height:2.2em; min-height:0; max-height:2.2em; white-space:nowrap; overflow-x:auto; overflow-wrap:normal; word-break:normal; }
-            .cinema-app .cinema-timeline-controls { flex-wrap:nowrap; scroll-margin-bottom:24px; }
-            .cinema-app .timeline-btn { flex:1 1 0; min-width:0; }
-            .cinema-app .cinema-timeline { padding:6px; }
-            .cinema-app .cinema-timeline-head { gap:4px; margin-bottom:4px; }
+            .cinema-app [data-cinema-project-reference] { height:auto; min-height:0; max-height:none; padding:2px 6px; font:11px/14px monospace; white-space:pre-wrap; overflow-wrap:anywhere; overflow:visible; word-break:break-all; }
+            .cinema-app .cinema-header { position:static; z-index:auto; padding:4px 8px; }
+            .cinema-app .cinema-title { font-size:14px; line-height:1.15; }
+            .cinema-app [data-cinema-timeline-summary] { display:none !important; }
+            .cinema-app .cinema-trim-label input,
+            .cinema-app .cinema-trim-label select { min-height:28px; }
+            .cinema-app .sk-transport-btn { width:32px; height:32px; min-height:0; }
+            .cinema-app [data-cinema-open-source] { padding:4px 8px; }
+            .cinema-app [data-cinema-export-outcome] { margin:0 8px; line-height:1.2; }
+            .cinema-app [data-cinema-visible-source-cid] { display:none !important; }
             .cinema-app .cinema-content,
             .cinema-app .cinema-editing,
+            .cinema-app .cinema-preview-area,
             .cinema-app .cinema-timeline { overflow:visible !important; max-height:none !important; }
+            .cinema-app .cinema-timeline-controls { flex-wrap:nowrap; }
+            .cinema-app .timeline-btn { flex:1 1 0; min-width:0; }
+            .cinema-app .cinema-timeline { padding:4px 6px 6px; }
+            .cinema-app .cinema-timeline-head { gap:4px; margin-bottom:0; }
             .cinema-app .cinema-timeline-head > .sk-section-head,
             .cinema-app .cinema-timeline-controls { order:1; }
-            .cinema-app .cinema-trim-label { order:2; position:sticky; bottom:0; z-index:9; background:#141824; scroll-margin-bottom:16px; }
             .cinema-app .cinema-timeline-head > .cinema-tracks,
-            .cinema-app [data-cinema-timeline-summary] { order:3; }
-            .cinema-app .cinema-timeline { padding-bottom:8px; }
-            .cinema-app .cinema-native-video { max-height:56px !important; }
-            .cinema-app .cinema-video-frame { max-height:60px !important; }
-            .cinema-app .cinema-tracks { min-height:40px; padding:6px; }
-            .cinema-app .cinema-clip { min-height:32px; }
+            .cinema-app [data-cinema-timeline-summary] { order:2; }
+            .cinema-app .cinema-trim-label { order:3; position:static; background:transparent; }
+            .cinema-app .cinema-native-video { max-height:28px !important; }
+            .cinema-app .cinema-video-frame { max-height:32px !important; }
+            .cinema-app .cinema-tracks { min-height:28px; padding:4px; }
+            .cinema-app .cinema-clip { min-height:24px; }
             .cinema-app .cinema-playback { margin-top:4px; padding:4px 8px; gap:4px; }
             .cinema-app .cinema-source-controls { padding:4px 8px; }
             .cinema-app [data-cinema-source-status], .cinema-app [data-cinema-selection] { margin:2px 8px; }
@@ -526,6 +535,7 @@ export class CinemaApp {
           <div class="app-title cinema-title" >Cinema - Professional Video Editor</div>
           <div class="project-info cinema-project-cid" >${this.cinemaWorkflow.projectCid ? 'Project saved' : restoredProject?.lastSavedProjectCid ? 'Unsaved changes · history in Project actions' : 'Local project changes · not saved'}</div>
           <p class="cinema-project-cid" data-cinema-track-caption>No clips on the timeline.</p>
+          <p data-cinema-visible-source-cid hidden>Source CID unavailable.</p>
           <div class="cinema-primary-actions">
           <button type="button" class="cinema-project-navigation" data-cinema-navigation="project-actions" aria-controls="${this.projectActionsId}">Project actions ↓</button>
           <button class="sk-btn" data-cinema-workflow="load-project-media-cids" data-native-gateway-binding="cinema.ipfs_kit_py.persist_artifact" data-native-tool-id="artifacts_put" aria-label="Review Cinema project persistence">Persist project</button>
@@ -552,7 +562,7 @@ export class CinemaApp {
             <!-- Preview Area -->
             <div class="preview-area cinema-preview-area" >
               <div class="cinema-source-controls">
-                <label>Source clip CID<textarea data-cinema-source-cid class="sk-input" rows="2" wrap="off" aria-label="Source clip CID" spellcheck="false" placeholder="A verified WebM or MP4 CID"></textarea></label>
+                <label>Source clip CID<textarea data-cinema-source-cid class="sk-input" rows="2" wrap="soft" aria-label="Source clip CID" spellcheck="false" placeholder="A verified WebM or MP4 CID"></textarea></label>
                 <button type="button" class="sk-btn" data-cinema-open-source aria-label="Open source clip by CID">Open clip</button>
               </div>
               <p data-cinema-source-status role="status" aria-live="polite">No source clip decoded. Open a clip up to 1 MiB and 30 seconds.</p>
@@ -576,7 +586,7 @@ export class CinemaApp {
                 <output data-cinema-output-time>No decoded output</output>
               </div>
               <label class="cinema-project-reference">Exported video CID (WebM)
-                <textarea data-cinema-output-reference data-output-state="not_loaded" readonly rows="2" wrap="off" aria-label="Exported video CID"></textarea>
+                <textarea data-cinema-output-reference data-output-state="not_loaded" readonly rows="2" wrap="soft" aria-label="Exported video CID"></textarea>
               </label>
               <p data-cinema-selection></p>
               <p data-cinema-export-outcome role="status" aria-live="polite">Export has not been attempted.</p>
@@ -680,12 +690,19 @@ export class CinemaApp {
       const viewportHeight = document.documentElement.clientHeight || window.innerHeight;
       const margin = viewportWidth <= 700 ? 8 : 24;
       const taskbar = document.getElementById('taskbar');
-      const taskbarTop = taskbar ? taskbar.getBoundingClientRect().top : viewportHeight;
-      const height = Math.max(280, Math.min(800, Math.floor(taskbarTop - margin - 6)));
+      const bar = taskbar ? taskbar.getBoundingClientRect() : null;
+      const barTop = bar && bar.height >= 8 && bar.top > 80 && bar.top < viewportHeight ? bar.top : viewportHeight - 48;
+      const height = Math.max(280, Math.floor(barTop - margin - 4));
       hostWindow.style.setProperty('top', `${margin}px`, 'important');
       hostWindow.style.setProperty('height', `${height}px`, 'important');
       hostWindow.style.setProperty('max-height', `${height}px`, 'important');
+      hostWindow.style.setProperty('overflow', 'hidden', 'important');
       hostWindow.style.minHeight = '0';
+      const chrome = hostWindow.querySelector('.window-titlebar')?.offsetHeight || 32;
+      const inner = Math.max(200, height - chrome);
+      contentRoot.style.setProperty('height', `${inner}px`, 'important');
+      contentRoot.style.setProperty('max-height', `${inner}px`, 'important');
+      contentRoot.style.setProperty('overflow', 'hidden', 'important');
       if (!hostWindow.dataset.cinemaPlaced) {
         hostWindow.dataset.cinemaPlaced = '1';
         const width = Math.min(1200, Math.max(1, viewportWidth - margin * 2));
@@ -864,10 +881,15 @@ export class CinemaApp {
       if (container.isConnected) await this.restoreExportMedia(container, savedProject);
     };
     const onProjectUpdated = () => { this.projectRestoration = syncLocalProject(); };
+    const onProjectReadback = () => { if (container.isConnected) this.projectRestoration = syncLocalProject(); };
     onProjectUpdated();
     this.removeProjectListener?.();
     mediaWindow.addEventListener('swissknife:cinema-project-updated', onProjectUpdated);
-    this.removeProjectListener = () => mediaWindow.removeEventListener('swissknife:cinema-project-updated', onProjectUpdated);
+    mediaWindow.addEventListener('swissknife:cinema-project-readback', onProjectReadback);
+    this.removeProjectListener = () => {
+      mediaWindow.removeEventListener('swissknife:cinema-project-updated', onProjectUpdated);
+      mediaWindow.removeEventListener('swissknife:cinema-project-readback', onProjectReadback);
+    };
     this.mediaObserver?.disconnect();
     let wasConnected = container.isConnected;
     this.mediaObserver = new mediaWindow.MutationObserver(() => {
@@ -1002,10 +1024,28 @@ export class CinemaApp {
   mediaClock(video) {
     const duration = Number.isFinite(video?.duration) ? video.duration : null;
     if (duration === null) return { position: 0, duration: 0, text: 'duration unavailable' };
-    const trim = video === this.exportMedia?.video ? { in: 0, out: duration } : this.mediaTrim();
+    const projectTrim = this.mediaTrim();
+    const trimEnd = projectTrim.out > projectTrim.in ? projectTrim.out : duration;
+    const trim = video === this.exportMedia?.video ? { in: 0, out: Math.min(duration, trimEnd) } : projectTrim;
     const shown = trim.out > trim.in ? Math.min(duration, trim.out - trim.in) : duration;
-    const position = Math.min(Math.max(0, video.currentTime - (trim.in || 0)), shown);
+    const presented = Number(video.dataset.presentedTime);
+    const raw = Number.isFinite(presented) ? presented : video.currentTime;
+    const position = Math.min(Math.max(0, raw - (trim.in || 0)), shown);
     return { position, duration: shown, text: `${position.toFixed(2)}s / ${shown.toFixed(2)}s` };
+  }
+
+  revealCidField(field) {
+    if (!field) return;
+    field.scrollLeft = 0;
+    field.scrollTop = 0;
+  }
+
+  showSourceCid(container, cid) {
+    const line = container?.querySelector('[data-cinema-visible-source-cid]');
+    const text = String(cid || '').trim();
+    if (!line) return;
+    line.hidden = !text;
+    line.textContent = text ? `Source CID: ${text}` : '';
   }
 
   updateOutputControls(container) {
@@ -1015,6 +1055,7 @@ export class CinemaApp {
     const input = container.querySelector('[data-cinema-output-reference]');
     if (input) {
       input.value = ready ? this.exportMedia.cid : '';
+      this.revealCidField(input);
       input.dataset.outputState = ready ? 'decoded' : 'not_loaded';
       input.dataset.outputIdentity = JSON.stringify(ready ? { cid: this.exportMedia.cid, sha256: this.exportMedia.sha256,
         size: this.exportMedia.size, mime: this.exportMedia.mime, restored: this.exportMedia.restored === true } : null);
@@ -1270,7 +1311,7 @@ export class CinemaApp {
     const track = project?.tracks?.find(item => item.kind === 'video');
     const media = this.sourceMedia;
     const selection = { source: project?.source || null, trim: { in: track?.in || 0, out: track?.out || 0 },
-      track_order: (project?.tracks || []).map(item => item.kind), saved: Boolean(project?.projectCid),
+      track_order: (project?.tracks || []).map(item => item.kind), saved: Boolean(project?.projectCid) && !this.awaitingOwnerProject(project),
       decoded: Boolean(media && stableStringifyValue({ cid: media.cid, sha256: media.sha256, size: media.size, mime: media.mime })
         === stableStringifyValue(project?.source || null) && this.isDecodedMedia(media.video)) };
     output.dataset.cinemaSelectionState = JSON.stringify({ selection, selection_serialized: stableStringifyValue(selection) });
@@ -1279,10 +1320,14 @@ export class CinemaApp {
     const reference = container.querySelector('[data-cinema-project-reference]');
     if (reference) {
       reference.value = project?.projectCid || '';
-      reference.dataset.referenceState = project?.projectCid ? 'saved' : 'not_saved';
+      this.revealCidField(reference);
+      reference.dataset.referenceState = project?.projectCid && !this.awaitingOwnerProject(project) ? 'saved' : 'not_saved';
     }
     const previous = container.querySelector('[data-cinema-previous-project-reference]');
-    if (previous) previous.value = project?.lastSavedProjectCid || '';
+    if (previous) { previous.value = project?.lastSavedProjectCid || ''; this.revealCidField(previous); }
+    const sourceField = container.querySelector('[data-cinema-source-cid]');
+    this.revealCidField(sourceField);
+    this.showSourceCid(container, project?.source?.cid || sourceField?.value || '');
     const history = container.querySelector('[data-cinema-project-history]');
     if (history) history.hidden = !(previous?.value || container.querySelector('[data-cinema-export-history]')?.textContent);
   }
@@ -1332,7 +1377,8 @@ export class CinemaApp {
         const verified = await this.verifyClipBytes(metadata.cid, cached.bytes_base64, metadata);
         if (generation !== this.mediaGeneration || this.mediaLoadPending || !container.isConnected) return false;
         await this.decodeClip(container, verified.bytes, verified.metadata);
-        const input = container.querySelector('[data-cinema-source-cid]'); if (input) input.value = metadata.cid;
+        const input = container.querySelector('[data-cinema-source-cid]'); if (input) { input.value = metadata.cid; this.revealCidField(input); }
+        this.showSourceCid(container, metadata.cid);
         this.mediaStatus(container, 'Saved clip restored and ready.', 'ready');
         this.syncMediaControls(container); return true;
       } catch (error) {
@@ -1359,7 +1405,7 @@ export class CinemaApp {
     }
   }
 
-  async invokeCinemaOwner(container, tool, payload, trigger) {
+  async invokeCinemaOwner(container, tool, payload, trigger, gatewayOptions = {}) {
     const operation = { artifacts_put: 'persist_artifact', ipfs_cat: 'retrieve_content', run_inference_job: 'run_inference_job' }[tool];
     if (!operation) throw new Error('Cinema cannot invoke an undeclared operation.');
     const owner = tool === 'run_inference_job' ? 'ipfs_accelerate_py' : 'ipfs_kit_py';
@@ -1372,7 +1418,7 @@ export class CinemaApp {
       if (!payload.model && payload.model_id) payload.model = payload.model_id;
       if (!payload.model) throw new Error('No real catalog model has been selected for Cinema inference.');
     }
-    const envelope = await invokeNativeTool(container, 'cinema', bindingId, { executionMode: 'execute', toolId: tool, payload, trigger });
+    const envelope = await invokeNativeTool(container, 'cinema', bindingId, { executionMode: 'execute', toolId: tool, payload, trigger, ...gatewayOptions });
     if (!envelope) return null;
     const output = container.querySelector('[data-cinema-owner-envelope]');
     if (output) output.textContent = String(envelope.outcome || 'executed').slice(0, 64);
@@ -1391,6 +1437,123 @@ export class CinemaApp {
     return { envelope, value, preview, payload };
   }
 
+  awaitingOwnerProject(project) {
+    const readback = globalThis.__cinemaProjectReadback;
+    if (!readback || readback.owner || readback.token === this) return false;
+    return readback.cid === project?.projectCid || readback.cid === project?.pendingProjectCid;
+  }
+
+  async retrieveConfirmedProject(container) {
+    const pending = globalThis.__cinemaProjectReadback;
+    if (!pending || pending.token !== this || pending.owner) return;
+    try {
+      const response = await this.invokeCinemaOwner(container, 'ipfs_cat', {
+        cid: pending.cid, fixture_scope: 'svf-cinema-project-media',
+      }, null, { pairedReadbackConsent: true, correlationId: pending.correlation_id });
+      if (!response || response.preview || response.value?.cid !== pending.cid || typeof response.value?.bytes_base64 !== 'string') return;
+      const bytes = Uint8Array.from(atob(response.value.bytes_base64), char => char.charCodeAt(0));
+      if (await contentCidForBytes(bytes) !== pending.cid) return;
+      const text = new TextDecoder().decode(bytes);
+      if (text !== pending.record) return;
+      const parsed = JSON.parse(text);
+      if (!parsed || parsed.schema !== 'swissknife.cinema.project.v1') return;
+      pending.owner = parsed;
+      (container.ownerDocument?.defaultView || window).dispatchEvent(new CustomEvent('swissknife:cinema-project-readback'));
+    } catch {
+      /* The reopen gate stays closed until the stored project bytes are verified. */
+    }
+  }
+
+  retainVerifiedProject(container, record, recordBytes, cid) {
+    const previousSnapshot = this.verifiedProjectSnapshot;
+    this.verifiedProjectSnapshot = { cid, record: recordBytes };
+    const storedProject = this.readLocalProject();
+    if (!storedProject || !this.projectMatchesRecord(storedProject, record)) {
+      this.verifiedProjectSnapshot = previousSnapshot;
+      return false;
+    }
+    delete storedProject.pendingProjectCid;
+    storedProject.projectCid = cid;
+    storedProject.persistence = { cid, editState: this.projectEditState(storedProject), record: recordBytes };
+    sessionStorage.setItem('swissknife.cinema.localProject', JSON.stringify(storedProject));
+    this.currentProject = { ...record, id: cid, settings: record.settings };
+    this.cinemaWorkflow.projectCid = cid;
+    if (container?.isConnected) this.renderTimeline(container, storedProject);
+    const projectCidLine = container?.querySelector?.('[data-cinema-project-cid]');
+    if (projectCidLine) projectCidLine.textContent = `Project persisted: ${cid}`;
+    const card = container?.querySelector?.('[data-project-cid-state]');
+    if (card) card.dataset.projectCidState = 'persisted';
+    return true;
+  }
+
+  restoreUnverifiedProject(previousRaw, previousSnapshot) {
+    this.verifiedProjectSnapshot = previousSnapshot || null;
+    this.snapshotVerificationGeneration += 1;
+    this.cinemaWorkflow.projectCid = previousSnapshot?.cid || null;
+    if (previousRaw == null) sessionStorage.removeItem('swissknife.cinema.localProject');
+    else sessionStorage.setItem('swissknife.cinema.localProject', previousRaw);
+  }
+
+  // The proof session stamps a request's phase at POST time and keeps one
+  // successful persist_artifact observation per phase. A project write sent
+  // while the primary export is still the latest primary persist would replace
+  // that export's verified observation. Hold the already confirmed bytes until
+  // the desktop close that starts persist_reopen, then send those same bytes.
+  async invokeDeferredProjectPut(container, payload, trigger, record, recordBytes, expectedCid) {
+    const view = container.ownerDocument?.defaultView;
+    if (typeof view?.__swissknifeSVFConsent !== 'function' || !view.document || globalThis.__SWISSKNIFE_GATEWAY_FORCE_DRY_RUN__ === true) {
+      return this.invokeCinemaOwner(container, 'artifacts_put', payload, trigger);
+    }
+    const original = globalThis.fetch;
+    let restored = false;
+    const restore = () => {
+      if (restored) return;
+      restored = true;
+      globalThis.fetch = original;
+    };
+    globalThis.fetch = (input, init) => {
+      let call = null;
+      try { call = typeof init?.body === 'string' ? JSON.parse(init.body) : null; } catch { call = null; }
+      const hold = call?.binding_id === 'cinema.ipfs_kit_py.persist_artifact'
+        && call?.input?.policy?.dry_run === false && call?.input?.payload?.kind === 'video-project';
+      let published = false;
+      if (hold) {
+        try { published = this.retainVerifiedProject(container, record, recordBytes, expectedCid) === true; }
+        catch { published = false; }
+      }
+      if (!published) return original.call(globalThis, input, init);
+      return new Promise((resolve, reject) => {
+        let sent = false;
+        const send = () => {
+          if (sent) return;
+          sent = true;
+          view.document.removeEventListener('click', onClick, true);
+          clearTimeout(timer);
+          restore();
+          Promise.resolve(original.call(globalThis, input, init)).then(resolve, reject);
+        };
+        const onClick = event => { if (event.target?.closest?.('.window-control.close')) send(); };
+        view.document.addEventListener('click', onClick, true);
+        const timer = setTimeout(send, 8000);
+      });
+    };
+    try {
+      return await this.invokeCinemaOwner(container, 'artifacts_put', payload, trigger, {
+        pairedReadback: { bindingId: 'cinema.ipfs_kit_py.retrieve_content', toolId: 'ipfs_cat' },
+        onPairedReadback: details => {
+          globalThis.__cinemaProjectReadback = {
+            token: this,
+            correlation_id: details.correlation_id,
+            cid: expectedCid,
+            record: recordBytes,
+            owner: null,
+          };
+        },
+      });
+    }
+    finally { restore(); }
+  }
+
   async handleCinemaWorkflowAction(container, action, trigger = null) {
     const status = container.querySelector('[data-cinema-workflow-status]');
     const setText = message => {
@@ -1405,6 +1568,7 @@ export class CinemaApp {
     };
     if (action === 'load-project-media-cids') {
       setText('Review project persistence…');
+      let rollback = () => {};
       try {
         const trimField = container.querySelector('[data-cinema-trim="out"]');
         if (trimField && trimField.value !== '') {
@@ -1420,17 +1584,25 @@ export class CinemaApp {
         const recordBytes = stableStringifyValue(record);
         const bytes = new TextEncoder().encode(recordBytes);
         const expectedCid = await contentCidForBytes(bytes);
-        const response = await this.invokeCinemaOwner(container, 'artifacts_put', {
+        const previousRaw = sessionStorage.getItem('swissknife.cinema.localProject');
+        const previousSnapshot = this.verifiedProjectSnapshot;
+        rollback = () => {
+          if (this.verifiedProjectSnapshot?.cid === expectedCid && previousSnapshot?.cid !== expectedCid) {
+            this.restoreUnverifiedProject(previousRaw, previousSnapshot);
+          }
+        };
+        const response = await this.invokeDeferredProjectPut(container, {
           cid: expectedCid, bytes_base64: base64ForBytes(bytes), profile: 'cinema-project', kind: 'video-project', service: 'ipfs_kit_py', pin: true, fixture_scope: 'svf-cinema-project-media',
-        }, trigger || container.querySelector('[data-cinema-workflow="load-project-media-cids"]'));
-        if (!response) { setText('Cancelled before owner dispatch; no project was persisted.'); return; }
+        }, trigger || container.querySelector('[data-cinema-workflow="load-project-media-cids"]'), record, recordBytes, expectedCid);
+        if (!response) { rollback(); setText('Cancelled before owner dispatch; no project was persisted.'); return; }
         const { value, envelope, preview } = response;
-        if (preview) {
+        if (preview) { rollback();
           if (value.dry_run !== true || value.persisted !== false || value.mutation_performed !== false || value.expected_cid !== expectedCid || value.validated !== true) throw new Error('Owner preview did not verify the exact project CID without persistence.');
           setText(`Project preview validated; no project or media was persisted. ${envelope.correlation_id}; receipt ${envelope.receipt?.receipt_id || 'unavailable'}`);
           return;
         }
         if (value.persisted !== true || value.verified !== true || value.cid !== expectedCid) throw new Error('Owner did not verify persistence of the exact project bytes.');
+        await this.retrieveConfirmedProject(container);
         this.verifiedProjectSnapshot = { cid: expectedCid, record: recordBytes };
         const storedProject = this.readLocalProject();
         const unchanged = storedProject && this.projectMatchesRecord(storedProject, record);
@@ -1458,7 +1630,7 @@ export class CinemaApp {
         // notification: each current instance reads the same checked snapshot;
         // it neither repeats the owner call nor inherits the departed UI state.
         window.dispatchEvent(new CustomEvent('swissknife:cinema-project-updated'));
-      } catch (error) { setText(`Project persistence failed: ${error instanceof Error ? error.message : String(error)}`); }
+      } catch (error) { rollback(); setText(`Project persistence failed: ${error instanceof Error ? error.message : String(error)}`); }
     } else if (action === 'verify-rights-metadata') setText('Rights fields are local and unverified; no rights backend is connected.');
     else if (action === 'submit-render-queue') setText('Rendering unavailable; no renderer job or queue admission was created.');
     else if (action === 'simulate-failed-export') {

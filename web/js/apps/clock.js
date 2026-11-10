@@ -321,7 +321,7 @@ export class ClockApp {
           height: 100%;
           max-height: 100%;
           min-height: 0;
-          padding-top: 48px;
+          padding-top: 0;
         }
         .clock-session-proof {
           position: absolute;
@@ -1968,9 +1968,40 @@ export class ClockApp {
     }
   }
 
+  containClockFrame() {
+    const container = document.querySelector('.clock-container');
+    const frame = container?.closest?.('.window');
+    const view = container?.ownerDocument?.defaultView;
+    if (!frame || !view) return;
+    const doc = container.ownerDocument;
+    const taskbar = doc.getElementById('taskbar');
+    const viewportHeight = doc.documentElement.clientHeight || view.innerHeight || 0;
+    const viewportWidth = doc.documentElement.clientWidth || view.innerWidth || 0;
+    const taskbarTop = taskbar && taskbar.getBoundingClientRect ? taskbar.getBoundingClientRect().top : viewportHeight - 48;
+    const narrow = viewportWidth <= 800;
+    const top = narrow ? 0 : 12;
+    const height = Math.max(320, Math.floor(taskbarTop - top));
+    frame.style.setProperty('top', top + 'px', 'important');
+    frame.style.setProperty('height', height + 'px', 'important');
+    frame.style.setProperty('max-height', height + 'px', 'important');
+    frame.style.setProperty('overflow', 'hidden', 'important');
+    if (narrow) {
+      frame.style.setProperty('left', '0px', 'important');
+      frame.style.setProperty('width', '100%', 'important');
+    }
+    const content = frame.querySelector('.window-content');
+    if (content) {
+      const inner = Math.max(240, height - 32);
+      content.style.setProperty('height', inner + 'px', 'important');
+      content.style.setProperty('max-height', inner + 'px', 'important');
+      content.style.setProperty('overflow', 'hidden', 'important');
+    }
+  }
+
   refreshContent() {
     const container = document.querySelector('.clock-container');
     if (!container) return;
+    this.containClockFrame();
 
     // Update content
     const content = container.querySelector('#clock-content');
@@ -2007,6 +2038,7 @@ export class ClockApp {
     // Set up event handlers after the HTML is rendered
     setTimeout(() => {
       this.setupEventHandlers(document.querySelector('.clock-container'));
+      this.containClockFrame();
       this.updateTimeDisplay();
     }, 0);
     

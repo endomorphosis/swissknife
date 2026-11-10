@@ -57,6 +57,34 @@ test('Calendar corrupt view preference preserves event storage and a usable defa
   const first = selectedCalendar(t); first.saveEventsToStorage(); localStorage.setItem('swissknife-calendar-view', '{invalid');
   const app = new CalendarApp(); assert.equal(app.currentView, 'month'); assert.ok(app.events.some(e => e.title === 'Saved standup'));
 });
+test('Calendar Escape cancels an open event form and focuses a retained control', async t => {
+  const app = selectedCalendar(t);
+  globalThis.requestAnimationFrame = callback => callback();
+  document.body.innerHTML = await app.render();
+  app.setupModalEventListeners();
+  app.showEventModal();
+  const modal = document.querySelector('#eventModal');
+  assert.equal(modal.classList.contains('hidden'), false);
+  modal.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert.equal(modal.classList.contains('hidden'), true);
+  assert.equal(document.activeElement?.classList.contains('agenda-open'), true);
+});
+test('Calendar delete stays out of the live schedule after a later load', t => {
+  const app = selectedCalendar(t);
+  globalThis.requestAnimationFrame = callback => callback();
+  app.editingEventId = 'Saved overlap';
+  app.deleteSelectedEvent();
+  const again = new CalendarApp();
+  const status = again.buildLiveStatus();
+  assert.match(status, /Saved standup \|/);
+  assert.match(status, /Deleted: Saved overlap \|/);
+  assert.doesNotMatch(status, /^Saved overlap \|/m);
+  assert.match(status, /Overlaps: none/);
+  const html = again.renderAgendaView();
+  assert.match(html, /data-event-title="Saved standup"/);
+  assert.doesNotMatch(html, /data-event-title="Saved overlap"/);
+  assert.match(html, /calendar-deleted-title">Saved overlap/);
+});
 function cinema(t) {
   dom(t); const app = new CinemaApp(), root = document.createElement('div'); document.body.append(root); app.createInterface(root);
   // Explicit unit fixture: no gateway, provider, browser or real SDK operation.

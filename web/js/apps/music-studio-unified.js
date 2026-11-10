@@ -166,8 +166,7 @@ export class UnifiedMusicStudioApp {
             console.warn('Failed to initialize Strudel:', error);
         }
         
-        // Default patterns
-        this.currentPattern = 'bd ~ sn · c2';
+        if (!this.currentPattern) this.currentPattern = 'bd ~ sn · c2';
         
         console.log('🎼 Strudel engine initialized');
     }
@@ -827,7 +826,7 @@ export class UnifiedMusicStudioApp {
                         <h2 class="ums-title">🎵 Music Studio</h2>
                         <div class="transport-controls sk-transport">
                             <button class="play-btn sk-transport-btn is-main ${this.isPlaying ? 'is-playing' : ''}" onclick="togglePlayback()" aria-label="Play or pause">
-                                ${this.isPlaying ? '⏸️' : '▶️'}
+                                ${this.isPlaying ? 'Playing' : 'Play'}
                             </button>
                             <button class="stop-btn sk-transport-btn" onclick="stopPlayback()" aria-label="Stop">⏹️</button>
                             <button class="record-btn sk-transport-btn ${this.recordingState.isRecording ? 'is-recording' : ''}" onclick="toggleRecording()" aria-label="Record">⏺️</button>
@@ -854,9 +853,9 @@ export class UnifiedMusicStudioApp {
                     <p id="ums-edited">${this.escapeAttr(this.editedLine || '')}</p>
                     <p id="ums-retained">${this.escapeAttr(this.retainedLine())}</p>
                     <p id="ums-loaded">${this.escapeAttr(this.loadedLine || '')}</p>
-                    <p id="ums-rejected">${this.escapeAttr(this.rejectionLine || '')}</p>
-                    <p id="ums-playback" data-studio-instance="${this.escapeAttr(this.instanceId)}" data-playback-sample="${this.escapeAttr(JSON.stringify({ elapsed_ms: this.playbackElapsedMs() }))}">Playback idle. Audio ${this.escapeAttr(this.audioWord())}.</p>
                     <p id="ums-status">${this.escapeAttr(this.statusLine())}</p>
+                    <p id="ums-playback" data-studio-instance="${this.escapeAttr(this.instanceId)}" data-playback-sample="${this.escapeAttr(JSON.stringify({ elapsed_ms: this.playbackElapsedMs() }))}">Playback idle. Audio ${this.escapeAttr(this.audioWord())}.</p>
+                    <p id="ums-rejected">${this.escapeAttr(this.rejectionLine ? `Recorded failed load: ${this.rejectionLine}` : '')}</p>
                 </div>
 
                 <!-- Main Content -->
@@ -1273,6 +1272,7 @@ export class UnifiedMusicStudioApp {
             this.retainedBpm = Number(data.retainedBpm) || this.bpm;
         }
         if (typeof data.editedLine === 'string' && data.editedLine.trim()) this.editedLine = data.editedLine;
+        this.currentPattern = tracks.map(track => `${track.name}: ${(track.notes || []).join(' ')}`).join(' · ');
         this.tracks = new Map();
         for (const track of tracks) {
             this.tracks.set(track.id, {
@@ -1397,8 +1397,10 @@ export class UnifiedMusicStudioApp {
         const loaded = document.getElementById('ums-loaded');
         if (loaded) loaded.textContent = this.loadedLine || '';
         const rejected = document.getElementById('ums-rejected');
-        if (rejected) rejected.textContent = this.rejectionLine || '';
+        if (rejected) rejected.textContent = this.rejectionLine ? `Recorded failed load: ${this.rejectionLine}` : '';
         this.publishPlayback();
+        const pattern = document.querySelector('.unified-music-studio .ums-code');
+        if (pattern) pattern.textContent = this.currentPattern || '';
         const note = document.getElementById('ums-note');
         if (note && document.activeElement !== note) note.value = this.activeNote || '';
         const bpm = document.getElementById('ums-bpm');
@@ -1406,7 +1408,7 @@ export class UnifiedMusicStudioApp {
         const play = document.querySelector('.unified-music-studio .play-btn');
         if (play) {
             play.classList.toggle('is-playing', !!this.isPlaying);
-            play.textContent = this.isPlaying ? '⏸️' : '▶️';
+            play.textContent = this.isPlaying ? 'Playing' : 'Play';
         }
         const audioBtn = document.getElementById('ums-enable-audio');
         if (audioBtn) {
@@ -1424,6 +1426,7 @@ export class UnifiedMusicStudioApp {
         track.notes = [note];
         this.activeNote = note;
         this.editedLine = `Edited note ${note} on ${track.name}.`;
+        this.currentPattern = this.projectTracks.map(item => `${item.name}: ${(item.notes || []).join(' ')}`).join(' · ');
         const mixer = this.tracks.get(track.id);
         if (mixer) mixer.notes = [note];
         this.isPlaying = false;

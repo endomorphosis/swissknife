@@ -99,13 +99,18 @@ export class CalculatorApp {
         .calculator-diagnostics summary {
           grid-column: 1 / -1;
         }
+        .calc-btn:focus,
         .calc-btn:focus-visible,
+        .calc-btn.calc-key-focus,
+        .mode-tab:focus,
         .mode-tab:focus-visible,
+        .history-btn:focus,
         .history-btn:focus-visible,
         .category-btn:focus-visible,
         .workflow-action-btn:focus-visible {
-          outline: 2px solid var(--sk-accent, #8bd8bd);
+          outline: 3px solid #f7f3cf;
           outline-offset: 2px;
+          box-shadow: 0 0 0 3px rgba(247, 243, 207, 0.95);
         }
       </style>
       <details class="calculator-diagnostics"
@@ -554,16 +559,17 @@ export class CalculatorApp {
         }
 
         .history-panel {
-          position: absolute;
-          top: 70px;
-          right: 16px;
-          width: 300px;
+          position: static;
+          width: auto;
+          margin: 0 8px 8px;
+          flex: 0 0 auto;
           background: rgba(0, 0, 0, 0.9);
           backdrop-filter: blur(20px);
           border-radius: 12px;
           border: 1px solid rgba(255, 255, 255, 0.2);
-          max-height: 400px;
-          z-index: 1000;
+          max-height: 176px;
+          overflow: auto;
+          z-index: 1;
         }
 
         .history-header {
@@ -585,12 +591,15 @@ export class CalculatorApp {
         }
 
         .history-list {
-          max-height: 300px;
-          overflow-y: auto;
+          max-height: 112px;
+          overflow: auto;
           padding: 8px;
         }
 
         .history-item {
+          display: block;
+          width: 100%;
+          box-sizing: border-box;
           padding: 8px;
           border-radius: 6px;
           margin-bottom: 4px;
@@ -600,18 +609,46 @@ export class CalculatorApp {
           font-size: 12px;
         }
 
+        .history-line {
+          display: flex;
+          flex-direction: row;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 8px;
+          width: 100%;
+          min-width: 0;
+        }
+
+        .history-expr {
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+
+        .history-time {
+          flex: 0 0 auto;
+          white-space: nowrap;
+          font-size: 10px;
+          opacity: 0.78;
+        }
+
         .history-item:hover {
           background: rgba(255, 255, 255, 0.1);
         }
 
+        .history-item.history-item-selected {
+          background: rgba(139, 216, 189, 0.28);
+          border: 1px solid #8bd8bd;
+        }
+
         .history-meta {
+          display: block;
+          width: 100%;
           margin-top: 4px;
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
           font-size: 10px;
           opacity: 0.78;
-          overflow-wrap: anywhere;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .no-history {
@@ -630,6 +667,18 @@ export class CalculatorApp {
 
         .calc-btn.pressed {
           animation: buttonPress 0.1s ease;
+        }
+
+        .calc-btn:focus,
+        .calc-btn:focus-visible,
+        .calc-btn.calc-key-focus,
+        .mode-tab:focus,
+        .mode-tab:focus-visible,
+        .history-btn:focus,
+        .history-btn:focus-visible {
+          outline: 3px solid #f7f3cf;
+          outline-offset: 2px;
+          box-shadow: 0 0 0 3px rgba(247, 243, 207, 0.95);
         }
 
         /* Responsive */
@@ -685,11 +734,12 @@ export class CalculatorApp {
           }
 
           .history-panel {
-            top: 84px;
-            right: 8px;
-            left: 8px;
+            position: static;
+            top: auto;
+            right: auto;
+            left: auto;
             width: auto;
-            max-height: 330px;
+            max-height: 176px;
           }
         }
       </style>
@@ -946,30 +996,11 @@ export class CalculatorApp {
   containCalculatorInWindow(container) {
     if (!container || typeof document === 'undefined') return;
     const contentRoot = container.closest?.('.window-app-content');
-    const windowEl = container.closest?.('.window');
-    if (contentRoot && windowEl) {
-      const windowRect = windowEl.getBoundingClientRect();
-      const topOffset = contentRoot.getBoundingClientRect().top - windowRect.top;
-      if (windowRect.height > 200 && topOffset >= 0 && topOffset < windowRect.height) {
-        const available = Math.max(280, Math.floor(windowRect.height - topOffset - 4));
-        contentRoot.style.boxSizing = 'border-box';
-        contentRoot.style.height = `${available}px`;
-        contentRoot.style.maxHeight = `${available}px`;
-        contentRoot.style.overflow = 'hidden';
-        contentRoot.style.display = 'flex';
-        contentRoot.style.flexDirection = 'column';
-      }
-    }
-    container.style.position = 'relative';
-    container.style.flex = '1 1 auto';
-    container.style.minHeight = '0';
-    container.style.height = '100%';
-    container.style.maxHeight = '100%';
-    container.style.overflow = 'hidden';
+    this.fitCalculatorFrame(container);
     if (!document.getElementById('calculator-contained-layout')) {
       const style = document.createElement('style');
       style.id = 'calculator-contained-layout';
-      style.textContent = '.calculator-container .calculator-header{padding:6px 8px}.calculator-container .calculator-display{padding:8px 12px}.calculator-container .display-primary{font-size:26px;min-height:28px}.calculator-container .calculator-retained{font-size:13px;line-height:16px;flex:0 0 auto}.calculator-container .calculator-body{flex:1 1 auto;min-height:0;padding:8px;overflow:hidden}.calculator-container .button-grid{min-height:0;gap:6px}.calculator-container .standard-grid{grid-template-rows:repeat(6,minmax(0,1fr))}.calculator-container .calc-btn{min-height:28px}.calculator-container .history-panel{max-height:calc(100% - 80px);overflow:auto}';
+      style.textContent = '.calculator-container .calculator-header{padding:6px 8px}.calculator-container .calculator-display{padding:8px 12px}.calculator-container .display-primary{font-size:26px;min-height:28px}.calculator-container .calculator-retained{font-size:13px;line-height:16px;flex:0 0 auto}.calculator-container .calculator-body{flex:1 1 0%;min-height:0;padding:8px;overflow:hidden}.calculator-container .button-grid{min-height:0;gap:6px}.calculator-container .standard-grid{grid-template-rows:repeat(6,minmax(0,1fr))}.calculator-container .calc-btn{min-height:28px}.calculator-container .history-panel{position:static;width:100%;max-width:100%;min-width:0;margin:0 8px 8px;flex:0 0 auto;max-height:176px;overflow:auto;z-index:1;box-sizing:border-box}.calculator-container .history-item{display:block;width:100%}.calculator-container .history-line{display:flex;flex-direction:row;align-items:baseline;justify-content:space-between;gap:8px;width:100%;min-width:0}.calculator-container .history-time{flex:0 0 auto;white-space:nowrap}';
       container.appendChild(style);
     }
   }
@@ -1118,11 +1149,33 @@ export class CalculatorApp {
         this.performAction('backspace');
         handled = true;
       }
-      if (handled) e.preventDefault();
+      if (handled) {
+        e.preventDefault();
+        this.markKeypadFocus(key);
+      }
     };
 
     document.addEventListener('keydown', this.keyboardHandler);
     this.keyboardHandlerAttached = true;
+  }
+
+  markKeypadFocus(key) {
+    const root = document.querySelector('.window[data-app-id="calculator"] .calculator-container')
+      || document.querySelector('.calculator-container');
+    if (!root) return;
+    const actionByKey = {
+      '+': 'add', '-': 'subtract', '*': 'multiply', '/': 'divide',
+      Enter: 'equals', '=': 'equals', Escape: 'clear', c: 'clear', C: 'clear',
+      Backspace: 'backspace', '.': 'decimal',
+    };
+    const action = actionByKey[key];
+    const button = action
+      ? root.querySelector(`.calc-btn[data-action="${action}"]`)
+      : ('0123456789'.includes(key) ? root.querySelector(`.calc-btn[data-value="${key}"]`) : null);
+    if (!button) return;
+    root.querySelectorAll('.calc-key-focus').forEach(node => node.classList.remove('calc-key-focus'));
+    button.classList.add('calc-key-focus');
+    button.focus({ focusVisible: true, preventScroll: true });
   }
 
   isCalculatorFocused() {
@@ -1381,6 +1434,8 @@ export class CalculatorApp {
       });
       
       this.currentDisplay = String(result);
+      this.completedExpression = expression;
+      this.restoredExpression = '';
       this.previousValue = null;
       this.operation = null;
       this.waitingForOperand = true;
@@ -1534,9 +1589,10 @@ export class CalculatorApp {
 
     const secondary = document.querySelector('#display-secondary');
     if (secondary) {
-      secondary.textContent = this.operation && this.previousValue !== null
+      const pending = this.operation && this.previousValue !== null
         ? `${this.formatNumber(String(this.previousValue))} ${this.getOperatorSymbol(this.operation)}`
-        : (this.restoredExpression || '');
+        : '';
+      secondary.textContent = pending || this.restoredExpression || this.completedExpression || '';
     }
 
     const error = document.querySelector('#display-error');
@@ -1648,19 +1704,27 @@ export class CalculatorApp {
       return;
     }
 
-    historyList.innerHTML = this.history.map(rawItem => {
-      const item = this.normalizeHistoryItem(rawItem);
+    const historyRows = this.history.map(rawItem => this.normalizeHistoryItem(rawItem));
+    historyRows.sort((left, right) => {
+      const leftSelected = left.calculation === this.selectedHistoryCalculation ? 0 : 1;
+      const rightSelected = right.calculation === this.selectedHistoryCalculation ? 0 : 1;
+      return leftSelected - rightSelected;
+    });
+    historyList.innerHTML = historyRows.map(item => {
+      const selected = this.selectedHistoryCalculation && item.calculation === this.selectedHistoryCalculation;
+      const when = new Date(item.timestamp);
+      const hours = when.getHours();
+      const stamp = `${hours % 12 || 12}:${String(when.getMinutes()).padStart(2, '0')}:${String(when.getSeconds()).padStart(2, '0')} ${hours >= 12 ? 'PM' : 'AM'}`;
       return `
-      <div class="history-item" data-calculation="${this.escapeHtml(item.calculation)}" data-expression="${this.escapeHtml(item.expression)}" data-result="${this.escapeHtml(item.result)}" data-local-ref="${this.escapeHtml(item.localRef)}">
-        <div>${this.escapeHtml(item.calculation)}</div>
-        <div class="history-meta">
-          <span>${new Date(item.timestamp).toLocaleTimeString()}</span>
-        </div>
+      <div class="history-item${selected ? ' history-item-selected' : ''}" aria-selected="${selected ? 'true' : 'false'}" data-calculation="${this.escapeHtml(item.calculation)}" data-expression="${this.escapeHtml(item.expression)}" data-result="${this.escapeHtml(item.result)}" data-local-ref="${this.escapeHtml(item.localRef)}">
+        <div class="history-line"><span class="history-expr">${this.escapeHtml(item.calculation)}</span><span class="history-time">${stamp}</span></div>
       </div>
     `;
     }).join('');
 
     // Add click handlers for history items
+    this.fitCalculatorFrame(historyList.closest('.calculator-container'));
+
     historyList.querySelectorAll('.history-item').forEach(item => {
       item.addEventListener('click', () => {
         const expression = item.dataset.expression || '';
@@ -1675,7 +1739,8 @@ export class CalculatorApp {
         this.updateDisplay();
         const restored = item.dataset.calculation || `${expression} = ${result}`;
         this.showRetainedLine('calculator-restored-history', restored);
-        this.toggleHistory();
+        this.selectedHistoryCalculation = restored;
+        this.revealHistory();
       });
     });
   }
@@ -1691,6 +1756,42 @@ export class CalculatorApp {
         this.updateHistoryDisplay();
       }
     }
+  }
+
+  fitCalculatorFrame(container) {
+    const root = container || document.querySelector('.calculator-container');
+    const frame = root?.closest?.('.window');
+    if (!root || !frame) return;
+    const content = root.closest('.window-app-content');
+    const windowRect = frame.getBoundingClientRect();
+    const topOffset = content ? content.getBoundingClientRect().top - windowRect.top : 32;
+    if (content && windowRect.height > 200 && topOffset >= 0 && topOffset < windowRect.height) {
+      const available = Math.max(280, Math.floor(windowRect.height - topOffset - 4));
+      content.style.boxSizing = 'border-box';
+      content.style.display = 'flex';
+      content.style.flexDirection = 'column';
+      content.style.height = `${available}px`;
+      content.style.maxHeight = `${available}px`;
+      content.style.overflow = 'hidden';
+      content.style.width = '100%';
+      content.style.maxWidth = '100%';
+    }
+    root.style.position = 'relative';
+    root.style.flex = '1 1 0%';
+    root.style.minHeight = '0';
+    root.style.width = '100%';
+    root.style.maxWidth = '100%';
+    root.style.height = '100%';
+    root.style.maxHeight = '100%';
+    root.style.overflow = 'hidden';
+  }
+
+  revealHistory() {
+    const historyPanel = document.querySelector('#history-panel');
+    if (!historyPanel) return;
+    historyPanel.style.display = 'block';
+    historyPanel.setAttribute('aria-hidden', 'false');
+    this.updateHistoryDisplay();
   }
 
   verifyExplanation() {
@@ -2274,16 +2375,17 @@ export class CalculatorApp {
         }
 
         .history-panel {
-          position: absolute;
-          top: 70px;
-          right: 16px;
-          width: 300px;
+          position: static;
+          width: auto;
+          margin: 0 8px 8px;
+          flex: 0 0 auto;
           background: rgba(0, 0, 0, 0.9);
           backdrop-filter: blur(20px);
           border-radius: 12px;
           border: 1px solid rgba(255, 255, 255, 0.2);
-          max-height: 400px;
-          z-index: 1000;
+          max-height: 176px;
+          overflow: auto;
+          z-index: 1;
         }
 
         .history-header {
@@ -2305,12 +2407,15 @@ export class CalculatorApp {
         }
 
         .history-list {
-          max-height: 300px;
-          overflow-y: auto;
+          max-height: 112px;
+          overflow: auto;
           padding: 8px;
         }
 
         .history-item {
+          display: block;
+          width: 100%;
+          box-sizing: border-box;
           padding: 8px;
           border-radius: 6px;
           margin-bottom: 4px;
@@ -2320,18 +2425,46 @@ export class CalculatorApp {
           font-size: 12px;
         }
 
+        .history-line {
+          display: flex;
+          flex-direction: row;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 8px;
+          width: 100%;
+          min-width: 0;
+        }
+
+        .history-expr {
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+
+        .history-time {
+          flex: 0 0 auto;
+          white-space: nowrap;
+          font-size: 10px;
+          opacity: 0.78;
+        }
+
         .history-item:hover {
           background: rgba(255, 255, 255, 0.1);
         }
 
+        .history-item.history-item-selected {
+          background: rgba(139, 216, 189, 0.28);
+          border: 1px solid #8bd8bd;
+        }
+
         .history-meta {
+          display: block;
+          width: 100%;
           margin-top: 4px;
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
           font-size: 10px;
           opacity: 0.78;
-          overflow-wrap: anywhere;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .no-history {
@@ -2350,6 +2483,18 @@ export class CalculatorApp {
 
         .calc-btn.pressed {
           animation: buttonPress 0.1s ease;
+        }
+
+        .calc-btn:focus,
+        .calc-btn:focus-visible,
+        .calc-btn.calc-key-focus,
+        .mode-tab:focus,
+        .mode-tab:focus-visible,
+        .history-btn:focus,
+        .history-btn:focus-visible {
+          outline: 3px solid #f7f3cf;
+          outline-offset: 2px;
+          box-shadow: 0 0 0 3px rgba(247, 243, 207, 0.95);
         }
 
         /* Responsive */
@@ -2405,11 +2550,12 @@ export class CalculatorApp {
           }
 
           .history-panel {
-            top: 84px;
-            right: 8px;
-            left: 8px;
+            position: static;
+            top: auto;
+            right: auto;
+            left: auto;
             width: auto;
-            max-height: 330px;
+            max-height: 176px;
           }
         }
       </style>

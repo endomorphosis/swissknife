@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "cron",
-  "description": "Create a paused browser-local schedule, reopen it, add and delete a second schedule, then cancel an invalid expression without losing the first.",
+  "description": "Create a paused browser-local schedule, reopen it, add and delete a second schedule, cancel an invalid expression without losing the first, then reopen so the deleted schedule is still absent.",
   "fixture_scope": "svf-cron-local-schedule",
   "backend_bindings": [],
   "phases": {
@@ -46,6 +46,8 @@
       {"op": "wait_for", "selector": "#cron-delete-copy", "state": "visible", "timeout_ms": 5000},
       {"op": "assert", "probe": {"kind": "text", "selector": "#cron-delete-copy"}, "operator": "contains", "expected": "Extra local"},
       {"op": "press", "selector": "#confirm-delete-task", "key": "Enter"},
+      {"op": "reopen_app"},
+      {"op": "wait_for", "selector": ".task-card .task-name", "state": "visible", "timeout_ms": 5000},
       {"op": "assert", "probe": {"kind": "text", "selector": "#schedule-roster"}, "operator": "equals", "expected": "Morning local"},
       {"op": "assert", "probe": {"kind": "text", "selector": "#paused-tasks"}, "operator": "equals", "expected": "0"},
       {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#cron-retention"}, "operator": "equals", "expected": "Invalid schedule canceled. The bad expression was not saved. Deleted Extra local. That schedule is absent. Morning local remains."}

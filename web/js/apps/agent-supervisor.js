@@ -1002,6 +1002,7 @@ export class AgentSupervisorApp {
 
   renderNativeRun() {
     const run=this.state.fixtureRun,stage=this.state.nativeStage||'a',current=run?.stages?.[stage],read=this.nativeReadbackFor(stage);
+    const priorLines = [...(this.state.fixtureHistory || []), run].filter(item => item?.run_id).flatMap(item => this.retainedHistoryLines(item));
     return `<section class="as-section-line" data-native-run data-native-summary data-native-run-state="${run?.task_ids?.a?'created':'none'}">
       <h4>Bounded native task run</h4>
       <label class="as-field as-native-identity"><span>Native run ID</span><input readonly data-native-run-id aria-label="Native run ID" value="${escapeHtml(run?.run_id||'')}" placeholder="Create a run to obtain its ID"></label>
@@ -1020,7 +1021,7 @@ export class AgentSupervisorApp {
       <span>Goal ${escapeHtml(run?.root_goal_cid||'not returned')}; child ${escapeHtml(run?.child_goal_cid||'not returned')}</span>
       <span>Owner receipt ${escapeHtml(current?.receipt_id||'none')}</span><span>Event DAG ${escapeHtml(current?.event_id||'none')}</span>
       <span>Producer ${escapeHtml(current?.execution?.producer?.sha256||'not returned')}</span><span>Independent validator ${escapeHtml(current?.execution?.validator?.sha256||'not returned')}</span>
-      <span>${escapeHtml((run?.history||[]).map(item=>`${item.action} ${item.stage||''} ${item.outcome||item.status}: ${item.receipt_id}; ${item.event_id}`).join(' | '))}</span>
+      <div class="as-section-line" data-retained-event-history><h4>Retained event history</h4>${priorLines.map(line => `<span>${escapeHtml(line)}</span>`).join('')}</div>
       </div></details></section>`;
   }
 
@@ -1127,6 +1128,30 @@ export class AgentSupervisorApp {
     const events = this.state.events || [];
     if (!events.length) return 'No retained events.';
     return events.map(item => item.message).join(' ');
+  }
+
+  retainedHistoryLines(run) {
+    if (!run?.run_id) return [];
+    const output = run.output_sha256 || run.stages?.a?.output_sha256 || '';
+    const taskA = run.task_ids?.a || '';
+    const lines = [`Reopened run ${run.run_id}; task ${taskA}; validated output ${output}`];
+    for (const item of run.history || []) {
+      if (!item?.receipt_id || !item?.event_id) continue;
+      lines.push(`${item.action} ${item.stage || ''} ${item.outcome || item.status}: ${item.receipt_id}; ${item.event_id}`);
+    }
+    return lines;
+  }
+
+  shortEventHistory() {
+    const runs = [...(this.state.fixtureHistory || []), this.state.fixtureRun].filter(run => run?.run_id);
+    return runs.flatMap(run => this.retainedHistoryLines(run)).join(' ');
+  }
+
+  renderRetainedHistory() {
+    const runs = (this.state.fixtureHistory || []).filter(run => run?.run_id);
+    if (!runs.length) return '';
+    const blocks = runs.map(run => this.retainedHistoryLines(run).map(line => `<span>${escapeHtml(line)}</span>`).join('')).join('');
+    return `<section class="as-section-line as-retained-history" data-retained-event-history><h4>Retained event history</h4>${blocks}</section>`;
   }
 
   async retrieveSelectedReceiptContent() {
@@ -1434,7 +1459,14 @@ export class AgentSupervisorApp {
     const taskLogs = logs.filter(item => item.target_id === task.task_id || item.target_id === task.goal_id);
     const runs = runHistory.filter(item => item.task_id === task.task_id);
     return `
-      <div class="as-detail-body" data-testid="active-task">
+      <div class="as-detail-body">
+        <div data-testid="active-task">
+          <div class="as-section-line" data-testid="dependency-blocker">
+            <h4>Dependency and output</h4>
+            <span>${escapeHtml(this.dependencyCopy(task))}</span>
+            <span>${escapeHtml(this.shortEventHistory())}</span>
+          </div>
+        </div>
         ${this.renderNativeTaskSummary()}
         <div class="as-active-heading">
           <span class="as-status ${escapeHtml(task.status)}"></span>
@@ -1451,12 +1483,6 @@ export class AgentSupervisorApp {
           ${metric('Progress', `${Number(task.progress ?? 0)}%`)}
           ${metric('Assignee', task.assignee || 'unassigned')}
           ${metric('Timeout/Reassign', task.reassignment || 'within lease')}
-        </div>
-        <div class="as-section-line" data-testid="dependency-blocker">
-          <h4>Dependency and output</h4>
-          <span>${escapeHtml(this.dependencyCopy(task))}</span>
-          <span>${escapeHtml(this.fixtureCopy())}</span>
-          <span>${escapeHtml(this.eventCopy())}</span>
         </div>
         <div class="as-section-line">
           <h4>Taskboard links</h4>
@@ -1939,6 +1965,9 @@ export class AgentSupervisorApp {
         .as-dispatch-toolbar { flex: 0 0 auto; padding: 8px 12px; border-top: 1px solid #315248; background: #12211d; }
         .as-dispatch-toolbar button { padding: 6px 8px; }
         [data-native-run] { gap: 6px; padding-top: 0; border-top: 0; }
+        .as-retained-history { display: grid; gap: 2px; margin: 0 0 6px; font-size: 11px; line-height: 1.35; }
+        .as-retained-history h4 { margin: 0; }
+        .as-retained-history span { overflow-wrap: anywhere; }
         .as-native-identity { gap: 3px; }
         .as-native-identity input { width: 100%; min-width: 0; height: 32px; border: 1px solid #315248; border-radius: 4px; padding: 6px 8px; background: #101b18; color: #edf7f2; font: 12px/1.4 monospace; user-select: all; }
         .as-native-identity input:focus-visible { outline: 2px solid #8bd8bd; outline-offset: 2px; }
