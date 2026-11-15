@@ -14,7 +14,8 @@
       {"op": "click", "selector": "#classic-stop"},
       {"op": "click", "selector": "#classic-save"},
       {"op": "press", "selector": "#classic-track-name", "key": "Enter"},
-      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#music-studio-workflow-status"}, "operator": "equals", "expected": "Played, stopped, and saved locally. Enter confirmed. No remote render."}
+      {"op": "assert", "requirement_id": "result_1", "probe": {"kind": "text", "selector": "#music-studio-workflow-status"}, "operator": "equals", "expected": "Played, stopped, and saved locally. Enter confirmed. No remote render."},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#classic-transport-state"}, "operator": "equals", "expected": "Played, stopped, and saved locally. Enter confirmed. No remote render."}
     ],
     "persist_reopen": [
       {"op": "reopen_app"},

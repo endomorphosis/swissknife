@@ -171,7 +171,7 @@ export class CronApp {
           .cron-app-container #task-creation-modal .form-group { margin: 2px 0 !important; }
           .cron-app-container #task-creation-modal .sk-input { min-height: 0 !important; height: 28px !important; padding: 2px 6px !important; }
           .cron-app-container #task-schedule-error { color: #7f1d1d !important; background: #fee2e2; padding: 4px 6px; }
-          .cron-app-container button:focus, .cron-app-container button:focus-visible, .cron-app-container input:focus, .cron-app-container input:focus-visible, .cron-app-container select:focus, .cron-app-container select:focus-visible { outline: 3px solid #ca8a04 !important; outline-offset: 2px; box-shadow: 0 0 0 3px #ca8a04 !important; }
+          .cron-app-container button:focus, .cron-app-container button:focus-visible, .cron-app-container input:focus, .cron-app-container input:focus-visible, .cron-app-container select:focus, .cron-app-container select:focus-visible { outline: 3px solid #0b57d0 !important; outline-offset: 2px; box-shadow: inset 0 0 0 3px #0b57d0 !important; }
         </style>
         <div class="cron-header">
           <div class="header-tabs">
@@ -769,6 +769,7 @@ export class CronApp {
     const roster = document.querySelector(`.cron-app-container[data-cron-instance="${this.instanceId}"] #schedule-roster`);
     if (roster) roster.textContent = this.scheduleRosterText();
     this.updateStats();
+    this.revealScheduleFocus();
     return;
 
     
@@ -1289,6 +1290,17 @@ export class CronApp {
     } catch (error) {
       target.focus();
     }
+  }
+
+  revealScheduleFocus() {
+    const modal = document.getElementById('task-creation-modal');
+    if (modal && getComputedStyle(modal).display !== 'none') return;
+    const confirm = document.getElementById('confirm-delete-task');
+    if (confirm && confirm.offsetParent !== null) return;
+    const tasks = [...this.scheduledTasks.values()];
+    const chosen = tasks.find(task => task.enabled) || tasks[0];
+    if (chosen) this.focusScheduleControl(chosen.id);
+    else document.getElementById('create-task')?.focus();
   }
 
   setRetention(text) {

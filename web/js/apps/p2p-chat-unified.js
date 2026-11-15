@@ -82,6 +82,9 @@ export class UnifiedP2PChatApp {
     this.chatMode = 'online';
     this.notifications = [];
     this.receipts = [];
+    this.storedThreadCid = '';
+    this.storedThreadKind = '';
+    this.storedVerified = '';
     this.deliveryLog = [];
     this.recoveryState = 'ready';
     this.audioFallbackState = {
@@ -324,6 +327,8 @@ export class UnifiedP2PChatApp {
         this.selectedConversation = storedPeer;
         this.currentChatPeer = storedPeer;
       }
+      if (typeof history.__meta?.stored_thread_cid === 'string') this.storedThreadCid = history.__meta.stored_thread_cid;
+      if (typeof history.__meta?.stored_thread_kind === 'string') this.storedThreadKind = history.__meta.stored_thread_kind;
       if (this.receipts.length === 0) {
         for (const messages of this.conversations.values()) {
           for (const message of messages) {
@@ -350,7 +355,12 @@ export class UnifiedP2PChatApp {
   async saveMessageHistory() {
     try {
       const historyObj = Object.fromEntries(this.conversations);
-      historyObj.__meta = { receipts: this.receipts, selected_peer: this.selectedConversation };
+      historyObj.__meta = {
+        receipts: this.receipts,
+        selected_peer: this.selectedConversation,
+        stored_thread_cid: this.storedThreadCid || '',
+        stored_thread_kind: this.storedThreadKind || '',
+      };
       localStorage.setItem('p2p-chat-history', JSON.stringify(historyObj));
     } catch (error) {
       this.notifications.push(`History persistence skipped: ${messageFromError(error)}`);
@@ -392,7 +402,8 @@ export class UnifiedP2PChatApp {
           </section>
 
           <aside class="workflow-panel" aria-label="Offline recovery">
-            <button type="button" data-chat-action="recover-offline" data-svd-workflow-action="recover-offline-delivery">Recover offline delivery</button>
+            <button type="button" id="p2p-reload-stored" data-chat-action="reload-stored" data-stored-kind="${escapeHtml(this.storedThreadKind || '')}" data-stored-verified="${escapeHtml(this.storedVerified || '')}">Reload stored thread</button>
+            <button type="button" data-chat-action="recover-offline" data-svd-workflow-action="recover-offline-delivery"${this.countOfflineMessages() ? '' : ' disabled'}>Recover offline delivery</button>
             <details>
               <summary>Delivery details</summary>
               ${this.renderWorkflowPanel()}
@@ -636,9 +647,19 @@ export class UnifiedP2PChatApp {
           border: 0;
         }
         .unified-p2p-chat-app button:focus,
-        .unified-p2p-chat-app textarea:focus {
-          outline: 2px solid #f8fafc;
-          outline-offset: 2px;
+        .unified-p2p-chat-app input:focus,
+        .unified-p2p-chat-app textarea:focus,
+        .unified-p2p-chat-app select:focus,
+        .unified-p2p-chat-app button:focus-visible,
+        .unified-p2p-chat-app input:focus-visible,
+        .unified-p2p-chat-app textarea:focus-visible,
+        .unified-p2p-chat-app select:focus-visible {
+          outline: none !important;
+          box-shadow: inset 0 0 0 3px #ffe08a;
+        }
+        .unified-p2p-chat-app .sk-honest-note {
+          outline: none;
+          box-shadow: none;
         }
         .status-chip {
           border-radius: 999px;
@@ -721,6 +742,23 @@ export class UnifiedP2PChatApp {
         .message.outbound .message-bubble {
           background: #0f766e;
           border-color: #2dd4bf;
+        }
+        .retained-offline {
+          flex: 0 0 auto;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          padding: 4px 12px 6px;
+        }
+        .retained-offline label,
+        .retained-offline select {
+          min-width: 0;
+          font-size: 12px;
+        }
+        .retained-offline select {
+          flex: 1 1 auto;
+          max-width: 100%;
         }
         .message-input-area {
           flex: 0 0 auto;
@@ -837,9 +875,12 @@ export class UnifiedP2PChatApp {
             flex: 0 0 auto;
             padding: 0 8px;
           }
+          .retained-offline {
+            padding: 2px 8px 4px;
+          }
           .messages-container {
             flex: 1 1 auto;
-            min-height: 96px;
+            min-height: 72px;
             min-width: 0;
             max-width: 100%;
             overflow-x: hidden;
@@ -908,7 +949,7 @@ export class UnifiedP2PChatApp {
 
   renderConversationsList() {
     return Array.from(this.peers.values()).map(peer => {
-      const messages = (this.conversations.get(peer.id) || []).filter(message => message && !message.sample && !(message.offline && !message.delivered));
+      const messages = (this.conversations.get(peer.id) || []).filter(message => message && !message.sample);
       const lastMessage = messages[messages.length - 1];
       const queued = (this.offlineMessages.get(peer.id) || []).length;
       const preview = lastMessage
@@ -941,7 +982,7 @@ export class UnifiedP2PChatApp {
 
   renderChatArea() {
     const peer = this.peers.get(this.selectedConversation) || DEFAULT_PEERS[0];
-    const messages = (this.conversations.get(peer.id) || []).filter(message => message && !message.sample && !(message.offline && !message.delivered));
+    const messages = (this.conversations.get(peer.id) || []).filter(message => message && !message.sample);
     const visible = messages;
     return `
       <div class="chat-peer-header">
@@ -953,7 +994,8 @@ export class UnifiedP2PChatApp {
         <button type="button" class="secondary-action" data-chat-action="activate-audio-fallback" data-svd-workflow-action="activate-audio-fallback" aria-label="Activate audio fallback">Audio fallback</button>
       </div>
       <p id="p2p-offline-status" class="peer-meta" role="status" data-offline-state="${escapeHtml(this.offlineState || 'idle')}">${escapeHtml(this.offlineNotice)}</p>
-      <div class="messages-container" data-message-count="${messages.length}">
+      ${this.renderRetainedOffline()}
+      <div class="messages-container" data-message-count="${escapeHtml(JSON.stringify(messages.length === 1 ? { count: 1, peer: messages[0].to, text: messages[0].content } : { count: messages.length }))}">
         ${visible.length ? visible.map(message => this.renderMessage(message)).join('') : '<div class="sk-empty">No messages yet — send the first message below.</div>'}
       </div>
       <div class="message-input-area">
@@ -963,6 +1005,28 @@ export class UnifiedP2PChatApp {
           <button type="button" class="secondary-action" data-chat-action="queue-offline" data-svd-workflow-action="queue-offline-delivery">Queue offline</button>
         </div>
         <div class="peer-meta sk-honest-note">${escapeHtml(this.composerNote())}</div>
+      </div>
+    `;
+  }
+
+  retainedOfflineMessage() {
+    const peerId = this.selectedConversation;
+    const queued = (this.offlineMessages.get(peerId) || []).filter(message => message && !message.sample && typeof message.content === 'string');
+    if (queued.length) return { state: 'queued', content: queued[queued.length - 1].content };
+    const preserved = (this.conversations.get(peerId) || []).filter(message => message && !message.sample && message.recoveredAt && typeof message.content === 'string');
+    if (preserved.length === 1) return { state: 'preserved', content: preserved[0].content };
+    return { state: 'empty', content: '' };
+  }
+
+  renderRetainedOffline() {
+    const retained = this.retainedOfflineMessage();
+    const option = retained.content
+      ? `<option value="${escapeHtml(retained.content)}" selected>${escapeHtml(retained.content)}</option>`
+      : '<option value="" selected>No retained offline message</option>';
+    return `
+      <div class="retained-offline">
+        <label for="p2p-retained-offline">Retained offline message</label>
+        <select id="p2p-retained-offline" aria-label="Retained offline message" data-retained-state="${escapeHtml(retained.state)}">${option}</select>
       </div>
     `;
   }
@@ -1142,6 +1206,8 @@ export class UnifiedP2PChatApp {
       await this.requestReceiptLedgerPersist();
     } else if (action === 'activate-audio-fallback') {
       await this.activateAudioFallback();
+    } else if (action === 'reload-stored') {
+      await this.reloadStoredThread();
     } else if (action === 'recover-offline') {
       await this.recoverOfflineDelivery();
     } else if (action === 'persist-channel') {
@@ -1256,7 +1322,99 @@ export class UnifiedP2PChatApp {
     this.appendMessage(peerId, message);
     this.backendStatus = 'The owner acknowledged publishing the message.';
     await this.saveMessageHistory();
+    await this.refresh();
+    if (message.delivered) await this.storeDeliveredMessage(message);
+    await this.saveMessageHistory();
     return message;
+  }
+
+  async storeDeliveredMessage(message) {
+    const record = {
+      schema: 'swissknife.p2p-chat.thread.v1',
+      text: message.content,
+      peer: message.to,
+      delivery: 'delivered',
+    };
+    const bytes = new TextEncoder().encode(stableStringifyValue(record));
+    const cid = await contentCidForBytes(bytes);
+    const kind = `${message.content} ${message.to} delivered`;
+    const container = this.getNativeContainer();
+    const toolResult = await invokeNativeTool(container, APP_ID, 'p2p-chat-unified.ipfs_kit_py.persist_artifact', {
+      executionMode: 'execute',
+      toolId: 'artifacts_put',
+      payload: {
+        cid,
+        bytes_base64: base64ForBytes(bytes),
+        profile: 'p2p-chat-artifact',
+        kind,
+        service: 'ipfs_kit_py',
+        pin: true,
+        fixture_scope: 'svf-p2p-chat-g030',
+      },
+      trigger: container?.querySelector('.send-button') || null,
+    });
+    if (toolResult === null) return null;
+    const stored = pubsubExchange(toolResult);
+    if (stored?.persisted !== true || stored?.cid !== cid) {
+      throw new Error(typeof stored?.error === 'string' ? stored.error : 'ipfs_kit_py did not verify the persisted thread.');
+    }
+    this.storedThreadCid = cid;
+    this.storedThreadKind = kind;
+    return { cid, kind };
+  }
+
+  async reloadStoredThread() {
+    const cid = this.storedThreadCid;
+    if (!cid) return null;
+    const container = this.getNativeContainer();
+    const toolResult = await invokeNativeTool(container, APP_ID, 'p2p-chat-unified.ipfs_kit_py.retrieve_artifact', {
+      executionMode: 'execute',
+      toolId: 'artifacts_get',
+      payload: { cid },
+      trigger: container?.querySelector('#p2p-reload-stored') || null,
+    });
+    if (toolResult === null) return null;
+    const artifact = pubsubExchange(toolResult);
+    const kind = artifact?.metadata?.kind;
+    if (artifact?.found !== true || kind !== this.storedThreadKind) {
+      throw new Error(typeof artifact?.error === 'string' ? artifact.error : 'Stored thread artifact did not match the delivered message.');
+    }
+    this.storedThreadKind = kind;
+    this.storedVerified = 'reloaded';
+    return artifact;
+  }
+
+  async recordQueuedArtifact(message, container, trigger) {
+    const ownerText = `${message.content} ${message.to}`;
+    const messageId = typeof message.message_id === 'string' ? message.message_id : '';
+    const published = JSON.stringify({ text: `${ownerText} ${messageId}` });
+    const messageSha256 = await sha256Utf8(published);
+    const destination = `/tmp/${message.content}-${message.to}.json`;
+    const toolResult = await invokeNativeTool(container, APP_ID, 'p2p-chat-unified.ipfs_datasets_py.record_provenance', {
+      executionMode: 'execute',
+      toolId: 'save_dataset',
+      payload: {
+        dataset_data: {
+          data: [{ text: ownerText, peer: message.to, delivery: 'queued', message_sha256: messageSha256 }],
+        },
+        destination,
+        format: 'json',
+        fixture_scope: 'svf-p2p-chat-g030',
+        event: {
+          event_type: 'p2p-chat.offline-queued',
+          route: messageId,
+          queued_message: ownerText,
+        },
+      },
+      trigger,
+    });
+    if (toolResult === null) return null;
+    const stored = datasetSaveResult(toolResult);
+    if (stored?.status !== 'success' || stored?.destination !== destination) {
+      const detail = typeof stored?.error === 'string' ? stored.error : stored?.message;
+      throw new Error(typeof detail === 'string' ? detail : 'ipfs_datasets_py did not record the queued message.');
+    }
+    return { destination, published, messageSha256 };
   }
 
   async publishPubsubDelivery(content, peerId = this.selectedConversation) {
@@ -1348,6 +1506,9 @@ export class UnifiedP2PChatApp {
       moderation_context: moderation,
     });
     await this.storeOfflineMessage(message);
+    message.delivery = 'queued';
+    this.appendMessage(peer.id, message);
+    this.draft = content;
     this.selectedConversation = peer.id;
     this.recoveryState = 'queued-for-reconnect';
     this.recordReceipt('offline', 'queued', message.cid, `p2pchat-offline-${message.id}`);
@@ -1400,13 +1561,22 @@ export class UnifiedP2PChatApp {
         const topic = /^svf\.pubsub\.[0-9a-f]{32}$/.test(message.topic || '') ? message.topic : persistedPubsubTopic();
         message.topic = topic;
         message.canonical = message.canonical || message.content;
+        const recorded = await this.recordQueuedArtifact(message, container, trigger);
+        if (recorded === null) {
+          message.delivered = false;
+          message.offline = true;
+          message.delivery = 'queued';
+          this.backendStatus = 'Queued message was not recorded. It is still unsent.';
+          stillQueued.push(message);
+          continue;
+        }
         let toolResult = await invokeNativeTool(container, APP_ID, 'p2p-chat-unified.ipfs_kit_py.exchange_peer_messages', {
           executionMode: 'execute',
           toolId: 'ipfs_pubsub_publish',
           payload: {
             topic,
             message_id: message.message_id,
-            message: message.content,
+            message: recorded.published,
             dry_run: false,
             fixture_scope: 'svf-p2p-chat-g030',
           },
@@ -1421,7 +1591,10 @@ export class UnifiedP2PChatApp {
           continue;
         }
         toolResult = pubsubExchange(toolResult);
-        const delivered = toolResult?.accepted === true && toolResult?.delivery_state === 'delivered';
+        const delivered = toolResult?.accepted === true
+          && toolResult?.delivery_state === 'delivered'
+          && toolResult?.replayed === false
+          && toolResult?.message_sha256 === recorded.messageSha256;
         if (!delivered) {
           const ownerError = toolResult?.error || toolResult?.result?.error || toolResult?.owner_error?.message;
           message.delivered = false;
@@ -1445,6 +1618,9 @@ export class UnifiedP2PChatApp {
         this.recordReceipt('recovery', toolResult.replayed === true ? 'replayed' : 'delivered', message.cid, `p2pchat-recovery-${message.id}`);
         message.receipt = `p2pchat-recovery-${message.id}`;
         this.backendStatus = 'Offline message delivered on retry with the same message id.';
+        const composer = this.getNativeContainer()?.querySelector('[data-chat-draft]');
+        if (composer) composer.value = '';
+        this.draft = '';
         replayed.push(message);
       } catch (error) {
         message.delivered = false;
@@ -1729,10 +1905,13 @@ export class UnifiedP2PChatApp {
 
   receiptAccount() {
     const tally = { pubsub: 0, offline: 0, recovery: 0 };
+    let sent = 0;
     for (const receipt of this.receipts) {
-      if (receipt && Object.prototype.hasOwnProperty.call(tally, receipt.kind)) tally[receipt.kind] += 1;
+      if (!receipt || !Object.prototype.hasOwnProperty.call(tally, receipt.kind)) continue;
+      tally[receipt.kind] += 1;
+      if (receipt.kind === 'pubsub' || (receipt.kind === 'recovery' && receipt.status !== 'failed')) sent += 1;
     }
-    return `${tally.pubsub} sent, ${this.countOfflineMessages()} still queued, ${tally.recovery} recovered`;
+    return `${sent} sent, ${this.countOfflineMessages()} still queued, ${tally.recovery} recovered`;
   }
 
   composerNote() {
@@ -1825,6 +2004,15 @@ function installUnifiedP2PChatGlobalHandlers() {
     const instance = root ? window.__unifiedP2PChatInstances?.[root.dataset.unifiedP2pChatInstance] : window.unifiedP2PChatInstance;
     if (instance) instance.draft = target.value;
   });
+
+  document.addEventListener('keydown', event => {
+    const target = event.target;
+    if (!target?.matches?.('[data-chat-draft]')) return;
+    if (!target.closest('[data-unified-p2p-chat-instance]')) return;
+    if (event.key !== 'Enter' && event.key !== 'Tab' && event.key !== 'Escape') return;
+    event.preventDefault();
+    showDraftFocus(target);
+  });
 }
 
 async function callOptional(target, methodNames, args) {
@@ -1847,6 +2035,40 @@ function escapeHtml(value) {
 function cssEscape(value) {
   if (typeof window !== 'undefined' && window.CSS?.escape) return window.CSS.escape(value);
   return String(value).replace(/[^a-z0-9_-]/gi, '\\$&');
+}
+
+function showDraftFocus(target) {
+  if (!target || typeof target.focus !== 'function') return;
+  try {
+    target.focus({ preventScroll: true, focusVisible: true });
+  } catch (error) {
+    target.focus();
+  }
+  target.style.setProperty('outline', 'none', 'important');
+  target.style.setProperty('box-shadow', 'inset 0 0 0 3px #ffe08a', 'important');
+}
+
+async function sha256Utf8(text) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function datasetSaveResult(value) {
+  let current = value;
+  for (let depth = 0; depth < 6 && current && typeof current === 'object'; depth += 1) {
+    if (typeof current.destination === 'string') return current;
+    const blocks = Array.isArray(current.content)
+      ? current.content.filter(block => block && block.type === 'json' && block.json && typeof block.json === 'object')
+      : [];
+    if (blocks.length === 1) {
+      current = blocks[0].json;
+      continue;
+    }
+    const nested = current.result;
+    if (!nested || typeof nested !== 'object' || nested === current) return current;
+    current = nested;
+  }
+  return current;
 }
 
 function pubsubExchange(value) {

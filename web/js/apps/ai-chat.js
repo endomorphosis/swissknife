@@ -618,8 +618,8 @@ export class AIChatApp {
 
         .chat-messages {
           flex: 1 1 auto;
-          min-height: 8rem;
-          padding: 8px 10px;
+          min-height: 0;
+          padding: 8px 10px 12px;
           overflow-x: hidden;
           overflow-y: auto;
           scroll-behavior: auto;
@@ -627,7 +627,10 @@ export class AIChatApp {
           color: var(--sk-text, #edf7f2);
         }
 
-        .chat-transcript-navigation { display:flex; flex:0 0 auto; gap:6px; padding:4px 12px; }
+        .chat-transcript-navigation { display:flex; flex:0 0 auto; gap:6px; padding:4px 12px; background:#10231c; position:relative; z-index:2; }
+        .chat-messages .message.assistant:not(:last-child) { max-height: 1.7em; overflow: hidden; }
+        .context-section { display:flex; flex-direction:column; }
+        .context-section [data-chat-context-status] { order:-1; display:block; margin:0 0 8px; line-height:1.35; overflow-wrap:anywhere; white-space:normal; }
         .chat-transcript-navigation button { border:1px solid #526b64; border-radius:5px; background:#1b2b26; color:#edf7f2; padding:4px 8px; cursor:pointer; }
         .chat-messages .message { padding:0; margin-bottom:6px; }
         .chat-reference-link { color:#7dd3fc; }
@@ -918,7 +921,7 @@ export class AIChatApp {
         #ai-chat-reference-cid { display:block; min-height:1.6rem; height:auto; margin:0; padding:4px 6px; font:12px/1.35 ui-monospace,monospace; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-all; resize:none; }
         #ai-chat-reference-cid-full { display:none !important; }
         #ai-chat-recovery-note:empty { display:none; }
-        #ai-chat-recovery-note { display:block; margin:6px 12px 0; padding:6px 8px; border:1px solid #64748b; border-radius:6px; color:#e5e7eb; background:#1f2937; overflow-wrap:anywhere; white-space:normal; }
+        #ai-chat-recovery-note { display:block; flex:0 0 auto; position:relative; z-index:1; margin:6px 12px 0; padding:6px 8px; border:1px solid #64748b; border-radius:6px; color:#e5e7eb; background:#1f2937; overflow-wrap:anywhere; white-space:normal; }
         @media (max-width: 768px) {
           .ai-chat-container {
             flex-direction: column;
@@ -936,6 +939,7 @@ export class AIChatApp {
             display: flex;
             flex-direction: column;
           }
+          .conversation-list, .usage-stats, .provider-section { display: none; }
           .chat-toolbar { display: none; }
           .chat-transcript-navigation { flex: 0 0 auto; background: #10231c; }
           .chat-messages { min-height: 0; flex: 1 1 0%; padding: 4px 8px; overflow-x: hidden; overflow-y: auto; }
@@ -943,9 +947,10 @@ export class AIChatApp {
           .chat-messages .message.user .message-content { padding: 4px 8px; }
           .chat-messages .message { margin-bottom: 4px; }
           .chat-messages .message:last-child { margin-bottom: 8px; }
+
           .chat-messages .message-avatar { display: none; }
           .chat-messages .message-text { font-size: 12px; line-height: 1.3; }
-          #ai-chat-recovery-note { flex: 0 0 auto; position: relative; z-index: 2; margin: 4px 8px 0; }
+          #ai-chat-recovery-note { flex: 0 0 auto; position: relative; z-index: 1; margin: 8px 8px 0; }
           #ai-chat-reference-cid { min-height: 1.5rem; }
           .input-footer { display: none; }
           .chat-header { order: -2; padding: 2px 8px; }
@@ -1413,15 +1418,25 @@ export class AIChatApp {
       if (!continuation || continuation === message) throw new Error('Inference returned the question instead of a continuation.');
       container?.querySelectorAll('.message.error').forEach(node => node.remove());
       const note = container?.querySelector('#ai-chat-recovery-note');
-      if (note && note.textContent.includes('No verified IPFS content has been selected')) {
-        note.textContent = 'Earlier rejection kept: No verified IPFS content has been selected for this chat. The retry completed with the stored reference.';
-      }
-      const contextStatus = container?.querySelector('[data-chat-context-status]');
-      if (contextStatus && /IPFS Content: disabled|No verified IPFS content has been selected/.test(contextStatus.textContent)) {
-        contextStatus.textContent = 'IPFS Content: off. This reply used the stored reference, not selected IPFS content.';
+      const restoredRetrieval = !!(note && note.textContent.includes('No verified IPFS content has been selected'));
+      if (restoredRetrieval) {
+        note.textContent = 'Earlier rejection kept: No verified IPFS content has been selected for this chat.';
+        const contextStatus = container?.querySelector('[data-chat-context-status]');
+        const model = context.reference?.model_id || this.selectedModel;
+        const snapshot = context.reference?.snapshot || '';
+        if (contextStatus) contextStatus.textContent = `Retrieval restored: ${model}. Selected IPFS content stays off.`;
+        const statusText = container?.querySelector('.status-text');
+        if (statusText) statusText.textContent = `Available model kept: ${this.modelLabel(this.selectedModel)}. Retrieval restored from the stored reference.`;
       }
       this.tokenUsage.output += continuation.split(/\s+/).filter(Boolean).length;
-      this.addMessage('assistant', this.appendCitations(continuation, context), Date.now(), context.reference || null);
+      const cited = this.appendCitations(continuation, context);
+      const cid = context.reference?.cid || '';
+      const model = context.reference?.model_id || this.selectedModel;
+      const snapshot = context.reference?.snapshot || '';
+      const visible = restoredRetrieval && cid
+        ? `Retrieval restored from the stored reference.\nipfs://${cid}\nModel: ${model}; snapshot: ${snapshot}.\nReferences: [Stored reference](ipfs://${cid})`
+        : cited;
+      this.addMessage('assistant', visible, Date.now(), context.reference || null);
       this.updateUsageStats();
       this.scrollTranscript('end');
     } catch (error) {
@@ -1743,23 +1758,28 @@ export class AIChatApp {
     const citation = assistant?.querySelector('.chat-reference-link')
       || assistant?.querySelector('.message-meta')
       || assistant;
-    const anchor = user || citation;
-    if (!anchor) {
+    if (!user && !citation) {
       messages.scrollTop = 0;
       return;
     }
-    const topBox = anchor.getBoundingClientRect();
+    if (user) {
+      const pane = messages.getBoundingClientRect();
+      const top = user.getBoundingClientRect();
+      messages.scrollTop = Math.max(0, messages.scrollTop + top.top - pane.top);
+    }
+    const narrow = (messages.ownerDocument?.defaultView?.innerWidth || 0) <= 768;
+    if (narrow || !citation || citation === user) return;
     const pane = messages.getBoundingClientRect();
-    messages.scrollTop = Math.max(0, messages.scrollTop + topBox.top - pane.top);
-    if (!user || !citation || citation === user) return;
-    // The question stays at the top of the pane. Pull the citation up only
-    // through the slack above that question, so the reply heading is not covered.
-    const paneAfter = messages.getBoundingClientRect();
-    const cite = citation.getBoundingClientRect();
-    const userNow = user.getBoundingClientRect();
-    const overflow = cite.bottom - (paneAfter.bottom - 4);
-    const slack = userNow.top - paneAfter.top;
-    if (overflow > 0 && slack > 0) messages.scrollTop += Math.min(overflow, slack);
+    const box = citation.getBoundingClientRect();
+    const overflow = box.bottom - (pane.bottom - 8);
+    if (overflow > 0) messages.scrollTop += overflow;
+    if (!user) return;
+    const userBox = user.getBoundingClientRect();
+    const paneNow = messages.getBoundingClientRect();
+    const citeNow = citation.getBoundingClientRect();
+    const above = paneNow.top - userBox.top;
+    const room = (paneNow.bottom - 8) - citeNow.bottom;
+    if (above > 1 && room > 1) messages.scrollTop -= Math.min(above, room);
   }
 
   loadStoredConversations() {

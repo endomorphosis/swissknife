@@ -596,9 +596,9 @@ export class NeuralNetworkDesignerApp {
       const savedGraph = this.designArtifacts.graphPersistedCid;
       if (!savedGraph) throw new Error('Save the graph artifact before running inference for it.');
       const fixtureScope = this.nativeContainer().querySelector('#nnd-fixture-scope')?.value.trim() || this.fixtureScope || '';
-      const prompt = `saved graph ${savedGraph} ${summary}`;
+      const prompt = `saved graph ${savedGraph} ${summary} .`;
       const result = await this.invokeDesignerTool('run_inference_job', {
-        model, model_id: model, input: prompt, input_data: prompt, max_length: 4,
+        model, model_id: model, input: prompt, input_data: prompt, max_length: 1,
         ...(fixtureScope ? { fixture_scope: fixtureScope } : {}),
       }, trigger);
       const preview = designerPreview(result);

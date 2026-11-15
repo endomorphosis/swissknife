@@ -1,7 +1,7 @@
 {
   "schema": "swissknife.visual-functional-scenario.v1",
   "app_id": "calendar",
-  "description": "Create a dated standup, overlap and edit it, reopen, then cancel an invalid end time and delete only the overlap.",
+  "description": "Create a dated standup, overlap and edit it, reopen and verify it, delete that standup, then cancel an invalid end time while the overlap stays saved.",
   "fixture_scope": "svf-calendar-disposable-event",
   "backend_bindings": [],
   "phases": {
@@ -162,6 +162,44 @@
         },
         "operator": "contains",
         "expected": "SVF Disposable Standup | 2027-06-15 10:30 | timezone:"
+      },
+      {
+        "op": "click",
+        "selector": "button[data-event-title=\"SVF Disposable Standup\"]"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#deleteBtn",
+        "state": "visible",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "click",
+        "selector": "#deleteBtn"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#eventModal",
+        "state": "hidden",
+        "timeout_ms": 5000
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#calendarLiveStatus"
+        },
+        "operator": "contains",
+        "expected": "Deleted: SVF Disposable Standup"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#calendar-record"
+        },
+        "operator": "contains",
+        "expected": "Deleted SVF Disposable Standup."
       }
     ],
     "failure_recovery": [
@@ -219,24 +257,13 @@
         "selector": "#cancelBtn"
       },
       {
-        "op": "click",
-        "selector": "button[data-event-title=\"SVF Disposable Overlap Edited\"]"
-      },
-      {
-        "op": "wait_for",
-        "selector": "#deleteBtn",
-        "state": "visible",
-        "timeout_ms": 5000
-      },
-      {
-        "op": "click",
-        "selector": "#deleteBtn"
-      },
-      {
-        "op": "wait_for",
-        "selector": "#eventModal",
-        "state": "hidden",
-        "timeout_ms": 5000
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#calendarLiveStatus"
+        },
+        "operator": "contains",
+        "expected": "SVF Disposable Overlap Edited | 2027-06-15 10:45"
       },
       {
         "op": "assert",
@@ -246,7 +273,7 @@
           "selector": "#calendar-record"
         },
         "operator": "equals",
-        "expected": "SVF Disposable Standup 2027-06-15 10:30 and SVF Disposable Overlap Edited 2027-06-15 10:45. Invalid end time canceled. The bad event was not saved. Deleted SVF Disposable Overlap Edited. SVF Disposable Standup remains."
+        "expected": "SVF Disposable Standup 2027-06-15 10:30 and SVF Disposable Overlap Edited 2027-06-15 10:45. Deleted SVF Disposable Standup. SVF Disposable Overlap Edited remains. Invalid end time canceled. The bad event was not saved."
       }
     ]
   }

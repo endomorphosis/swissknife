@@ -3836,6 +3836,60 @@ export class FileManagerApp {
     this.updateFileList(window);
   }
 
+  canonicalDatasetDocument(bytes, name) {
+    return JSON.stringify({ data: [{ text: bytes, copy: name }] }).split(',').join(', ').split(':').join(': ');
+  }
+
+  async sha256Hex(bytes) {
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  async readStoredCopy(surface, entry, trigger) {
+    const name = typeof entry?.name === 'string' ? entry.name : '';
+    const text = typeof entry?.content === 'string' ? entry.content : '';
+    const canonical = this.canonicalDatasetDocument(text, name);
+    const bytes = new TextEncoder().encode(canonical);
+    const cid = await contentCidForBytes(bytes);
+    const sha256 = await this.sha256Hex(bytes);
+    const safeName = name.replace(/[^a-z0-9._-]/gi, '_');
+    const destination = `/tmp/svf-fm-${safeName}.json`;
+    const datasetId = `dataset_${sha256.slice(0, 16)}`;
+    if (!text || entry?.copy_cid !== cid || entry?.copy_sha256 !== sha256
+      || entry?.destination !== destination || entry?.dataset_id !== datasetId) {
+      throw new Error('The saved copy metadata does not match the stored document.');
+    }
+    const response = await fetch('/mcp/tools/bindings?app_id=file-manager', { cache: 'no-store' });
+    const catalog = await response.json();
+    const control = catalog.controls?.find((item) => item.binding_id === 'file-manager.ipfs_kit_py.retrieve_content');
+    const approved = Array.isArray(control?.preferred_tool_ids) ? control.preferred_tool_ids : [];
+    if (!response.ok || control?.status !== 'available' || !approved.includes('ipfs_cat')) {
+      throw new Error('No reviewed copy read is available.');
+    }
+    const envelope = await invokeNativeTool(surface, 'file-manager', control.binding_id, {
+      executionMode: 'execute',
+      toolId: 'ipfs_cat',
+      payload: { cid, fixture_scope: 'svf-file-manager' },
+      trigger: trigger || null,
+    });
+    if (envelope === null) throw new Error('Copy read cancelled before dispatch.');
+    if (envelope.ok !== true || envelope.outcome !== 'executed') throw new Error('The native copy read failed.');
+    const actual = unwrapNetworkToolResult(envelope.result);
+    if (actual?.cid !== cid || typeof actual.bytes_base64 !== 'string' || actual?.sha256 !== sha256) {
+      throw new Error('The native copy read did not return the stored document.');
+    }
+    const decoded = Uint8Array.from(atob(actual.bytes_base64), (char) => char.charCodeAt(0));
+    if (await contentCidForBytes(decoded) !== cid || decoded.length !== bytes.length) {
+      throw new Error('Retrieved copy bytes do not match their CID.');
+    }
+    const documentText = new TextDecoder('utf-8', { fatal: true }).decode(decoded);
+    if (documentText !== canonical) throw new Error('Retrieved copy bytes do not match the stored document.');
+    const parsed = JSON.parse(documentText);
+    const row = Array.isArray(parsed?.data) ? parsed.data[0] : null;
+    if (!row || row.copy !== name || row.text !== text) throw new Error('Retrieved copy document does not name the saved file.');
+    return { cid, sha256, text, destination, datasetId };
+  }
+
   async governedDatasetSave(surface, bytes, name, trigger) {
     const response = await fetch('/mcp/tools/bindings?app_id=file-manager', { cache: 'no-store' });
     const catalog = await response.json();
@@ -3861,9 +3915,8 @@ export class FileManagerApp {
     if (envelope === null) throw new Error('Save cancelled before dispatch.');
     if (envelope.ok !== true || envelope.outcome !== 'executed') throw new Error('The native dataset save failed.');
     const actual = unwrapNetworkToolResult(envelope.result);
-    const canonical = JSON.stringify(datasetData).split(',').join(', ').split(':').join(': ');
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical));
-    const expectedId = `dataset_${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 16)}`;
+    const canonical = this.canonicalDatasetDocument(bytes, name);
+    const expectedId = `dataset_${(await this.sha256Hex(new TextEncoder().encode(canonical))).slice(0, 16)}`;
     if (actual?.status !== 'success' || actual?.format !== 'json' || actual?.dataset_id !== expectedId
       || actual?.destination !== destination || actual?.size !== canonical.length || actual?.record_count !== 1) {
       throw new Error('Dataset save receipt does not match the selected file.');
@@ -3915,6 +3968,11 @@ export class FileManagerApp {
       }
 
       const role = (this.extraFiles || []).some((entry) => entry.role !== 'retry') ? 'retry' : 'saved';
+      let copyPin = null;
+      if (role === 'saved') {
+        const encoded = new TextEncoder().encode(this.canonicalDatasetDocument(bytes, name));
+        copyPin = { cid: await contentCidForBytes(encoded), sha256: await this.sha256Hex(encoded) };
+      }
       this.extraFiles.push({
         name,
         role,
@@ -3929,6 +3987,9 @@ export class FileManagerApp {
         extension: name.includes('.') ? name.split('.').pop() : '',
         content: bytes,
         dataset_id: actual.dataset_id,
+        destination: actual.destination,
+        copy_cid: copyPin ? copyPin.cid : '',
+        copy_sha256: copyPin ? copyPin.sha256 : '',
         stored: true,
         pinned: false,
       });
@@ -3963,44 +4024,22 @@ export class FileManagerApp {
     this.saveInFlight = true;
     try {
       const surface = window.closest?.('.window-app-content') || window;
-      const stored = typeof entry.content === 'string' ? entry.content : '';
       let read;
       try {
-        read = await this.readGovernedBytes(surface, window.querySelector('#reopen-saved-copy') || null);
+        read = await this.readStoredCopy(surface, entry, window.querySelector('#reopen-saved-copy') || null);
       } catch (error) {
         this.fileError = `Storage failure. Selection kept: ${selectedName}. The saved copy was not reopened.`;
-        this.renderWorkflow(window);
-        return;
-      }
-      if (!stored || read.content !== stored || read.sha256 !== '7a26ef347543682dfee955176f6f81987c0b2a5503908035387eaca387b18817') {
-        this.fileError = `Storage failure. Selection kept: ${selectedName}. The saved copy bytes do not match the owner read.`;
-        this.renderWorkflow(window);
-        return;
-      }
-      let saved;
-      try {
-        saved = await this.governedDatasetSave(
-          surface,
-          stored,
-          entry.name,
-          window.querySelector('#reopen-saved-copy') || null,
-        );
-      } catch (error) {
-        this.fileError = `Storage failure. Selection kept: ${selectedName}. The saved copy was not reopened.`;
-        this.renderWorkflow(window);
-        return;
-      }
-      if (saved.destination !== '/tmp/svf-fm-notes-copy.txt.json' || saved.dataset_id !== 'dataset_79623791fcc29916') {
-        this.fileError = `Storage failure. Selection kept: ${selectedName}. The saved copy receipt does not name notes-copy.txt.`;
         this.renderWorkflow(window);
         return;
       }
       this.keptSelection = entry.path || entry.name;
-      this.previewBytes = read.content;
-      entry.dataset_id = saved.dataset_id;
-      entry.destination = saved.destination;
+      this.previewBytes = read.text;
+      entry.dataset_id = read.datasetId;
+      entry.destination = read.destination;
+      entry.copy_cid = read.cid;
+      entry.copy_sha256 = read.sha256;
       entry.stored = true;
-      this.reopenProof = `Reopened ${entry.name} ${saved.destination} ${saved.dataset_id} sha256 ${read.sha256} bytes ${read.content}`;
+      this.reopenProof = `Reopened ${entry.name} ${read.destination} ${read.datasetId} cid ${read.cid} sha256 ${read.sha256} bytes ${read.text}`;
       this.fileError = '';
       this.describeSelection(entry, read.content);
       try {

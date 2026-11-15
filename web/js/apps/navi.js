@@ -1059,9 +1059,8 @@ export class NAVIApp {
       }
       return;
     }
-    const choiceId = clean === 'gpt2' ? ' id="navi-choice-gpt2"' : '';
     list.hidden = false;
-    list.innerHTML = `<span id="navi-match-text" class="navi-match-text">Chosen ${this.escapeText(clean)}</span><button type="button" class="action-btn navi-target-choice navi-confirmed-target"${choiceId} data-target="${this.escapeText(clean)}">Use ${this.escapeText(clean)}</button>`;
+    list.innerHTML = `<span id="navi-match-text" class="navi-match-text">Chosen ${this.escapeText(clean)}</span>`;
   }
 
   commitSelectedTarget(label) {
@@ -1093,9 +1092,8 @@ export class NAVIApp {
       if (bubble && bubbleText && bubbleText.textContent === this.storedIntent) bubble.classList.add('navi-retained-message');
     } else if (!this.lastStatus.startsWith('Selected ')) {
       this.addMessage('navi', this.lastStatus);
-      this.addMessage('user', `Choose ${clean}`);
       const input = document.getElementById('message-input');
-      if (input) input.value = clean;
+      if (input && this.storedIntent) input.value = this.storedIntent;
     }
     const select = document.getElementById('navi-selected-target');
     if (select) {

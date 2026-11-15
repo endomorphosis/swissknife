@@ -186,10 +186,11 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
           }
 
           .vibe-btn:is(:focus, :focus-visible),
-          #vibecode-workspace-path:is(:focus, :focus-visible) {
-            outline: 2px solid #8ab4ff;
-            outline-offset: 2px;
-            box-shadow: 0 0 0 3px #1d4ed8;
+          #vibecode-workspace-path:is(:focus, :focus-visible),
+          .code-editor:is(:focus, :focus-visible) {
+            outline: 3px solid #ffe08a !important;
+            outline-offset: 2px !important;
+            box-shadow: inset 0 0 0 3px #ffe08a !important;
           }
           
           .vibe-btn.ai {
@@ -238,9 +239,9 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
           }
 
           .code-editor:is(:focus, :focus-visible) {
-            outline: 3px solid #93c5fd;
-            outline-offset: 0;
-            box-shadow: inset 0 0 0 3px #1d4ed8;
+            outline: 3px solid #ffe08a !important;
+            outline-offset: 2px !important;
+            box-shadow: inset 0 0 0 3px #ffe08a !important;
           }
           
           .preview-section {
@@ -355,14 +356,16 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
           #vibecode-diff {
             flex: 1 1 auto;
             margin: 0;
+            min-width: 0;
+            max-width: 100%;
             min-height: 0;
             max-height: 100%;
             padding: 8px 10px 16px;
             box-sizing: border-box;
-            overflow-x: auto;
+            overflow-x: hidden;
             overflow-y: auto;
-            white-space: pre;
-            overflow-wrap: normal;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
             color: #142018;
             background: #f3f7f4;
             font: 13px/1.35 ui-monospace, SFMono-Regular, Consolas, monospace;
@@ -431,6 +434,12 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             }
 
             .code-editor { min-height: 0; padding: 0.35rem 0.5rem; }
+
+            #vibecode-diff {
+              padding: 2px 8px 4px;
+              font-size: 12px;
+              line-height: 1.2;
+            }
             
             .preview-section {
               flex: 1 1 auto;
@@ -464,6 +473,12 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
             }
 
             .code-editor { min-height: 0; }
+
+            #vibecode-diff {
+              padding: 2px 8px 4px;
+              font-size: 12px;
+              line-height: 1.2;
+            }
 
             .preview-section {
               flex: 1 1 auto;
@@ -565,6 +580,10 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     this.boundEventRoots ||= new WeakSet();
     if (this.boundEventRoots.has(root)) return;
     this.boundEventRoots.add(root);
+    if (root.dataset.svfFocusKeys !== '1') {
+      root.dataset.svfFocusKeys = '1';
+      root.addEventListener('keydown', (event) => this.onVibeFocusKey(event), true);
+    }
     console.log('🎯 Setting up VibeCode event listeners...');
     
     // File operations
@@ -689,11 +708,13 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
         diff.style.setProperty('max-height', `${next}px`, 'important');
         diff.style.setProperty('flex', '0 0 auto', 'important');
       }
-      diff.style.setProperty('overflow-x', 'auto', 'important');
+      diff.style.setProperty('min-width', '0', 'important');
+      diff.style.setProperty('max-width', '100%', 'important');
+      diff.style.setProperty('overflow-x', 'hidden', 'important');
       diff.style.setProperty('overflow-y', 'auto', 'important');
-      diff.style.setProperty('white-space', 'pre', 'important');
-      const hidden = diff.scrollHeight - diff.clientHeight;
-      if (hidden > 1) diff.scrollTop = hidden;
+      diff.style.setProperty('white-space', 'pre-wrap', 'important');
+      diff.style.setProperty('overflow-wrap', 'anywhere', 'important');
+      diff.scrollTop = 0;
     }
     if (retry !== true) view.requestAnimationFrame(() => this.placeVibecodeFrame(true));
   }
@@ -864,6 +885,58 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
     return '';
   }
 
+  vibeFocusOrder() {
+    return ['new-file-btn', 'save-file-btn', 'run-btn', 'ai-toggle-btn', 'settings-btn', 'vibecode-workspace-path', 'vibecode-write-file', 'vibecode-list-files', 'vibecode-open-file', 'code-editor']
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+  }
+
+  markVibeFocus(target) {
+    const root = document.querySelector('.vibecode-container');
+    if (root) {
+      for (const node of root.querySelectorAll('[data-svf-focus-ring="true"]')) {
+        node.style.removeProperty('outline');
+        node.style.removeProperty('outline-offset');
+        node.style.removeProperty('box-shadow');
+        node.removeAttribute('data-svf-focus-ring');
+      }
+    }
+    if (!target || typeof target.focus !== 'function') return;
+    try {
+      target.focus({ preventScroll: true, focusVisible: true });
+    } catch (error) {
+      target.focus();
+    }
+    target.style.setProperty('outline', '3px solid #ffe08a', 'important');
+    target.style.setProperty('outline-offset', '2px', 'important');
+    target.style.setProperty('box-shadow', 'inset 0 0 0 3px #ffe08a', 'important');
+    target.setAttribute('data-svf-focus-ring', 'true');
+  }
+
+  onVibeFocusKey(event) {
+    if (!event) return;
+    if (event.key === 'Enter' && event.target?.id === 'code-editor') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.markVibeFocus(event.target);
+      return;
+    }
+    if (event.key !== 'Tab' && event.key !== 'Escape') return;
+    const order = this.vibeFocusOrder();
+    const index = order.indexOf(document.activeElement);
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.markVibeFocus(document.getElementById('code-editor'));
+      return;
+    }
+    if (index < 0) return;
+    const nextIndex = event.shiftKey ? index - 1 : index + 1;
+    if (nextIndex < 0 || nextIndex >= order.length) return;
+    event.preventDefault();
+    this.markVibeFocus(order[nextIndex]);
+  }
+
   focusEditor(root) {
     const scope = root?.querySelector ? root : (typeof document !== 'undefined' ? document.querySelector('.window[data-app-id="vibecode"]') : null);
     const editor = scope?.querySelector('#code-editor');
@@ -894,7 +967,7 @@ st.markdown("Built with ❤️ using VibeCode - The AI-Powered Streamlit IDE")`;
       ...before.split('\n').map(line => `-${line}`)
     ];
     diff.textContent = lines.join('\n');
-    diff.scrollTop = diff.scrollHeight;
+    diff.scrollTop = 0;
     if (placeholder) placeholder.hidden = true;
     this.placeVibecodeFrame();
   }

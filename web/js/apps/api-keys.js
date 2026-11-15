@@ -204,17 +204,21 @@ class APIKeysApp {
 
     renderVaultLock() {
         let savedRef = 'none';
+        let match = [];
         try {
             const parsed = JSON.parse(localStorage.getItem('api-keys-opaque-refs') || '[]');
             if (Array.isArray(parsed)) {
-                const match = parsed.filter(item => item && /^ref-[a-z0-9-]{3,64}$/.test(item.ref));
+                match = parsed.filter(item => item && /^ref-[a-z0-9-]{3,64}$/.test(item.ref));
                 if (match.length) savedRef = match[match.length - 1].ref;
             }
         } catch (error) {
             savedRef = 'none';
+            match = [];
         }
         const fieldStyle = 'background:Canvas;color:CanvasText;border:1px solid CanvasText;';
         const hasSaved = savedRef !== 'none';
+        const storedPayload = JSON.stringify(hasSaved ? match.map(item => ({ label: String(item.label || ''), ref: item.ref })) : []);
+        const storedAttr = JSON.stringify(storedPayload).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
         const statusText = hasSaved
             ? `Saved reference ${savedRef}. Owner dispatch is not performed on this policy boundary. Credential values are absent.`
             : 'No reference saved yet.';
@@ -266,7 +270,8 @@ class APIKeysApp {
                         </div>
                         <button type="submit" id="svf-ref-save" class="btn-primary sk-btn sk-btn-primary">Save reference</button>
                     </form>
-                    <p>Stored reference <strong id="svf-ref-saved">${hasSaved ? savedRef : ''}</strong></p>
+                    <p id="svf-ref-storage">${hasSaved ? 'Restored from local storage key api-keys-opaque-refs.' : 'No opaque reference is in local storage.'}</p>
+                    <p>Stored reference <strong id="svf-ref-saved" data-stored-ref="${storedAttr}">${hasSaved ? savedRef : ''}</strong></p>
                     <p id="svf-ref-guidance" hidden></p>
                     <button type="button" id="svf-ref-retain" class="sk-btn" onclick="apiKeysApp.retainBlockedState()">Retain blocked state</button>
                 </div>

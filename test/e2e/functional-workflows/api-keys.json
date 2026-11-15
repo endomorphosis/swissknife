@@ -13,12 +13,17 @@
     ],
     "persist_reopen": [
       {"op": "reopen_app"},
-      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#svf-ref-saved"}, "operator": "equals", "expected": "ref-local-opaque"}
+      {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#svf-ref-saved"}, "operator": "equals", "expected": "ref-local-opaque"},
+      {"op": "assert", "probe": {"kind": "json_attribute", "selector": "#svf-ref-saved", "attribute": "data-stored-ref"}, "operator": "equals", "expected": "[{\"label\":\"Local disposable\",\"ref\":\"ref-local-opaque\"}]"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#svf-ref-storage"}, "operator": "equals", "expected": "Restored from local storage key api-keys-opaque-refs."}
     ],
     "failure_recovery": [
       {"op": "fill", "selector": "#svf-ref-value", "value": "not-a-reference"},
       {"op": "press", "selector": "#svf-ref-value", "key": "Enter"},
       {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#svf-ref-guidance"}, "operator": "contains", "expected": "policy"},
+      {"op": "fill", "selector": "#svf-ref-label", "value": "Local disposable"},
+      {"op": "fill", "selector": "#svf-ref-value", "value": "ref-local-opaque"},
+      {"op": "press", "selector": "#svf-ref-value", "key": "Enter"},
       {"op": "click", "selector": "#svf-ref-retain"},
       {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#svf-ref-guidance"}, "operator": "contains", "expected": "blocked"}
     ]

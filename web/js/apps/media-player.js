@@ -91,6 +91,12 @@ function waitForDecodedMedia(element, timeoutMs = 10000) {
   });
 }
 
+function stableMediaUrl(bytes, mime) {
+    const url = `data:${mime};base64,${base64ForBytes(bytes)}`;
+    if (url.length > 65000) return URL.createObjectURL(new Blob([bytes], { type: mime }));
+    return url;
+}
+
 function bytesFromBase64(b64) {
     const bin = atob(String(b64 || '').replace(/\s+/g, ''));
     const bytes = new Uint8Array(bin.length);
@@ -262,6 +268,7 @@ class MediaPlayer {
         this.currentElement.addEventListener('timeupdate', () => {
             this.currentTime = this.currentElement.currentTime;
             this.updateProgress();
+            this.rememberRetrievedPlayhead();
         });
 
         this.currentElement.addEventListener('ended', () => {
@@ -359,7 +366,7 @@ class MediaPlayer {
 
                 <!-- Mode Controls -->
                 <div class="mode-controls">
-                    <button class="mode-btn" onclick="mediaPlayer.showPlaylist()" title="Playlist" aria-label="Playlist">📋</button>
+                    <button class="mode-btn" onclick="mediaPlayer.revealPlaylist()" title="Playlist" aria-label="Playlist">📋</button>
                     <button class="mode-btn" onclick="mediaPlayer.showEqualizer()" title="Equalizer" aria-label="Equalizer">🎛️</button>
                     <button class="mode-btn" onclick="mediaPlayer.loadFile()" title="Load File" aria-label="Load file">📁</button>
                     <button class="mode-btn" onclick="mediaPlayer.showPreferences()" title="Settings" aria-label="Settings">⚙️</button>
@@ -663,7 +670,17 @@ class MediaPlayer {
             }
 
             .progress-container {
-                padding: 0 12px 4px;
+                position: relative;
+                z-index: 1;
+                padding: 8px 12px 4px;
+                background: #111;
+            }
+            .window[data-app-id="media-player"] .mp-recovery-note,
+            .window[data-app-id="media-player"] .mp-playback-identity {
+                position: relative;
+                z-index: 2;
+                display: block;
+                clear: both;
             }
 
             .progress-bar {
@@ -690,7 +707,18 @@ class MediaPlayer {
                layout row + volume cluster here. */
             .media-player-container .sk-transport {
                 justify-content: space-between;
-                padding: 0 16px 16px;
+                position: relative;
+                z-index: 1;
+                padding: 8px 16px 12px;
+                background: #111;
+            }
+            .window[data-app-id="media-player"] button:focus,
+            .window[data-app-id="media-player"] input:focus,
+            .window[data-app-id="media-player"] button:focus-visible,
+            .window[data-app-id="media-player"] input:focus-visible {
+                outline: 3px solid #ffe08a !important;
+                outline-offset: 2px;
+                box-shadow: inset 0 0 0 3px #ffe08a;
             }
 
             .volume-control {
@@ -1431,6 +1459,7 @@ class MediaPlayer {
                 value = Math.min(upper, Math.max(lower, value + move * delta));
                 this.volumeSlider.value = String(value);
                 this.setVolume(value);
+                this.showTransportFocus(this.volumeSlider);
                 this.keepPlayerInView();
             });
         }
@@ -1481,6 +1510,10 @@ class MediaPlayer {
                 this.audioElement.preload = 'auto';
                 this.audioElement.load();
                 try { await waitForDecodedMedia(this.audioElement); } catch { /* The workflow bounds native readiness. */ }
+                this.restoreRetrievedPlayhead(cid);
+                const cidInput = container.querySelector('#mpArtifactCid');
+                if (cidInput) cidInput.value = cid;
+                this.revealPlaylist();
                 this.renderPlaybackIdentity();
             } else if (this.playlist.length > 0) {
                 this.currentElement = this.audioElement;
@@ -1488,6 +1521,8 @@ class MediaPlayer {
             }
         }
 
+        const tools = container.querySelector('.vda-media-workflow');
+        if (tools) tools.addEventListener('toggle', () => this.scheduleFitMediaWindow());
         this.keepPlayerInView();
         mediaPlayer = this;
         if (typeof window !== 'undefined') window.mediaPlayer = this;
@@ -1555,20 +1590,20 @@ class MediaPlayer {
         if (!this.currentElement) return;
         
         try {
-            if (this.isPlaying) {
+            if (!this.currentElement.paused && !this.currentElement.ended) {
                 this.currentElement.pause();
                 this.isPlaying = false;
+                this.rememberRetrievedPlayhead();
                 this.updatePlayButton();
-            } else {
-                // If no track is loaded, load the first track
-                if (!this.currentElement.src && this.playlist.length > 0) {
-                    await this.loadTrack(this.currentTrack);
-                }
-                
-                await this.currentElement.play();
-                this.isPlaying = true;
-                this.updatePlayButton();
+                return;
             }
+            // If no track is loaded, load the first track
+            if (!this.currentElement.src && this.playlist.length > 0) {
+                await this.loadTrack(this.currentTrack);
+            }
+            await this.currentElement.play();
+            this.isPlaying = true;
+            this.updatePlayButton();
         } catch (error) {
             console.error('Playback error:', error);
             this.showNotification('Unable to play media', 'error');
@@ -1859,6 +1894,7 @@ class MediaPlayer {
             const opening = panel.style.display === 'none';
             panel.style.display = opening ? 'block' : 'none';
             if (opening) this.hideEqualizer();
+            this.scheduleFitMediaWindow();
         }
     }
 
@@ -1867,18 +1903,116 @@ class MediaPlayer {
         if (!panel) return;
         panel.style.display = 'block';
         this.hideEqualizer();
+        this.scheduleFitMediaWindow();
+    }
+
+    rememberRetrievedPlayhead() {
+        const track = this.playlist[this.currentTrack];
+        const time = Number(this.currentElement?.currentTime);
+        if (!track?.cid || !Number.isFinite(time) || time <= 0) return;
+        try {
+            localStorage.setItem('mediaPlayerRetrievedPlayhead', JSON.stringify({ cid: track.cid, current_time: time }));
+        } catch { /* Playhead retention is local and best-effort. */ }
+    }
+
+    restoreRetrievedPlayhead(cid) {
+        let saved = null;
+        try { saved = JSON.parse(localStorage.getItem('mediaPlayerRetrievedPlayhead') || 'null'); }
+        catch { saved = null; }
+        const time = saved && saved.cid === cid ? Number(saved.current_time) : 0;
+        const duration = Number(this.audioElement?.duration);
+        if (!this.audioElement || !Number.isFinite(time) || time <= 0 || !Number.isFinite(duration) || duration <= 0) return;
+        this.audioElement.currentTime = Math.min(time, Math.max(0, duration - 0.05));
+    }
+
+    showTransportFocus(target) {
+        const shell = this.container?.closest?.('.window')
+            || document.querySelector('.window[data-app-id="media-player"]');
+        if (shell) {
+            for (const node of shell.querySelectorAll('[data-svf-focus-ring="true"]')) {
+                node.style.removeProperty('outline');
+                node.style.removeProperty('outline-offset');
+                node.style.removeProperty('box-shadow');
+                node.removeAttribute('data-svf-focus-ring');
+            }
+        }
+        const el = target && target.isConnected ? target : this.container?.querySelector('#volumeSlider');
+        if (!el || typeof el.focus !== 'function') return;
+        try { el.focus({ preventScroll: true, focusVisible: true }); }
+        catch { el.focus(); }
+        el.style.setProperty('outline', '3px solid #ffe08a', 'important');
+        el.style.setProperty('outline-offset', '2px', 'important');
+        el.style.setProperty('box-shadow', 'inset 0 0 0 3px #ffe08a, 0 0 0 3px #ffe08a', 'important');
+        el.setAttribute('data-svf-focus-ring', 'true');
     }
 
     keepPlayerInView() {
-        if (this.container) this.container.scrollTop = 0;
-        const scroller = this.container?.closest('.window-content, .window');
-        if (scroller) scroller.scrollTop = 0;
-        this.container?.querySelector('.player-chrome')?.scrollIntoView({ block: 'start', inline: 'nearest' });
+        this.scheduleFitMediaWindow();
+    }
+
+    scheduleFitMediaWindow() {
+        this.fitMediaWindow();
+        if (this._fitFrame) return;
+        this._fitFrame = requestAnimationFrame(() => {
+            this._fitFrame = 0;
+            this.fitMediaWindow();
+        });
+    }
+
+    fitMediaWindow() {
+        const shell = this.container?.closest?.('.window')
+            || document.querySelector('.window[data-app-id="media-player"]');
+        const view = shell?.ownerDocument?.defaultView;
+        const transport = shell?.querySelector('.sk-transport');
+        const progress = shell?.querySelector('#progressBar');
+        if (!shell || !view || !transport) return;
+        const narrow = view.innerWidth <= 800;
+        const frameTop = Math.max(0, shell.getBoundingClientRect().top);
+        const maxHeight = Math.max(240, Math.floor(view.innerHeight - frameTop));
+        if (!narrow) {
+            const overflow = Math.ceil(transport.getBoundingClientRect().bottom - shell.getBoundingClientRect().bottom + 16);
+            if (overflow > 1) {
+                const next = Math.min(maxHeight, Math.ceil(shell.getBoundingClientRect().height + overflow));
+                shell.style.setProperty('height', next + 'px', 'important');
+                shell.style.setProperty('max-height', maxHeight + 'px', 'important');
+                shell.style.setProperty('overflow', 'hidden', 'important');
+            }
+            const header = shell.querySelector('.window-titlebar');
+            const headerHeight = header ? header.getBoundingClientRect().height : 32;
+            const inner = Math.max(180, Math.floor(shell.getBoundingClientRect().height - headerHeight));
+            for (const el of [shell.querySelector('.window-content'), shell.querySelector('.window-app-content')]) {
+                if (!el) continue;
+                el.style.setProperty('height', inner + 'px', 'important');
+                el.style.setProperty('max-height', inner + 'px', 'important');
+                el.style.setProperty('overflow', 'hidden', 'important');
+            }
+        }
+        const playlist = shell.querySelector('#playlistContent');
+        const bounds = () => shell.getBoundingClientRect();
+        const transportClipped = () => transport.getBoundingClientRect().bottom > bounds().bottom - 4;
+        const progressClipped = () => progress && progress.getBoundingClientRect().top < bounds().top + 28;
+        if (playlist && (transportClipped() || progressClipped())) {
+            const extra = Math.max(
+                transport.getBoundingClientRect().bottom - (bounds().bottom - 8),
+                progress ? (bounds().top + 28) - progress.getBoundingClientRect().top : 0
+            );
+            const next = Math.max(96, Math.floor(playlist.getBoundingClientRect().height - extra));
+            playlist.style.setProperty('max-height', next + 'px', 'important');
+            playlist.style.setProperty('overflow-y', 'auto', 'important');
+        }
+        const scroller = shell.querySelector('.media-player-container');
+        if (scroller && progress && progressClipped()) {
+            scroller.scrollTop += progress.getBoundingClientRect().top - (bounds().top + 28);
+        }
+        if (scroller && transportClipped()) {
+            scroller.scrollTop += transport.getBoundingClientRect().bottom - (bounds().bottom - 8);
+        }
     }
 
     renderRecoveryNote() {
         const node = this.container?.querySelector('#mp-recovery-note');
         if (node) node.textContent = this.recoveryNote || '';
+        this.scheduleFitMediaWindow();
     }
 
     renderPlaybackIdentity() {
@@ -1901,7 +2035,7 @@ class MediaPlayer {
         clock.textContent = `${head} / ${total} · volume ${volume}% · decoded`;
         const cidNode = document.createElement('span');
         cidNode.className = 'mp-identity-cid';
-        cidNode.textContent = cid;
+        cidNode.textContent = '· ' + cid;
         node.replaceChildren(clock, cidNode);
     }
 
@@ -2059,6 +2193,15 @@ class MediaPlayer {
                 ${track.cid ? `<div class="mp-track-cid">${escapeHtmlMp(track.cid)}</div>` : ''}
             </div>
         `).join('');
+        const active = this.playlistContainer.querySelector('.playlist-item.active');
+        if (active) {
+            const top = active.offsetTop;
+            const bottom = top + active.offsetHeight;
+            if (top < this.playlistContainer.scrollTop) this.playlistContainer.scrollTop = top;
+            else if (bottom > this.playlistContainer.scrollTop + this.playlistContainer.clientHeight) {
+                this.playlistContainer.scrollTop = bottom - this.playlistContainer.clientHeight;
+            }
+        }
     }
 
     /**
@@ -2273,7 +2416,7 @@ class MediaPlayer {
             duration: 0,
             type: 'audio',
             format: (mime.split('/')[1] || 'wav').toLowerCase(),
-            url: URL.createObjectURL(new Blob([bytes], { type: mime })),
+            url: stableMediaUrl(bytes, mime),
             cid: record.cid
         };
         const index = this.playlist.findIndex(item => item.cid === record.cid);
@@ -2361,7 +2504,7 @@ class MediaPlayer {
             if (bytes.length === 0) throw new Error(`Artifact ${cid} returned no bytes from ipfs_kit_py.`);
             if (await contentCidForBytes(bytes) !== cid || artifact.cid !== cid) throw new Error('Source bytes do not match the requested CID.');
             const mime = guessMimeFromArtifact(artifact, bytes);
-            const blobUrl = URL.createObjectURL(new Blob([bytes], { type: mime }));
+            const blobUrl = stableMediaUrl(bytes, mime);
             const track = {
                 id: this.playlist.length + 1,
                 title: 'Retrieved audio',
@@ -2389,6 +2532,8 @@ class MediaPlayer {
             pendingTrack = null;
             this.currentElement.dataset.cid = cid;
             this.currentElement.dataset.decodedCid = cid;
+            const cidInput = this.container?.querySelector('#mpArtifactCid');
+            if (cidInput) cidInput.value = cid;
             this.renderPlaybackIdentity();
             try {
                 localStorage.setItem('mediaPlayerRetrievedIndex', JSON.stringify(this.playlist.filter(item => item.cid).slice(-32).map(item => ({cid:item.cid,type:item.type}))));

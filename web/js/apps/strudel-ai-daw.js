@@ -735,6 +735,9 @@ Examples:
 
         // Code editor
         const codeEditor = window.querySelector('#strudel-code-editor');
+        codeEditor.addEventListener('beforeinput', (event) => {
+            if (event.inputType === 'historyUndo' || event.inputType === 'historyRedo') event.preventDefault();
+        });
         codeEditor.addEventListener('input', () => this.onCodeChange(window));
         codeEditor.addEventListener('keydown', (e) => this.handleCodeKeyDown(window, e));
 
@@ -1247,6 +1250,17 @@ stack(
         this.currentCode = editor.value;
         const retention = window.querySelector('#project-retention');
         if (retention) retention.textContent = `track:${this.activePattern} tempo:${this.bpm} source:${this.currentCode}`;
+        if (this.restoredProof && !this.restoredProof.endsWith(`source:${this.currentCode}`)) {
+            this.restoredProof = `Editable source track:${this.activePattern} tempo:${this.bpm} source:${this.currentCode}`;
+            const restoredNode = window.querySelector('#restored-source');
+            if (restoredNode) restoredNode.textContent = this.restoredProof;
+            this.updateG045Marker(
+                window,
+                'undo',
+                `Editable source is track ${this.activePattern} at tempo ${this.bpm}.`,
+                { undoState: 'edited-after-restore', undoProof: 'current-editor' }
+            );
+        }
         
         this.updateLineNumbers(window);
         this.scheduleCodeAnalysis(window);

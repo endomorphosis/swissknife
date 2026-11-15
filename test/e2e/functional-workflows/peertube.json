@@ -98,13 +98,29 @@
         "op": "reopen_app"
       },
       {
+        "op": "click",
+        "selector": "#peertube-reload-saved"
+      },
+      {
+        "op": "press",
+        "selector": "[data-gateway-confirm=\"peertube.ipfs_kit_py.retrieve_content\"]",
+        "key": "Enter"
+      },
+      {
+        "op": "wait_for",
+        "selector": "#video-element[data-decoded-cid=\"bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
         "op": "assert",
         "requirement_id": "persist_reopen",
         "probe": {
-          "kind": "text",
-          "selector": "#videos-container"
+          "kind": "backend_result",
+          "binding_id": "peertube.ipfs_kit_py.retrieve_content",
+          "pointer": "/result/result/content/0/json/cid"
         },
-        "operator": "contains",
+        "operator": "equals",
         "expected": "bafkreiedh65a7kpxnldwlbhv4hszsqyld2l4gg3ybe4jq77dp2tnyzuhla"
       }
     ],
@@ -117,11 +133,6 @@
       {
         "op": "click",
         "selector": "#cid-open-btn"
-      },
-      {
-        "op": "press",
-        "selector": "[data-gateway-confirm=\"peertube.ipfs_kit_py.retrieve_content\"]",
-        "key": "Enter"
       },
       {
         "op": "wait_for",

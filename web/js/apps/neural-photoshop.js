@@ -1155,15 +1155,32 @@ export class NeuralPhotoshopApp {
         @media (max-width: 800px) {
           .window[data-app-id="neural-photoshop"] { top: 8px !important; left: 8px !important; width: calc(100vw - 16px) !important; height: calc(100dvh - 64px) !important; max-width: calc(100vw - 16px) !important; max-height: calc(100dvh - 64px) !important; overflow: hidden !important; }
           .neural-photoshop-container > .menu-bar .menu-btn { padding: 4px 6px !important; font-size: 11px !important; }
-          .neural-photoshop-container > .main-content { display: flex !important; flex-direction: column !important; overflow: auto !important; }
+          .neural-photoshop-container { display: flex !important; flex-direction: column !important; flex: 1 1 0 !important; min-height: 0 !important; height: auto !important; overflow: hidden !important; }
+          .neural-photoshop-container > .menu-bar,
+          .neural-photoshop-container > .saved-project-output { flex: 0 0 auto !important; position: relative !important; }
+          .neural-photoshop-container .saved-project-output img { width: 64px !important; height: 48px !important; flex: 0 0 64px !important; }
+          .neural-photoshop-container > .main-content { display: flex !important; flex-direction: column !important; flex: 1 1 0 !important; min-height: 0 !important; overflow-x: hidden !important; overflow-y: auto !important; overscroll-behavior: contain !important; padding-bottom: 8px !important; }
+          .neural-photoshop-container #load-source-bytes { scroll-margin-top: 380px !important; scroll-margin-bottom: 12px !important; }
           .neural-photoshop-container .left-panel,
           .neural-photoshop-container .right-panel { position: relative !important; inset: auto !important; transform: none !important; width: 100% !important; height: auto !important; max-height: none !important; flex: 0 0 auto !important; z-index: 1 !important; overflow: visible !important; background: #1a1a2e !important; }
-          .neural-photoshop-container .canvas-area { order: -1 !important; position: sticky !important; top: 0 !important; z-index: 5 !important; flex: 0 0 auto !important; min-height: 168px !important; max-height: none !important; height: auto !important; overflow: visible !important; background: #2a2a3e !important; }
+          .neural-photoshop-container .canvas-area { order: -1 !important; position: relative !important; top: auto !important; z-index: 1 !important; flex: 0 0 auto !important; min-height: 0 !important; max-height: none !important; height: auto !important; overflow: visible !important; background: #2a2a3e !important; }
+          .neural-photoshop-container .canvas-container { flex: 0 0 auto !important; min-height: 0 !important; max-height: 80px !important; overflow: hidden !important; }
           .neural-photoshop-container .main-canvas,
-          .neural-photoshop-container .overlay-canvas { width: min(100%, 240px) !important; max-height: 120px !important; height: auto !important; }
+          .neural-photoshop-container .overlay-canvas { width: min(100%, 240px) !important; max-height: 72px !important; height: auto !important; }
           .neural-photoshop-container .canvas-status { position: relative !important; display: flex !important; flex-wrap: wrap !important; background: #1a1a2e !important; }
           .neural-photoshop-container [data-source-cid-input] { min-height: 2.4em !important; }
-          .neural-photoshop-container .tools-panel .tool-grid { display: flex !important; overflow-x: auto !important; }
+          .neural-photoshop-container .panel-header { padding: 4px 8px !important; }
+          .neural-photoshop-container .tools-panel { padding: 4px !important; }
+          .neural-photoshop-container .tools-panel .tool-grid { display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; grid-template-columns: none !important; gap: 4px !important; margin: 0 !important; max-height: 36px !important; overflow-x: auto !important; overflow-y: hidden !important; }
+          .neural-photoshop-container .tool-btn { flex: 0 0 auto !important; flex-direction: row !important; min-width: 0 !important; width: auto !important; height: 32px !important; min-height: 32px !important; max-height: 32px !important; padding: 2px 8px !important; white-space: nowrap !important; overflow-wrap: normal !important; font-size: 11px !important; gap: 4px !important; }
+          .neural-photoshop-container .layers-panel { max-height: none !important; height: auto !important; overflow: visible !important; }
+          .neural-photoshop-container .layers-list,
+          .neural-photoshop-container .layer-controls-header { display: flex !important; max-height: none !important; height: auto !important; overflow: visible !important; flex: 0 0 auto !important; }
+          .neural-photoshop-container .layers-list { flex-direction: column !important; gap: 4px !important; }
+          .neural-photoshop-container .layer-controls-header { flex-direction: row !important; flex-wrap: nowrap !important; gap: 6px !important; padding: 4px 0 !important; }
+          .neural-photoshop-container .layer-item { display: flex !important; min-height: 28px !important; max-height: none !important; padding: 4px 6px !important; overflow: visible !important; }
+          .neural-photoshop-container .layer-thumbnail { display: none !important; }
+          .neural-photoshop-container .layer-name { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; color: #f8fafc !important; }
         }
         @media (min-width: 801px) {
           .window[data-app-id="neural-photoshop"] { top: 16px !important; left: 16px !important; width: min(1100px, calc(100vw - 32px)) !important; height: calc(100dvh - 72px) !important; max-width: calc(100vw - 32px) !important; max-height: calc(100dvh - 72px) !important; overflow: hidden !important; }
@@ -1374,11 +1391,6 @@ export class NeuralPhotoshopApp {
 
   renderLayersPanel() {
     return `
-      <div class="layer-controls-header">
-        <button class="menu-btn" id="delete-layer-btn" title="Delete Layer">🗑️ Delete</button>
-        <button class="menu-btn" id="duplicate-layer-btn" title="Duplicate Layer">📋 Duplicate</button>
-      </div>
-      
       <div class="layers-list">
         ${this.layers.map((layer, index) => `
           <div class="layer-item ${index === this.activeLayerIndex ? 'active' : ''}" 
@@ -1398,6 +1410,10 @@ export class NeuralPhotoshopApp {
             </div>
           </div>
         `).join('')}
+      </div>
+      <div class="layer-controls-header">
+        <button class="menu-btn" id="delete-layer-btn" title="Delete Layer">🗑️ Delete</button>
+        <button class="menu-btn" id="duplicate-layer-btn" title="Duplicate Layer">📋 Duplicate</button>
       </div>
     `;
   }

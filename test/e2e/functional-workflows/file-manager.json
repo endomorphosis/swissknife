@@ -8,9 +8,9 @@
       "max_output_bytes": 65536,
       "mode": "isolated_mutation",
       "result_assertion": {
-        "expected": "7a26ef347543682dfee955176f6f81987c0b2a5503908035387eaca387b18817",
+        "expected": "bafkreid2e3xti5kdnaw752kvc5xw7amypqfsuvidscadkod6vsrypmmic4",
         "operator": "equals",
-        "pointer": "/result/result/content/0/json/sha256"
+        "pointer": "/result/result/content/0/json/cid"
       }
     },
     {
@@ -149,22 +149,12 @@
       },
       {
         "op": "wait_for",
-        "selector": "[data-gateway-confirm=\"file-manager.ipfs_datasets_py.record_provenance\"]",
+        "selector": "#reopen-proof:has-text(\"Reopened notes-copy.txt /tmp/svf-fm-notes-copy.txt.json dataset_79623791fcc29916 cid bafkreidzmi3zd7gctellvnzigptmfsm7teosltz5avwyfyvsdsd2xncvti sha256 79623791fcc29916bab72833e6c2c99f991d25cf3d056d82e2b21c87abb4559a bytes svf-fixture-utf8-ok\")",
         "state": "visible",
         "timeout_ms": 15000
       },
       {
-        "op": "click",
-        "selector": "[data-gateway-confirm=\"file-manager.ipfs_datasets_py.record_provenance\"]"
-      },
-      {
-        "op": "wait_for",
-        "selector": "#reopen-proof:has-text(\"Reopened notes-copy.txt /tmp/svf-fm-notes-copy.txt.json dataset_79623791fcc29916 sha256 7a26ef347543682dfee955176f6f81987c0b2a5503908035387eaca387b18817 bytes svf-fixture-utf8-ok\")",
-        "state": "visible",
-        "timeout_ms": 15000
-      },
-      {
-        "expected": "Reopened notes-copy.txt /tmp/svf-fm-notes-copy.txt.json dataset_79623791fcc29916 sha256 7a26ef347543682dfee955176f6f81987c0b2a5503908035387eaca387b18817 bytes svf-fixture-utf8-ok",
+        "expected": "Reopened notes-copy.txt /tmp/svf-fm-notes-copy.txt.json dataset_79623791fcc29916 cid bafkreidzmi3zd7gctellvnzigptmfsm7teosltz5avwyfyvsdsd2xncvti sha256 79623791fcc29916bab72833e6c2c99f991d25cf3d056d82e2b21c87abb4559a bytes svf-fixture-utf8-ok",
         "op": "assert",
         "operator": "contains",
         "probe": {

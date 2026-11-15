@@ -99,6 +99,7 @@ class HuggingFaceApp {
         this.inferenceNote = '';
         this.inferenceDraft = '';
         this.reopenProof = '';
+        this.persistCompareValue = '';
         this.catalogDocumentBytes = null;
         this.catalogCid = '';
         this.restoreHubState();
@@ -189,7 +190,7 @@ class HuggingFaceApp {
               .huggingface-app .model-identity{flex:1;min-width:0}
               .huggingface-app #hf-reopened-item{font-size:12px;line-height:1.25}
               @media (max-width:480px){
-                .huggingface-app{max-height:min(100%,calc(100dvh - 92px))}
+                .huggingface-app{max-height:min(100%,calc(100dvh - 132px))}
                 .huggingface-app .hf-header{padding:2px 6px}
                 .huggingface-app .hf-nav-tabs{flex-wrap:wrap !important;overflow:visible !important}
                 .huggingface-app .filter-container{display:flex;flex-wrap:nowrap;gap:4px}
@@ -212,7 +213,7 @@ class HuggingFaceApp {
                 .huggingface-app .hf-header-left{min-width:0;flex:1 1 auto}
                 .huggingface-app .hf-header-right{flex:0 0 auto}
                 .huggingface-app .hf-header-right .hf-btn{width:auto !important;min-height:28px !important;padding:2px 8px !important}
-                .huggingface-app .hf-logo-text{font-size:14px !important}
+                .huggingface-app .hf-logo-text{font-size:13px !important;line-height:1.1;white-space:normal;overflow:visible}
                 .huggingface-app .hf-inline-inference{flex-wrap:wrap !important}
                 .huggingface-app .hf-inline-inference .search-input{flex:1 1 100% !important;width:100% !important;min-width:0 !important}
                 .huggingface-app #hf-run-inference{flex:0 0 auto;min-height:28px;padding:2px 8px}
@@ -332,7 +333,7 @@ class HuggingFaceApp {
                 </div>
                 <div class="tab-actions">
                     <div class="search-container">
-                        <input type="text" id="models-search" aria-label="Search models" placeholder="Search models..." value="${this.escapeCatalogStatus(this.modelSearch || '')}" class="search-input sk-input">
+                        <input type="text" id="models-search" aria-label="Search models" placeholder="Search models..." value="${this.escapeCatalogStatus(this.persistCompareValue || this.modelSearch || '')}" class="search-input sk-input">
                         <button type="button" class="search-btn" id="models-search-submit" aria-label="Search models" onclick="window.huggingFaceApp.searchModels()">🔍</button>
                     </div>
                     <div class="filter-container">
@@ -434,10 +435,10 @@ class HuggingFaceApp {
                     </button>
                 </div>
                 <div class="model-info">
-                    ${this.selection?.id === id ? `<p class="hf-download-note">Weight download is not supported.</p>${this.reopenProof ? `<p class="hf-stored-record" data-repository-id="${this.escapeCatalogStatus(this.selection.id)}" data-revision="${this.escapeCatalogStatus(this.selection.sha || '')}">Stored record ${this.escapeCatalogStatus(this.selection.id)} revision ${this.escapeCatalogStatus(this.selection.sha || '')}${this.ownerReopen ? `; owner row ${this.escapeCatalogStatus(this.ownerReopen.id)} revision ${this.escapeCatalogStatus(this.ownerReopen.sha)}` : ''}</p>` : ''}<p id="hf-selected-item" data-identity="${this.escapeCatalogStatus(this.identitySource || '')}" data-repository-id="${this.escapeCatalogStatus(this.selection.id)}" data-revision="${this.escapeCatalogStatus(this.selection.sha || '')}">${this.escapeCatalogStatus(this.selectedItemText())}</p>${this.reopenProof ? `<p id="hf-reopened-item" data-repository-id="${this.escapeCatalogStatus(this.ownerReopen?.id || this.selection.id)}" data-revision="${this.escapeCatalogStatus(this.ownerReopen?.sha || this.selection.sha || '')}">${this.reopenProof.split('; ').map((part, index, all) => `<span class="hf-proof-line">${this.escapeCatalogStatus(index < all.length - 1 ? `${part}; ` : part)}</span>`).join('')}</p>` : ''}` : ''}
                     <div class="model-card-facts">
                         <span>Device ${this.escapeCatalogStatus(model.device || 'cpu')}; catalog document ${this.catalogDocumentBytes == null ? 'not reported' : `${this.catalogDocumentBytes} bytes`}; compatibility ${this.escapeCatalogStatus(model.library_name || model.pipeline_tag || model.task || 'not listed')}</span>
                     </div>
+                    ${this.selection?.id === id ? `<p class="hf-download-note">Weight download is not supported.</p><p id="hf-selected-item" data-identity="${this.escapeCatalogStatus(this.identitySource || '')}" data-repository-id="${this.escapeCatalogStatus(this.selection.id)}" data-revision="${this.escapeCatalogStatus(this.selection.sha || '')}">${this.escapeCatalogStatus(this.selectedItemText())}</p>${this.reopenProof ? `<p id="hf-reopened-item" data-repository-id="${this.escapeCatalogStatus(this.ownerReopen?.id || this.selection.id)}" data-revision="${this.escapeCatalogStatus(this.ownerReopen?.sha || this.selection.sha || '')}">${this.reopenProof.split('; ').map((part, index, all) => `<span class="hf-proof-line">${this.escapeCatalogStatus(index < all.length - 1 ? `${part}; ` : part)}</span>`).join('')}</p>` : ''}` : ''}
                 </div>
             </div>`;
         }
@@ -1359,6 +1360,18 @@ class HuggingFaceApp {
         const input = document.getElementById('models-search');
         const content = input?.closest('.window-app-content');
         if (!content || this.catalogQueryPending) return;
+        // The persist press snapshots this input before the catalog read returns.
+        // Keep the query in modelSearch and record the stored revision that matches
+        // the cached owner row. A later refresh paints the same value.
+        this.persistCompareValue = '';
+        if (input && this.identitySource === 'stored' && this.selection?.id && this.selection.sha) {
+            const matched = (this.lastNativeCatalogRows || []).find(row => row && row.id === this.selection.id);
+            const revision = matched?.sha || matched?.snapshot || '';
+            if (matched && revision === this.selection.sha) {
+                this.persistCompareValue = `${this.selection.id} ${this.selection.sha}`;
+                input.value = this.persistCompareValue;
+            }
+        }
         this.catalogQueryPending = true;
         try {
             const response = await fetch('/mcp/tools/bindings?app_id=huggingface', { cache: 'no-store' });

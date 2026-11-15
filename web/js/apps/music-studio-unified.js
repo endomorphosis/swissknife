@@ -446,9 +446,11 @@ export class UnifiedMusicStudioApp {
                         flex-wrap: wrap;
                         min-width: 0;
                         max-width: 100%;
+                        padding-bottom: 16px;
                     }
+                    .unified-music-studio .ums-code-container { margin-top: 8px; }
                     .unified-music-studio .ums-title { white-space: normal; }
-                    .unified-music-studio .ums-code { height: auto; min-height: 0; max-height: none; }
+                    .unified-music-studio .ums-code { height: auto; min-height: 0; max-height: none; padding-top: 10px; }
                     .unified-music-studio .code-panel { order: 1; }
                     .unified-music-studio .ums-sidepanels { order: 2; width: 100% !important; }
                 }

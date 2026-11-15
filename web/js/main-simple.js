@@ -3108,7 +3108,10 @@ class SwissKnifeDesktop {
             parameterInput.value = lastValidParameter;
             validationStatus.dataset.validPassed = 'true';
             validationStatus.dataset.validationState = 'passed';
-            validationStatus.textContent = `Valid parameter passed for ${descriptorSelect.value}. Schema ${schemaTextFor(descriptorSelect.value)}. No owner tool was invoked.`;
+            const retainedInvalid = /Invalid field limit: limit must be an integer between 1 and 50/.test(validationStatus.textContent)
+                ? ' Invalid field limit: limit must be an integer between 1 and 50.'
+                : '';
+            validationStatus.textContent = `Valid parameter passed for ${descriptorSelect.value}. Schema ${schemaTextFor(descriptorSelect.value)}.${retainedInvalid} No owner tool was invoked.`;
             rememberValidation();
         });
         root.querySelector('#idl-validate-parameter').addEventListener('click', explainAndRemember);
@@ -3372,11 +3375,14 @@ class SwissKnifeDesktop {
                 if (statusEl) {
                     const state = value?.state || value?.status || envelope.outcome;
                     const device = typeof value?.device === 'string' ? value.device.trim() : '';
+                    const queueUsed = typeof value?.queue_used === 'boolean' ? value.queue_used : null;
                     const sentence = preview
                         ? `${operation} preview validated; no job or remote change was created.`
                         : operation === 'hardware_profile'
                             ? `hardware_profile ${state}${device ? ` · ${device}` : ''}`
-                            : `${operation} ${state}. See Diagnostics for the receipt and full response.`;
+                            : operation === 'job_status'
+                                ? `job_status ${state}${queueUsed === null ? '' : `. queue_used ${queueUsed}`}.`
+                                : `${operation} ${state}. See Diagnostics for the receipt and full response.`;
                     if (statusEl === queueStatus) rememberQueue(sentence);
                     else statusEl.textContent = sentence;
                 }
@@ -3457,7 +3463,7 @@ class SwissKnifeDesktop {
                 return;
             }
             if (inferenceProgress) inferenceProgress.removeAttribute('value');
-            if (accelerateProgressLabel) accelerateProgressLabel.textContent = 'Running';
+            if (accelerateProgressLabel) accelerateProgressLabel.textContent = 'Waiting for owner';
             const started = new Date().toISOString();
             const response = await runOperation('run_inference_job', defaults => {
                 const patch = { fixture_scope: 'svf-accelerate-panel-run' };
@@ -3511,9 +3517,9 @@ class SwissKnifeDesktop {
             showAccelerateRecord(saved);
             if (accelerateError) accelerateError.textContent = '';
             if (inferenceProgress) inferenceProgress.value = 100;
-            if (accelerateProgressLabel) {
-                const sawRunning = accelerateProgressLabel.textContent === 'Running';
-                accelerateProgressLabel.textContent = sawRunning ? 'Running, then completed' : 'completed';
+            if (accelerateProgressLabel) accelerateProgressLabel.textContent = ownerState || 'completed';
+            if (typeof response?.value?.queue_used === 'boolean') {
+                rememberQueue(`Owner state ${ownerState || 'unnamed'}. queue_used ${response.value.queue_used}.`);
             }
             fitAccelerateFrame();
         });

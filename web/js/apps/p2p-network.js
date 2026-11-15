@@ -385,7 +385,7 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
 
       .p2p-swarm-panel h3 { margin: 0 0 8px; font-size: 18px; }
 
-      #p2p-swarm-status, #p2p-swarm-observation, #p2p-swarm-settled, #p2p-swarm-classification {
+      #p2p-swarm-status, #p2p-swarm-observation, #p2p-swarm-settled, #p2p-swarm-classification, #p2p-transport-recovery {
         margin: 0 0 8px;
         overflow-wrap: anywhere;
       }
@@ -401,6 +401,18 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
         margin-bottom: 12px;
       }
 
+      .p2p-swarm-actions .action-btn { flex: 1 1 96px; min-width: 0; }
+
+      .p2p-owner-id {
+        display: inline;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        line-height: 1.35;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-all;
+      }
+
       #p2p-transport-input {
         min-width: 0;
         flex: 1 1 140px;
@@ -411,14 +423,46 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
         color: var(--sk-text, #edf7f2);
       }
 
+      .window[data-app-id="p2p-network"] #p2p-apply-transport,
+      .window[data-app-id="p2p-network"] #p2p-refresh-swarm,
+      .window[data-app-id="p2p-network"] #p2p-connect-network {
+        appearance: none;
+        background: #5fb99d;
+        color: #0e1412;
+        border: 1px solid #d7fff0;
+        opacity: 1;
+        cursor: pointer;
+        font-weight: 700;
+        min-height: 36px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        box-shadow: none;
+      }
+
+      .window[data-app-id="p2p-network"] #p2p-apply-transport:is(:focus, :focus-visible),
+      .window[data-app-id="p2p-network"] #p2p-refresh-swarm:is(:focus, :focus-visible),
+      .window[data-app-id="p2p-network"] #p2p-connect-network:is(:focus, :focus-visible),
+      .window[data-app-id="p2p-network"] #p2p-transport-input:is(:focus, :focus-visible) {
+        outline: 3px solid #ffe08a;
+        outline-offset: 0;
+        box-shadow: inset 0 0 0 3px #ffe08a;
+      }
+
       .p2p-diagnostics { margin-top: 8px; }
 
       @media (max-width: 844px) {
-        .p2p-network-app { padding: 6px; }
+        .p2p-network-app { padding: 4px; }
+        .app-header { padding: 4px 8px; }
+        .app-header h2 { font-size: 16px; margin: 0; }
+        .p2p-tabs { flex-wrap: nowrap; overflow-x: auto; margin-bottom: 4px; }
+        .tab-button { padding: 6px 8px; }
+        .p2p-swarm-panel h3 { margin: 0 0 4px; font-size: 15px; }
+        #p2p-swarm-status, #p2p-swarm-observation, #p2p-swarm-settled, #p2p-swarm-classification, #p2p-transport-recovery, #p2p-swarm-replaced { margin: 0 0 4px; font-size: 13px; }
         .network-stats { grid-template-columns: 1fr; }
-        .p2p-swarm-panel .network-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-        .stat-card { display: block; padding: 8px; overflow: visible; }
-        .p2p-swarm-actions .action-btn { flex: 1 1 auto; }
+        .p2p-swarm-panel .network-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+        .stat-card { display: block; padding: 6px; overflow: visible; }
+        .p2p-swarm-actions { margin-bottom: 4px; gap: 6px; }
+        .p2p-swarm-actions .action-btn { flex: 1 1 96px; font-size: 12px; padding: 6px 8px; }
       }
     </style>`;
   }
@@ -428,6 +472,7 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
   let ownerSwarmRefreshInFlight = false;
   let swarmObservationSettled = false;
   let ownerSwarmObservation = null;
+  let ownerNodeId = '';
   let replacedSwarmObservation = null;
   let retainedTransportFailure = '';
   let keyboardTrail = [];
@@ -473,6 +518,13 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
         detail: ownerPeerDetail || 'Owner offline or transport unavailable. Peer data is stale. No peers were invented. Reconnect the configured owner or select an available transport, then refresh.'
       };
     }
+    if (ownerNodeId && !ownerSwarmObservation) {
+      return {
+        state: 'known',
+        headline: 'Known peers',
+        detail: 'Owner node identity is one known peer. The swarm has not been refreshed. No peers were invented.'
+      };
+    }
     const live = livePeers();
     const connected = live.filter(peer => peer.status === 'connected');
     if (connected.length > 0) {
@@ -496,34 +548,55 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
     };
   }
 
+  function ownerStateRecord(model, connectedCount) {
+    if (!ownerSwarmObservation || model.state !== 'empty' || connectedCount !== 0) return null;
+    const record = { connected_peers: 0, swarm: 'empty' };
+    if (ownerNodeId) record.known_peer = ownerNodeId;
+    return record;
+  }
+
   function renderSwarmStatusBlock() {
     const model = swarmStatusModel();
     const live = livePeers();
     const connected = live.filter(peer => peer.status === 'connected').length;
+    const knownRemote = live.filter(peer => peer.status !== 'connected').length;
+    const record = ownerStateRecord(model, connected);
+    const sentence = !record
+      ? escapeHtml(model.detail)
+      : record.known_peer
+        ? 'Known peer <span class="p2p-owner-id">' + escapeHtml(record.known_peer) + '</span> from the owner node identity. Connected peers: 0. Empty swarm. No remote peers in the latest owner response.'
+        : 'Connected peers: 0. Empty swarm. No remote peers in the latest owner response.';
+    const classification = record
+      ? (record.known_peer
+        ? 'Owner node identity is one known peer. The swarm response has 0 connected peers and is an empty swarm.'
+        : 'This swarm response has 0 connected peers and is an empty swarm. The owner node identity has not been read.')
+      : model.state === 'empty'
+        ? 'This owner response is an empty swarm. Known peers: ' + knownRemote + '. Connected peers: ' + connected + '.'
+        : model.state === 'known'
+          ? 'This owner response lists known peers. None are connected.'
+          : model.state === 'connected'
+            ? 'This owner response lists connected peers.'
+            : 'This view is not an owner peer response.';
     return `
       <section class="p2p-swarm-panel" aria-label="Peer swarm">
         <h3>P2P network status</h3>
-        <p id="p2p-swarm-status" data-swarm-state="${escapeHtml(model.state)}">${escapeHtml(model.detail)}</p>
+        <p id="p2p-swarm-status" data-swarm-state="${escapeHtml(model.state)}"${record ? ' data-owner-states="' + escapeHtml(JSON.stringify(record)) + '"' : ''}>${sentence}</p>
+        ${retainedTransportFailure ? '<p id="p2p-transport-recovery">' + escapeHtml(retainedTransportFailure) + '</p>' : ''}
         ${swarmObservationSettled ? '<p id="p2p-swarm-settled">Owner refresh settled.</p>' : ''}
         ${ownerSwarmObservation && !['unavailable', 'error', 'connecting'].includes(connectionStatus) ? '<p id="p2p-swarm-observation">Latest owner response: ' + escapeHtml(String(ownerSwarmObservation.peer_count)) + ' connected peers; observed at <time datetime="' + escapeHtml(ownerSwarmObservation.observed_at) + '">' + escapeHtml(ownerSwarmObservation.observed_at) + '</time></p>' : ''}
         ${replacedSwarmObservation ? '<p id="p2p-swarm-replaced">Replaced prior owner response from <time datetime="' + escapeHtml(replacedSwarmObservation.observed_at) + '">' + escapeHtml(replacedSwarmObservation.observed_at) + '</time> (' + escapeHtml(String(replacedSwarmObservation.peer_count)) + ' connected peers) with this response.</p>' : ''}
-        <p id="p2p-swarm-classification">${escapeHtml(model.state === 'empty'
-          ? 'This owner response is an empty swarm. Known peers: ' + live.length + '. Connected peers: ' + connected + '.'
-          : model.state === 'known'
-            ? 'This owner response lists known peers. None are connected.'
-            : model.state === 'connected'
-              ? 'This owner response lists connected peers.'
-              : 'This view is not an owner peer response.')}</p>
+        <p id="p2p-swarm-classification">${escapeHtml(classification)}</p>
         <div class="network-stats">
-          <div class="stat-card is-owner-state${model.state === 'empty' ? ' is-current' : ''}" data-swarm-state-card="empty"><h4>Empty swarm</h4><p>${model.state === 'empty' ? 'This owner response' : 'Not this response'}</p></div>
-          <div class="stat-card is-owner-state${model.state === 'known' ? ' is-current' : ''}" data-swarm-state-card="known"><h4>Known peers</h4><p>${escapeHtml(String(live.length))} known</p></div>
+          <div class="stat-card is-owner-state${model.state === 'empty' ? ' is-current' : ''}" data-swarm-state-card="empty"><h4>Empty swarm</h4><p>${model.state === 'empty' ? 'This swarm response' : 'Not this response'}</p></div>
+          <div class="stat-card is-owner-state${ownerNodeId && model.state !== 'unavailable' ? ' is-current' : ''}" data-swarm-state-card="known"><h4>Known peers</h4><p>${ownerNodeId && model.state !== 'unavailable' ? '1 known' : 'Not this response'}</p></div>
           <div class="stat-card is-owner-state${model.state === 'connected' ? ' is-current' : ''}" data-swarm-state-card="connected"><h4>Connected peers</h4><p>${escapeHtml(String(connected))} connected</p></div>
         </div>
         <div class="p2p-swarm-actions">
           <label for="p2p-transport-input">Owner transport</label>
           <input id="p2p-transport-input" type="text" value="${escapeHtml(selectedTransport)}" autocomplete="off">
-          <button type="button" id="p2p-apply-transport" class="action-btn" onclick="window.p2pRefreshOwnerSwarm(event)">Apply transport</button>
+          <button type="button" id="p2p-apply-transport" class="action-btn" onclick="window.p2pReadOwnerIdentity(event)">Apply transport</button>
           <button type="button" id="p2p-refresh-swarm" class="action-btn" onclick="window.p2pRefreshOwnerSwarm(event)">Refresh peer state</button>
+          <button type="button" id="p2p-connect-network" class="action-btn" onclick="window.p2pNetworkApp?.connect()">Connect to Network</button>
         </div>
       </section>
     `;
@@ -537,9 +610,9 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
     throw new Error('Non-JSON native peer observation');
   }
 
-  async function ownerPeerObservation(payload) {
+  function unwrapOwnerJson(payload, toolId) {
     if (!payload || payload.ok !== true || payload.outcome !== 'executed' || payload.owner !== 'ipfs_kit_py'
-        || payload.tool_id !== 'swarm_peers' || !payload.receipt?.receipt_id) return null;
+        || payload.tool_id !== toolId || !payload.receipt?.receipt_id) return null;
     let data = payload.result;
     for (let depth = 0; depth < 8 && data && typeof data === 'object'; depth += 1) {
       if (data.isError === true || data.success === false || data.ok === false) return null;
@@ -548,6 +621,19 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
       if (data.result && typeof data.result === 'object') { data = data.result; continue; }
       break;
     }
+    return data && typeof data === 'object' ? data : null;
+  }
+
+  function ownerProvenanceFresh(provenance, method) {
+    return Boolean(provenance) && provenance.owner === 'ipfs_kit_py' && provenance.sdk_method === method
+      && provenance.simulated === false && provenance.cache_fallback === false
+      && typeof provenance.observed_at === 'string' && Number.isFinite(Date.parse(provenance.observed_at))
+      && Math.abs(Date.now() - Date.parse(provenance.observed_at)) <= 120000;
+  }
+
+  async function ownerPeerObservation(payload) {
+    const data = unwrapOwnerJson(payload, 'swarm_peers');
+    if (!data) return null;
     const provenance = data?.native_provenance;
     const raw = data?.raw_observation;
     if (!raw || typeof raw !== 'object' || !Object.prototype.hasOwnProperty.call(raw, 'Peers')
@@ -564,10 +650,15 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
     if (!Array.isArray(data?.Peers) || data.Peers.length > 256 || data.peer_count !== data.Peers.length
         || provenance?.owner !== 'ipfs_kit_py' || provenance.sdk_method !== 'swarm_peers'
         || provenance.simulated !== false || provenance.cache_fallback !== false
-        || typeof provenance.observed_at !== 'string' || !Number.isFinite(Date.parse(provenance.observed_at))
-        || Math.abs(Date.now() - Date.parse(provenance.observed_at)) > 120000
+        || !ownerProvenanceFresh(provenance, 'swarm_peers')
         || data.Peers.some(peer => !peer || typeof peer.Peer !== 'string' || !/^[A-Za-z0-9]{16,128}$/.test(peer.Peer))) return null;
     return { Peers: data.Peers, peer_count: data.peer_count, peers_reported_null: data.peers_reported_null === true, observed_at: provenance.observed_at };
+  }
+
+  function ownerIdentityObservation(payload) {
+    const data = unwrapOwnerJson(payload, 'node_id');
+    if (!data || !ownerProvenanceFresh(data.native_provenance, 'node_id')) return '';
+    return typeof data.ID === 'string' && /^[A-Za-z0-9]{16,128}$/.test(data.ID) ? data.ID : '';
   }
 
   async function applyObservedPeers(payload) {
@@ -581,23 +672,90 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
     }));
     connectionStatus = peers.length > 0 ? 'connected' : 'empty';
     ownerPeerDetail = '';
-    retainedTransportFailure = '';
+    if (retainedTransportFailure) {
+      retainedTransportFailure = 'Transport was unavailable. No peers were invented. Reconnected on http and refreshed the owner.';
+    }
     return true;
+  }
+
+  function transportIsUnavailable() {
+    const transportInput = document.querySelector('#p2p-transport-input');
+    if (transportInput) selectedTransport = transportInput.value.trim();
+    const transport = selectedTransport;
+    return !transport || transport === 'offline' || transport.indexOf('offline') === 0;
+  }
+
+  function markTransportUnavailable() {
+    connectionStatus = 'unavailable';
+    ownerSwarmObservation = null;
+    ownerPeerDetail = 'Transport unavailable. Peer data is stale. No peers were invented. Select an available transport and refresh.';
+    retainedTransportFailure = 'Transport unavailable. No peers were invented.';
+    peers = livePeers();
+    swarmObservationSettled = false;
+    updateDisplays();
+    focusSwarmControl('#p2p-apply-transport');
+  }
+
+  function ownerInvoke(event, toolId, fallbackSelector) {
+    const invoke = typeof invokeNativeToolImport === 'function'
+      ? invokeNativeToolImport
+      : (typeof window !== 'undefined' && typeof window.invokeNativeTool === 'function'
+        ? window.invokeNativeTool
+        : null);
+    if (!invoke) return null;
+    const appRoot = document.querySelector('.window[data-app-id="p2p-network"] .window-app-content')
+      || document.querySelector('.p2p-network-app')
+      || document.body;
+    const rawTrigger = (event && (event.currentTarget || event.target)) || document.querySelector(fallbackSelector);
+    const triggerNode = rawTrigger && rawTrigger.nodeType === 1 ? rawTrigger : (rawTrigger && rawTrigger.parentElement) || null;
+    const trigger = (triggerNode && triggerNode.closest && triggerNode.closest('#p2p-refresh-swarm, #p2p-apply-transport'))
+      || document.querySelector('.window[data-app-id="p2p-network"] ' + fallbackSelector)
+      || document.querySelector(fallbackSelector);
+    return invoke(appRoot, 'p2p-network', 'p2p-network.ipfs_kit_py.inspect_peer_network', {
+      executionMode: 'execute',
+      toolId: toolId,
+      payload: {},
+      trigger: trigger
+    });
+  }
+
+  async function readOwnerIdentity(event) {
+    if (ownerSwarmRefreshInFlight) return;
+    if (transportIsUnavailable()) {
+      markTransportUnavailable();
+      return;
+    }
+    ownerSwarmRefreshInFlight = true;
+    try {
+      const payload = await ownerInvoke(event, 'node_id', '#p2p-apply-transport');
+      const identity = payload ? ownerIdentityObservation(payload) : '';
+      if (!identity) {
+        connectionStatus = 'unavailable';
+        ownerNodeId = '';
+        ownerPeerDetail = 'The owner node identity was missing. No peers were invented.';
+        retainedTransportFailure = ownerPeerDetail;
+      } else {
+        ownerNodeId = identity;
+        if (connectionStatus === 'unavailable' || connectionStatus === 'connecting' || connectionStatus === 'disconnected' || connectionStatus === 'empty') {
+          connectionStatus = 'identified';
+        }
+      }
+    } catch (error) {
+      connectionStatus = 'unavailable';
+      ownerNodeId = '';
+      ownerPeerDetail = 'Owner offline or transport unavailable. Peer data is stale. No peers were invented.';
+      retainedTransportFailure = ownerPeerDetail;
+    }
+    ownerSwarmRefreshInFlight = false;
+    updateDisplays();
+    revealSwarmFrame();
+    focusSwarmControl('#p2p-apply-transport');
   }
 
   async function refreshOwnerSwarm(event) {
     if (ownerSwarmRefreshInFlight) return;
-    const transportInput = document.querySelector('#p2p-transport-input');
-    if (transportInput) selectedTransport = transportInput.value.trim();
-    const transport = selectedTransport;
-    if (!transport || transport === 'offline' || transport.indexOf('offline') === 0) {
-      connectionStatus = 'unavailable';
-      ownerPeerDetail = 'Transport unavailable. Peer data is stale. No peers were invented. Select an available transport and refresh.';
-      retainedTransportFailure = ownerPeerDetail;
-      peers = livePeers();
-      swarmObservationSettled = true;
-      updateDisplays();
-      focusSwarmControl('#p2p-apply-transport');
+    if (transportIsUnavailable()) {
+      markTransportUnavailable();
       return;
     }
     connectionStatus = 'connecting';
@@ -607,36 +765,12 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
     updateDisplays();
     ownerSwarmRefreshInFlight = true;
     try {
-      const invoke = typeof invokeNativeToolImport === 'function'
-        ? invokeNativeToolImport
-        : (typeof window !== 'undefined' && typeof window.invokeNativeTool === 'function'
-          ? window.invokeNativeTool
-          : null);
-      if (invoke) {
-        const appRoot = document.querySelector('.window[data-app-id="p2p-network"] .window-app-content')
-          || document.querySelector('.p2p-network-app')
-          || document.body;
-        const rawTrigger = (event && (event.currentTarget || event.target)) || document.querySelector('#p2p-refresh-swarm');
-        const triggerNode = rawTrigger && rawTrigger.nodeType === 1 ? rawTrigger : (rawTrigger && rawTrigger.parentElement) || null;
-        const trigger = (triggerNode && triggerNode.closest && triggerNode.closest('#p2p-refresh-swarm, #p2p-apply-transport'))
-          || document.querySelector('.window[data-app-id="p2p-network"] #p2p-refresh-swarm')
-          || document.querySelector('#p2p-refresh-swarm');
-        const payload = await invoke(appRoot, 'p2p-network', 'p2p-network.ipfs_kit_py.inspect_peer_network', {
-          executionMode: 'execute',
-          toolId: 'swarm_peers',
-          payload: {},
-          trigger: trigger
-        });
-        if (!await applyObservedPeers(payload)) {
-          connectionStatus = 'unavailable';
-          ownerPeerDetail = 'The owner response did not include a peer list. Peer data is stale. No peers were invented.';
-          retainedTransportFailure = ownerPeerDetail;
-          peers = livePeers();
-        }
-      } else {
-        await refreshAdapterStatus();
+      const payload = await ownerInvoke(event, 'swarm_peers', '#p2p-refresh-swarm');
+      if (!payload || !await applyObservedPeers(payload)) {
+        connectionStatus = 'unavailable';
+        ownerPeerDetail = 'The owner response did not include a peer list. Peer data is stale. No peers were invented.';
+        retainedTransportFailure = ownerPeerDetail;
         peers = livePeers();
-        connectionStatus = peers.some(peer => peer.status === 'connected') ? 'connected' : 'disconnected';
       }
     } catch (error) {
       connectionStatus = 'unavailable';
@@ -648,8 +782,10 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
     swarmObservationSettled = true;
     updateDisplays();
     revealSwarmFrame();
-    focusSwarmControl(connectionStatus === 'unavailable' ? '#p2p-apply-transport' : '#p2p-refresh-swarm');
+    focusSwarmControl(connectionStatus === 'unavailable' ? '#p2p-apply-transport' : (retainedTransportFailure ? '#p2p-transport-input' : '#p2p-refresh-swarm'));
   }
+
+  window.p2pReadOwnerIdentity = readOwnerIdentity;
 
   function revealSwarmFrame(retry) {
     const frame = document.querySelector('.window[data-app-id="p2p-network"]');
@@ -723,7 +859,6 @@ import { invokeNativeTool as invokeNativeToolImport } from '../live-tool-gateway
         <summary>Network diagnostics</summary>
         ${renderLibp2pBrowserDefaultsPanel({ includeActions: true })}
       </details>
-      <button type="button" onclick="window.p2pNetworkApp?.connect()" class="action-btn">Connect to Network</button>
     `;
   }
 

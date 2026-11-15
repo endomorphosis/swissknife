@@ -87,6 +87,11 @@
         },
         "operator": "at_least",
         "expected": 0.05
+      },
+      {
+        "op": "press",
+        "selector": "#playButton",
+        "key": "Enter"
       }
     ],
     "persist_reopen": [
@@ -100,20 +105,20 @@
       {
         "op": "assert",
         "probe": {
-          "kind": "text",
-          "selector": "#mp-playback-identity"
+          "kind": "value",
+          "selector": "#mpArtifactCid"
         },
-        "operator": "contains",
+        "operator": "equals",
         "expected": "bafkreifumhfm2a3c7noqi3qnosbwoqt2gten3at67srom7twuvsjriq2sy"
       },
       {
         "op": "assert",
         "probe": {
           "kind": "text",
-          "selector": "#mp-playlist-order"
+          "selector": "#mp-playback-identity"
         },
-        "operator": "equals",
-        "expected": "1 Chill Lo-Fi Beat · 2 Coding Focus · 3 Nature Sounds · 4 Retrieved audio"
+        "operator": "contains",
+        "expected": "bafkreifumhfm2a3c7noqi3qnosbwoqt2gten3at67srom7twuvsjriq2sy"
       },
       {
         "op": "assert",

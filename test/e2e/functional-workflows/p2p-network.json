@@ -40,11 +40,15 @@
         "op": "assert",
         "requirement_id": "result_1",
         "probe": {
-          "kind": "text",
-          "selector": "#p2p-swarm-status"
+          "kind": "json_attribute",
+          "selector": "#p2p-swarm-status",
+          "attribute": "data-owner-states"
         },
         "operator": "equals",
-        "expected": "Empty swarm. No peers in the latest owner response."
+        "expected": {
+          "connected_peers": 0,
+          "swarm": "empty"
+        }
       }
     ],
     "persist_reopen": [
@@ -52,25 +56,45 @@
         "op": "reopen_app"
       },
       {
+        "op": "click",
+        "selector": "#p2p-apply-transport"
+      },
+      {
+        "op": "wait_for",
+        "selector": "[data-swarm-state-card=\"known\"].is-current",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
         "op": "press",
-        "selector": "#p2p-refresh-swarm",
-        "key": "Enter"
+        "selector": "#p2p-apply-transport",
+        "key": "Tab"
+      },
+      {
+        "op": "press",
+        "selector": "#p2p-apply-transport",
+        "key": "Shift+Tab"
+      },
+      {
+        "op": "assert",
+        "requirement_id": "persist_reopen",
+        "probe": {
+          "kind": "backend_result",
+          "binding_id": "p2p-network.ipfs_kit_py.inspect_peer_network",
+          "pointer": "/result/result/content/0/json/ID"
+        },
+        "operator": "equals",
+        "expected": "12D3KooWMD4WLAv4DhhEdb1SKVXhExTjcE7cmqu16gcyfqFAMgQK"
+      },
+      {
+        "op": "click",
+        "selector": "#p2p-refresh-swarm"
       },
       {
         "op": "wait_for",
         "selector": "#p2p-swarm-settled",
         "state": "visible",
         "timeout_ms": 15000
-      },
-      {
-        "op": "assert",
-        "requirement_id": "persist_reopen",
-        "probe": {
-          "kind": "text",
-          "selector": "#p2p-swarm-observation"
-        },
-        "operator": "contains",
-        "expected": "observed at "
       }
     ],
     "failure_recovery": [
@@ -110,16 +134,6 @@
       },
       {
         "op": "press",
-        "selector": "#p2p-refresh-swarm",
-        "key": "Tab"
-      },
-      {
-        "op": "press",
-        "selector": "#p2p-refresh-swarm",
-        "key": "Shift+Tab"
-      },
-      {
-        "op": "press",
         "selector": "#p2p-transport-input",
         "key": "Escape"
       },
@@ -127,11 +141,21 @@
         "op": "assert",
         "requirement_id": "failure_recovery",
         "probe": {
-          "kind": "text",
-          "selector": "#p2p-swarm-observation"
+          "kind": "backend_result",
+          "binding_id": "p2p-network.ipfs_kit_py.inspect_peer_network",
+          "pointer": "/result/result/content/0/json/native_provenance/observed_at"
         },
-        "operator": "contains",
-        "expected": "observed at "
+        "operator": "not_equals",
+        "expected": ""
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#p2p-transport-recovery"
+        },
+        "operator": "equals",
+        "expected": "Transport was unavailable. No peers were invented. Reconnected on http and refreshed the owner."
       }
     ]
   }

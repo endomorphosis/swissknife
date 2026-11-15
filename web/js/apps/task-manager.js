@@ -99,7 +99,7 @@ export class TaskManagerApp {
           .task-manager-container select:focus,
           .task-manager-container button:focus-visible,
           .task-manager-container input:focus-visible,
-          .task-manager-container select:focus-visible { outline: 3px solid #ffe08a; outline-offset: 2px; }
+          .task-manager-container select:focus-visible { outline: 3px solid #ffe08a !important; outline-offset: 2px !important; box-shadow: inset 0 0 0 3px #ffe08a !important; }
         </style>
         <div class="task-manager-header">
           <div class="header-tabs">
@@ -662,7 +662,12 @@ export class TaskManagerApp {
       : processes;
     const openNames = (this.processes || []).map((process) => process.name).filter(Boolean).sort();
     const closedNames = (this.lastClosedNames || []).filter((name) => !openNames.includes(name));
-    const summary = `${query ? `matching ${query}` : 'all desktop apps'} · open ${openNames.join(', ') || 'none'}${closedNames.length ? ` · closed ${closedNames.join(', ')}` : ''} · host CPU and memory n/a`;
+    const held = this.sourceState === 'stale';
+    const when = this.sourceObservedAt || 'pending';
+    const names = `open ${openNames.join(', ') || 'none'}${closedNames.length ? ` · closed ${closedNames.join(', ')}` : ''} · host CPU and memory n/a`;
+    const summary = held
+      ? `Held stale · last read ${when} · ${names}`
+      : `${query ? `matching ${query}` : 'all desktop apps'} · ${names} · read ${when}`;
     const summaryRow = () => {
       const tr = document.createElement('tr');
       const td = document.createElement('td');
@@ -680,7 +685,10 @@ export class TaskManagerApp {
       return;
     }
 
-    tbody.innerHTML = visible.map(process => `
+    tbody.innerHTML = visible.map(process => {
+      const shownStatus = held ? 'held' : process.status;
+      const dot = shownStatus === 'running' ? 'is-ok' : shownStatus === 'sleeping' || shownStatus === 'held' ? 'is-warn' : 'is-err';
+      return `
       <tr data-pid="${process.pid}">
         <td><input type="checkbox" class="process-checkbox" name="process-select" value="${process.pid}" aria-label="Select ${process.name}"></td>
         <td class="process-name">${process.name}</td>
@@ -688,14 +696,15 @@ export class TaskManagerApp {
         <td class="process-cpu">${process.cpu == null ? 'n/a' : process.cpu.toFixed(1) + '%'}</td>
         <td class="process-memory">${process.memory == null ? 'n/a' : process.memory.toFixed(1) + ' MB'}</td>
         <td class="process-status">
-          <span class="status-badge status-${process.status}"><span class="sk-status-dot ${process.status === 'running' ? 'is-ok' : process.status === 'sleeping' ? 'is-warn' : 'is-err'}"></span>${process.status}</span>
+          <span class="status-badge status-${shownStatus}"><span class="sk-status-dot ${dot}"></span>${shownStatus}</span>
         </td>
         <td class="process-actions">
           <button type="button" class="action-btn small" onclick="taskManager.viewProcessDetails(${process.pid})" title="Details" aria-label="Details for ${process.name}">Details</button>
           <button type="button" class="action-btn small danger" onclick="taskManager.killProcess(${process.pid})" title="End Task (closes window)" aria-label="End ${process.name}">End</button>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
     const { tr, td } = summaryRow();
     td.textContent = `Showing ${visible.length} · ${summary}`;
     tr.appendChild(td);
@@ -1225,6 +1234,57 @@ export class TaskManagerApp {
     if (filterSelect) {
       filterSelect.addEventListener('change', (e) => this.applyProcessFilter(e.target.value));
     }
+
+    const root = document.querySelector('.task-manager-container');
+    if (root && root.dataset.svfFocusKeys !== '1') {
+      root.dataset.svfFocusKeys = '1';
+      root.addEventListener('keydown', (event) => this.onTaskFocusKey(event));
+    }
+  }
+
+  taskFocusOrder() {
+    return ['process-search', 'process-filter', 'refresh-processes', 'open-second-app', 'close-open-app', 'pause-monitoring', 'kill-selected']
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+  }
+
+  markTaskFocus(target) {
+    const root = document.querySelector('.task-manager-container');
+    if (root) {
+      for (const node of root.querySelectorAll('[data-svf-focus-ring="true"]')) {
+        node.style.removeProperty('outline');
+        node.style.removeProperty('outline-offset');
+        node.style.removeProperty('box-shadow');
+        node.removeAttribute('data-svf-focus-ring');
+      }
+    }
+    if (!target || typeof target.focus !== 'function') return;
+    try {
+      target.focus({ preventScroll: true, focusVisible: true });
+    } catch (error) {
+      target.focus();
+    }
+    target.style.setProperty('outline', '3px solid #ffe08a', 'important');
+    target.style.setProperty('outline-offset', '2px', 'important');
+    target.style.setProperty('box-shadow', 'inset 0 0 0 3px #ffe08a', 'important');
+    target.setAttribute('data-svf-focus-ring', 'true');
+  }
+
+  onTaskFocusKey(event) {
+    if (!event || (event.key !== 'Tab' && event.key !== 'Escape')) return;
+    const order = this.taskFocusOrder();
+    const index = order.indexOf(document.activeElement);
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.markTaskFocus(document.getElementById('process-search'));
+      return;
+    }
+    if (index < 0) return;
+    const nextIndex = event.shiftKey ? index - 1 : index + 1;
+    if (nextIndex < 0 || nextIndex >= order.length) return;
+    event.preventDefault();
+    this.markTaskFocus(order[nextIndex]);
   }
 
   switchView(view) {
@@ -1264,6 +1324,7 @@ export class TaskManagerApp {
       this.sourceState = 'stale';
       if (!this.sourceObservedAt) this.sourceObservedAt = new Date().toISOString();
       this.updateSourceStatus();
+      this.displayProcesses(this.processes || []);
       if (btn) {
         btn.innerHTML = '▶️';
         btn.title = 'Resume Monitoring';

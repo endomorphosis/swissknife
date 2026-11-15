@@ -1123,8 +1123,14 @@ export class CalendarApp {
         }
         .calendar-shell .calendar-deleted-time,
         .calendar-shell .calendar-deleted-title {
-          text-decoration: line-through;
-          text-decoration-thickness: 2px;
+          text-decoration: none;
+        }
+        .calendar-shell .calendar-overlap-note {
+          display: block;
+          color: #1c2430 !important;
+          font-size: 0.75rem;
+          line-height: 1.3;
+          margin: 2px 0;
         }
         .calendar-shell .calendar-deleted-note {
           display: block !important;
@@ -1190,6 +1196,16 @@ export class CalendarApp {
     return `${this.formatLocalDate(date)} ${this.formatClock(date)}`;
   }
 
+  eventRange(event) {
+    return `${this.formatStamp(event.date)}–${event.endDate ? this.formatStamp(event.endDate) : this.formatEventTime(event)}`;
+  }
+
+  rangesOverlap(left, right) {
+    const leftEnd = left.endDate || left.date;
+    const rightEnd = right.endDate || right.date;
+    return left.date < rightEnd && right.date < leftEnd;
+  }
+
   parseLocalDate(value) {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
     if (!match) return new Date(value);
@@ -1199,6 +1215,13 @@ export class CalendarApp {
   selectedDayEvents() {
     return this.events.filter(event => event.date.toDateString() === this.selectedDate.toDateString())
       .sort((a, b) => a.date - b.date);
+  }
+
+  disposableRetentionPhrase() {
+    const titles = this.events.map(event => event.title);
+    if (titles.includes('SVF Disposable Standup')) return 'SVF Disposable Standup remains';
+    if (titles.includes('SVF Disposable Overlap Edited')) return 'SVF Disposable Overlap Edited remains';
+    return 'No saved disposable event remains';
   }
 
   buildLiveStatus() {
@@ -1212,7 +1235,7 @@ export class CalendarApp {
       : 'Overlaps: none';
     const removed = (this.deletedEvents || [])
       .filter(event => event.date.toDateString() === this.selectedDate.toDateString())
-      .map(event => `Deleted: ${event.title} | ${this.formatStamp(event.date)} | SVF Disposable Standup remains`);
+      .map(event => `Deleted: ${event.title} | ${this.formatStamp(event.date)} | ${this.disposableRetentionPhrase()}`);
     return `Selected date: ${this.formatLocalDate(this.selectedDate)}\n${lines.length ? lines.join('\n') : 'No events on this date'}\n${overlaps}${removed.length ? '\n' + removed.join('\n') : ''}`;
   }
 
@@ -1751,9 +1774,6 @@ export class CalendarApp {
       .filter(event => event.date.getFullYear() === this.currentDate.getFullYear() && event.date.getMonth() === this.currentDate.getMonth())
       .sort((a, b) => a.date - b.date);
 
-    const removedEvents = (this.deletedEvents || [])
-      .filter(event => event.date.getFullYear() === this.currentDate.getFullYear() && event.date.getMonth() === this.currentDate.getMonth())
-      .sort((a, b) => a.date - b.date);
     const cards = upcomingEvents.map(event => `
           <div class="agenda-event" style="border-left-color: ${this.categories[event.category].color}">
             <div class="event-time">${this.formatStamp(event.date)} — ${event.endDate ? this.formatStamp(event.endDate) : this.formatEventTime(event)}</div>
@@ -1763,20 +1783,9 @@ export class CalendarApp {
             <div class="event-description">${this.escapeHtml(event.description)}</div>
             ${event.location ? `<div class="event-location">📍 ${this.escapeHtml(event.location)}</div>` : ''}
           </div>`).join('');
-    const removedCards = removedEvents.map(event => {
-      const savedHere = event.id != null && event.id === this.lastSavedEventId;
-      return `
-          <div class="agenda-event calendar-deleted-event${savedHere ? ' calendar-saved-focus' : ''}"${savedHere ? ' tabindex="-1"' : ''}>
-            <div class="calendar-deleted-label">Deleted</div>
-            <div class="event-time calendar-deleted-time">${this.formatStamp(event.date)} — ${event.endDate ? this.formatStamp(event.endDate) : this.formatEventTime(event)}</div>
-            <div class="calendar-timezone">Timezone: ${this.escapeHtml(event.timezone || this.settings.timezone)}</div>
-            <div class="event-title calendar-deleted-title">${this.escapeHtml(event.title)}</div>
-            <div class="calendar-deleted-note">Removed. Not a live overlap. SVF Disposable Standup remains.</div>
-          </div>`;
-    }).join('');
     return `
       <div class="agenda-list">
-        ${cards || removedCards ? cards + removedCards : '<div class="agenda-event">No events in this month.</div>'}
+        ${cards || '<div class="agenda-event">No events in this month.</div>'}
       </div>
     `;
   }
@@ -1876,7 +1885,7 @@ export class CalendarApp {
     const shell = shells.at(-1);
     const button = shell?.querySelector('button[data-event-title="SVF Disposable Standup"]')
       || shell?.querySelector('.agenda-event:not(.calendar-deleted-event) .agenda-open');
-    button?.focus({ preventScroll: true });
+    button?.focus({ preventScroll: true, focusVisible: true });
   }
 
   revealDeletedAgendaCard() {
@@ -2114,6 +2123,7 @@ export class CalendarApp {
     // The rejected fields stay out of the hidden form. Cancel did not save them.
     if (document.querySelector('#eventForm')) this.clearEventForm();
     this.containCalendarFrame();
+    this.focusRetainedEvent();
   }
 
   populateEventForm(event) {
@@ -2239,7 +2249,7 @@ export class CalendarApp {
     this.saveVdaG035EvidenceToStorage();
     this.hideEventModal();
     this.updateView();
-    this.appendRecord(`Deleted ${doomed?.title || 'event'}. SVF Disposable Standup remains.`);
+    this.appendRecord(`Deleted ${doomed?.title || 'event'}. ${this.disposableRetentionPhrase()}.`);
     this.containCalendarFrame();
     this.focusRetainedEvent();
     requestAnimationFrame(() => {

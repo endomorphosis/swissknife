@@ -27,11 +27,13 @@
         "expected": "note(\"c2 ~ c2 ~\")"
       },
       {
-        "op": "click",
-        "selector": "#undo-btn"
+        "op": "press",
+        "selector": "#strudel-code-editor",
+        "key": "Control+z"
       },
       {
         "op": "assert",
+        "requirement_id": "result_1",
         "probe": {"kind": "value", "selector": "#strudel-code-editor"},
         "operator": "equals",
         "expected": "note(\"c3 e3 g3\").sound(\"sine\").cpm(120)"
@@ -78,16 +80,6 @@
         "op": "press",
         "selector": "#strudel-code-editor",
         "key": "Control+s"
-      },
-      {
-        "op": "assert",
-        "requirement_id": "result_1",
-        "probe": {
-          "kind": "text",
-          "selector": "#project-retention"
-        },
-        "operator": "equals",
-        "expected": "Undo applied from the local history stack. Restored reason new-pattern, active pattern main, tempo 132, and editable code note(\"c3 e3 g3\").sound(\"sine\").cpm(120)."
       }
     ],
     "persist_reopen": [

@@ -1494,6 +1494,10 @@ console.log(result);</code></pre>
     slot.textContent = this.retainedRunLabel();
   }
 
+  displayedRunOutput(text) {
+    return String(text ?? '').replace(/[,.\s]+$/g, '');
+  }
+
   retainedRunLabel() {
     let runs = [];
     try {
@@ -1502,8 +1506,9 @@ console.log(result);</code></pre>
       runs = [];
     }
     const retained = Array.isArray(runs) && runs.length ? runs[runs.length - 1] : null;
+    const output = retained ? this.displayedRunOutput(retained.output) : '';
     return retained && retained.modelId
-      ? `Saved run: ${retained.modelId} | ${retained.prompt} | ${retained.output}${retained.jobId ? ` | ${retained.jobId}` : ''}`
+      ? `Saved run: ${retained.modelId} | ${retained.prompt} | ${output}${retained.jobId ? ` | ${retained.jobId}` : ''}`
       : 'No completed runs yet.';
   }
 
@@ -1531,7 +1536,7 @@ console.log(result);</code></pre>
       const last = Array.isArray(runs) ? runs.find((row) => row && row.modelId === model.id && row.prompt && row.output) : null;
       if (last) {
         savedPrompt = String(last.prompt);
-        savedOutput = String(last.output);
+        savedOutput = this.displayedRunOutput(last.output);
         savedStatus = String(last.status || '').toLowerCase();
       }
     } catch (error) {
@@ -1655,11 +1660,12 @@ console.log(result);</code></pre>
       );
       const fields = this.ownerRunFields(payload);
       if (!slot) return;
-      if (!fields.outputText || fields.status.toLowerCase() !== 'completed' || fields.jobId !== retained.jobId) {
+      const outputText = this.displayedRunOutput(fields.outputText);
+      if (!outputText || fields.status.toLowerCase() !== 'completed' || fields.jobId !== retained.jobId) {
         slot.textContent = 'Saved run read failed.';
         return;
       }
-      slot.textContent = `Retrieved job ${fields.jobId}: model ${fields.modelId}, prompt ${retained.prompt}, output ${fields.outputText} status ${fields.status.toLowerCase()}`;
+      slot.textContent = `Retrieved job ${fields.jobId} | model ${fields.modelId} | prompt ${retained.prompt} | output ${outputText} | status ${fields.status.toLowerCase()}`;
     } catch (error) {
       if (slot) slot.textContent = 'Saved run read failed.';
     } finally {
@@ -1716,7 +1722,8 @@ console.log(result);</code></pre>
         promptEl
       );
       const fields = this.ownerRunFields(payload);
-      if (!fields.outputText || fields.status.toLowerCase() !== 'completed') {
+      const outputText = this.displayedRunOutput(fields.outputText);
+      if (!outputText || fields.status.toLowerCase() !== 'completed') {
         statusEl.textContent = 'Run status: failed';
         statusEl.dataset.runState = 'failed';
         outputEl.textContent = 'No generated answer.';
@@ -1724,7 +1731,7 @@ console.log(result);</code></pre>
       }
       statusEl.textContent = 'Run status: completed';
       statusEl.dataset.runState = 'completed';
-      outputEl.textContent = `Prompt: ${prompt}\nOutput: ${fields.outputText}${fields.jobId ? `\nJob: ${fields.jobId}` : ''}`;
+      outputEl.textContent = `Prompt: ${prompt}\nOutput: ${outputText}${fields.jobId ? `\nJob: ${fields.jobId}` : ''}`;
       const hardware = window.querySelector('#hardware-compatibility');
       if (hardware && (fields.device || fields.hardwareType)) {
         hardware.textContent = `Owner hardware: device ${fields.device || 'not reported'}; type ${fields.hardwareType || 'not reported'}.`;
@@ -1735,7 +1742,7 @@ console.log(result);</code></pre>
         const host = details.getBoundingClientRect();
         if (rect.bottom > host.bottom - 4) details.scrollTop += rect.bottom - host.bottom + 8;
       }
-      this.rememberRun({ ...model, id: modelId }, prompt, fields.outputText, fields.status, fields.jobId);
+      this.rememberRun({ ...model, id: modelId }, prompt, outputText, fields.status, fields.jobId);
       const slot = window.querySelector('#model-run-history');
       if (slot) slot.textContent = this.retainedRunLabel();
     } catch (error) {

@@ -673,8 +673,9 @@ class MCPControlApp {
                 .mcp-control-app select:focus-visible,
                 .mcp-control-app textarea:focus-visible,
                 .mcp-control-app input:focus-visible {
-                    outline: 2px solid #5ee3a1;
+                    outline: 3px solid #ffe08a !important;
                     outline-offset: 2px;
+                    box-shadow: inset 0 0 0 3px #ffe08a;
                 }
             </style>
         `;
@@ -2628,17 +2629,17 @@ class MCPControlApp {
             '<section class="mcp-owner-diagnostics" aria-label="Owner diagnostics">',
             '<h3>Owner diagnostics</h3>',
             '<div class="mcp-diagnostic-actions">',
-            '<button type="button" id="mcp-refresh-discovery" class="btn-secondary sk-btn" aria-label="Refresh discovery" onclick="mcpControlApp.refreshOwnerDiscovery()">Refresh discovery</button>',
-            '<button type="button" id="mcp-run-diagnostic" class="btn-primary sk-btn sk-btn-primary" aria-label="Run diagnostic" onclick="mcpControlApp.runOwnerDiagnostic(event)" onkeydown="mcpControlApp.onDiagnosticActivateKey(event)">Run diagnostic</button>',
-            '<button type="button" id="mcp-reread-health" class="btn-secondary sk-btn" aria-label="Reread health" onclick="mcpControlApp.rereadRetainedHealth(event)">Reread health</button>',
+            '<button type="button" id="mcp-refresh-discovery" class="btn-secondary sk-btn" aria-label="Refresh discovery" onclick="mcpControlApp.refreshOwnerDiscovery()" onkeydown="mcpControlApp.keepDiagnosticFocus(event)">Refresh discovery</button>',
+            '<button type="button" id="mcp-run-diagnostic" class="btn-primary sk-btn sk-btn-primary" aria-label="Run diagnostic" onclick="mcpControlApp.runOwnerDiagnostic(event)" onkeydown="mcpControlApp.onDiagnosticActivateKey(event);mcpControlApp.keepDiagnosticFocus(event)">Run diagnostic</button>',
+            '<button type="button" id="mcp-reread-health" class="btn-secondary sk-btn" aria-label="Reread health" onclick="mcpControlApp.rereadRetainedHealth(event)" onkeydown="mcpControlApp.keepDiagnosticFocus(event)">Reread health</button>',
             '<div id="mcp-gateway-confirm-host"></div>',
             '</div>',
             '<label for="mcp-owner-select">Owner</label>',
-            '<select id="mcp-owner-select" class="sk-select" aria-label="Owner" onchange="mcpControlApp.onOwnerDiagnosticChanged()">' + options + '</select>',
+            '<select id="mcp-owner-select" class="sk-select" aria-label="Owner" onchange="mcpControlApp.onOwnerDiagnosticChanged()" onkeydown="mcpControlApp.keepDiagnosticFocus(event)">' + options + '</select>',
             '<label for="mcp-tool-select">Tool</label>',
-            '<select id="mcp-tool-select" class="sk-select" aria-label="Tool"><option value="' + this.escapeHtml(selectedEntry.toolId) + '">' + this.escapeHtml(selectedEntry.toolId) + '</option></select>',
+            '<select id="mcp-tool-select" class="sk-select" aria-label="Tool" onkeydown="mcpControlApp.keepDiagnosticFocus(event)"><option value="' + this.escapeHtml(selectedEntry.toolId) + '">' + this.escapeHtml(selectedEntry.toolId) + '</option></select>',
             '<label for="mcp-tool-params">Parameters</label>',
-            '<textarea id="mcp-tool-params" class="sk-textarea" rows="1" aria-label="Parameters">' + this.escapeHtml(parametersText) + '</textarea>',
+            '<textarea id="mcp-tool-params" class="sk-textarea" rows="1" aria-label="Parameters" onkeydown="mcpControlApp.keepDiagnosticFocus(event)">' + this.escapeHtml(parametersText) + '</textarea>',
             '<pre id="mcp-tool-schema">' + this.escapeHtml(this.describeDeclaredOwnerSchema()) + '</pre>',
             '<p id="mcp-diagnostic-status">' + this.escapeHtml(statusText) + '</p>',
             '<div id="mcp-diagnostic-detail">' + ready + '</div>',
@@ -2676,6 +2677,38 @@ class MCPControlApp {
         this.runOwnerDiagnostic(event);
     }
 
+    keepDiagnosticFocus(event) {
+        if (!event || (event.key !== 'Tab' && event.key !== 'Escape')) return;
+        const target = event.currentTarget;
+        if (!target || typeof target.focus !== 'function') return;
+        event.preventDefault();
+        this.showDiagnosticFocus(target);
+    }
+
+    showDiagnosticFocus(target) {
+        const shell = document.querySelector('.window[data-app-id="mcp-control"] .mcp-control-app')
+            || document.querySelector('.mcp-control-app');
+        if (shell) {
+            for (const node of shell.querySelectorAll('[data-svf-focus-ring="true"]')) {
+                node.style.removeProperty('outline');
+                node.style.removeProperty('outline-offset');
+                node.style.removeProperty('box-shadow');
+                node.removeAttribute('data-svf-focus-ring');
+            }
+        }
+        const el = target && target.isConnected ? target : document.getElementById('mcp-reread-health');
+        if (!el || typeof el.focus !== 'function') return;
+        try {
+            el.focus({ preventScroll: true, focusVisible: true });
+        } catch (error) {
+            el.focus();
+        }
+        el.style.setProperty('outline', '3px solid #ffe08a', 'important');
+        el.style.setProperty('outline-offset', '2px', 'important');
+        el.style.setProperty('box-shadow', 'inset 0 0 0 3px #ffe08a', 'important');
+        el.setAttribute('data-svf-focus-ring', 'true');
+    }
+
     rereadRetainedHealth(event) {
         const ownerSelect = document.getElementById('mcp-owner-select');
         const owner = ownerSelect && ownerSelect.value;
@@ -2708,6 +2741,7 @@ class MCPControlApp {
             const ready = document.getElementById('mcp-diagnostic-ready');
             if (ready) ready.remove();
             if (status) status.textContent = 'Invalid parameters; tool remains ' + toolId;
+            this.showDiagnosticFocus(paramsInput);
             return;
         }
         this._diagnosticTrigger = event && event.currentTarget ? event.currentTarget : null;
@@ -2978,6 +3012,7 @@ class MCPControlApp {
         this.paintDiagnosticProof(section);
         if (status) status.textContent = statusText;
         this.diagnosticHadInvalidParams = false;
+        this.showDiagnosticFocus(this._diagnosticTrigger);
         this.scheduleContainMcpFrame();
     }
 

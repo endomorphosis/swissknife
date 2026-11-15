@@ -498,7 +498,7 @@
         </div>
         <div class="classic-proof">
           <p id="classic-reopen-summary">${escapeHtml(classicProject.trackName)} | ${classicProject.tempo} | ${escapeHtml(classicProject.instrument)}</p>
-          <p id="classic-transport-state">${classicPlayed && classicStopped ? 'Played and stopped' : 'Idle'}${classicEnterConfirmed ? '. Enter confirmed' : ''}</p>
+          <p id="classic-transport-state">${escapeHtml(classicTransportSentence())}</p>
           <p id="music-studio-workflow-status">${escapeHtml(classicProject.status)}</p>
           ${renderClassicWorkflowPanel()}
         </div>
@@ -1274,11 +1274,18 @@
     });
   }
 
+  function classicTransportSentence() {
+    if (classicPlayed && classicStopped && classicSaved && classicEnterConfirmed) {
+      return 'Played, stopped, and saved locally. Enter confirmed. No remote render.';
+    }
+    const motion = classicPlayed && classicStopped ? 'Played and stopped' : (classicPlayed ? 'Playing' : 'Idle');
+    return motion + (classicEnterConfirmed ? '. Enter confirmed' : '');
+  }
+
   function syncTransportState() {
     const transport = document.getElementById('classic-transport-state');
     if (!transport) return;
-    const motion = classicPlayed && classicStopped ? 'Played and stopped' : (classicPlayed ? 'Playing' : 'Idle');
-    transport.textContent = motion + (classicEnterConfirmed ? '. Enter confirmed' : '');
+    transport.textContent = classicTransportSentence();
   }
 
   function playClassic() {
@@ -1559,6 +1566,7 @@
       return null;
     }
     classicSaved = true;
+    syncTransportState();
     const status = document.getElementById('music-studio-workflow-status');
     if (status) status.textContent = 'Saved in this browser. No remote render.';
     return bundle;

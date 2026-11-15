@@ -328,7 +328,7 @@ class OpenRouterApp {
               .openrouter-app .or-modal #openrouter-credential-ref::placeholder{color:#6b7280 !important;opacity:1 !important;-webkit-text-fill-color:#6b7280 !important;font-style:italic !important}
               .openrouter-app .or-modal .help-text,.openrouter-app .or-modal .help-text a{color:#1a1a1a !important;opacity:1 !important}
               .openrouter-app .or-modal #openrouter-credential-ref:-webkit-autofill,.openrouter-app .or-modal #openrouter-credential-ref:-webkit-autofill:focus{-webkit-text-fill-color:#1a1a1a !important;-webkit-box-shadow:0 0 0 1000px #fff inset !important;caret-color:#1a1a1a !important}
-              .openrouter-app button:focus,.openrouter-app button:focus-visible,.openrouter-app input:focus,.openrouter-app input:focus-visible,.openrouter-app select:focus,.openrouter-app select:focus-visible,.openrouter-app textarea:focus,.openrouter-app textarea:focus-visible,.openrouter-app .tab-item:focus,.openrouter-app .tab-item:focus-visible,.openrouter-app .or-conversation:focus,.openrouter-app .or-conversation:focus-visible{outline:3px solid #0b57d0 !important;outline-offset:2px !important;box-shadow:0 0 0 3px #0b57d0 !important}
+              .openrouter-app button:focus,.openrouter-app button:focus-visible,.openrouter-app input:focus,.openrouter-app input:focus-visible,.openrouter-app select:focus,.openrouter-app select:focus-visible,.openrouter-app textarea:focus,.openrouter-app textarea:focus-visible,.openrouter-app .tab-item:focus,.openrouter-app .tab-item:focus-visible,.openrouter-app .or-conversation:focus,.openrouter-app .or-conversation:focus-visible{outline:3px solid #0b57d0 !important;outline-offset:2px !important;box-shadow:0 0 0 3px #0b57d0 !important}.openrouter-app input.or-conversation{display:block;width:100%;box-sizing:border-box;text-align:left;color:#e8eef7;background:#1b2430;border:1px solid #8aa0b8;border-radius:6px;padding:0.45rem 0.6rem;margin:0 0 0.35rem;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.openrouter-app .chat-layout{display:flex !important;align-items:flex-start;gap:12px}.openrouter-app .chat-sidebar{flex:0 0 200px;min-height:0 !important}.openrouter-app .chat-main{flex:1 1 auto;min-width:0;min-height:0 !important}.openrouter-app #send-btn{position:relative;margin:8px 0 16px}@media (max-width:700px){.openrouter-app .chat-layout{display:block !important}.openrouter-app .conversation-actions{display:none}.openrouter-app .messages-container{max-height:none;overflow:visible}.openrouter-app .message-input-area{margin:0}.openrouter-app #message-input{min-height:2rem;max-height:2.4rem}.openrouter-app #send-btn{margin:4px 0 8px}}
             </style>
             <!-- Header with Authentication -->
             <div class="or-header">
@@ -1320,8 +1320,17 @@ class OpenRouterApp {
     renderConversationItem(conv) {
         const title = String(conv.title ?? 'Conversation')
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const messages = conv.messages || [];
+        const stored = [...messages].reverse().find(message => message.role === 'user');
+        const assistant = [...messages].reverse().find(message => message.role === 'assistant');
+        const parts = [stored?.content || conv.title || 'Conversation'];
+        if (assistant?.content) parts.push(String(assistant.content));
+        const modelLabel = this.visibleModelLabel(conv.model);
+        if (modelLabel) parts.push(modelLabel);
+        const value = parts.join(' | ')
+            .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
         const active = this.currentConversation?.id === conv.id ? ' active' : '';
-        return `<button type="button" class="or-conversation${active}" data-conversation-id="${conv.id}" onclick="window.openRouterApp.openConversation('${conv.id}')">${title}</button>`;
+        return `<input type="text" readonly class="or-conversation${active}" data-conversation-id="${conv.id}" value="${value}" aria-label="Restored conversation ${title}" onclick="window.openRouterApp.openConversation('${conv.id}')">`;
     }
 
     openConversation(id) {

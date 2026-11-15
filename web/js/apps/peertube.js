@@ -135,6 +135,8 @@ export class PeerTubeApp {
     // Core state
     this.isInitialized = false;
     this.currentVideo = null;
+    this.lastFailedCid = null;
+    this.localCidRejected = false;
     this.isPlaying = false;
     this.currentTime = 0;
     this.duration = 0;
@@ -279,6 +281,7 @@ export class PeerTubeApp {
     this.bindPlaybackControls(container, container.querySelector('#video-element'));
     this.bindDesktopControls();
     await this.restorePlayback();
+    this.fitPlaybackWindow();
     
     console.log('✅ PeerTube interface created successfully');
   }
@@ -357,6 +360,12 @@ export class PeerTubeApp {
     this.bindPlaybackControls(this.container, saved.video);
     this.refreshWorkflowSection();
     this.setCidOpenStatus('Playback restored.');
+    if (saved.video.ended) {
+      const duration = saved.video.duration;
+      const target = Number.isFinite(duration) && duration > 0.8 ? 0.4 : 0;
+      try { saved.video.currentTime = target; } catch { /* the restored element cannot seek */ }
+      saved.video.pause();
+    }
     if (saved.wasPlaying) {
       await saved.video.play().catch(error => this.setCidOpenStatus(`Play blocked: ${error.message}`));
     }
@@ -378,17 +387,17 @@ export class PeerTubeApp {
       const ready = knownDuration && videoElement.readyState >= 2 && !videoElement.error;
       const player = container.querySelector('#video-player');
       if (event?.type === 'error') player?.classList.add('media-failed');
-      else if (event?.type === 'loadeddata' && ready) player?.classList.remove('media-failed');
+      else if (event?.type === 'loadeddata' && ready && this.localCidRejected !== true) player?.classList.remove('media-failed');
       if (play) {
         const playing = !videoElement.paused && !videoElement.ended;
         play.textContent = playing ? 'Pause' : 'Play';
         play.setAttribute('aria-label', `${playing ? 'Pause' : 'Play'} retrieved video`);
-        play.disabled = !ready;
+        play.disabled = !ready || this.localCidRejected === true;
       }
       if (clock) clock.textContent = `${formatPlaybackTime(current)} / ${formatPlaybackTime(duration)}`;
       if (seek) {
         seek.value = knownDuration && Number.isFinite(current) ? String(Math.max(0, Math.min(100, current / duration * 100))) : '0';
-        seek.disabled = !ready;
+        seek.disabled = !ready || this.localCidRejected === true;
         seek.setAttribute('aria-valuetext', knownDuration && Number.isFinite(current)
           ? `${formatPlaybackTime(current)} of ${formatPlaybackTime(duration)}` : 'Playback time unavailable');
       }
@@ -405,6 +414,7 @@ export class PeerTubeApp {
         if (active) this.setCidOpenStatus(`Play blocked: ${error.message}`);
       }
       update();
+      this.focusPlaybackControl(play);
     };
     const seekTo = () => {
       if (Number.isFinite(videoElement.duration) && videoElement.duration > 0 && Number.isFinite(Number(seek.value))) {
@@ -504,6 +514,7 @@ export class PeerTubeApp {
             <div class="cid-open-bar" aria-label="Open video by CID">
               <input type="text" id="cid-open-input" placeholder="Open a video by artifact CID (bafy…)" spellcheck="false" aria-label="Video artifact CID" aria-describedby="cid-open-status">
               <button id="cid-open-btn" data-native-gateway-binding="peertube.ipfs_kit_py.retrieve_content" data-native-tool-id="ipfs_cat" class="header-btn" aria-label="📥 Open by CID">📥 Open by CID</button>
+              <button type="button" id="peertube-reload-saved" class="header-btn" aria-label="Reload saved video">Reload saved</button>
               <span class="cid-open-note" id="cid-open-status" role="status">Enter an artifact CID. Playback stays in this window.</span>
             </div>
             <!-- Video Player (hidden initially) -->
@@ -686,9 +697,10 @@ export class PeerTubeApp {
   
   getCSS() {
     return `
-      .window[data-app-id="peertube"] .window-content { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding-bottom:64px; box-sizing:border-box; }
+      .window[data-app-id="peertube"] .window-content { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding-bottom:0; box-sizing:border-box; }
       .window[data-app-id="peertube"] .window-app-content { display:flex; flex-direction:column; flex:1 1 0px; min-height:0; min-width:0; overflow:hidden; padding-bottom:0; }
       .window[data-app-id="peertube"] .window-app-content > [id$="-content"] { display:flex; flex-direction:column; flex:1 1 0px; align-self:stretch; width:100%; min-height:0; min-width:0; overflow:hidden; }
+      .window[data-app-id="peertube"] .live-tool-gateway-host { flex:0 0 auto; min-height:0; max-height:2.75rem; overflow:auto; position:relative; z-index:6; }
       .window[data-app-id="peertube"] .peertube-container { flex:1 1 0px; height:auto; min-height:0; min-width:0; }
       .window[data-app-id="peertube"] .peertube-main { flex:1 1 0px; min-height:0; min-width:0; overflow:hidden; }
       .window[data-app-id="peertube"] .peertube-main > .content-area { min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; }
@@ -812,8 +824,8 @@ export class PeerTubeApp {
         max-height: 100%;
         min-height: 0;
         background: rgba(0, 0, 0, 0.2);
-        padding: 0.75rem 0.75rem 5.5rem;
-        overflow-y: scroll;
+        padding: 0.5rem 0.6rem;
+        overflow-y: auto;
         scrollbar-gutter: stable;
         flex-shrink: 0;
       }
@@ -953,10 +965,19 @@ export class PeerTubeApp {
       .window[data-app-id="peertube"] .video-player:not(.hidden) .player-container {
         flex: 0 0 auto;
         width: 100%;
-        height: auto;
-        min-height: 0;
-        max-height: min(46vh, 420px);
+        height: 140px;
+        min-height: 96px;
+        max-height: 140px;
+        aspect-ratio: auto;
       }
+      .window[data-app-id="peertube"] .video-player:not(.hidden) .video-info { margin-top: 0.35rem; }
+      .window[data-app-id="peertube"] .video-player:not(.hidden) .video-info h2 { font-size: 1.05rem; margin: 0 0 0.2rem; }
+      .window[data-app-id="peertube"] #video-desc { margin: 0; }
+      .window[data-app-id="peertube"] .nav-item { padding: 0.35rem 0.5rem; margin-bottom: 0.15rem; }
+      .window[data-app-id="peertube"] .category-item { padding: 0.22rem 0.45rem; margin-bottom: 0.05rem; }
+      .window[data-app-id="peertube"] .nav-section,
+      .window[data-app-id="peertube"] .categories-section,
+      .window[data-app-id="peertube"] .room-section { margin-bottom: 0.45rem; }
       
       .player-container {
         position: relative;
@@ -969,6 +990,7 @@ export class PeerTubeApp {
       .player-container video {
         width: 100%;
         height: 100%;
+        min-height: 96px;
         object-fit: contain;
       }
       
@@ -1220,6 +1242,17 @@ export class PeerTubeApp {
       .cid-playback-controls label { display:flex; flex:1 1 13rem; flex-wrap:wrap; align-items:center; gap:0.25rem; min-width:0; }
       .cid-playback-controls input[type="range"] { flex:1 1 8rem; width:100%; min-width:0; max-width:100%; }
       .cid-playback-controls output { flex:0 0 auto; white-space:nowrap; font-variant-numeric:tabular-nums; }
+      .window[data-app-id="peertube"] [data-cid-play]:focus,
+      .window[data-app-id="peertube"] [data-cid-play]:focus-visible {
+        outline: 3px solid #ffe08a;
+        outline-offset: 2px;
+        box-shadow: inset 0 0 0 3px #ffe08a;
+      }
+      .window[data-app-id="peertube"] #video-desc,
+      .window[data-app-id="peertube"] #video-views {
+        overflow-wrap: anywhere;
+        max-width: 100%;
+      }
 
       .video-real-meta {
         color: rgba(255, 255, 255, 0.65);
@@ -1651,16 +1684,17 @@ export class PeerTubeApp {
         .window[data-app-id="peertube"] .video-player:not(.hidden) .player-container {
           flex: 0 0 auto;
           width: 100%;
-          height: 22vh;
-          min-height: 112px;
-          max-height: 22vh;
+          height: 150px;
+          min-height: 120px;
+          max-height: 150px;
           aspect-ratio: auto;
         }
 
         .window[data-app-id="peertube"] .video-player:not(.hidden) .player-container video {
           width: 100%;
           height: 100%;
-          max-height: 22vh;
+          max-height: 150px;
+          min-height: 96px;
           object-fit: contain;
         }
 
@@ -1734,8 +1768,9 @@ export class PeerTubeApp {
         .window[data-app-id="peertube"] .peertube-main > .sidebar { display: none; order: 0; width: 100%; padding: 0.5rem 0.75rem; max-height: 10rem; overflow: auto; flex: 0 0 auto; }
         .window[data-app-id="peertube"] .navigation-open .peertube-main > .sidebar { display: block; }
         .window[data-app-id="peertube"] .peertube-main > .content-area { order: 0; flex: 1 1 0; min-height: 0; padding: 0.75rem; overflow: auto; }
-        .window[data-app-id="peertube"] .video-player:not(.hidden) .player-container { height: clamp(120px, 24vh, 200px); min-height: 120px; max-height: 200px; }
-        .window[data-app-id="peertube"] .video-player:not(.hidden) .player-container video { max-height: 200px; }
+        .window[data-app-id="peertube"] .video-player:not(.hidden) .player-container { height: 150px; min-height: 120px; max-height: 150px; }
+        .window[data-app-id="peertube"] .video-player:not(.hidden) .player-container video { max-height: 150px; }
+        .window[data-app-id="peertube"] .cid-open-bar input { font-size: 0.75rem; }
         .window[data-app-id="peertube"] .cid-playback-controls { z-index: auto; }
       }
 
@@ -1815,6 +1850,12 @@ export class PeerTubeApp {
     const cidOpenBtn = container.querySelector('#cid-open-btn');
     const openByCid = () => this.openVideoByCid(cidOpenInput?.value || '', cidOpenBtn);
     cidOpenBtn?.addEventListener('click', openByCid);
+    container.querySelector('#peertube-reload-saved')?.addEventListener('click', event => {
+      const savedCid = this.currentVideo?.cid
+        || Array.from(this.videoLibrary.values()).find(entry => typeof entry?.cid === 'string' && /^bafkrei[a-z2-7]{52}$/.test(entry.cid))?.cid
+        || '';
+      this.openVideoByCid(savedCid, event.currentTarget);
+    });
     cidOpenInput?.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') openByCid();
     });
@@ -2370,13 +2411,17 @@ export class PeerTubeApp {
    */
   async openVideoByCid(cid, trigger = null) {
     cid = String(cid || '').trim();
+    const container = this.container || document.querySelector('.peertube-container');
     if (!cid) {
       this.setCidOpenStatus('Enter an artifact CID first.');
       return;
     }
+    if (!/^bafkrei[a-z2-7]{52}$/.test(cid)) {
+      this.rejectUnaddressedCid(container, cid);
+      return;
+    }
     if (this.cidOpenPending) return;
     this.cidOpenPending = true;
-    const container = this.container || document.querySelector('.peertube-container');
     const prior = container?.querySelector('#video-element');
     if (prior) delete prior.dataset.decodedCid;
     const status = container?.querySelector('#cid-open-status');
@@ -2412,10 +2457,11 @@ export class PeerTubeApp {
       if (await contentCidForBytes(bytes) !== cid || artifact.cid !== cid) throw new Error('Source bytes do not match the requested CID.');
       const mime = guessVideoMime(artifact, bytes);
       const id = `cid-${cid.slice(0, 12)}`;
+      const sentence = this.playbackSentence(cid);
       const libraryEntry = {
         id,
         title: artifact.name || artifact.filename || 'Retrieved video',
-        description: 'Opened from the saved artifact.',
+        description: sentence,
         cid,
         size: bytes.length,
         mime,
@@ -2426,6 +2472,7 @@ export class PeerTubeApp {
         verified: true
       };
       this.vdaG036.missingInfo = 'No retrieval failures recorded.';
+      this.localCidRejected = false;
       this.lastFailedCid = null;
       const videoGrid = container.querySelector('#video-grid');
       const videoPlayer = container.querySelector('#video-player');
@@ -2437,9 +2484,9 @@ export class PeerTubeApp {
       const titleEl = container.querySelector('#video-title');
       if (titleEl) titleEl.textContent = openedTitle;
       const descEl = container.querySelector('#video-desc');
-      if (descEl) descEl.textContent = 'Opened from the saved artifact.';
+      if (descEl) descEl.textContent = sentence;
       const viewsEl = container.querySelector('#video-views');
-      if (viewsEl) viewsEl.textContent = 'Retrieved video ready';
+      if (viewsEl) viewsEl.textContent = sentence;
       const videoElement = container.querySelector('#video-element');
       if (!videoElement) throw new Error('The video player is unavailable.');
       if (videoElement) {
@@ -2457,6 +2504,7 @@ export class PeerTubeApp {
         videoElement.dataset.decodedCid = cid;
         videoPlayer?.classList.remove('media-failed');
         this.bindPlaybackControls(container, videoElement);
+        this.focusPlaybackControl(container.querySelector('[data-cid-play]'));
 
       }
       this.videoLibrary.set(id, libraryEntry);
@@ -2466,13 +2514,15 @@ export class PeerTubeApp {
       this.vdaG036.playbackInfo = `${bytes.length.toLocaleString()} bytes, verified=true, measured ${ms} ms — playback is local.`;
       this.appendWorkflowLog(`opened ${cid} by CID (${bytes.length.toLocaleString()} bytes, verified=true, ${ms} ms)`);
       if (status) status.dataset.retrievalState = 'decoded';
-      this.setCidOpenStatus(`Opened ${cid} (${ms} ms)`);
+      this.setCidOpenStatus(sentence);
+      this.fitPlaybackWindow();
       this.refreshWorkflowSection();
     } catch (error) {
       if (status) status.dataset.retrievalState = 'failed';
       const message = error instanceof Error ? error.message : String(error);
       this.vdaG036.missingInfo = `Retrieval failed for ${cid}: ${message}. Use “Retry missing” to try again.`;
       this.lastFailedCid = cid;
+      this.localCidRejected = true;
       this.appendWorkflowLog(`open-by-CID failed for ${cid}: ${message}`);
       this.setCidOpenStatus(`Open failed: ${message}`);
       container.querySelector('#video-player')?.classList.remove('hidden');
@@ -2628,6 +2678,65 @@ export class PeerTubeApp {
       overlay.addEventListener('click', (event) => { if (event.target === overlay) done(false); });
       document.body.appendChild(overlay);
     });
+  }
+
+  playbackSentence(cid) {
+    const recovery = this.lastFailedCid ? ' Recovered from an unavailable source.' : '';
+    return `Opened from the saved artifact. ${cid}.${recovery}`;
+  }
+
+  rejectUnaddressedCid(container, cid) {
+    this.lastFailedCid = cid;
+    const status = container?.querySelector('#cid-open-status');
+    if (status) status.dataset.retrievalState = 'failed';
+    const message = 'native cat requires a raw CIDv1 SHA-256 identifier';
+    this.vdaG036.missingInfo = `Retrieval failed for ${cid}: ${message}. Use “Retry missing” to try again.`;
+    this.appendWorkflowLog(`open-by-CID failed for ${cid}: ${message}`);
+    this.setCidOpenStatus(`Open failed: ${message}`);
+    const player = container?.querySelector('#video-player');
+    player?.classList.remove('hidden');
+  }
+
+  focusPlaybackControl(play) {
+    if (!play || typeof play.focus !== 'function') return;
+    try { play.focus({ preventScroll: true, focusVisible: true }); }
+    catch { try { play.focus({ preventScroll: true }); } catch { /* focus unavailable */ } }
+    play.style.setProperty('outline', '3px solid #ffe08a', 'important');
+    play.style.setProperty('outline-offset', '2px', 'important');
+    play.style.setProperty('box-shadow', 'inset 0 0 0 3px #ffe08a', 'important');
+  }
+
+  fitPlaybackWindow(retry) {
+    const frame = this.container?.closest?.('.window')
+      || document.querySelector('.window[data-app-id="peertube"]');
+    const view = frame?.ownerDocument?.defaultView;
+    if (!frame || !view) return;
+    const area = frame.querySelector('.content-area');
+    if (area) area.scrollTop = 0;
+    if ((view.innerWidth || 0) > 800) {
+      const doc = frame.ownerDocument;
+      const taskbar = doc.getElementById('taskbar');
+      const viewportHeight = doc.documentElement.clientHeight || view.innerHeight || 0;
+      const taskbarTop = taskbar?.getBoundingClientRect ? taskbar.getBoundingClientRect().top : viewportHeight;
+      const limit = Math.min(viewportHeight, Number.isFinite(taskbarTop) && taskbarTop > 80 ? taskbarTop : viewportHeight);
+      const frameTop = Math.max(0, frame.getBoundingClientRect().top);
+      const height = Math.max(320, Math.floor(limit - frameTop - 8));
+      frame.style.setProperty('height', `${height}px`, 'important');
+      frame.style.setProperty('max-height', `${height}px`, 'important');
+      frame.style.setProperty('overflow', 'hidden', 'important');
+      const header = frame.querySelector('.window-titlebar');
+      const headerHeight = header ? header.getBoundingClientRect().height : 32;
+      const inner = Math.max(240, height - headerHeight);
+      for (const el of [frame.querySelector('.window-content'), frame.querySelector('.window-app-content')]) {
+        if (!el) continue;
+        el.style.setProperty('height', `${inner}px`, 'important');
+        el.style.setProperty('max-height', `${inner}px`, 'important');
+        el.style.setProperty('overflow', 'hidden', 'important');
+      }
+    }
+    if (retry !== true && typeof view.requestAnimationFrame === 'function') {
+      view.requestAnimationFrame(() => this.fitPlaybackWindow(true));
+    }
   }
 
   setCidOpenStatus(text) {

@@ -57,6 +57,8 @@
       {"op": "wait_for", "selector": "#mcp-reread-health", "state": "visible", "timeout_ms": 10000},
       {"op": "click", "selector": "#mcp-reread-health"},
       {"op": "wait_for", "selector": "#mcp-retained-proof", "state": "visible", "timeout_ms": 15000},
+      {"op": "press", "selector": "#mcp-refresh-discovery", "key": "Tab"},
+      {"op": "press", "selector": "#mcp-run-diagnostic", "key": "Shift+Tab"},
       {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#mcp-retained-proof"}, "operator": "contains", "expected": "Retained ipfs_kit_py node_id receipt "}
     ],
     "failure_recovery": [
@@ -66,6 +68,7 @@
       {"op": "fill", "selector": "#mcp-tool-params", "value": "{}"},
       {"op": "click", "selector": "#mcp-reread-health"},
       {"op": "wait_for", "selector": "#mcp-diagnostic-ready", "state": "visible", "timeout_ms": 15000},
+      {"op": "press", "selector": "#mcp-reread-health", "key": "Escape"},
       {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#mcp-diagnostic-status"}, "operator": "contains", "expected": "Retry succeeded"}
     ]
   }

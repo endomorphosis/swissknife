@@ -63,7 +63,7 @@
       {
         "op": "press",
         "selector": "#code-editor",
-        "key": "End"
+        "key": "Enter"
       },
       {
         "op": "assert",
@@ -89,6 +89,16 @@
         "selector": "[data-workspace-outcome=\"executed\"]",
         "state": "visible",
         "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "#vibecode-open-file",
+        "key": "Tab"
+      },
+      {
+        "op": "press",
+        "selector": "#vibecode-open-file",
+        "key": "Shift+Tab"
       },
       {
         "op": "assert",
@@ -149,6 +159,11 @@
         "selector": "[data-workspace-outcome=\"executed\"]",
         "state": "visible",
         "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "#vibecode-open-file",
+        "key": "Escape"
       },
       {
         "op": "assert",

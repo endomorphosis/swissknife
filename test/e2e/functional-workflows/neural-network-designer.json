@@ -49,7 +49,7 @@
       "result_assertion": {
         "pointer": "/result/result/result/run_proof",
         "operator": "contains",
-        "expected": "layers nnd-in,nnd-hidden,nnd-out edges nnd-e1,nnd-e2 params 4,2,2"
+        "expected": "layers nnd-in,nnd-hidden,nnd-out edges nnd-e1,nnd-e2 params 4,2,2 "
       }
     }
   ],

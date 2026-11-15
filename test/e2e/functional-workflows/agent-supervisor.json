@@ -234,6 +234,16 @@
         "selector": "[data-tab=\"active\"]"
       },
       {
+        "op": "press",
+        "selector": "[data-tab=\"active\"]",
+        "key": "Tab"
+      },
+      {
+        "op": "press",
+        "selector": "[data-tab=\"dispatch\"]",
+        "key": "Shift+Tab"
+      },
+      {
         "op": "assert",
         "requirement_id": "persist_reopen",
         "probe": {
@@ -376,6 +386,11 @@
         "selector": "[data-native-b-complete=\"true\"]",
         "state": "visible",
         "timeout_ms": 15000
+      },
+      {
+        "op": "press",
+        "selector": "[data-tab=\"dispatch\"]",
+        "key": "Escape"
       },
       {
         "op": "assert",

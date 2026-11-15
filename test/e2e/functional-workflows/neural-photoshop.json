@@ -123,7 +123,7 @@
           "selector": "figure[data-saved-project-output] figcaption"
         },
         "operator": "contains",
-        "expected": "64×48"
+        "expected": "Saved PNG · 64×48 · 1552 bytes"
       },
       {
         "op": "assert",
@@ -158,6 +158,18 @@
       {
         "op": "wait_for",
         "selector": "#project-meta[data-project-width=\"64\"][data-project-height=\"48\"][data-layer-names=\"Background, Layer 2\"][data-edit-action=\"Brush stroke\"]",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "wait_for",
+        "selector": ".layer-item[data-layer-index=\"1\"] .layer-name",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "wait_for",
+        "selector": "#duplicate-layer-btn",
         "state": "visible",
         "timeout_ms": 15000
       },
@@ -245,7 +257,7 @@
         "checkpoint_id": "error_image_retained",
         "retained_from": {
           "primary_result": 17,
-          "persist_reopen": 6
+          "persist_reopen": 8
         },
         "probe": {
           "kind": "image_state",
@@ -282,6 +294,18 @@
         "timeout_ms": 15000
       },
       {
+        "op": "wait_for",
+        "selector": ".layer-item[data-layer-index=\"1\"] .layer-name",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
+        "op": "wait_for",
+        "selector": "#duplicate-layer-btn",
+        "state": "visible",
+        "timeout_ms": 15000
+      },
+      {
         "op": "assert",
         "requirement_id": "failure_recovery",
         "probe": {
@@ -297,7 +321,7 @@
         "checkpoint_id": "recovery_image_retained",
         "retained_from": {
           "primary_result": 17,
-          "persist_reopen": 6
+          "persist_reopen": 8
         },
         "probe": {
           "kind": "image_state",

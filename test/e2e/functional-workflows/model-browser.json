@@ -115,7 +115,16 @@
           "selector": "#model-run-retrieved"
         },
         "operator": "contains",
-        "expected": "model gpt2, prompt ping, output ping"
+        "expected": "model gpt2 | prompt ping | output ping | status completed"
+      },
+      {
+        "op": "assert",
+        "probe": {
+          "kind": "text",
+          "selector": "#model-run-history"
+        },
+        "operator": "contains",
+        "expected": "Saved run: gpt2 | ping | ping |"
       }
     ],
     "failure_recovery": [

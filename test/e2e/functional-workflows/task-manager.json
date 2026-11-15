@@ -22,14 +22,19 @@
       {"op": "wait_ms", "milliseconds": 500},
       {"op": "click", "selector": "#refresh-processes"},
       {"op": "wait_for", "selector": "#processes-list:has-text(\"closed Clock & Timers\")", "state": "visible", "timeout_ms": 15000},
+      {"op": "press", "selector": "#refresh-processes", "key": "Tab"},
+      {"op": "press", "selector": "#refresh-processes", "key": "Shift+Tab"},
       {"op": "assert", "requirement_id": "persist_reopen", "probe": {"kind": "text", "selector": "#processes-list"}, "operator": "contains", "expected": "Showing 1 · all desktop apps · open Task Manager · closed Clock & Timers · host CPU and memory n/a"},
       {"op": "assert", "probe": {"kind": "text", "selector": "#task-source-status"}, "operator": "contains", "expected": "current"}
     ],
     "failure_recovery": [
       {"op": "click", "selector": "#pause-monitoring"},
       {"op": "assert", "checkpoint_id": "error_observed", "probe": {"kind": "text", "selector": "#task-source-status"}, "operator": "contains", "expected": "stale"},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#processes-list"}, "operator": "contains", "expected": "Held stale"},
       {"op": "click", "selector": "#refresh-processes"},
-      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#task-source-status"}, "operator": "contains", "expected": "current"}
+      {"op": "press", "selector": "#refresh-processes", "key": "Escape"},
+      {"op": "assert", "requirement_id": "failure_recovery", "probe": {"kind": "text", "selector": "#processes-list"}, "operator": "contains", "expected": "Showing 1 · all desktop apps · open Task Manager · closed Clock & Timers · host CPU and memory n/a · read "},
+      {"op": "assert", "probe": {"kind": "text", "selector": "#task-source-status"}, "operator": "contains", "expected": "current"}
     ]
   }
 }
