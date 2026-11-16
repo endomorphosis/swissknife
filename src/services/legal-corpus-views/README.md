@@ -2,7 +2,7 @@
 
 View schema ids below are copied from this package. Place is explicit. GEOIP is absent from the contract fields. This note does not edit `docs/worldwide/supervisor-operations.md`. It does not claim that GitHub Pages is deployed. `tsc`, Jest, and Playwright were not run for this note.
 
-SwissKnife `HEAD` is `e502c79de6d367ca2a04e436e6f59c107c4ffe81`. `src/services/legal-corpus-views/` is untracked at that revision. The strings below were read from the TypeScript in this directory.
+`src/services/legal-corpus-views/` is in this tree. The strings below were read from the TypeScript in this directory. The view ids are `worldwide-legal-search.law-source@1`, `worldwide-legal-search.caselaw-view@1`, `worldwide-legal-search.regulation-view@1`, `worldwide-legal-search.legislative-act-view@1`, `worldwide-legal-search.court-view@1`, and `worldwide-legal-search.municipal-instrument-view@1`.
 
 ## Place
 

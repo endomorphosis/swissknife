@@ -76,3 +76,6 @@ export {
   MUNICIPAL_SOURCE_SCHEMA_FILE,
   municipalInstrumentView,
 } from './municipal-instrument.js';
+
+export { selectInstrumentView } from './select.js';
+export type { InstrumentClaim, SelectedInstrumentView } from './select.js';

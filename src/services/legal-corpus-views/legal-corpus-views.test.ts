@@ -34,6 +34,7 @@ import {
   instrumentViewContract,
   kindVersionForView,
   lawView,
+  selectInstrumentView,
 } from './index.js';
 
 const PACKAGE_DIR = dirname(fileURLToPath(import.meta.url));
@@ -151,6 +152,56 @@ describe('legal corpus views', () => {
       () => kindVersionForView(LAW_SECTION_SCHEMA_ID),
       UnknownInstrumentVersionError,
     );
+  });
+
+  it('selects a view only for an interface and source schema the package already names', () => {
+    function expectPair(interfaceId: string, sourceSchemaId: string, viewId: string, row: Record<string, unknown>) {
+      const selected = selectInstrumentView({ interfaceId, sourceSchemaId, row });
+      assert.equal(selected?.viewId, viewId);
+      assert.equal(selected?.kindVersion.startsWith('legal-corpus.'), true);
+      assert.equal(selected?.sourceSchemaId, sourceSchemaId);
+    }
+    expectPair('legal-corpus.law@1', 'country-laws-ir-graphrag/v1', 'worldwide-legal-search.law-source@1', {
+      id: 'law-1', title: 'Statute', text: 'Body',
+    });
+    expectPair('legal-corpus.caselaw@1', 'unversioned', 'worldwide-legal-search.caselaw-view@1', {
+      source_schema_id: 'unversioned', text: 'Body',
+    });
+    expectPair('legal-corpus.regulation@1', 'cfr-annual-processor-v1', 'worldwide-legal-search.regulation-view@1', {
+      schema_version: 'cfr-annual-processor-v1',
+    });
+    expectPair('legal-corpus.legislative-act@1', 'public-law-change-processor-v1', 'worldwide-legal-search.legislative-act-view@1', {
+      schema_version: 'public-law-change-processor-v1',
+    });
+    expectPair('legal-corpus.court@1', 'unversioned', 'worldwide-legal-search.court-view@1', {
+      court_id: 'example-court',
+    });
+    expectPair('legal-corpus.municipal-instrument@1', 'world_municipal/schema.py', 'worldwide-legal-search.municipal-instrument-view@1', {
+      title: '',
+    });
+    assert.equal(selectInstrumentView({}), null);
+    assert.equal(selectInstrumentView({
+      interfaceId: 'legal-corpus.caselaw@1',
+      sourceSchemaId: 'country-laws-ir-graphrag/v1',
+      row: { text: 'Body' },
+    }), null);
+    assert.equal(selectInstrumentView({
+      interfaceId: 'legal-corpus.municipal-instrument@1',
+      sourceSchemaId: 'worldwide-legal-search.law-source@1',
+      row: { title: null },
+    }), null);
+    assert.equal(selectInstrumentView({
+      interfaceId: 'legal-corpus.municipal-instrument@1',
+      sourceSchemaId: 'world_municipal/schema.py',
+      row: { title: null },
+    }), null);
+    for (const token of ['decision', 'regulation']) {
+      assert.equal(selectInstrumentView({
+        interfaceId: token,
+        sourceSchemaId: 'cfr-annual-processor-v1',
+        row: { schema_version: 'cfr-annual-processor-v1' },
+      }), null);
+    }
   });
 
   it('keeps place as an argument and does not carry a network address', () => {
